@@ -74,3 +74,4 @@ The dispatcher is pinned. After start_session and detach_session, file each card
 ## Hand-over log
 
 - Tue 17 Nov 2026, 11:52 Eastern: drafted by the setup session. No dispatcher started yet.
+- Tue 17 Nov 2026, 12:01 Eastern: **dispatcher #1** started, id `local_15d323e2-b845-4337-9f74-b894bdc51e69` (Opus, high).
