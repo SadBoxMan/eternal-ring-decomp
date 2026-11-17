@@ -47,6 +47,15 @@ layer DVD). Root: `SLUS_200.15` (2,485,924, the main EE ELF), `IOPRP165.IMG` (98
 `IOP/` and `VOICE/` folders, `ERDATA.BIN` (432,832,512, likely the main data archive: Unconfirmed), six `.PSS` movies
 (AGETEC, EROPEN, ERDEMO, TEXT0, TEXT1, STAFF), `DUMMY.OUT` (1 GiB, likely layout padding: Unconfirmed).
 
+## Watch: when can the PC port be built? (LuciDin, 17 Nov 2026)
+
+In Twinblade the PC port built not long after the decomp began, so the dispatcher checks after every completed
+card whether a first PC build is now possible and says so to LuciDin. Tracker milestone `ms10`. What it needs:
+(1) a recompiler that handles the ELF (ER-008 spike: PS2Recomp or our own); (2) SCE library entry points caught
+and stubbed (HLE), using the census's SDK boundaries (ER-004); (3) a minimal runtime: memory map, syscalls,
+a video path for the GS. It does not wait on Phase 1 matching; matched C is swapped in later (hybrid build).
+Status: not yet possible (no recompiler result yet; ER-008 waits for LuciDin's click).
+
 ## Queue (the dispatcher turns these into cards; first ones need the answers above)
 
 | Code | Task | Needs | Waits on |

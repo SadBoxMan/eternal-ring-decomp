@@ -40,6 +40,9 @@ handoff note in one small commit, and offer the next card. Keep turns short.
   uncommitted work.
 - **Windows paths in scripts.** Write them as Python raw strings (`r"C:\rs\..."`): plain strings turned `\r` / `\t`
   into control characters in `docs/handoff.md` twice on 17 Nov 2026. Check with `grep -P '[\x00-\x08\x0b-\x1f]'`.
+- **PC port watch.** After every completed card, check the "Watch: when can the PC port be built?" section of
+  `docs/handoff.md` and tracker milestone `ms10`; update its status line and tell LuciDin as soon as a first PC
+  build becomes possible (LuciDin, 17 Nov 2026).
 - **Usage records.** One row per session in `docs/usage_log.md` from each completion message; LuciDin uses the log
   to teach others about cost, so keep it complete.
 

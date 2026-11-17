@@ -293,6 +293,15 @@
       "status": "Complete",
       "by": "ER-006",
       "notes": "This tracker (docs/tracker.md)."
+    },
+    {
+      "id": "ms10",
+      "phase": "Recomp / port",
+      "track": "port",
+      "status": "Not started",
+      "by": "",
+      "text": "First PC build: recompiled EE code + HLE stubs compiles to a Windows exe and boots",
+      "notes": "Watched by the dispatcher after every card (LuciDin, 17 Nov 2026; in Twinblade the port built soon after the decomp began). Needs: a recompiler that handles the ELF (ER-008 spike), SCE library entry points caught (HLE stubs), a minimal runtime (memory, syscalls, a GS/video path). Not tied to Phase 1 progress."
     }
   ],
   "tasks": [
