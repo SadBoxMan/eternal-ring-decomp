@@ -245,9 +245,9 @@
       "phase": "Phase 0",
       "text": "Toolchain named and running natively on Windows",
       "track": "decomp",
-      "status": "In progress",
+      "status": "Complete",
       "by": "ER-002",
-      "notes": "Compiler named and runs natively (ER-002); assembler / linker still to build (ER-011)"
+      "notes": "Compiler (ER-002) and as / ld / objdump (ER-011) run natively on Windows; first 3 functions byte-identical. VU assembler ee-dvp-as not built."
     },
     {
       "id": "ms5",
@@ -389,11 +389,11 @@
     {
       "code": "ER-011",
       "title": "EE binutils on Windows; byte-compare 3 functions",
-      "status": "In progress",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": "Build gas / ld from the Cygnus tree under MSYS2; decompals v0.10 prebuilt only with LuciDin's yes"
+      "notes": "a90158c: EE binutils 2.9-ee-991111 built natively (C:\\rs\\toolchain\\ee-binutils-2.9-991111); 3 test functions byte-identical (33 words); decomp_recipes.md started"
     }
   ]
 }
