@@ -311,6 +311,27 @@ Leftovers in `C:\rs\toolchain` from failed tries (safe to delete, LuciDin's call
   let the driver call `as` through `-B`).
   Keep toolchain paths short and without spaces (`C:\rs\...`).
 
+### 6.1 Result (ER-003, Tue 17 Nov 2026)
+
+**Done: the whole ELF rebuilds byte-identical** (SHA-1 `6087A8CA...`, all 2,485,924 bytes: ELF and program
+headers, the load image, `.reginfo`, the DVP sections, `.shstrtab` and the section header table), with every
+function as INCLUDE_ASM (127 empty ones already in C). How: `docs/build.md`. What the list above turned into:
+
+| Item | Outcome |
+|---|---|
+| splat `platform: ps2`, `compiler: EEGCC`, vram = file offset + `0xFF000` | Used as planned (splat 0.50.1); input is the PT_LOAD bytes (`tools/extract_rom.py`), as splat's own `create_config` does for PS2 ELFs |
+| Linker script (`app.cmd` form) | Rebuilt by `tools/gen_ld.py`: every section 128-aligned except the VU ones, `_gp = ALIGN(128) + 0x7FF0` before `.lit4`; all addresses come out exactly. That this is SCE's own `app.cmd` text is still Unconfirmed; it is one that gives the same output with this `ee-ld` |
+| `.reginfo` mask = crt0's registers only | **Explained (Confirmed in the bfd source)**: bfd marks `.reginfo` `SEC_LINK_ONCE` / `SEC_LINK_DUPLICATES_SAME_SIZE`, so `ld` keeps the first object's copy and drops the rest; crt0 was first on SCE's link line. `ri_gp_value` is filled in by `ld` |
+| DVP overlay sections | `ee-ld` reproduces them (types by name, `sh_link`, entsize, addresses) from objects holding their bytes; the bytes come from the original ELF (`tools/gen_elf_extras.py`), since `ee-dvp-as` is not built |
+| Empty `.vutext` / `.vubss`; section alignments (`.text` 64, `.data` / `.bss` 128, `.vudata` / `.rodata` / `.sdata` / `.sbss` 16) | Reproduced by `src/elf_layout.s` (empty input sections). Which original objects asked for those alignments is not known |
+| MMI and VU0 macro opcodes | spimdisasm 1.42.4 / rabbitizer 1.16.2 write them in a form `ee-as` assembles byte-identically (the whole `.text` matches). 490 words in `.text` are written as `.word` (6 flagged invalid); 3 whole blocks are labelled as data: `func_001D73D0`, `func_001D7658`, `func_001DECA0` (COP2 / VU0-style words; what they are is ER-004's) |
+| crt0 | Kept as asm (`asm/text_00100000.s`); spimdisasm splits it into 4 symbols (`func_00100000` = the two leading `nop`s, `func_00100008` = entry, `func_001000B0` = the tail after `main` returns, `func_001000B8` = the ExitThread stub) |
+| Link order: game first, SDK last | Not split yet: `.text` after crt0 is one C file (`src/text_001000C0.c`); the game / SDK boundary and file split are ER-004's |
+
+Assembler limits found on the way (each fixed in the build; `docs/decomp_recipes.md` 1.3): numeric register
+names only; no `%gp_rel` (gp-relative macros plus `.extern` size hints instead); no `.aent`; no `.incbin`;
+denormal `.float` values misread.
+
 ## 7. Not verified, Unconfirmed and Unofficial items
 
 Not verified:
@@ -319,17 +340,19 @@ Not verified:
   the same code. Larger functions in ER-003 / ER-004 will tell.
 - That this LP64 MSYS2 host build generates the same code as SCE's own (32-bit host) 2.9-ee-991111 in every case.
   Old GCCs have occasionally differed between 32- and 64-bit host builds.
-- Byte-level output beyond the **three test functions** (33 words; ER-011 section 4.3). No function with `.lit4`
-  float constants, `%hi` / `%lo` pairs, branches, MMI or VU0 macro opcodes has been assembled and compared yet;
-  ER-003's split and first matches will test those.
+- Byte-level **compiler** output beyond the three test functions (33 words; ER-011 section 4.3) and the 127 empty
+  functions ER-003 builds from C. The **assembler and linker** side is now shown for the whole ELF (ER-003, 6.1):
+  every instruction form in the game, MMI and VU0 macro opcodes included, reassembles byte-identically; C
+  functions with `.lit4` constants, `%hi` / `%lo` pairs and branches still wait for the first real matches.
 - The gp offsets of the two variables in `func_001257E8` (masked; not checkable without the variables' addresses).
 - That the LP64 MSYS2 host build of the binutils encodes everything as SCE's own `ee-as` / `ee-ld` did (fits the 33
   words; old binutils on 64-bit hosts have had host-width bugs).
-- Whether `ee-ld` reproduces the game's `.reginfo`, DVP overlay sections and section header table (ER-003).
+- ~~Whether `ee-ld` reproduces the game's `.reginfo`, DVP overlay sections and section header table~~: it does
+  (ER-003, 6.1).
 - `ee-dvp-as` (VU assembler) is not built.
 - That the linker script is SCE's own `app.cmd` file, and that crt0 is byte-identical to an SDK `crt0.s`.
 - What `func_001D03E0` and `func_001CFD80` are (`_InitSys` and `Exit` are guesses).
-- Why `.reginfo` `ri_gprmask` holds only crt0's registers.
+- ~~Why `.reginfo` `ri_gprmask` holds only crt0's registers~~: link-once `.reginfo`, crt0 linked first (ER-003, 6.1).
 - Whether `ERDATA.BIN` holds compressed code.
 - The four-digit `PsII` tags = runtime library release numbers.
 
@@ -341,7 +364,7 @@ Unofficial labels: the test-function names `wrap_12f7e0`, `update_1257e8`, `pack
 
 ## Appendix A: `C:\rs\toolchain\build_ee_gcc.sh`
 
-Kept here because `C:\rs` is not backed up. Script SHA-1 `3A25FECA3644A0212BDEEC566A0DF6EC1FCE1A05`.
+Now also in the repo as `tools/toolchain/build_ee_gcc.sh` (ER-003; same SHA-1; `docs/build.md` 2). Kept here because `C:\rs` is not backed up. Script SHA-1 `3A25FECA3644A0212BDEEC566A0DF6EC1FCE1A05`.
 
 ```bash
 #!/bin/bash
@@ -440,7 +463,7 @@ echo "Done: $OUT"
 
 ## Appendix B: `C:\rs\toolchain\build_ee_binutils.sh` (ER-011)
 
-Kept here because `C:\rs` is not backed up. Script SHA-1 `C0E8DF1E4472A63E2C41926F25A7FBD8997E2B73`.
+Now also in the repo as `tools/toolchain/build_ee_binutils.sh` (ER-003; same SHA-1; `docs/build.md` 2). Kept here because `C:\rs` is not backed up. Script SHA-1 `C0E8DF1E4472A63E2C41926F25A7FBD8997E2B73`.
 
 ```bash
 #!/bin/bash

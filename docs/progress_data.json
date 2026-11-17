@@ -11,21 +11,21 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 0,
-          "total": null,
+          "done": 127,
+          "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
-          "notes": "Total not measured yet."
+          "notes": "Matched = C placed in src/ and proven by the byte-identical build (make regress: whole-ELF SHA-1 + func_check, nothing masked); goal: true 100% (every function in C, NON_MATCHING 0), LuciDin 17 Nov 2026. Done 127 = empty functions splat wrote as C. Total 3,609 = the 3,606 function symbols func_check counts (4 crt0, 3,475 INCLUDE_ASM, 127 C) + 3 INCLUDE_ASM blocks splat labels as data (func_001D73D0, func_001D7658, func_001DECA0, COP2/VU0-style words), which func_check does not count but still need C. ER-004 may revise."
         },
         {
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 0,
-          "total": null,
+          "done": 1016,
+          "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
-          "notes": "Total not measured yet (.text size comes with the split)."
+          "notes": "ER-003: .text 0xF0354 bytes; done = the 127 empty C functions (8 bytes each)."
         },
         {
           "id": "m-dec-sdk",
@@ -254,18 +254,18 @@
       "phase": "Phase 0",
       "text": "splat split building byte-identical (SHA-1 check)",
       "track": "decomp",
-      "status": "Not started",
+      "status": "Complete",
       "by": "ER-003",
-      "notes": "ER-003; toolchain ready (ER-002, ER-011)"
+      "notes": "ER-003, 17 Nov 2026: whole-file SHA-1 match (headers and non-load sections included)"
     },
     {
       "id": "ms6",
       "phase": "Phase 0",
       "text": "Regression gate (make regress)",
       "track": "decomp",
-      "status": "Not started",
+      "status": "Complete",
       "by": "ER-003",
-      "notes": "ER-003; toolchain ready (ER-002, ER-011)"
+      "notes": "ER-003, 17 Nov 2026: make regress = clean split + build + SHA-1 + per-function check; pre-commit hook"
     },
     {
       "id": "ms7",
@@ -317,11 +317,11 @@
     {
       "code": "ER-003",
       "title": "Byte-identical split, Makefile, regression gate",
-      "status": "In progress",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": "Unblocked 17 Nov 2026 by ER-011 (toolchain byte-checked); also moves build scripts and er011_compare.py into tools/toolchain/"
+      "notes": "Done Tue 17 Nov 2026: whole ELF byte-identical (SHA-1 6087A8CA...), make regress green (about 30 s), pre-commit gate; docs/build.md. Commits 542ed01 (build) and the docs commit."
     },
     {
       "code": "ER-004",
