@@ -23,7 +23,7 @@ Written Tue 17 Nov 2026, 11:52 Eastern, by the setup session.
 
 ## Decided (LuciDin, Tue 17 Nov 2026)
 
-- Task codes: **ER-NNN** (session title prefix, brief, commits; next free: ER-007).
+- Task codes: **ER-NNN** (session title prefix, brief, commits; next free: ER-009).
 - Disc: **NTSC-U (US)** only; it is the matching target.
 - Sidebar: dispatcher pinned in "Project Ringsmith"; cards in "Ringsmith Decomp", "Ringsmith Recomp / PC Port",
   "Ringsmith Misc".
@@ -48,8 +48,10 @@ layer DVD). Root: `SLUS_200.15` (2,485,924, the main EE ELF), `IOPRP165.IMG` (98
 | Code | Task | Needs | Waits on |
 |---|---|---|---|
 | ER-001 | Disc intake: dump the US disc in D: to an ISO (2048-byte sectors, whole volume; read errors logged, retried), hash it (CRC32 / MD5 / SHA-1) and check against redump's SLUS-20015 entry (LuciDin supplies the page if the site blocks fetching), extract the filesystem to `disc/` (gitignored), list every ELF / IRX / data archive with sizes and hashes, read SYSTEM.CNF, write `docs/disc_layout.md` | Sonnet, medium | nothing: disc is in D: |
-| ER-002 | Toolchain identification: read the main ELF (sections, `.comment`, `.mwcats`, symbol remnants, SDK library version strings), name the compiler (ee-gcc 2.9x / SN / Metrowerks) and SDK version, find a matching compiler build that runs natively on Windows, write `docs/toolchain.md` | Opus, high | ER-001 |
+| ER-002 | Toolchain identification: read the main ELF (sections, `.comment`, `.mwcats`, symbol remnants, SDK library version strings), name the compiler (ee-gcc 2.9x / SN / Metrowerks) and SDK version, find a matching compiler build that runs natively on Windows, write `docs/toolchain.md` ER-005 found no Windows-native ee-gcc path (all PS2 decomp setups assume Linux / WSL / Docker / Wine, which are off here); SSX Tricky's ee-gcc 2.9-ee-991111-01 is a lead (`docs/research.md`). Try an MSYS2 build of the GPL ee-gcc sources; if that fails, ask LuciDin for a ruling before going further | Opus, high | ER-001 |
 | ER-003 | Byte-identical split: git init, splat yaml for the main ELF (and any overlays), Makefile, all functions as INCLUDE_ASM, SHA-1 check, regression gate (`make regress`) from day one | Opus, high | ER-002 |
 | ER-004 | Census: every function, shape hashes by size band, SDK library functions told apart from game code, clone families; cost estimate for Phase 1 | Opus, medium | ER-003 |
 | ER-005 | Research survey: existing Eternal Ring docs, mods, decomp or recomp work (check anti-AI rules per site first); PS2 static recompiler options (e.g. PS2Recomp) and what they cover | Sonnet, medium | none. DONE 17 Nov 2026 (see `docs/research.md`; open leads listed there) |
 | ER-006 | Tracker application: track the status of the Decomp, Recomp and PC Port accuracy; layout after Twinblade's progress tracker (`Project Twinblade/tools/progress_tracker.py`, `docs/progress_data.json`); shortcut "Ringsmith Progress Tracker" in `Desktop\Tools\Ringsmith` (LuciDin, 17 Nov 2026) | Opus, medium | ER-001 |
+| ER-007 | Second-pass research: the leads in `docs/research.md` section 5 (almarsguides NTSC-U page, rac1-decomp Windows build doc, ps2-ee-toolchain MSYS2 buildability, decomp.me PS2 presets, kokolika PAL fork); licences (-only / -or-later), PS2Recomp last commit; LuciDin's saved HTML for GameFAQs, PCSX2 compat, TCRF if he supplies it. Files: `docs/research.md` only | Sonnet, medium | none (best before ER-002) |
+| ER-008 | Recomp spike: build PS2Recomp (ran-j, GPL-3.0) natively with MSVC and run it on `SLUS_200.15`; record instruction coverage gaps, what it emits, what fails | Opus, medium | ER-001 |
