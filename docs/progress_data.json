@@ -446,7 +446,7 @@
       "status": "Waiting",
       "track": "decomp",
       "model": "Opus, medium + Ultracode",
-      "waits_on": "ER-013, ER-014, ER-015, census rulings",
+      "waits_on": "ER-013, ER-014, ER-015",
       "notes": ""
     },
     {
