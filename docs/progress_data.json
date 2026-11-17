@@ -1,0 +1,83 @@
+{
+  "updated": "2026-11-17",
+  "note": "Read by tools/progress_tracker.py (format in docs/tracker.md). Only facts from the repo: a metric's total stays null ('not measured yet') until the split (ER-003) and the census (ER-004) give real counts; never write an estimate as a total. Every metric, milestone and task has a 'track': decomp, recomp, port, assets or other. Statuses: milestones and phase items use Not started / In progress / Complete; ER tasks use Queued / In progress / Waiting / Done.",
+  "tracks": [
+    {
+      "id": "decomp",
+      "name": "Decomp",
+      "summary": "Matching decompilation of the EE ELF (SLUS_200.15, 2,485,924 bytes) into C that rebuilds byte-identical. Totals come from the split (ER-003) and the census (ER-004); nothing is measured yet. IOP modules are mostly Sony's (identified, not decompiled).",
+      "metrics": [
+        {"id": "m-dec-funcs", "phase": "Phase 1: matching", "name": "Functions matched (EE ELF)", "done": 0, "total": null, "unit": "functions", "source": "ER-003 split, ER-004 census", "notes": "Total not measured yet."},
+        {"id": "m-dec-bytes", "phase": "Phase 1: matching", "name": "Code bytes matched (EE ELF .text)", "done": 0, "total": null, "unit": "bytes", "source": "ER-003 split", "notes": "Total not measured yet (.text size comes with the split)."},
+        {"id": "m-dec-sdk", "phase": "Phase 1: matching", "name": "SDK library functions identified", "done": 0, "total": null, "unit": "functions", "source": "ER-004 census", "notes": "Not measured yet."},
+        {"id": "m-dec-named", "phase": "Phase 2: understanding", "name": "Functions named", "done": 0, "total": null, "unit": "functions", "source": "Phase 2", "notes": "Not started."},
+        {"id": "m-dec-readable", "phase": "Phase 3: readable", "name": "Functions cleaned up (readable, still matching)", "done": 0, "total": null, "unit": "functions", "source": "Phase 3", "notes": "Not started."}
+      ],
+      "items": [
+        {"id": "p1", "phase": "Phase 1: matching", "name": "Every game function in C that compiles byte-identical; SDK code matched or linked as library", "status": "Not started", "percent": 0, "notes": "Waits on Phase 0 (toolchain, split, census)."},
+        {"id": "p2", "phase": "Phase 2: understanding", "name": "Names, structs, globals, subsystems documented", "status": "Not started", "percent": 0, "notes": "Data formats, script/event system, ring/gem magic, maps, enemies, sound (docs/roadmap.md)."},
+        {"id": "p3", "phase": "Phase 3: readable", "name": "Clean, named, commented source that still matches", "status": "Not started", "percent": 0, "notes": ""}
+      ]
+    },
+    {
+      "id": "recomp",
+      "name": "Recomp",
+      "summary": "Static recompile of the EE ELF to C, with the SCE library calls caught at their entry points and replaced by PC implementations (HLE). First look: ER-008 (PS2Recomp spike). Totals not measured yet.",
+      "metrics": [
+        {"id": "m-rec-funcs", "phase": "Step 1: static recompile", "name": "Functions recompiled", "done": 0, "total": null, "unit": "functions", "source": "ER-008 spike, ER-004 census", "notes": "Not measured yet."},
+        {"id": "m-rec-hle", "phase": "Step 1: static recompile", "name": "SCE libraries replaced (HLE)", "done": 0, "total": null, "unit": "libraries", "source": "ER-002 SDK version, ER-004 census", "notes": "The list of libraries the game links is not measured yet."},
+        {"id": "m-rec-hybrid", "phase": "Step 2: hybrid build", "name": "Matched C functions swapped into the hybrid build", "done": 0, "total": null, "unit": "functions", "source": "Phase 1", "notes": "Not started."}
+      ],
+      "items": [
+        {"id": "r1", "phase": "Step 1: static recompile", "name": "Static recompile of the EE ELF to C, SCE library calls replaced (HLE)", "status": "Not started", "percent": 0, "notes": "ER-008 spike queued (PS2Recomp built natively with MSVC)."},
+        {"id": "r2", "phase": "Step 2: hybrid build", "name": "Recompiled code with matched C swapped in function by function", "status": "Not started", "percent": 0, "notes": "As Phase 1 lands."}
+      ]
+    },
+    {
+      "id": "port",
+      "name": "PC Port",
+      "summary": "As-shipped PC port checked against PCSX2 by differential runs (RAM hashes, frame captures) on recorded routes; Enhanced (EX) options afterwards, each optional with the as-shipped path kept. Nothing measured yet.",
+      "metrics": [
+        {"id": "m-port-as", "phase": "Step 3: as-shipped port", "name": "As-shipped checks passing", "done": 0, "total": null, "unit": "checks", "source": "port test suite (not written yet)", "notes": "No checks defined yet."},
+        {"id": "m-port-diff", "phase": "Step 3: as-shipped port", "name": "Differential tests passing (vs PCSX2)", "done": 0, "total": null, "unit": "tests", "source": "recorded routes (none yet)", "notes": "No routes recorded yet."},
+        {"id": "m-port-ex", "phase": "Step 4: enhanced options", "name": "Enhanced (EX) options done", "done": 0, "total": null, "unit": "options", "source": "", "notes": "None planned yet."}
+      ],
+      "items": [
+        {"id": "o3", "phase": "Step 3: as-shipped port", "name": "Complete, stable as-shipped PC port, checked against PCSX2 by differential runs", "status": "Not started", "percent": 0, "notes": ""},
+        {"id": "o4", "phase": "Step 4: enhanced options", "name": "Enhanced (EX) options, each optional, as-shipped path kept", "status": "Not started", "percent": 0, "notes": ""}
+      ]
+    },
+    {
+      "id": "assets",
+      "name": "Assets",
+      "summary": "Asset rips (models, textures, maps, audio, movies), from when the recomp is complete (LuciDin, 17 Nov 2026); cards in the \"Ringsmith Assets\" sidebar section. Extracted assets stay out of git. No metrics defined yet.",
+      "metrics": [],
+      "items": [
+        {"id": "a1", "phase": "After the recomp", "name": "Asset rips: models, textures, maps, audio, movies", "status": "Not started", "percent": 0, "notes": "Starts once the recomp is complete."}
+      ]
+    }
+  ],
+  "milestones": [
+    {"id": "ms1", "phase": "Phase 0", "text": "Verified dump of the US disc (ISO hashed)", "track": "other", "status": "In progress", "by": "ER-001, ER-009", "notes": "Dumped and hashed (CRC32 BB98D81A), 0 read errors; comparison with redump's SLUS-20015 entry waits on LuciDin's saved page (ER-009)."},
+    {"id": "ms2", "phase": "Phase 0", "text": "Disc layout documented", "track": "other", "status": "Complete", "by": "ER-001", "notes": "docs/disc_layout.md"},
+    {"id": "ms3", "phase": "Phase 0", "text": "Research survey (existing work, PS2 recomp and decomp tooling)", "track": "other", "status": "Complete", "by": "ER-005, ER-007", "notes": "docs/research.md"},
+    {"id": "ms4", "phase": "Phase 0", "text": "Toolchain named and running natively on Windows", "track": "decomp", "status": "In progress", "by": "ER-002", "notes": "docs/toolchain.md (ER-002 working)."},
+    {"id": "ms5", "phase": "Phase 0", "text": "splat split building byte-identical (SHA-1 check)", "track": "decomp", "status": "Not started", "by": "ER-003", "notes": "Waits on ER-002."},
+    {"id": "ms6", "phase": "Phase 0", "text": "Regression gate (make regress)", "track": "decomp", "status": "Not started", "by": "ER-003", "notes": "Waits on ER-002."},
+    {"id": "ms7", "phase": "Phase 0", "text": "Census and cost estimate for Phase 1", "track": "decomp", "status": "Not started", "by": "ER-004", "notes": "Waits on ER-003."},
+    {"id": "ms8", "phase": "Phase 0", "text": "Recomp spike: PS2Recomp on SLUS_200.15", "track": "recomp", "status": "Not started", "by": "ER-008", "notes": "Queued; ER-001 done."},
+    {"id": "ms9", "phase": "Phase 0", "text": "Progress tracker application", "track": "other", "status": "Complete", "by": "ER-006", "notes": "This tracker (docs/tracker.md)."}
+  ],
+  "tasks": [
+    {"code": "ER-001", "title": "Disc intake: dump, hash, extract, disc layout", "status": "Done", "track": "other", "model": "Sonnet, medium", "waits_on": "", "notes": "Done 17 Nov 2026 (commits 4a6130c, 4e76424); redump comparison split off as ER-009."},
+    {"code": "ER-002", "title": "Toolchain identification", "status": "In progress", "track": "decomp", "model": "Opus, high", "waits_on": "", "notes": "Writes docs/toolchain.md."},
+    {"code": "ER-003", "title": "Byte-identical split, Makefile, regression gate", "status": "Queued", "track": "decomp", "model": "Opus, high", "waits_on": "ER-002", "notes": ""},
+    {"code": "ER-004", "title": "Census and Phase 1 cost estimate", "status": "Queued", "track": "decomp", "model": "Opus, medium", "waits_on": "ER-003", "notes": "Gives the totals for the Decomp and Recomp metrics."},
+    {"code": "ER-005", "title": "Research survey", "status": "Done", "track": "other", "model": "Sonnet, medium", "waits_on": "", "notes": "Done 17 Nov 2026 (commit 556120b); docs/research.md."},
+    {"code": "ER-006", "title": "Progress tracker application", "status": "Done", "track": "other", "model": "Opus, medium", "waits_on": "", "notes": "Done 17 Nov 2026; tools/progress_tracker.py, docs/progress_data.json, docs/tracker.md."},
+    {"code": "ER-007", "title": "Second-pass research", "status": "Done", "track": "other", "model": "Sonnet, medium", "waits_on": "", "notes": "Done 17 Nov 2026 (commits 521cd98, c7d1898); docs/research.md sections 7 to 10."},
+    {"code": "ER-008", "title": "Recomp spike: PS2Recomp built with MSVC, run on SLUS_200.15", "status": "Queued", "track": "recomp", "model": "Opus, medium", "waits_on": "", "notes": "ER-001 done."},
+    {"code": "ER-009", "title": "Redump check of the ISO hashes", "status": "Waiting", "track": "other", "model": "Sonnet, low", "waits_on": "LuciDin's saved redump page", "notes": ""},
+    {"code": "ER-010", "title": "CodeBreaker codes check (optional)", "status": "Waiting", "track": "other", "model": "Sonnet, low", "waits_on": "Phase 2", "notes": ""}
+  ]
+}
