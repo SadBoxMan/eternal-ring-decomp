@@ -1,0 +1,16 @@
+# Game data never goes in git
+disc/
+*.iso
+*.bin
+*.cue
+*.elf
+*.irx
+captures/
+screens/
+
+# Build output and local tools
+build/
+tools/compilers/
+.venv/
+__pycache__/
+*.o
