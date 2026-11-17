@@ -127,7 +127,7 @@ Phase 0 / Recomp track 1, while keeping our as-shipped goal of exact behaviour (
 
 ## 7. ER-007 findings: Eternal Ring leads
 
-Second pass, Tue 17 Nov 2026 (about 12:20 to 12:50 Eastern). Fetching done by sub-agents, GitHub pages and APIs plus almarsguides (robots.txt and terms read first: robots disallows only members and search paths; terms have no anti-bot clause). Nothing downloaded or run. No game data.
+Second pass, Tue 17 Nov 2026 (about 12:20 to 12:25 Eastern). Fetching done by sub-agents, GitHub pages and APIs plus almarsguides (robots.txt and terms read first: robots disallows only members and search paths; terms have no anti-bot clause). Nothing downloaded or run. No game data.
 
 ### 7.1 almarsguides NTSC-U CodeBreaker page
 
