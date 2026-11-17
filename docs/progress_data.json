@@ -371,7 +371,7 @@
     {
       "code": "ER-008",
       "title": "Recomp spike: PS2Recomp built with MSVC, run on SLUS_200.15",
-      "status": "Queued",
+      "status": "In progress",
       "track": "recomp",
       "model": "Opus, medium",
       "waits_on": "",
