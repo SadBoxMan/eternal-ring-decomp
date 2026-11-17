@@ -23,7 +23,7 @@ Written Tue 17 Nov 2026, 11:52 Eastern, by the setup session.
 
 ## Decided (LuciDin, Tue 17 Nov 2026)
 
-- Task codes: **ER-NNN** (session title prefix, brief, commits; next free: ER-010).
+- Task codes: **ER-NNN** (session title prefix, brief, commits; next free: ER-011).
 - Disc: **NTSC-U (US)** only; it is the matching target.
 - Sidebar: dispatcher pinned in "Project Ringsmith"; cards in "Ringsmith Decomp", "Ringsmith Recomp / PC Port",
   "Ringsmith Misc".
@@ -56,3 +56,4 @@ layer DVD). Root: `SLUS_200.15` (2,485,924, the main EE ELF), `IOPRP165.IMG` (98
 | ER-007 | Second-pass research: the leads in `docs/research.md` section 5 (almarsguides NTSC-U page, rac1-decomp Windows build doc, ps2-ee-toolchain MSYS2 buildability, decomp.me PS2 presets, kokolika PAL fork); licences (-only / -or-later), PS2Recomp last commit; LuciDin's saved HTML for GameFAQs, PCSX2 compat, TCRF if he supplies it. Files: `docs/research.md` only | Sonnet, medium | **DONE Tue 17 Nov 2026**: `docs/research.md` §7 to §10 (leads closed, Windows-native ee-gcc ranking, licences). Open: ER-002 to identify the compiler first; ruling needed from LuciDin on the AngheloAlf SN ProDG mirrors |
 | ER-008 | Recomp spike: build PS2Recomp (ran-j, GPL-3.0) natively with MSVC and run it on `SLUS_200.15`; record instruction coverage gaps, what it emits, what fails | Opus, medium | ER-001 |
 | ER-009 | Redump check: compare the ISO's CRC32 BB98D81A / MD5 3F87FAD4395FE2AEA49D00CD3C921DAB / SHA-1 11DFDDCBD57F0424304CF821D627D8B7BC9A4F15 (`docs/disc_layout.md`) with redump's SLUS-20015 entry from LuciDin's saved page (redump.org was unreachable from ER-001); record match / mismatch in `docs/disc_layout.md` | Sonnet, low | LuciDin's saved redump page |
+| ER-010 | CodeBreaker codes check (optional, Phase 2): fetch the 4 almarsguides NTSC-U sub-pages ER-007 did not read, decode the codes (they may be in encrypted form) and compare the addresses with RAM; record in `docs/research.md` | Sonnet, low | Phase 2 |
