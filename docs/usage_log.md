@@ -3,7 +3,7 @@
 One row per session, kept by the dispatcher from completion messages. LuciDin uses this record to teach others about
 the time and cost of running projects like this through Claude, so keep every field.
 
-Plan: Max (check tier at each weekly reset). Weekly bars reset Saturday morning (Eastern; read the time from get_usage).
+Plan: Max per LuciDin; get_usage reports it as "Ultra" (check tier at each weekly reset). Weekly bars reset Saturday morning (Eastern; read the time from get_usage).
 
 | Date (Eastern) | Code | Session | Model / effort | Ultracode | Weekly start -> end | Fable start -> end | 5-hour start -> end | Wall time | Work units | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -14,3 +14,4 @@ Plan: Max (check tier at each weekly reset). Weekly bars reset Saturday morning 
 | Tue 17 Nov 2026, 12:21-12:59 | ER-002 | Toolchain identification (`local_9a95c8b4`) | Opus 5.5 / high | off | 48% -> 49% | 4% -> 4% | 6% -> 10% | 38 min | 1 session, MSYS2 build of ee-gcc | Commit 2b447f1; ran beside ER-006; tracker row set by DISP-01 (rule arrived mid-card) |
 | Tue 17 Nov 2026, 14:05-14:42 | ER-011 | EE binutils on Windows (`local_938f9ba2`) | Opus 5.5 / medium | off | 49% -> 49% | 4% -> 4% | 10% -> 11% | 37 min | 1 session, MSYS2 build of binutils | Commits a90158c, 24aa7a2; first 3 functions byte-identical; card started ~13:01, picked up at 14:05 |
 | Tue 17 Nov 2026, 14:43-15:50 | ER-003 | Byte-identical split (`local_eca31396`) | Opus 5.5 / high | off | 49% -> 49% | 4% -> 4% | 11% -> 12% | ~67 min (~30 min work, ~35 min waiting for the rulings) | 1 card | Commits 542ed01, 746259d; whole ELF byte-identical, regress 26 s; DISP-01 re-ran regress: PASS |
+| Tue 17 Nov 2026, 15:59-16:15 | ER-004 | Census and Phase 1 cost estimate (`local_b190ac16`) | Opus 5.5 / medium | off | 49% -> 50% | 4% -> 4% | 13% -> 14% | ~16 min | 1 session, no sub-agents, ~293k context | Commit 46f28e0; ran beside ER-008; Phase 1 estimated at ~150% of one weekly bar (range 90-340%, Unconfirmed) |

@@ -416,10 +416,10 @@
     {
       "code": "ER-013",
       "title": "File split: game and SDK files",
-      "status": "Waiting",
+      "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-004",
+      "waits_on": "",
       "notes": ""
     },
     {
@@ -430,6 +430,33 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": "After ER-013 if both queued (both touch src/)"
+    },
+    {
+      "code": "ER-015",
+      "title": "EE matching tools (compare, place, clone, m2c test)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-013",
+      "notes": ""
+    },
+    {
+      "code": "ER-016",
+      "title": "Phase 1 pilot: ~40 stratified shapes, measured rates",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium + Ultracode",
+      "waits_on": "ER-013, ER-014, ER-015, census rulings",
+      "notes": ""
+    },
+    {
+      "code": "ER-017",
+      "title": "Game-internal file seams (research)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
