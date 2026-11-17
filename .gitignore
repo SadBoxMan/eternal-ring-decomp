@@ -14,3 +14,10 @@ tools/compilers/
 .venv/
 __pycache__/
 *.o
+
+# ER-003 split and build output (disassembly and extracted bytes are game data)
+asm/
+linker/
+baserom/
+assets/
+build_logs/

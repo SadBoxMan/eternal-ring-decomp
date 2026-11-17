@@ -1,0 +1,2 @@
+// ER-003: symbol names for splat. Address names only; see docs/build.md.
+func_00100008 = 0x00100008; // type:func

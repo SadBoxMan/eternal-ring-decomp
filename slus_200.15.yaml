@@ -1,0 +1,97 @@
+# ER-003: splat config for the main EE ELF of Eternal Ring (US, SLUS_200.15 v1.00).
+# Input is the PT_LOAD file image (tools/extract_rom.py), vram = rom offset + 0x00100000
+# (= ELF file offset + 0x000FF000). Section facts: docs/toolchain.md 2.2 and 6.
+# Names are address names only (func_XXXXXXXX, D_XXXXXXXX); file names are address-based labels.
+name: Eternal Ring (USA) SLUS_200.15
+sha1: 3bd68188e47f64472ce1253ea02ff188d62e37ef
+options:
+  basename: SLUS_200.15
+  target_path: baserom/SLUS_200.15.rom
+  elf_path: build/SLUS_200.15.elf
+  base_path: .
+  platform: ps2
+  compiler: EEGCC
+
+  gp_value: 0x00360B70
+  ld_gp_expression: main_LIT4_START + 0x7FF0
+
+  asm_path: asm
+  src_path: src
+  build_path: build
+
+  ld_script_path: linker/SLUS_200.15.splat.ld
+  ld_dependencies: True
+  ld_wildcard_sections: True
+  ld_bss_contains_common: True
+
+  create_asm_dependencies: True
+  find_file_boundaries: False
+  o_as_suffix: True
+
+  symbol_addrs_path:
+    - symbol_addrs.txt
+  reloc_addrs_path:
+    - reloc_addrs.txt
+  undefined_funcs_auto_path: linker/undefined_funcs_auto.txt
+  undefined_syms_auto_path: linker/undefined_syms_auto.txt
+
+  string_encoding: ASCII
+  data_string_encoding: ASCII
+  rodata_string_guesser_level: 2
+  data_string_guesser_level: 2
+
+  named_regs_for_c_funcs: False
+  # ee-as 2.9 knows only numeric register names ($29, $f12)
+  mips_abi_gpr: numeric
+  mips_abi_float_regs: numeric
+  # include/macro.inc etc. are ours (ee-as 2.9 syntax); never regenerate them
+  generate_asm_macros_files: False
+  # ee-as 2.9 has no %gp_rel: emit gas macros (lw $2, sym) and let -G8 pick gp-relative forms, with
+  # .extern size hints from tools/gen_gp_externs.py (build/include/gp_externs.inc)
+  use_gp_rel_macro_nonmatching: False
+  use_gp_rel_macro: False
+
+  section_order:
+    - .text
+    - .data
+    - .vudata
+    - .rodata
+    - .lit4
+    - .sdata
+    - .sbss
+    - .bss
+
+  auto_link_sections:
+    - .data
+    - .rodata
+    - .lit4
+    - .sdata
+    - .sbss
+    - .bss
+
+segments:
+  - name: main
+    type: code
+    start: 0x000000
+    vram: 0x00100000
+    bss_size: 0x181F690   # end of the load image (0x0035C410) to _end (0x01B7BAA0): splat counts from there
+    subalign: null
+    subsegments:
+      - [0x000000, asm, text_00100000]   # crt0 (SCE crt0.s shape: Unconfirmed); kept as asm
+      - [0x0000C0, c, text_001000C0]     # rest of .text (game code, then SDK libraries; split by ER-004)
+      - [0x0F0354, pad]                  # zero fill: .data is 128-aligned (outside the .text section)
+      - [0x0F0380, data, data_001F0380]  # .data
+      # .vudata: VU microcode load copies, kept as data words (ee-as 2.9 has no .incbin)
+      - { start: 0x252770, type: data, name: vudata_00352770, linker_section: .vudata, linker_section_order: .vudata }
+      - [0x253DA0, pad]                  # zero fill before the 128-aligned .rodata
+      - [0x253E00, rodata, rodata_00353E00]
+      - [0x258B18, pad]
+      - [0x258B80, lit4, lit4_00358B80]
+      - [0x25B784, pad]
+      - [0x25B800, sdata, sdata_0035B800]
+      - { type: sbss, vram: 0x0035C480, name: sbss_0035C480 }   # .sbss is 0xEC bytes
+      # gap before the 128-aligned .bss: splat's `pad` type takes no vram, so it is a bss subsegment named
+      # pad_*, which tools/gen_ld.py leaves out of the link (the section alignment makes the same gap)
+      - { type: bss, vram: 0x0035C56C, name: pad_0035C56C }
+      - { type: bss, vram: 0x0035C580, name: bss_0035C580 }
+  - [0x25C410]

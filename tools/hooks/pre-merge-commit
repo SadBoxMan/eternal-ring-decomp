@@ -1,0 +1,8 @@
+#!/bin/sh
+# ER-003 merge gate (same as pre-commit): tools/regress.py --staged (clean split + build + SHA-1 + per-function check when a
+# staged path can change the build; exits at once otherwise). Enable once per clone:
+#   git config core.hooksPath tools/hooks
+# Skip only on purpose: RINGSMITH_SKIP_REGRESS=1 git commit ...  (and say so in the commit message).
+if [ -n "$RINGSMITH_SKIP_REGRESS" ]; then exit 0; fi
+if [ ! -x .venv/Scripts/python.exe ]; then echo "pre-commit: no .venv (see docs/build.md)" >&2; exit 1; fi
+exec .venv/Scripts/python.exe -I tools/regress.py --staged </dev/null

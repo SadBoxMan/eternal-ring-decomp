@@ -1,0 +1,4 @@
+# ER-003: pinned SHA-1 and size of the originals (hashes only, no game data).
+# kind  sha1                                      size     what
+elf     6087a8cadb7538a849a4f5760502a39daa6a12af  2485924  disc/extract/SLUS_200.15 (main EE ELF, US v1.00)
+rom     3bd68188e47f64472ce1253ea02ff188d62e37ef  2475024  its PT_LOAD file bytes (offset 0x1000, vaddr 0x00100000)
