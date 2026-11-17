@@ -37,6 +37,9 @@ ring/gem magic system, maps, enemies, sound).
    captures) on recorded routes.
 4. Enhanced (EX) options afterwards, each optional with the as-shipped path kept.
 
+**Assets track (after the recomp is complete; LuciDin, 17 Nov 2026).** Asset rips (models, textures, maps,
+audio, movies) in their own sidebar section, "Ringsmith Assets"; extracted assets stay out of git.
+
 **Target version:** NTSC-U (US), the only disc in the project (LuciDin, 17 Nov 2026).
 
 **Later (open):** other regions or versions (Japanese original, PAL), asset catalogue, player package.

@@ -26,7 +26,7 @@ Written Tue 17 Nov 2026, 11:52 Eastern, by the setup session.
 - Task codes: **ER-NNN** (session title prefix, brief, commits; next free: ER-011).
 - Disc: **NTSC-U (US)** only; it is the matching target.
 - Sidebar: dispatcher pinned in "Project Ringsmith"; cards in "Ringsmith Decomp", "Ringsmith Recomp / PC Port",
-  "Ringsmith Misc".
+  "Ringsmith Misc", and "Ringsmith Assets" (asset rips, from when the recomp is complete; added 17 Nov 2026).
 - Code: **local git only for now**; GitHub decided once the split builds byte-identical.
 
 ## Open questions for LuciDin
