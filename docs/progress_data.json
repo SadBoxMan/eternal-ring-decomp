@@ -326,7 +326,7 @@
     {
       "code": "ER-004",
       "title": "Census and Phase 1 cost estimate",
-      "status": "Queued",
+      "status": "In progress",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
