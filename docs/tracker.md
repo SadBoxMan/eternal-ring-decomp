@@ -55,14 +55,39 @@ phase items the track is the one they sit under; milestones and tasks carry a `t
 - **Task** (`tasks[]`): `code` (`ER-NNN`), `title`, `status` (`Queued` / `In progress` / `Waiting` / `Done`),
   `track`, `model` (for example "Opus, high"), `waits_on`, `notes`.
 
-## Who updates it
+## Who updates it (project rule, LuciDin, 17 Nov 2026; see `CLAUDE.md`)
 
-- **The dispatcher**, from start and completion messages: adds each new card to `tasks` when it is queued, sets
-  statuses, and copies measured numbers (functions matched, totals from the census, test results) into the metrics.
-- **Cards may update their own items**: their own task row, the milestones they deliver, and the metrics they measure
-  (for example ER-003 sets the `.text` byte total, ER-004 the function totals). They name the change in their
-  completion message.
+**The tracker is updated after every session or card completes, without exception.**
+
+- **The card updates its own entries before it finishes**: its task row (status `Done`, or `Waiting` with what it
+  waits on, plus a short note with its commits), the milestones it delivers, the phase items it moves, and every
+  number it changed or measured (for example ER-003 sets the `.text` byte total, ER-004 the function totals, a
+  matching batch the functions-matched count). It commits `docs/progress_data.json` with its own work, by explicit
+  path, and names the change in its completion message.
+- **The dispatcher checks it in its closing commit**: the card's entries match the completion message; it adds newly
+  queued cards to `tasks` and fixes anything the card missed.
 - Keep it to facts from the repo. Anything that is a reading rather than a measurement is marked `Unconfirmed` in
-  its notes.
-- Edit with the tracker window or by hand (keep the format above). The file is committed with the work that changed
-  it, by explicit path.
+  its notes. Never write an estimate as a total.
+
+## Updating it from a session (no window)
+
+The same program updates the file from the command line, so a session never has to hand-edit JSON (hand edits are
+fine too; keep the format above). Run from the project folder; each call prints the saved entry. A bad id, status,
+track or number is refused with a message and nothing is written.
+
+```
+python tools/progress_tracker.py show
+python tools/progress_tracker.py task ER-003 --status Done --notes "Done 18 Nov 2026 (commits abc1234)"
+python tools/progress_tracker.py task ER-011 --title "Short title" --track decomp --model "Opus, medium" --waits-on ER-004
+python tools/progress_tracker.py metric m-dec-funcs --done 12 --total 3400
+python tools/progress_tracker.py metric m-dec-bytes --total none
+python tools/progress_tracker.py milestone ms5 --status Complete
+python tools/progress_tracker.py item p1 --status "In progress"
+```
+
+- `show` lists every task, milestone, metric and phase item with its id.
+- `task CODE` changes `--status` (Queued / In progress / Waiting / Done), `--title`, `--track`, `--model`,
+  `--waits-on`, `--notes`; a code not yet in the file is added (needs `--title` and `--track`).
+- `metric ID` sets `--done` and `--total` (`none` = not measured yet) and `--notes`.
+- `milestone ID` and `item ID` set `--status` (Not started / In progress / Complete) and `--notes`.
+- An open tracker window picks the change up within 2 seconds.

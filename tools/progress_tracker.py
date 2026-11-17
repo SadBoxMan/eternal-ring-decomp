@@ -9,6 +9,9 @@ for their own items) update the same file, and the window reloads it when it cha
 Tabs: Overview | one per track (Decomp, Recomp, PC Port, Assets) | Tasks (ER-NNN) | Phase 0 milestones
 Click a row to edit it in the form below the list; double-click a task or milestone to step its status.
 A bad status, track or missing field shows a [?] marker; it never crashes.
+
+With arguments it updates the file without a window (for sessions): `show`, `task`, `metric`, `milestone`, `item`;
+see docs/tracker.md or `python tools/progress_tracker.py -h`.
 """
 import datetime
 import json
@@ -371,5 +374,81 @@ class App(tk.Tk):
         ttk.Button(form, text='Save', command=apply).grid(row=0, column=8, padx=4)
 
 
+def cli(argv):
+    """Command-line updates for sessions (no window). See docs/tracker.md. Returns the exit code."""
+    import argparse
+    ap = argparse.ArgumentParser(prog='progress_tracker.py', description='Update docs/progress_data.json without opening the window.')
+    sub = ap.add_subparsers(dest='cmd', required=True)
+    sub.add_parser('show', help='print every task, milestone and metric')
+    t = sub.add_parser('task', help='update (or add) an ER task')
+    t.add_argument('code')
+    t.add_argument('--status', choices=TASK_STATUSES)
+    for k in ('title', 'track', 'model', 'waits-on', 'notes'):
+        t.add_argument('--' + k)
+    m = sub.add_parser('metric', help='set a metric (done / total)')
+    m.add_argument('id')
+    m.add_argument('--done', type=int)
+    m.add_argument('--total', help='a whole number, or "none" for not measured yet')
+    m.add_argument('--notes')
+    for kind in ('milestone', 'item'):
+        p = sub.add_parser(kind, help=f'set a {kind} status (item = a phase item of a track)')
+        p.add_argument('id')
+        p.add_argument('--status', choices=ITEM_STATUSES)
+        p.add_argument('--notes')
+    a = ap.parse_args(argv)
+    d = load()
+    trs = [x for x in d.get('tracks', []) if isinstance(x, dict)]
+    if a.cmd == 'show':
+        for x in sorted(d.get('tasks', []), key=task_sort_key):
+            print(f'{x.get("code")}  {x.get("status"):<11} {x.get("track"):<7} {x.get("title")}')
+        for x in d.get('milestones', []):
+            print(f'{x.get("id"):<6}  {x.get("status"):<11} {x.get("text")}')
+        for tr in trs:
+            for x in tr.get('metrics', []):
+                print(f'{x.get("id"):<14} {tr.get("id"):<7} {metric_text(x)[0]}  ({x.get("name")})')
+            for x in tr.get('items', []):
+                print(f'{x.get("id"):<14} {tr.get("id"):<7} {x.get("status")}  ({x.get("name")})')
+        return 0
+    if a.cmd == 'task':
+        if a.track and a.track not in TRACK_IDS:
+            ap.error(f'--track must be one of {TRACK_IDS}')
+        obj = next((x for x in d.setdefault('tasks', []) if x.get('code') == a.code), None)
+        if obj is None:
+            if not (a.title and a.track):
+                ap.error(f'{a.code} is not in the file; a new task needs --title and --track')
+            obj = dict(code=a.code, title='', status='Queued', track='other', model='', waits_on='', notes='')
+            d['tasks'].append(obj)
+        for k, v in (('status', a.status), ('title', a.title), ('track', a.track), ('model', a.model),
+                     ('waits_on', a.waits_on), ('notes', a.notes)):
+            if v is not None:
+                obj[k] = v
+    else:
+        pool = {'metric': [x for tr in trs for x in tr.get('metrics', [])], 'item': [x for tr in trs for x in tr.get('items', [])],
+                'milestone': d.get('milestones', [])}[a.cmd]
+        obj = next((x for x in pool if isinstance(x, dict) and x.get('id') == a.id), None)
+        if obj is None:
+            ap.error(f'no {a.cmd} with id {a.id} (run "show" for the ids)')
+        if a.cmd == 'metric':
+            if a.done is not None:
+                obj['done'] = max(0, a.done)
+            if a.total is not None:
+                obj['total'] = None if a.total.lower() == 'none' else num(a.total)
+                if a.total.lower() != 'none' and obj['total'] is None:
+                    ap.error('--total must be a whole number or "none"')
+        else:
+            if a.status:
+                obj['status'] = a.status
+                if a.cmd == 'item':
+                    obj['percent'] = 100 if a.status == 'Complete' else (0 if a.status == 'Not started' else obj.get('percent', 0))
+        if a.notes is not None:
+            obj['notes'] = a.notes
+    save(d)
+    print('saved:', json.dumps(obj, ensure_ascii=False))
+    return 0
+
+
 if __name__ == '__main__':
+    import sys
+    if len(sys.argv) > 1:
+        sys.exit(cli(sys.argv[1:]))
     App().mainloop()
