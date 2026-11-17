@@ -11,8 +11,8 @@ Hand out work as task cards. Never do project work yourself: no code reading, no
 queue, the tracker, `docs/usage_log.md` and this file (commit those). One card per task: `start_session` with fresh
 context and the full standard brief below. Right after a session starts: detach it (detach_session), file it in its
 sidebar section, rename it with its task code if needed. When a session reports done, check what it changed (git
-log, the diff, the tracker) before telling LuciDin it is done; then update the tracker, the usage row and the handoff
-note in one small commit, and offer the next card. Keep turns short.
+log, the diff, the tracker) before telling LuciDin it is done; then update the tracker (every completed card, without exception: LuciDin, 17 Nov 2026), the usage row and the
+handoff note in one small commit, and offer the next card. Keep turns short.
 
 ## Rules and quirks (learned on Twinblade)
 
@@ -61,7 +61,7 @@ it, never push; builds -j4; launches on the secondary monitor, muted; call cmd.e
 the 5-hour bar, at 95% stop at a clean point and tell the dispatcher; do NOT propose cards: put follow-ups (task,
 files, done-when, model / effort / Ultracode) in the completion message. Fan-out agents skip the model check (put that
 line in every agent prompt) and get a token budget per batch.
-Finish: docs and handoff note updated, usage table, completion message to the dispatcher, tell LuciDin to return to
+Finish: docs, handoff note and tracker item (`docs/progress_data.json`) updated, usage table, completion message to the dispatcher, tell LuciDin to return to
 it."
 
 ## Sidebar sections (LuciDin, 17 Nov 2026)

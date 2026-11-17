@@ -23,6 +23,9 @@ expected behaviour first, Eastern times, the 5-hour bar). This file adds the pro
 - Work sessions never propose New-session cards. Follow-ups (task, files, done-when, model / effort / Ultracode) go
   in the completion message to the dispatcher and in the handoff queue; then tell LuciDin to return to the dispatcher.
 - Start message and completion message to the dispatcher, as described at the top of `docs/handoff.md`.
+- **Tracker after every card.** The tracker (`docs/progress_data.json`, shown by the Ringsmith Progress Tracker app) is
+  updated after each session or card completes: the card updates its own item and any numbers it changed, and the
+  dispatcher checks it in its closing commit (LuciDin, 17 Nov 2026).
 
 ## Hard rules
 
