@@ -389,7 +389,7 @@
     {
       "code": "ER-011",
       "title": "EE binutils on Windows; byte-compare 3 functions",
-      "status": "Queued",
+      "status": "In progress",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
