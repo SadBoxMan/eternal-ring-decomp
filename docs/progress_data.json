@@ -317,7 +317,7 @@
     {
       "code": "ER-003",
       "title": "Byte-identical split, Makefile, regression gate",
-      "status": "Queued",
+      "status": "In progress",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "",
