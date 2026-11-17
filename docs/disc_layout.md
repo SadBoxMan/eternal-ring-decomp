@@ -5,7 +5,7 @@ Written Tue 17 Nov 2026 by ER-001. Eternal Ring, US release, SLUS_200.15, v1.00,
 ## Dump method
 
 - Source: LuciDin's physical disc in drive D: (TSSTcorp SN-208FB USB DVD writer), the whole volume, sector 0 to the end.
-- Tool: a small .NET reader (PowerShell `Add-Type`) reading the raw device `\.\D:` in 2048-byte sectors, 32 sectors per read, 3 retries per chunk and 5 per sector, every error logged with its sector number. Chosen because no dump tool was installed and only native Windows methods are allowed. It reads user data only (no subchannel or other sector data).
+- Tool: a small .NET reader (PowerShell `Add-Type`) reading the raw device `\\.\D:` in 2048-byte sectors, 32 sectors per read, 3 retries per chunk and 5 per sector, every error logged with its sector number. Chosen because no dump tool was installed and only native Windows methods are allowed. It reads user data only (no subchannel or other sector data).
 - Output: `disc/eternal_ring_us.iso` (gitignored), 4,637,687,808 bytes = 2,264,496 sectors. Run took about 10 minutes.
 - **Error log: 0 read errors, 0 retries, 0 unrecovered sectors** (`disc/dump_errors.log`).
 - Primary volume descriptor (sector 16): `CD001`, system id `PLAYSTATION`, volume id empty, volume space size 2,264,496 blocks of 2048 = 4,637,687,808 bytes. **ISO size matches the PVD.**
