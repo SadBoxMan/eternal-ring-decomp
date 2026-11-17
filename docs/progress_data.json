@@ -256,7 +256,7 @@
       "track": "decomp",
       "status": "Not started",
       "by": "ER-003",
-      "notes": "Waits on ER-002."
+      "notes": "ER-003; toolchain ready (ER-002, ER-011)"
     },
     {
       "id": "ms6",
@@ -265,7 +265,7 @@
       "track": "decomp",
       "status": "Not started",
       "by": "ER-003",
-      "notes": "Waits on ER-002."
+      "notes": "ER-003; toolchain ready (ER-002, ER-011)"
     },
     {
       "id": "ms7",
@@ -320,8 +320,8 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, high",
-      "waits_on": "ER-011",
-      "notes": ""
+      "waits_on": "",
+      "notes": "Unblocked 17 Nov 2026 by ER-011 (toolchain byte-checked); also moves build scripts and er011_compare.py into tools/toolchain/"
     },
     {
       "code": "ER-004",
@@ -394,6 +394,15 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": "a90158c: EE binutils 2.9-ee-991111 built natively (C:\\rs\\toolchain\\ee-binutils-2.9-991111); 3 test functions byte-identical (33 words); decomp_recipes.md started"
+    },
+    {
+      "code": "ER-012",
+      "title": "VU assembler ee-dvp-as (optional)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "decision to rebuild VU microcode from source",
+      "notes": "Low priority"
     }
   ]
 }
