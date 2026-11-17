@@ -32,10 +32,10 @@
           "phase": "Phase 1: matching",
           "name": "SDK library functions identified",
           "done": 0,
-          "total": null,
+          "total": 775,
           "unit": "functions",
           "source": "ER-004 census",
-          "notes": "Not measured yet."
+          "notes": "ER-004 census: 775 units in SDK regions (libgraph..libkernl tail, docs/census.md 4.1); 623 in Confirmed regions, 152 in Unconfirmed ones (sdk-vudev, libvu0, libipu, libsdr, libgcc, libkernl tail). Seam windows can move a few functions. done = matched SDK functions (0 beyond 2 empty ones counted in m-dec-funcs)."
         },
         {
           "id": "m-dec-named",
@@ -272,9 +272,9 @@
       "phase": "Phase 0",
       "text": "Census and cost estimate for Phase 1",
       "track": "decomp",
-      "status": "Not started",
+      "status": "Complete",
       "by": "ER-004",
-      "notes": "Waits on ER-003."
+      "notes": "ER-004, 17 Nov 2026: docs/census.md (census, SDK/game regions, clone families, Phase 1 estimate: an estimate on borrowed Twinblade rates; pilot sample to replace it)"
     },
     {
       "id": "ms8",
@@ -335,11 +335,11 @@
     {
       "code": "ER-004",
       "title": "Census and Phase 1 cost estimate",
-      "status": "In progress",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": "Gives the totals for the Decomp and Recomp metrics."
+      "notes": "Done 17 Nov 2026: docs/census.md, tools/census.py. 3,609 units: game 2,830, SDK 775 (623 Confirmed regions), crt0 4; 19 regions, cut list for ER-013 (census.md 4.3); estimate likely ~150% of a weekly bar (range ~90-340%, borrowed rates, Unconfirmed); rulings needed on handwritten asm, VU0 inline asm, SDK scope."
     },
     {
       "code": "ER-005",
