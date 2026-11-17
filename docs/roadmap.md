@@ -46,4 +46,8 @@ audio, movies) in their own sidebar section, "Ringsmith Assets"; extracted asset
 
 ## Accuracy bar
 
+**A true 100% decomp** (LuciDin, 17 Nov 2026, as in Twinblade): every function in C that compiles byte-identical,
+NON_MATCHING 0, proven by the byte-identical build (`make regress`). A function counts as matched only when that
+build proves it; anything else (hand-written asm, binary blobs) needs a ruling and is counted apart.
+
 Accuracy to the original code is THE goal; the port runs as accurately as an emulator in parallel. No deadline.
