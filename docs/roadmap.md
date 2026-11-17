@@ -37,6 +37,10 @@ ring/gem magic system, maps, enemies, sound).
    captures) on recorded routes.
 4. Enhanced (EX) options afterwards, each optional with the as-shipped path kept.
 
+**Port controls (LuciDin, 17 Nov 2026).** Gamepad input mapped to the DualShock 2 is the as-shipped path.
+**Mouse and keyboard controls are a secondary goal**: planned for the port, but after the as-shipped port works,
+as an optional (EX) control scheme with the gamepad path kept.
+
 **Assets track (after the recomp is complete; LuciDin, 17 Nov 2026).** Asset rips (models, textures, maps,
 audio, movies) in their own sidebar section, "Ringsmith Assets"; extracted assets stay out of git.
 
