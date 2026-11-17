@@ -61,7 +61,8 @@ it, never push; builds -j4; launches on the secondary monitor, muted; call cmd.e
 the 5-hour bar, at 95% stop at a clean point and tell the dispatcher; do NOT propose cards: put follow-ups (task,
 files, done-when, model / effort / Ultracode) in the completion message. Fan-out agents skip the model check (put that
 line in every agent prompt) and get a token budget per batch.
-Finish: docs, handoff note and tracker item (`docs/progress_data.json`) updated, usage table, completion message to the dispatcher, tell LuciDin to return to
+Finish: docs, handoff note and tracker updated (`python tools/progress_tracker.py task ER-NNN --status Done --notes "..."`,
+plus `metric` / `milestone` / `item` for anything measured or moved; see docs/tracker.md), usage table, completion message to the dispatcher, tell LuciDin to return to
 it."
 
 ## Sidebar sections (LuciDin, 17 Nov 2026)
