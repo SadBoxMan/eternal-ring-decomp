@@ -329,7 +329,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-003",
+      "waits_on": "",
       "notes": "Gives the totals for the Decomp and Recomp metrics."
     },
     {
@@ -403,6 +403,24 @@
       "model": "Opus, medium",
       "waits_on": "decision to rebuild VU microcode from source",
       "notes": "Low priority"
+    },
+    {
+      "code": "ER-013",
+      "title": "File split: game and SDK files",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-004",
+      "notes": ""
+    },
+    {
+      "code": "ER-014",
+      "title": "First real C matches (branches, %hi/%lo, .lit4)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": "After ER-013 if both queued (both touch src/)"
     }
   ]
 }
