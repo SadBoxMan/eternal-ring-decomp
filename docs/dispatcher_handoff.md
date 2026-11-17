@@ -22,8 +22,8 @@ note in one small commit, and offer the next card. Keep turns short.
 - **Model check.** A session cannot start above the dispatcher's own model and effort; run the dispatcher at the
   highest setting its cards need (Twinblade and Cordona ran theirs on Opus high for this reason). Each card stops at
   STEP 0 until the picker matches; tell LuciDin which setting to pick.
-- **Numbering.** Dispatchers are "#N" in their titles. Hand over at about 50% context: the outgoing one writes a
-  "STATE FOR A FRESH DISPATCHER" section here, starts "#N+1", confirms it is reachable by message, then updates the
+- **Numbering.** Dispatchers are titled "Ringsmith DISP-##" (two digits: DISP-01, DISP-02, ...; LuciDin, 17 Nov 2026). Hand over at about 50% context: the outgoing one writes a
+  "STATE FOR A FRESH DISPATCHER" section here, starts the next DISP-##, confirms it is reachable by message, then updates the
   id in `docs/handoff.md` and the memory note. A fresh dispatcher at each weekly reset too.
 - **Managerial rights.** Each card's STEP 0 asks LuciDin (interactive yes/no) whether the dispatcher approves its
   commits, merges and docs commit. On yes, approve only requests that pass the gates (byte-identical build,
@@ -74,4 +74,4 @@ The dispatcher is pinned. After start_session and detach_session, file each card
 ## Hand-over log
 
 - Tue 17 Nov 2026, 11:52 Eastern: drafted by the setup session. No dispatcher started yet.
-- Tue 17 Nov 2026, 12:01 Eastern: **dispatcher #1** started, id `local_15d323e2-b845-4337-9f74-b894bdc51e69` (Opus, high).
+- Tue 17 Nov 2026, 12:01 Eastern: **DISP-01** started (first titled "Project Ringsmith dispatcher #1", renamed 12:12), id `local_15d323e2-b845-4337-9f74-b894bdc51e69` (Opus, high).

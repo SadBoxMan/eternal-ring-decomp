@@ -17,7 +17,7 @@ expected behaviour first, Eastern times, the 5-hour bar). This file adds the pro
 
 ## How work flows (dispatcher project, global rule 5)
 
-- Task cards come from the pinned session **"Project Ringsmith dispatcher #N"** (id in `docs/handoff.md`). It only
+- Task cards come from the pinned session **"Ringsmith DISP-##"** (DISP-01, DISP-02, ...) (id in `docs/handoff.md`). It only
   hands out work and keeps the tracker, usage log and handoff notes; it does no project work.
 - Every card has a task code **ER-NNN** at the start of its session title, brief and commits.
 - Work sessions never propose New-session cards. Follow-ups (task, files, done-when, model / effort / Ultracode) go
