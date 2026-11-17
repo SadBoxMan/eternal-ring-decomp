@@ -1,6 +1,7 @@
 # Toolchain (ER-002)
 
-Written Tue 17 Nov 2026 by ER-002 (Opus 5.5, high). Source: the US main EE ELF `disc/extract/SLUS_200.15`
+Written Tue 17 Nov 2026 by ER-002 (Opus 5.5, high); binutils and the first byte check (sections 4.2, 4.3,
+appendix B) added the same day by ER-011 (Opus 5.5, medium). Source: the US main EE ELF `disc/extract/SLUS_200.15`
 (SHA-1 6087A8CADB7538A849A4F5760502A39DAA6A12AF), read only; the IOP modules in `disc/extract/IOP/`; the GPL ee-gcc
 source tree (SSXModding/ps2-ee-toolchain, commit b595ded). No game bytes, disassembly listings or strings dumps are
 kept in the repo; the working files are in the session scratchpad only.
@@ -18,6 +19,8 @@ invented.
 | ABI: **EABI, 64-bit registers** (`-mips3`, `E_MIPS_ABI_EABI64`), args in `$a0`-`$a3`, `$t0`-`$t3`, floats in `$f12`-`$f19`, single-float | **Confirmed** (e_flags; crt0 passes a 5th argument in `$t0`; float args in `$f12` / `$f13` in game code) |
 | SDK: **SCE PS2 runtime library release 1.6.x** (EE libraries 1620 to 1650, IOP modules 1600 to 1660); libc is **newlib** | Tags and strings **Confirmed**; mapping the tags to a release number **Unconfirmed** |
 | A Windows-native build of that compiler **runs**: `C:\rs\toolchain\ee-gcc-2.9-991111\` (MSYS2 host build, from PowerShell or MSYS2) | **Confirmed** (section 4) |
+| Windows-native **EE binutils 2.9-ee-991111** (`ee-as`, `ee-ld`, `ee-objdump`, ...) from the same tree **run**: `C:\rs\toolchain\ee-binutils-2.9-991111\` | **Confirmed** (ER-011, section 4.2) |
+| Compiler + assembler output is **byte-identical** to the ELF for the three test functions (33 words, relocations aside), and also after linking with `ee-ld` | **Confirmed** (ER-011, section 4.3) |
 | Flags: `-O2` (or higher) with small data on (`-G` > 0, `-G 8` is the default) | **Unconfirmed** (3 functions; section 5) |
 
 ## 2. The ELF
@@ -174,8 +177,8 @@ Compiled with the Windows build (`cc1 -O2 -G8`), **all three come out as the sam
 ELF**: the same instructions in the same order, the same registers, the same delay-slot fill (`move $5,$0` and
 `sw $0,12($sp)` in the `jal` slot, `addu $sp` in the `j $31` slot), the same frame sizes and save offsets, and the
 same gp-relative loads. The remaining step is mechanical: as macros, `move` = `daddu`, `subu $sp,N` = `addiu $sp,-N`,
-`lw sym` with a 4-byte `.extern` under `-G 8` = `lw ..($gp)`. The `.s` was **not assembled** (no `ee-as` built
-yet), so this is a shape match, not a byte match.
+`lw sym` with a 4-byte `.extern` under `-G 8` = `lw ..($gp)`. ER-002 could not assemble the `.s` (no `ee-as`
+yet); **ER-011 assembled it and the bytes match** (section 4.3).
 
 Variations: `-O1` puts all three in a different order (no instruction scheduling pass), and `-G 0` changes the
 second (`%hi` / `%lo` pairs plus a saved `$s0`), so both are ruled out for this code. `-O3` gives the same as `-O2`
@@ -183,7 +186,9 @@ here (nothing to inline).
 
 The `gcc.exe` driver (`gcc -B<dir>\ -O2 -G8 -S`) gives the same output as `cpp` + `cc1` by hand.
 
-## 4. Windows-native compiler path
+## 4. Windows-native toolchain
+
+### 4.1 Compiler (ER-002)
 
 **Working: ee-gcc 2.9-ee-991111 built from the GPL source as an MSYS2 program** (host `x86_64-pc-msys`, LP64),
 the same approach Twinblade used for GCC 2.7.2 (`Project Twinblade/tools/build_old_gcc.sh`). No WSL, Docker, Wine,
@@ -210,11 +215,61 @@ What the build needed (all in the script):
 4. `libiberty` built as a sibling of the gcc build directory (gcc links `../libiberty/libiberty.a`).
 5. Host flags relax GCC 15's errors on 1990s C only (`-std=gnu89 -fcommon -Wno-implicit-int ...`, `-O0`).
 
-Not built yet: **`ee-as` / `ee-ld`** (binutils). ER-003 needs an assembler and linker that accept R5900 / MMI / VU0
-macro opcodes. Options: build `gas` / `ld` from the same Cygnus tree under MSYS2 (same method; untried), or the
-Windows build of decompals/binutils-mips-ps2-decompals v0.10 (prebuilt, GPL; **needs LuciDin's yes** before download,
-per ER-007). Not used, not needed: the SN ProDG mirrors (the ELF shows no SN marks), the ps2dev Windows tarball
-(GCC 15), the decompme packages (probably Linux binaries; unchecked).
+### 4.2 Binutils (ER-011, Tue 17 Nov 2026)
+
+**Working: EE binutils 2.9-ee-991111 built from the same GPL tree as an MSYS2 program**, first try, same method as
+the compiler. No prebuilt binary was downloaded (the decompals binutils v0.10 Windows build was not needed).
+
+| Item | Value |
+|---|---|
+| Source | the same clone, `C:\rs\toolchain\src-lf` (commit `b595ded`, LF checkout, ER-002's `config.sub` patch already in it); `gas/configure.in` says `2.9-ee-991111` |
+| Build script | `C:\rs\toolchain\build_ee_binutils.sh` (appendix B): top-level Cygnus `configure --target=ee --host=x86_64-pc-msys`, then `make -j4 all-gas all-ld all-binutils` with the same relaxed host `CFLAGS` as the compiler. No source edits beyond ER-002's `config.sub`. Run with `MSYSTEM=MSYS C:\msys64\usr\bin\bash.exe -lc /c/rs/toolchain/build_ee_binutils.sh`; a few minutes at `-j4`. Build dir `C:\rs\toolchain\b-binutils`, log `build_ee_binutils.log` |
+| Output | `C:\rs\toolchain\ee-binutils-2.9-991111\` = `ee-as.exe`, `ee-ld.exe`, `ee-objdump.exe`, `ee-objcopy.exe`, `ee-nm.exe`, `ee-readelf.exe`, `ee-size.exe`, `ee-strings.exe`, `ee-ar.exe`, `ee-ranlib.exe`, `msys-2.0.dll`. `ee-as --version` = `GNU assembler 2.9-ee-991111`; `ee-ld --version` = `GNU ld 2.9-ee-991111`, emulation `elf32l5900`. SHA-1 `ee-as.exe` `EA33115B6FCE1B24C7D30EECDABCAD3DE357258E`, `ee-ld.exe` `2DE7435151749B8FA9E09896530EE3DC8C124B91` (local builds, not reproducible bit for bit) |
+| Runs from | PowerShell directly (checked), and MSYS2 bash. **Not from Git Bash with `/c/...` paths**: Git Bash's path conversion confuses these MSYS2 programs (`gcc -B/c/...` could not find `cpp`); use Windows paths |
+| Not built | the VU assembler `ee-dvp-as` (target `ee-dvp` = `dvp-elf`; needed only if the four VU microprograms are rebuilt from source rather than kept as binary) |
+
+Notes:
+
+- This 1999 `objcopy` has no `-j` (only `-R`); use `-R` to drop sections, or read `.text` from the ELF directly.
+- `ee-as` prints `bfd assertion fail .../bfd/elf32-mips.c:2847` (`.reginfo` size) when its **input file is missing**,
+  after the real error. It only happens on that failure path; an empty input or any real input assembles without it.
+- The `gcc` driver calls `as` with `-G8 -O2 -mabi=eabi` (from `-O2 -G8`; specs `asm` / `gas_asm_spec`). Use the
+  same flags when assembling by hand: without `-mabi=eabi` the object differs in one byte only, e_flags lacks
+  `E_MIPS_ABI_EABI64` (`0x4000`; `0x20920001` instead of the game's `0x20924001`). With them, the hand-assembled
+  object is byte-identical to the driver's.
+  The driver finds `as` through `-B<dir>\` if the dir holds `as.exe` (a copy of `ee-as.exe`).
+
+### 4.3 First byte check (ER-011)
+
+Files (ours, outside the repo): `C:\rs\toolchain\tests\er011\` = `er002_shapes.c` (copy of ER-002's test),
+`er011_compare.py` (ELF reader and compare), `er011_link.ld` (link test script), `asbin\as.exe` (copy of `ee-as`).
+
+1. `gcc -B<gcc dir>\ -O2 -G8 -S er002_shapes.c` gives the same `.s` as ER-002 (file hash equal).
+2. `gcc -B<gcc dir>\ -B<asbin>\ -O2 -G8 -c` (and by hand: `ee-as -G8 -O2 -mabi=eabi`) gives an `elf32-littlemips`
+   object with **e_flags `0x20924001`, the same as the game ELF**.
+3. `python -I er011_compare.py obj shapes_drv.o disc/extract/SLUS_200.15`: each function's `.text` words against
+   the ELF at vaddr - `0x000FF000` (trailing zero alignment words dropped). **Relocations masked as follows**:
+   `R_MIPS_26` (`jal`) compares the top 6 bits and checks the game's jump target equals the address in the callee's
+   name (`func_0012B540`, `func_001139C8`, `func_0012D318`: all three right); `R_MIPS_GPREL16` compares the top 16
+   bits (opcode, `$gp`, target register); the game's gp offsets (`-0x5328`, `-0x52D0`) cannot be checked without the
+   variables' own addresses. Nothing else is masked.
+4. `ee-ld -G8 -T er011_link.ld` links the object (callees at their named addresses, `_gp = 0x00360B70`, the two
+   variables at `_gp` + the game's offsets), and `er011_compare.py elf` compares the linked words **exactly, no
+   masking**: all match. This tests `ee-ld`'s relocation arithmetic; the two gp offsets are inputs taken from the
+   game, so they are not independent evidence.
+
+| Function (test name, Unofficial) | Game address | Words | Result |
+|---|---|---:|---|
+| `wrap_12f7e0` | `0x0012F7E0` | 9 | **Match** (1 `R_MIPS_26`) |
+| `update_1257e8` | `0x001257E8` | 12 | **Match** (1 `R_MIPS_26`, 3 `R_MIPS_GPREL16`) |
+| `pack_12d3b8` | `0x0012D3B8` | 11 | **Match** (1 `R_MIPS_26`) |
+
+The words after each function in the game fit too: a zero word, then the next function, after `wrap` and `pack`
+(our object pads `wrap` with one zero word to the next 8-byte entry); the next function starts at once after
+`update` (`0x00125818`, already 8-aligned).
+
+Not used, not needed: the decompals binutils v0.10 Windows prebuilt, the SN ProDG mirrors (the ELF shows no SN
+marks), the ps2dev Windows tarball (GCC 15), the decompme packages (probably Linux binaries; unchecked).
 
 Leftovers in `C:\rs\toolchain` from failed tries (safe to delete, LuciDin's call): `src\` (the CRLF clone),
 `build-gcc\`, `build-bison\`, `build-bison2\`, `bisontest2\`.
@@ -251,8 +306,9 @@ Leftovers in `C:\rs\toolchain` from failed tries (safe to delete, LuciDin's call
   correctly; test early (research.md §4).
 - Section header names include `.vutext`, `.vudata`, `.vubss` and the `.DVP.*` sections; the SDK linker script
   (`app.cmd` form) will have to be rebuilt by hand to place them.
-- Toolchain: `cc1` / `gcc` from `C:\rs\toolchain\ee-gcc-2.9-991111\` (`-O2 -G8` to start), plus an assembler and
-  linker (section 4: build Cygnus `gas` / `ld` under MSYS2, or the decompals Windows binutils after LuciDin's yes).
+- Toolchain: `cc1` / `gcc` from `C:\rs\toolchain\ee-gcc-2.9-991111\` (`-O2 -G8` to start), `ee-as` / `ee-ld` /
+  `ee-objdump` from `C:\rs\toolchain\ee-binutils-2.9-991111\` (section 4.2; assemble with `-G8 -O2 -mabi=eabi`, or
+  let the driver call `as` through `-B`).
   Keep toolchain paths short and without spaces (`C:\rs\...`).
 
 ## 7. Not verified, Unconfirmed and Unofficial items
@@ -263,7 +319,14 @@ Not verified:
   the same code. Larger functions in ER-003 / ER-004 will tell.
 - That this LP64 MSYS2 host build generates the same code as SCE's own (32-bit host) 2.9-ee-991111 in every case.
   Old GCCs have occasionally differed between 32- and 64-bit host builds.
-- Byte-level output: nothing was assembled (no `ee-as` yet).
+- Byte-level output beyond the **three test functions** (33 words; ER-011 section 4.3). No function with `.lit4`
+  float constants, `%hi` / `%lo` pairs, branches, MMI or VU0 macro opcodes has been assembled and compared yet;
+  ER-003's split and first matches will test those.
+- The gp offsets of the two variables in `func_001257E8` (masked; not checkable without the variables' addresses).
+- That the LP64 MSYS2 host build of the binutils encodes everything as SCE's own `ee-as` / `ee-ld` did (fits the 33
+  words; old binutils on 64-bit hosts have had host-width bugs).
+- Whether `ee-ld` reproduces the game's `.reginfo`, DVP overlay sections and section header table (ER-003).
+- `ee-dvp-as` (VU assembler) is not built.
 - That the linker script is SCE's own `app.cmd` file, and that crt0 is byte-identical to an SDK `crt0.s`.
 - What `func_001D03E0` and `func_001CFD80` are (`_InitSys` and `Exit` are guesses).
 - Why `.reginfo` `ri_gprmask` holds only crt0's registers.
@@ -371,6 +434,49 @@ make -j4 cpp cc1 xgcc CFLAGS="$CFLAGS" LANGUAGES=c BISON="$BISONB/bison.exe" >> 
 mkdir -p "$OUT"
 cp cpp.exe cc1.exe "$OUT/"
 cp xgcc.exe "$OUT/gcc.exe"
+cp /usr/bin/msys-2.0.dll "$OUT/"
+echo "Done: $OUT"
+```
+
+## Appendix B: `C:\rs\toolchain\build_ee_binutils.sh` (ER-011)
+
+Kept here because `C:\rs` is not backed up. Script SHA-1 `C0E8DF1E4472A63E2C41926F25A7FBD8997E2B73`.
+
+```bash
+#!/bin/bash
+# ER-011: build the EE binutils (gas, ld, objdump, objcopy, ...) 2.9-ee-991111 from the same GPL source as
+# ER-002's compiler (SSXModding/ps2-ee-toolchain commit b595ded), natively on Windows under MSYS2,
+# host x86_64-pc-msys (LP64), target "ee" = mips64r5900-sky-elf.
+#
+# Needs the LF clone /c/rs/toolchain/src-lf with ER-002's config.sub patch (build_ee_gcc.sh step 1).
+# Run:  MSYSTEM=MSYS C:\msys64\usr\bin\bash.exe -lc /c/rs/toolchain/build_ee_binutils.sh
+# Output: /c/rs/toolchain/ee-binutils-2.9-991111/ee-{as,ld,objdump,objcopy,...}.exe (+ msys-2.0.dll)
+set -e
+export PATH="/usr/bin:$PATH"
+unset CC CXX
+
+ROOT=/c/rs/toolchain
+SRC=$ROOT/src-lf/ee
+BUILD=$ROOT/b-binutils
+OUT=$ROOT/ee-binutils-2.9-991111
+LOG=$ROOT/build_ee_binutils.log
+
+CFLAGS="-O0 -g0 -std=gnu89 -w -fcommon -Wno-int-conversion -Wno-implicit-function-declaration -Wno-implicit-int -Wno-return-mismatch -Wno-incompatible-pointer-types"
+export CFLAGS
+
+grep -q 'ER-002 x86_64' "$SRC/config.sub"
+
+rm -rf "$BUILD"; mkdir -p "$BUILD"; cd "$BUILD"
+"$SRC/configure" --target=ee --host=x86_64-pc-msys --build=x86_64-pc-msys \
+    --prefix=$ROOT/ee-binutils-prefix --disable-nls > "$LOG" 2>&1
+make -j4 CFLAGS="$CFLAGS" all-gas all-ld all-binutils >> "$LOG" 2>&1
+
+mkdir -p "$OUT"
+cp gas/as-new.exe "$OUT/ee-as.exe"
+cp ld/ld-new.exe "$OUT/ee-ld.exe"
+for p in objdump objcopy nm-new size strings readelf ar ranlib; do
+    if [ -f binutils/$p.exe ]; then cp binutils/$p.exe "$OUT/ee-${p%-new}.exe"; fi
+done
 cp /usr/bin/msys-2.0.dll "$OUT/"
 echo "Done: $OUT"
 ```
