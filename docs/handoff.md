@@ -27,7 +27,9 @@ Written Tue 17 Nov 2026, 11:52 Eastern, by the setup session.
 - Disc: **NTSC-U (US)** only; it is the matching target.
 - Sidebar: dispatcher pinned in "Project Ringsmith"; cards in "Ringsmith Decomp", "Ringsmith Recomp / PC Port",
   "Ringsmith Misc", and "Ringsmith Assets" (asset rips, from when the recomp is complete; added 17 Nov 2026).
-- Code: **local git only for now**; GitHub decided once the split builds byte-identical.
+- Code: GitHub repository **https://github.com/SadBoxMan/ringsmith** (LuciDin, 17 Nov 2026). No remote added and
+  nothing pushed yet: every push needs LuciDin's yes, given in that session, and a check that no game data is in the
+  history.
 
 ## Open questions for LuciDin
 
