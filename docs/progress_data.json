@@ -94,11 +94,11 @@
           "id": "m-rec-funcs",
           "phase": "Step 1: static recompile",
           "name": "Functions recompiled",
-          "done": 0,
-          "total": null,
+          "done": 3359,
+          "total": 3606,
           "unit": "functions",
           "source": "ER-008 spike, ER-004 census",
-          "notes": "Not measured yet."
+          "notes": "ER-008 spike with PS2Recomp e563698 on our split's 3,606 boundaries: 3,359 recompiled, 247 bound to runtime HLE stubs, 0 unhandled instructions. Recompiled is not verified correct."
         },
         {
           "id": "m-rec-hle",
@@ -126,9 +126,9 @@
           "id": "r1",
           "phase": "Step 1: static recompile",
           "name": "Static recompile of the EE ELF to C, SCE library calls replaced (HLE)",
-          "status": "Not started",
+          "status": "In progress",
           "percent": 0,
-          "notes": "ER-008 spike queued (PS2Recomp built natively with MSVC)."
+          "notes": "ER-008 spike done: PS2Recomp handles the whole ELF and the output compiles; see docs/recomp_spike.md."
         },
         {
           "id": "r2",
@@ -281,9 +281,9 @@
       "phase": "Phase 0",
       "text": "Recomp spike: PS2Recomp on SLUS_200.15",
       "track": "recomp",
-      "status": "Not started",
+      "status": "Complete",
       "by": "ER-008",
-      "notes": "Queued; ER-001 done."
+      "notes": "ER-008, 18 Nov 2026: docs/recomp_spike.md"
     },
     {
       "id": "ms9",
@@ -298,10 +298,10 @@
       "id": "ms10",
       "phase": "Recomp / port",
       "track": "port",
-      "status": "Not started",
+      "status": "In progress",
       "by": "",
       "text": "First PC build: recompiled EE code + HLE stubs compiles to a Windows exe and boots",
-      "notes": "Watched by the dispatcher after every card (LuciDin, 17 Nov 2026; in Twinblade the port built soon after the decomp began). Needs: a recompiler that handles the ELF (ER-008 spike), SCE library entry points caught (HLE stubs), a minimal runtime (memory, syscalls, a GS/video path). Not tied to Phase 1 progress."
+      "notes": "ER-008 spike (18 Nov 2026): recompiled EE code + PS2Recomp HLE stubs compile to a Windows exe (0 errors) and boot through IOP module load, CD lookup, memory card probe and GS setup into the first PSS movie, then stall (MPEG ring backpressure; 141 of 3,606 functions ran). Not a playable boot. Needs: MPEG/IPU path, GS, VU1 checks."
     }
   ],
   "tasks": [
@@ -371,11 +371,11 @@
     {
       "code": "ER-008",
       "title": "Recomp spike: PS2Recomp built with MSVC, run on SLUS_200.15",
-      "status": "In progress",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": "ER-001 done."
+      "notes": "Done 18 Nov 2026: PS2Recomp e563698 built natively (MSVC 14.41, VS-bundled CMake/Ninja, nothing installed); 3,606/3,606 functions, 0 unhandled instructions; output (54.6 MB C++, kept outside git) compiles cleanly; boots to the first PSS movie, then stalls. Recommendation: build on PS2Recomp with our own fork. docs/recomp_spike.md"
     },
     {
       "code": "ER-009",
