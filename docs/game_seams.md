@@ -40,6 +40,12 @@ Code and data bytes come from the original ELF (`disc/extract/SLUS_200.15`), sym
 references come from `tools/census.py`'s linear address tracker (`lui` / `addiu` / `ori` pairs, copies, `$gp`):
 each reference is mapped to the splat data label that contains it.
 
+**Inputs of the run behind this doc.** `asm/` was not read at all (ER-013's clean splits rewrite it). Bytes: the
+original ELF, which no build changes. Symbols: `build/SLUS_200.15.syms.elf` as built at 00:42 Eastern on Wed 18 Nov
+2026 by ER-013's last build (around commit `10593b2`, ER-013 closed), 3,609 units (the census total) and 5,585 data
+labels. The list is cached in `build/seams/symbols.json`, which the tool falls back on when the syms ELF is missing.
+Function symbols are named by address, so a later split changes their names only if a function moves.
+
 | Evidence | What it uses | Kind |
 |---|---|---|
 | **O: source-order scan** (main) | For every boundary between two functions, the data labels (`.rodata`, `.sdata`, `.data`; `.sbss` / `.bss` as a second check) used by the K functions on each side. Labels used by functions further apart than `LOCAL_SPAN` are left out (widely shared globals, tracker misreads). **Binding**: a label used on both sides. **Inversion**: a label used only on the left lying above one used only on the right. **Static calls**: a call across the boundary to a function whose callers all lie within `LOCAL_SPAN`. A boundary is *open* when binding, inversions and static calls are all 0 in the primary sections | positive and negative |
