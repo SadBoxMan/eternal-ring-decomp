@@ -23,6 +23,11 @@
    owned word is used by exactly one instruction of one function of that file; its value is a normal float with
    non-zero low 16 bits (else gas would not use .lit4).
 
+4. Per-file .sdata / .data (ER-024). splat migrates neither; for a C file that owns a `.sdata` / `.data` subsegment,
+   each symbol of the range is written to asm/nonmatchings/<file>/<sym>.s and the C file must include all of them in
+   address order (INCLUDE_SDATA / INCLUDE_DATA, include/include_asm.h; `--fix-includes` writes the block after the
+   first #include when the file has none). gas makes gp-relative loads of .sdata symbols defined in the same file.
+
 Everything else is splat 0.50.1 as pinned in requirements.txt.
 
 Usage: python -I tools/split.py <config.yaml> [--fix-includes]   (other arguments as `python -m splat split`)
@@ -67,7 +72,7 @@ MipsSymbolBase.SymbolBase.isDouble = is_double
 FIX_INCLUDES = False
 ERRORS: list[str] = []
 SUMMARY = {"lit4_files": 0, "lit4_asm": 0, "lit4_c": 0, "ro_files": 0, "ro_standalone": 0, "ro_inserted": 0,
-           "align4": 0, "align_skipped": []}
+           "align4": 0, "align_skipped": [], "data_files": [], "data_syms": 0}
 
 INC_RE = re.compile(r"\b(INCLUDE_ASM|INCLUDE_RODATA)\s*\(\s*\"([^\"]*)\"\s*,\s*(\w+)\s*\)\s*;")
 LWC1_RE = re.compile(r"^(\s*/\*[^*]*\*/\s*)lwc1(\s+)(\$f\d+), \((\w+)\)(?:\s*/\* gp_rel: \(\w+\) \*/)?\s*$")
@@ -151,6 +156,48 @@ def _insert_rodata_includes(seg, expected, act, c_path: Path, missing: set):
         else:  # before a C definition: a blank line after the block
             lines[at:at] = block + [""]
     c_path.write_text("\n".join(lines), encoding="utf-8", newline="\n")
+
+
+DATA_MACROS = {".sdata": "INCLUDE_SDATA", ".data": "INCLUDE_DATA"}
+
+
+def _owned_data(seg, sect: str, data_seg):
+    """A C file owns a .sdata / .data range: write each symbol of it to asm/nonmatchings/<file>/<sym>.s and check
+    the C file includes them all, in address order (INCLUDE_SDATA / INCLUDE_DATA). splat migrates no .sdata /
+    .data, and where these lines sit among the functions does not matter (another section); only their order
+    among themselves and among the file's own C data definitions does."""
+    from splat.util import options
+
+    macro = DATA_MACROS[sect]
+    asm_dir = options.opts.nonmatchings_path / seg.dir / seg.name
+    asm_dir.mkdir(parents=True, exist_ok=True)
+    names = []
+    for s in data_seg.spim_section.get_section().symbolList:
+        name = s.getNameUnquoted()
+        names.append(name)
+        with (asm_dir / f"{name}.s").open("w", encoding="utf-8", newline="\n") as f:
+            f.write(f".section {sect}\n\n")
+            f.write(s.disassemble(useGlobalLabel=True, isSplittedSymbol=True))
+    SUMMARY["data_syms"] += len(names)
+    c_path = seg.out_path()
+    raw = c_path.read_text(encoding="utf-8")
+    inc = re.compile(rf"\b{macro}\s*\(\s*\"([^\"]*)\"\s*,\s*(\w+)\s*\)\s*;")
+    from splat.segtypes.common.c import CommonSegC
+    got = [m[2] for m in inc.finditer(CommonSegC.strip_c_comments(raw))]
+    if not got and FIX_INCLUDES:
+        m = INC_RE.search(raw)
+        folder = m[2] if m else f"asm/nonmatchings/{seg.name}"
+        lines = raw.split("\n")
+        at = next(i for i, l in enumerate(lines) if l.startswith("#include")) + 1
+        block = ["", f"/* ER-024: this file's {sect} (docs/build.md 3.2) */"]
+        block += [f'{macro}("{folder}", {n});' for n in names]
+        lines[at:at] = block
+        c_path.write_text("\n".join(lines), encoding="utf-8", newline="\n")
+        got = names
+        SUMMARY["ro_inserted"] += len(names)
+    if got != names:
+        ERRORS.append(f"{c_path.as_posix()}: {macro} lines {got[:3]}... differ from the owned {sect} symbols "
+                      f"{names[:3]}... (all of them, in address order; --fix-includes writes them if none exist)")
 
 
 ALIGN_RE = re.compile(r"^\.align (\d+)\s*$")
@@ -301,6 +348,11 @@ def _install_hooks():
         lit4 = self.siblings.get(".lit4")
         if lit4 is not None and not lit4.is_generated:
             _lit4_rewrite(self, lit4, rom_bytes)
+        for sect in (".data", ".sdata"):
+            d = self.siblings.get(sect)
+            if d is not None and not d.is_generated:
+                SUMMARY["data_files"].append(f"{self.name}{sect}")
+                _owned_data(self, sect, d)
 
     CommonSegC.split = split
 
@@ -316,10 +368,12 @@ if __name__ == "__main__":
     sys.argv = ["splat", "split"] + args
     splat_main()
     s = SUMMARY
-    print(f"split.py: .rodata owned by {s['ro_files']} C files ({s['ro_standalone']} INCLUDE_RODATA symbols"
-          f"{', %d lines inserted' % s['ro_inserted'] if s['ro_inserted'] else ''}); .lit4 owned by {s['lit4_files']}"
+    print(f"split.py: .rodata owned by {s['ro_files']} C files ({s['ro_standalone']} INCLUDE_RODATA symbols)"
+          f"; .lit4 owned by {s['lit4_files']}"
           f" C files ({s['lit4_asm']} asm loads written as li.s, {s['lit4_c']} literals from C); .align 4 on"
-          f" {s['align4']} .rodata items (not in {', '.join(s['align_skipped']) or '-'}: range not 16-aligned)")
+          f" {s['align4']} .rodata items (not in {', '.join(s['align_skipped']) or '-'}: range not 16-aligned);"
+          f" owned .data / .sdata: {len(s['data_files'])} ranges, {s['data_syms']} symbols"
+          f"{'; %d INCLUDE lines inserted in C files' % s['ro_inserted'] if s['ro_inserted'] else ''}")
     if ERRORS:
         for e in ERRORS:
             print("split.py: ERROR:", e, file=sys.stderr)

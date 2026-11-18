@@ -1,5 +1,39 @@
 #include "common.h"
 
+/* ER-024: this file's .sdata (docs/build.md 3.2) */
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BEC8);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BECC);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BED0);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BED4);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BED8);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BEDC);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BEE0);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BEE4);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BEE8);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BEEC);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BEF0);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BEF4);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BF04);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BF08);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BF0C);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BF10);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BF14);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BF18);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BF1C);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BF20);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BF24);
+INCLUDE_SDATA("asm/nonmatchings/text_0014E2E8", D_0035BF28);
+
+/* ER-024: this file's .data (docs/build.md 3.2) */
+INCLUDE_DATA("asm/nonmatchings/text_0014E2E8", D_0032FFE0);
+INCLUDE_DATA("asm/nonmatchings/text_0014E2E8", D_0032FFF0);
+INCLUDE_DATA("asm/nonmatchings/text_0014E2E8", D_00330000);
+INCLUDE_DATA("asm/nonmatchings/text_0014E2E8", D_00330050);
+INCLUDE_DATA("asm/nonmatchings/text_0014E2E8", D_00330068);
+INCLUDE_DATA("asm/nonmatchings/text_0014E2E8", D_00330080);
+INCLUDE_DATA("asm/nonmatchings/text_0014E2E8", D_00330190);
+INCLUDE_DATA("asm/nonmatchings/text_0014E2E8", D_003301F0);
+
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014E2E8);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014E3E8);

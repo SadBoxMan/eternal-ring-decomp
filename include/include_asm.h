@@ -23,6 +23,24 @@
     )
 #endif
 
+/* ER-024: a data symbol of a range the C file owns in .sdata / .data (docs/build.md 3.2) */
+#ifndef INCLUDE_SDATA
+#define INCLUDE_SDATA(FOLDER, NAME) \
+    __asm__( \
+        ".section .sdata\n" \
+        "    .include \"" FOLDER "/" #NAME ".s\"\n" \
+        ".section .text" \
+    )
+#endif
+#ifndef INCLUDE_DATA
+#define INCLUDE_DATA(FOLDER, NAME) \
+    __asm__( \
+        ".section .data\n" \
+        "    .include \"" FOLDER "/" #NAME ".s\"\n" \
+        ".section .text" \
+    )
+#endif
+
 #if INCLUDE_ASM_USE_MACRO_INC
 __asm__(".include \"include/macro.inc\"\n");
 #else
@@ -36,6 +54,12 @@ __asm__(".include \"include/labels.inc\"\n");
 #endif
 #ifndef INCLUDE_RODATA
 #define INCLUDE_RODATA(FOLDER, NAME)
+#endif
+#ifndef INCLUDE_SDATA
+#define INCLUDE_SDATA(FOLDER, NAME)
+#endif
+#ifndef INCLUDE_DATA
+#define INCLUDE_DATA(FOLDER, NAME)
 #endif
 
 #endif /* !defined(M2CTX) && !defined(PERMUTER) */

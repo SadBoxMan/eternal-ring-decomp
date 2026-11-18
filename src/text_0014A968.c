@@ -1,5 +1,30 @@
 #include "common.h"
 
+/* ER-024: this file's .sdata (docs/build.md 3.2) */
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BDD8);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BDDC);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BDE0);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BDE4);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BDE8);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BDF0);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BDF4);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BDF8);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BDFC);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BE00);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BE04);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BE08);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BE0C);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BE10);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BE1C);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BE20);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BE24);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BE28);
+INCLUDE_SDATA("asm/nonmatchings/text_0014A968", D_0035BE38);
+
+/* ER-024: this file's .data (docs/build.md 3.2) */
+INCLUDE_DATA("asm/nonmatchings/text_0014A968", D_0032FF90);
+INCLUDE_DATA("asm/nonmatchings/text_0014A968", D_0032FFA0);
+
 INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014A968);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014AA18);

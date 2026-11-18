@@ -1,5 +1,21 @@
 #include "common.h"
 
+/* ER-024: this file's .sdata (docs/build.md 3.2) */
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BE90);
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BE94);
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BE98);
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BE9C);
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BEA0);
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BEA4);
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BEA8);
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BEAC);
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BEB0);
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BEB4);
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BEB8);
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BEBC);
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BEC0);
+INCLUDE_SDATA("asm/nonmatchings/text_0014D930", D_0035BEC4);
+
 INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014D930);
 
 void func_0014DA78(void) {

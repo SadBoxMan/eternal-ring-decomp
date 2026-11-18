@@ -108,6 +108,13 @@ segments:
       - [0x0F00E8, c, sdk/libkernl_tail] # libkernl objects linked after libc (Unconfirmed)
       - [0x0F0354, pad]                  # zero fill: .data is 128-aligned (outside the .text section)
       - [0x0F0380, data, data_001F0380]  # .data
+      # ER-024: the files between the seams S9 and S20 own their .data / .sdata (pinned at both ends by the
+      # references; docs/game_seams.md 8.6); text_0014D930 has no .data. tools/split.py writes INCLUDE_(S)DATA files.
+      - [0x22FF20, .data, text_00145120]
+      - [0x22FF90, .data, text_0014A968]
+      - [0x22FFB0, .data, text_0014C840]
+      - [0x22FFE0, .data, text_0014E2E8]
+      - [0x230208, data, data_00330208]  # text_00150878 on, still shared asm
       # .vudata: VU microcode load copies, kept as data words (ee-as 2.9 has no .incbin)
       - { start: 0x252770, type: data, name: vudata_00352770, linker_section: .vudata, linker_section_order: .vudata }
       - [0x253DA0, pad]                  # zero fill before the 128-aligned .rodata
@@ -133,6 +140,12 @@ segments:
       - [0x259ACC, .lit4, text_00150878]
       - [0x25B784, pad]
       - [0x25B800, sdata, sdata_0035B800]
+      - [0x25BC94, .sdata, text_00145120]
+      - [0x25BDD8, .sdata, text_0014A968]
+      - [0x25BE3C, .sdata, text_0014C840]
+      - [0x25BE90, .sdata, text_0014D930]
+      - [0x25BEC8, .sdata, text_0014E2E8]
+      - [0x25BF2C, sdata, sdata_0035BF2C]  # text_00150878 on, still shared asm
       - { type: sbss, vram: 0x0035C480, name: sbss_0035C480 }   # .sbss is 0xEC bytes
       # gap before the 128-aligned .bss: splat's `pad` type takes no vram, so it is a bss subsegment named
       # pad_*, which tools/gen_ld.py leaves out of the link (the section alignment makes the same gap)
