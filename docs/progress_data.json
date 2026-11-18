@@ -461,7 +461,7 @@
     {
       "code": "ER-018",
       "title": "Recomp boot past the first movie",
-      "status": "Queued",
+      "status": "In progress",
       "track": "recomp",
       "model": "Opus, high",
       "waits_on": "",
