@@ -145,3 +145,18 @@ tools.
 | `make regress` | about 30 s (split 15 s, clean build 11 s, checks under 1 s) |
 | `make regress` after the ER-013 file split | split 22 s, clean build 35 s (18 C files; one measurement, Wed 18 Nov 2026) |
 | `make regress` after the ER-022 game split | split 22 s, clean build 34 s (25 C files; one measurement, Wed 18 Nov 2026) |
+
+## 5. Backups (ER-025, Wed 18 Nov 2026)
+
+`python tools/backup.py` writes `F:\Claude\Project Ringsmith\backups\ringsmith_<YYYYMMDD>_<HHMM>_<tag>.zip` (tag `main`
+for the main checkout, else the worktree folder name) and rewrites `repo.bundle` (all refs; `git clone repo.bundle`
+restores every commit) in the same folder. The zip holds our own work only: `src/`, `include/`, `tools/`, `docs/`,
+`Programs/`, the yaml, `symbol_addrs.txt`, `reloc_addrs.txt`, `Makefile`, `requirements.txt`, `CLAUDE.md`,
+`.gitignore`, `.gitattributes`. The file list comes from git (tracked plus untracked-not-ignored), and the run refuses
+(exit 2, nothing written) if any selected path is git-ignored or is game data or build output (`disc/`, `asm/`,
+`assets/`, `baserom/`, `linker/`, `build/`, `build_logs/`, `.venv/`, `*.iso`, `*.elf`, `*.irx`, `*.bin`). It keeps the
+last 48 zips per tag, and a lock file (`repo.bundle.lock`) stops two runs writing the bundle at once. The bundle is
+written to a temporary file, verified, then moved into place. It prints one line: zip path, KB, file count, bundle
+verify result.
+
+**Only the dispatcher runs it**, after every 3-5 completed cards and at block end; work sessions never do.

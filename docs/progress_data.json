@@ -524,11 +524,11 @@
     {
       "code": "ER-025",
       "title": "Backup tool (zip + git bundle to F:)",
-      "status": "In progress",
+      "status": "Done",
       "track": "other",
       "model": "Sonnet, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "tools/backup.py: zip + repo.bundle to F:, refuses ignored/game-data paths; first run 77 files, 169 KB, bundle verified and test-restored; see docs/build.md 5"
     }
   ]
 }
