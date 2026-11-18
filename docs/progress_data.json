@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-17",
+  "updated": "2026-11-18",
   "note": "Read by tools/progress_tracker.py (format in docs/tracker.md). Only facts from the repo: a metric's total stays null ('not measured yet') until the split (ER-003) and the census (ER-004) give real counts; never write an estimate as a total. Every metric, milestone and task has a 'track': decomp, recomp, port, assets or other. Statuses: milestones and phase items use Not started / In progress / Complete; ER tasks use Queued / In progress / Waiting / Done.",
   "tracks": [
     {
@@ -416,7 +416,7 @@
     {
       "code": "ER-013",
       "title": "File split: game and SDK files",
-      "status": "Queued",
+      "status": "In progress",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
@@ -452,7 +452,7 @@
     {
       "code": "ER-017",
       "title": "Game-internal file seams (research)",
-      "status": "Queued",
+      "status": "In progress",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "",
