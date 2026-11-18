@@ -524,7 +524,7 @@
     {
       "code": "ER-025",
       "title": "Backup tool (zip + git bundle to F:)",
-      "status": "Queued",
+      "status": "In progress",
       "track": "other",
       "model": "Sonnet, medium",
       "waits_on": "",
