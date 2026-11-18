@@ -416,11 +416,11 @@
     {
       "code": "ER-013",
       "title": "File split: game and SDK files",
-      "status": "In progress",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done 18 Nov 2026 (commit a74b9aa): 18 c files at the 19 census seams (game 3, SDK 15 under src/sdk/); make regress green; 6 windowed seams Unconfirmed; data not split"
     },
     {
       "code": "ER-014",
