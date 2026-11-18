@@ -88,3 +88,4 @@ The dispatcher is pinned. After start_session and detach_session, file each card
 - Tue 17 Nov 2026, 12:01 Eastern: **DISP-01** started (first titled "Project Ringsmith dispatcher #1", renamed 12:12), id `local_15d323e2-b845-4337-9f74-b894bdc51e69` (Opus, high).
 - Wed 18 Nov 2026, 01:05 Eastern: first backup (DISP-01): `F:\Claude\Project Ringsmith\backups\repo.bundle`, all refs at 999d152, verified okay.
 - Wed 18 Nov 2026, 15:47 Eastern: backup by ER-025's test run (`tools/backup.py`): `ringsmith_20261118_1547_main.zip` (169 KB, 77 files) + `repo.bundle` at fcd64c9, verified and test-restored.
+- Wed 18 Nov 2026, 16:39 Eastern: backup (DISP-01, `tools/backup.py`): `ringsmith_20261118_1639_main.zip` (78 files, 203 KB) + `repo.bundle` at acf0284, verify okay.
