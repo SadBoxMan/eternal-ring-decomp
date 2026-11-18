@@ -428,7 +428,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "",
+      "waits_on": "ER-022 (both touch src/)",
       "notes": "After ER-013 if both queued (both touch src/)"
     },
     {
@@ -437,7 +437,7 @@
       "status": "Waiting",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-013",
+      "waits_on": "ER-022 (both touch src/)",
       "notes": ""
     },
     {
@@ -492,6 +492,24 @@
       "track": "recomp",
       "model": "Sonnet, low",
       "waits_on": "LuciDin's yes",
+      "notes": ""
+    },
+    {
+      "code": "ER-022",
+      "title": "Split the Strong game seams into files",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-023",
+      "title": "Sharpen the seam method (hit rate on SDK seams)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
       "notes": ""
     }
   ]

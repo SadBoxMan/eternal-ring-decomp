@@ -25,7 +25,7 @@ Written Tue 17 Nov 2026, 11:52 Eastern, by the setup session.
 
 ## Decided (LuciDin, Tue 17 Nov 2026)
 
-- Task codes: **ER-NNN** (session title prefix, brief, commits; next free: ER-022).
+- Task codes: **ER-NNN** (session title prefix, brief, commits; next free: ER-024).
 - Disc: **NTSC-U (US)** only; it is the matching target.
 - Sidebar: dispatcher pinned in "Project Ringsmith"; cards in "Ringsmith Decomp", "Ringsmith Recomp / PC Port",
   "Ringsmith Misc", and "Ringsmith Assets" (asset rips, from when the recomp is complete; added 17 Nov 2026).
@@ -85,3 +85,5 @@ decision). Open question for LuciDin: what does a real PS2 show first after the 
 | ER-019 | PS2Recomp fork setup: fork on LuciDin's GitHub, a game-override module for SLUS_200.15, as-shipped build options (verbose logs off, no `/fp:fast`). Done when the fork builds the game from our scripts | Opus, medium | LuciDin's GPL-3.0 decision and his yes to the fork |
 | ER-020 | Recomp opcode correctness: count which MMI / VU0 / COP1 opcodes the game uses that sit on PS2Recomp's open-bug list (`docs/research.md` 3), and plan differential tests against PCSX2 | Opus, medium | nothing |
 | ER-021 | Optional: try a newer MSVC (VS 17.12+) for the C1001 internal compiler error in PS2Recomp's unit tests (a Visual Studio update: LuciDin's call) | Sonnet, low | LuciDin's yes |
+| ER-022 | Split the Strong game seams: for each of the 22 Strong windows in `docs/game_seams.md` 4.1, compute the cut per data section (.rodata / .sdata / .data) from the one-sided labels, check the data cuts line up, then add c subsegments at the 8 fixed seams (and pick starts in 2-3 function windows only where data decides). Files: `slus_200.15.yaml`, `src/`, `tools/seams.py`. Done when `make regress` is green | Opus, high | nothing (before ER-014 / ER-015, which also touch `src/`) |
+| ER-023 | Sharpen the seam method: run `tools/seams.py` over the SDK regions (partly known boundaries) to measure its hit rate; add control-flow-aware reference tracking; rerun on the seam-less stretches. Files: `tools/seams.py`, `docs/game_seams.md`. Done when the doc has a measured hit rate and an updated window list | Opus, medium | nothing (read-only; not beside ER-022, which edits `tools/seams.py`) |
