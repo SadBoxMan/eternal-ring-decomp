@@ -551,11 +551,11 @@
     {
       "code": "ER-028",
       "title": "Find Sony's own EE binutils build (research)",
-      "status": "In progress",
+      "status": "Done",
       "track": "decomp",
       "model": "Sonnet, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done 18 Nov 2026: keep the patch; no public tree (2.9-ee-991111, upstream 2.25/2.29, decompals 2.40, ps2dev 2.45.1) omits the nop; Sony/SN source not public; docs/toolchain.md 4.4"
     }
   ]
 }

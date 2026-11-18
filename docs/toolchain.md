@@ -274,6 +274,60 @@ marks), the ps2dev Windows tarball (GCC 15), the decompme packages (probably Lin
 Leftovers in `C:\rs\toolchain` from failed tries (safe to delete, LuciDin's call): `src\` (the CRLF clone),
 `build-gcc\`, `build-bison\`, `build-bison2\`, `bisontest2\`.
 
+### 4.4 Sony's assembler and the c.cond / bc1 nop (ER-028, Wed 18 Nov 2026)
+
+Desk research, read-only: nothing built, run or downloaded (source text read only; the scratch copies of
+`tc-mips.c` are outside the repo). The question: which EE binutils leaves **no `nop` between `c.cond.s` and
+`bc1t` / `bc1f` in reorder mode** (the game's 129 sites; `docs/decomp_recipes.md` 2.2, 2.3, ruling 3.4).
+
+**What the code says (Confirmed from source read this session).** The `nop` comes from the generic MIPS coprocessor
+condition-code hazard: a `c.cond` writes the FP condition code, a following `bc1x` reads it, and on a CPU without
+FP interlocks the assembler separates them. Whether the CPU "has interlocks" is the macro `cop_interlocks`.
+
+| Tree | `cop_interlocks` | r5900 gets the `nop`? |
+|---|---|---|
+| SSXModding/ps2-ee-toolchain `b595ded` (our 2.9-ee-991111), `gas/config/tc-mips.c` | `mips_cpu == 4300 \|\| mips_cpu == 5400` | **Yes** (r5900 is in `hilo_interlocks` and `gpr_interlocks`, deliberately, per its `gas/ChangeLog` 1998 entries, but **not** here). Hazard check in `append_insn`, guarded by `mips_opts.isa < 4` |
+| Upstream binutils with r5900 support (`ps2dev/binutils-gdb` mirror, tags `binutils-2_25`, `binutils-2_29`; none before 2.21) | isa not MIPS I/II/III, or R4300, or microMIPS; r5900 is `ISA_MIPS3` | **Yes** (same result, different code: `INSN_WRITE_COND_CODE` then `INSN_READ_COND_CODE` returns a 1-nop gap) |
+| decompals/binutils-mips-ps2-decompals, branch `binutils-2_40` (the v0.10 Windows build, GPL-2.0) | same upstream macro | **Yes** (`tc-mips.c` read: same macro; its CHANGELOG lists only DVP relocs, `--align-section`, mwcc debug, `-mbranch-relocs`; nothing on hazards) |
+| ps2dev/binutils-gdb, branch `ee-v2.45.1` (the current ps2dev EE binutils) | same upstream macro | **Yes** (macro text identical; the 2.40-to-2.45 diff was not read further) |
+
+So **no public tree read gives the game's behaviour**, and ours already matches every one of them: the `nop` is
+inserted by the GPL Cygnus tree, by upstream, and by every fork of upstream. Upstream r5900 support (Urban, 2012 to
+2013; later `-mfix-r5900` short-loop work by Noring and Rozycki, 2018) never added the r5900 to `cop_interlocks`;
+the 2013 patch mail was read and has nothing on FP-condition hazards (single source for the history; mail archive at
+sourceware.org, whose robots.txt does not cover `/pipermail/`).
+
+**Candidates, ranked**
+
+| # | Candidate | Source public? | Licence | Evidence it behaves like the game |
+|---|---|---|---|---|
+| 1 | **SCE's own shipped `ee-as`** (the SDK 1.6.x binutils; "2.9-ee" series, possibly a later build than 991111) | **No** (binaries inside the licensed SDK; Sony's EE GCC / binutils source was released only in part, if at all, with the PS2 Linux kit: a 2001 NetBSD list post alleges files were withheld, **Unconfirmed**, one forum source, not fetched) | GPL source obligation, not honoured publicly as far as found | The game itself (129 sites: Confirmed in ER-014). Which exact build: **not identifiable**; the assembler leaves no version string in the ELF (stripped, no `.comment`) |
+| 2 | **SN Systems ProDG assembler** (`ee-as` 2.9x or 2.95-era SN builds) | **No** (a 2000 binutils-list post says SN published its modified GCC source but not its binutils: single snippet, **Unconfirmed**) | proprietary | The ELF shows no SN marks (section 1), so unlikely to be the one used |
+| 3 | A **different public Cygnus 2.9-ee snapshot** (990721, 991111-01, 991111b, ...) | Only the one vendored tree (`b595ded`, a 2022 single-commit upload) was found; no other dated EE binutils source tree turned up | GPL | The 991111 one does **not** match (this task). Other snapshots are not in public hands that I could find: **nothing found does not mean nothing exists** (GitHub raw + API only; code search needs sign-in; no web crawl beyond two search queries) |
+| 4 | **Upstream / decompals 2.40 / ps2dev 2.45.1** | Yes | GPL-2.0 and GPL-3.0 parts | Do **not** match (same nop) |
+
+**Our patch against upstream.** ER-014's patch (`decomp_recipes.md` 2.3) adds `&& ! (mips_cpu == 5900 && ! mips_opts.noreorder)`
+to the hazard test in `append_insn`. Upstream has no equivalent change, and no upstream or ps2dev patch to port was
+found. Making the r5900 an FP-interlock CPU outright (adding it to `cop_interlocks`) is **not** what the game shows:
+it would also drop the `nop` in the 1,069 `noreorder` sites where gcc filled the slot, which the game keeps. That is
+why ER-014's reorder-only form matches and the blunt form does not. Why Sony's assembler does this (a reorder-mode
+rule inside `append_insn`, or the assembler never inserting hazard nops in reorder mode for `bc1x` after `c.cond`,
+or scheduling the branch differently) is **not known**: it is a reading of the output only.
+
+**Recommendation: keep the patch.** No public source tree reproduces the behaviour, so there is nothing to switch to;
+the patch is the smallest change that reproduces the game on 129 of 129 sites and still passes the whole-ELF and
+`func_check` regressions (ER-014). Label it, as ruling 3.4 does, a reconstruction of the original behaviour, not
+Sony's code. Re-open only if (a) an actual Sony or SN `ee-as` binary is supplied by LuciDin (it could be tested
+by assembling the one function `func_001115E0`'s pattern, no source needed), or (b) a dated Cygnus / SCE EE binutils
+source other than `b595ded` surfaces.
+
+Not verified: that the 2.9-ee-991111 sources match the binary SCE shipped (the whole premise); the diff between
+2.40 and 2.45.1 beyond the `cop_interlocks` text; what the PS2 Linux kit's binutils source contains; the NetBSD and
+2000 binutils-list snippets (search results only, pages not opened). Sites: only `raw.githubusercontent.com` (no
+robots.txt, 404), `api.github.com` and `sourceware.org/pipermail` were fetched; `github.com` robots.txt was read (the
+tree pages were not used). Skipped as already known to forbid: gamefaqs, mobygames, pcsx2.net, codeberg.org,
+decomp.me site, psdevwiki.com, tcrf.net.
+
 ## 5. Flags
 
 | Flag | Status | Evidence |
