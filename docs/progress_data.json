@@ -452,11 +452,11 @@
     {
       "code": "ER-017",
       "title": "Game-internal file seams (research)",
-      "status": "In progress",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Wed 18 Nov 2026: docs/game_seams.md + tools/seams.py; 56 candidate seam windows (22 Strong, 10 Medium, 24 Weak; none Confirmed); Strong run 0x001339F8-0x00150878 = 27 small files, plus 0x001C8EE0 and 0x001CA8B0"
     },
     {
       "code": "ER-018",
