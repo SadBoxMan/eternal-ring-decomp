@@ -446,7 +446,7 @@
       "status": "Waiting",
       "track": "decomp",
       "model": "Opus, medium + Ultracode",
-      "waits_on": "ER-024, ER-015",
+      "waits_on": "ER-015",
       "notes": ""
     },
     {
@@ -573,6 +573,24 @@
       "track": "recomp",
       "model": "Opus, high",
       "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-031",
+      "title": "Cut text_001343E8 near seam S3 (jump tables)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-032",
+      "title": "Own .sdata/.data of the 3 remaining game files",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-031",
       "notes": ""
     }
   ]
