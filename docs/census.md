@@ -156,31 +156,43 @@ SDK runtime 1.6.x versions, consistent with ER-002.
 
 ### 4.3 File / object boundaries for ER-013
 
-Cut points (first address of each new file), in address order. "Fixed" seams can be cut as they are; for a window,
-ER-013 either picks the start shown (the conservative choice used in the table) or keeps the window inside one
-file until later evidence settles it.
+Cut points (first address of each new file), in address order. ER-004 gave the table with seam windows; **ER-013
+(Wed 18 Nov 2026) cut `.text` at exactly these 19 addresses** (one `c` file per row, `docs/build.md` 3.1) and chose
+each windowed seam from the evidence in the last column. `make regress` is green on the split.
 
-| # | Cut at | File (Unofficial label) | Seam | Grade |
-|---|---|---|---|---|
-| 1 | 0x00100000 | crt0 (stays asm) | fixed | Confirmed |
-| 2 | 0x001000C0 | game (one file for now) | fixed | Confirmed |
-| 3 | 0x001C9B18 | game VU0 helpers | fixed (function change of style; still game side) | Unconfirmed |
-| 4 | 0x001CA0F0 | game-unk block | start fixed by the VU0 run ending; nature Unconfirmed | Unconfirmed |
-| 5 | 0x001CE130 | libgraph | window 0x001CE130-0x001CE270 | Confirmed region |
-| 6 | 0x001CFD40 | libkernl (syscall stubs start here) | window 0x001CFAD8-0x001CFD40 | Confirmed region |
-| 7 | 0x001D46E0 | libdma | window 0x001D46E0-0x001D4718 | Confirmed region |
-| 8 | 0x001D5200 | VU / VIF device block | fixed | Unconfirmed |
-| 9 | 0x001D6280 | libpad | window 0x001D5868-0x001D6280 | Confirmed region |
-| 10 | 0x001D7310 | libvu0 | fixed | Unconfirmed |
-| 11 | 0x001D8050 | libcdvd | fixed | Confirmed |
-| 12 | 0x001DAA88 | libmpeg | window 0x001DAA88-0x001DB2C8 | Confirmed region |
-| 13 | 0x001E2128 | libipu | window 0x001E1D78-0x001E2578 | Unconfirmed |
-| 14 | 0x001E2788 | libsdr | fixed | Unconfirmed |
-| 15 | 0x001E2D00 | libmc | fixed | Confirmed |
-| 16 | 0x001E3DE0 | libm | fixed | Confirmed |
-| 17 | 0x001E6508 | libgcc | window 0x001E64D8-0x001E6560 | Unconfirmed |
-| 18 | 0x001E9A50 | libc | window 0x001E9A10-0x001E9A50 | Confirmed region |
-| 19 | 0x001F00E8 | libkernl tail | fixed | Unconfirmed |
+| # | Cut at | File | ER-004 seam | Seam chosen by ER-013, and why | Grade |
+|---|---|---|---|---|---|
+| 1 | 0x00100000 | `asm/text_00100000.s` (crt0) | fixed | as given | Confirmed |
+| 2 | 0x001000C0 | `src/text_001000C0.c` (game) | fixed | as given | Confirmed |
+| 3 | 0x001C9B18 | `src/text_001C9B18.c` (game VU0 helpers) | fixed | as given | Unconfirmed |
+| 4 | 0x001CA0F0 | `src/text_001CA0F0.c` (game-unk) | fixed | as given | Unconfirmed |
+| 5 | 0x001CE130 | `src/sdk/libgraph.c` | 0x001CE130-0x001CE270 | 0x001CE130: it calls `func_001CE270`, a helper called only by libgraph functions (5 of them besides it) | Unconfirmed (judgement) |
+| 6 | 0x001CFD40 | `src/sdk/libkernl.c` | 0x001CFAD8-0x001CFD40 | 0x001CFD40: the only 20-byte zero pad in `.text` ends here, on a 64-byte boundary (object alignment); `func_001CFB60` / `func_001CFC28` are called only from libgraph, so the three functions before the stubs stay in the libgraph file | Confirmed seam (padding); the 3 functions' library Unconfirmed |
+| 7 | 0x001D46E0 | `src/sdk/libdma.c` | 0x001D46E0-0x001D4718 | 0x001D46E0: the lone `nop` at 0x001D46DC pads the previous object to 8 bytes | Confirmed seam (padding) |
+| 8 | 0x001D5200 | `src/sdk/vudev.c` | fixed | as given | Unconfirmed |
+| 9 | 0x001D6280 | `src/sdk/libpad.c` | 0x001D5868-0x001D6280 | 0x001D6280, the window's end: the first function with a `libpad:` string; the run before it is called only from the VU / VIF block and game code, with no link to libpad | Unconfirmed (judgement) |
+| 10 | 0x001D7310 | `src/sdk/libvu0.c` | fixed | as given | Unconfirmed |
+| 11 | 0x001D8050 | `src/sdk/libcdvd.c` | fixed | as given | Confirmed |
+| 12 | 0x001DAA88 | `src/sdk/libmpeg.c` | 0x001DAA88-0x001DB2C8 | 0x001DAA88: its only caller `func_001DB008` calls libmpeg, and the window's functions share `.data` `D_00351430` with functions that call libipu (libcdvd would not) | Unconfirmed (judgement) |
+| 13 | 0x001E2128 | `src/sdk/libipu.c` | 0x001E1D78-0x001E2578 | 0x001E2128: `func_001E1E28` and `func_001E1FD0` are called from libmpeg and `func_001E1FD0` calls libmpeg back, so 0x001E1D78-0x001E2124 stay with libmpeg; from 0x001E2128 small register helpers that call nothing outside themselves | Unconfirmed (judgement) |
+| 14 | 0x001E2788 | `src/sdk/libsdr.c` | fixed | as given | Unconfirmed |
+| 15 | 0x001E2D00 | `src/sdk/libmc.c` | fixed | as given | Confirmed |
+| 16 | 0x001E3DE0 | `src/sdk/libm.c` | fixed | as given | Confirmed |
+| 17 | 0x001E6508 | `src/sdk/libgcc.c` | 0x001E64D8-0x001E6560 | 0x001E6508: `func_001E64D8` is called only by libm's `func_001E6378`, so it stays in libm; whether the uncalled destructor walker `func_001E6508` opens libgcc or ends libm is not settled | Unconfirmed (judgement) |
+| 18 | 0x001E9A50 | `src/sdk/libc.c` | 0x001E9A10-0x001E9A50 | 0x001E9A50: `func_001E9A10` calls the fp-bit routines `func_001E8DE8` / `func_001E8F80` (libgcc); `func_001E9A50` is `__errno`-shaped (reads `_impure_ptr`-like `D_003522FC`) | Confirmed seam (call graph) |
+| 19 | 0x001F00E8 | `src/sdk/libkernl_tail.c` | fixed | as given | Unconfirmed |
+
+File names are address names or the census's region labels (`vudev`, `libkernl_tail`: **Unofficial**). Objects
+are 8-aligned (every function's asm starts `.align 3`), so a seam on any function start links unchanged; the
+padding words before a seam stay at the end of the previous function's `.s`.
+
+**Data is not split** (ER-013): the `PsII` tags mark a position inside each library's `.data`, not its first byte
+(libmpeg's window functions use `.data` below its tag, for example), so no `.data` / `.rodata` / `.sdata` / `.bss`
+boundary is known exactly; the data subsegments stay as ER-003 left them.
+
+Seen in passing (not settled): `func_001E1FD0` (libmpeg side) loads the address of the game `.rodata` string
+`ERDEMO.PSS` (0x00354000) and uses game `.data`; either a game movie hook compiled into a libmpeg-side object or a
+coincidental constant: **Unconfirmed**.
 
 Not found by this card: **object boundaries inside the game region** (2,725 functions) and inside each library.
 Tried and ruled out: alignment padding (functions are 8-aligned and the 0/4-byte gaps occur everywhere; one

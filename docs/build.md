@@ -79,7 +79,7 @@ Toolchain binaries, the venv, the disc and all split / build output stay out of 
 disc/extract/SLUS_200.15 --extract_rom--> baserom/SLUS_200.15.rom (PT_LOAD bytes, 0x25C410)
                          --split.py (splat)--> asm/ (crt0, data, nonmatchings), linker/ (splat .ld, undefined syms)
                          --gen_elf_extras--> asm/elf/elf_extras.s (the 6 DVP overlay sections, as .byte)
-src/text_001000C0.c --gcc -O2 -G8 -S--> build/src/*.s --ee-as--> .o     (INCLUDE_ASM pulls in asm/nonmatchings)
+src/**/*.c --gcc -O2 -G8 -S--> build/src/**/*.s --ee-as--> .o     (INCLUDE_ASM pulls in asm/nonmatchings)
 asm/**/*.s, src/elf_layout.s --ee-as -G8 -O2 -mabi=eabi--> .o
 linker/*.splat.ld --gen_ld.py--> build/SLUS_200.15.ld (SCE app.cmd layout)
 all objects, crt0 first --ee-ld -s--> build/SLUS_200.15.elf  --sha1--> OK
@@ -87,7 +87,7 @@ all objects, crt0 first --ee-ld -s--> build/SLUS_200.15.elf  --sha1--> OK
 
 | Piece | Why |
 |---|---|
-| `slus_200.15.yaml` | one segment `main` (vram `0x00100000`, rom = PT_LOAD bytes): crt0 kept as `asm`, the rest of `.text` as one `c` file of INCLUDE_ASM (ER-004 splits it into files), `.data`, `.vudata` (kept as data words), `.rodata`, `.lit4`, `.sdata`, `.sbss`, `.bss`; `pad` subsegments for the alignment gaps between sections |
+| `slus_200.15.yaml` | one segment `main` (vram `0x00100000`, rom = PT_LOAD bytes): crt0 kept as `asm`, the rest of `.text` as 18 `c` files of INCLUDE_ASM, one per census region (3.1), `.data`, `.vudata` (kept as data words), `.rodata`, `.lit4`, `.sdata`, `.sbss`, `.bss`; `pad` subsegments for the alignment gaps between sections |
 | `tools/split.py` | runs splat, writing denormal floats as `.word` (ee-as 2.9 misreads them; `docs/decomp_recipes.md` 1.3) |
 | `include/macro.inc`, `labels.inc`, `include_asm.h`, `common.h` | splat's macros rewritten for ee-as 2.9 syntax; `macro.inc` also includes the generated `gp_externs.inc` |
 | `tools/gen_gp_externs.py` | `build/include/gp_externs.inc`: `.extern sym, 4` for every symbol reached through `$gp`, so ee-as's `lw $2, sym` macros come out gp-relative (ee-as has no `%gp_rel`) |
@@ -96,6 +96,24 @@ all objects, crt0 first --ee-ld -s--> build/SLUS_200.15.elf  --sha1--> OK
 | `tools/gen_ld.py` | rewrites splat's one-section script into SCE's layout: `.text .vutext .reginfo .data .vudata .rodata .lit4 .sdata .sbss .bss .vubss .DVP.ovlytab .DVP.ovlystrtab`, each 128-aligned except the VU ones, `_gp = ALIGN(128) + 0x7FF0` before `.lit4`, one RWX `PT_LOAD` |
 | link order | crt0's object first and all objects before `-T`: ld keeps only the first `.reginfo` (link-once), which must be crt0's |
 | `tools/func_check.py` | every function symbol of the unstripped link compared with the original bytes, and every `func_` / `D_` name checked against its address |
+
+### 3.1 Source file layout (ER-013, Wed 18 Nov 2026)
+
+`.text` after crt0 is cut into one `c` subsegment per region of `docs/census.md` 4.1, seams on function starts
+(census 4.3 has each seam's evidence and grade). Each file's INCLUDE_ASM points at its own folder
+`asm/nonmatchings/<file>/`. Data is not split: `.data` / `.rodata` / `.lit4` / `.sdata` / `.sbss` / `.bss` stay
+one subsegment each.
+
+| File | Starts | Units (C) | Region |
+|---|---|---|---|
+| `src/text_001000C0.c` | 0x001000C0 | 2,725 (125) | game, one file until game-internal seams are found |
+| `src/text_001C9B18.c` | 0x001C9B18 | 28 | game VU0 helpers (Unconfirmed) |
+| `src/text_001CA0F0.c` | 0x001CA0F0 | 77 | game-unk (Unconfirmed) |
+| `src/sdk/libgraph.c`, `libkernl.c`, `libdma.c`, `vudev.c`, `libpad.c`, `libvu0.c`, `libcdvd.c`, `libmpeg.c`, `libipu.c`, `libsdr.c`, `libmc.c`, `libm.c`, `libgcc.c`, `libc.c` (2 C), `libkernl_tail.c` | 0x001CE130 on | 775 | SDK libraries in link order |
+
+A new game file is cut by adding a `c` line to the yaml and moving its INCLUDE_ASM lines (with the folder renamed)
+into a new `src/` file; splat never overwrites an existing `.c`. `make regress` re-splits from clean, so stale
+`asm/nonmatchings` folders do no harm.
 
 Generated, gitignored (game data or derived from it): `asm/`, `linker/`, `baserom/`, `assets/`, `build/`,
 `build_logs/`. Committed: the yaml, `symbol_addrs.txt`, `reloc_addrs.txt`, `src/`, `include/`, `Makefile`, the
@@ -107,7 +125,7 @@ tools.
 |---|---|
 | Functions with a body (function symbols with a size in the linked ELF) | **3,606**: 4 in crt0 + 3,475 INCLUDE_ASM + 127 already in C |
 | Other split units in `.text` | 3 blocks splat labels as data (`func_001D73D0`, `func_001D7658`, `func_001DECA0`: COP2 / VU0-style words rabbitizer does not decode, Unconfirmed); 3 alternate entry points (`func_001D7700`, `func_001D77A8`, `func_001D7850`) |
-| INCLUDE_ASM lines in `src/text_001000C0.c` | 3,478 (3,475 functions + the 3 data blocks) |
+| INCLUDE_ASM lines in `src/` (all files) | 3,478 (3,475 functions + the 3 data blocks) |
 | Functions splat wrote as C | 127 empty `void f(void) {}` (`jr $ra; nop`); they compile byte-identical |
 | `.word` lines inside `.text` asm | 490 (6 marked "invalid instruction") |
 | Functions spimdisasm marks "handwritten" | 186 |
@@ -117,3 +135,4 @@ tools.
 | Data symbols (`dlabel`) | 5,112 |
 | Symbols reached through `$gp` | 3,371 |
 | `make regress` | about 30 s (split 15 s, clean build 11 s, checks under 1 s) |
+| `make regress` after the ER-013 file split | split 22 s, clean build 35 s (18 C files; one measurement, Wed 18 Nov 2026) |

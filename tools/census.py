@@ -2,8 +2,8 @@
 
 Reads only generated, gitignored inputs (run `make split` and `make build/SLUS_200.15.syms.elf` first):
   build/SLUS_200.15.syms.elf              function symbols with sizes, data symbols, the code bytes
-  src/text_001000C0.c                     which functions are already C (the rest are INCLUDE_ASM)
-  asm/nonmatchings/text_001000C0/*.s      spimdisasm's "handwritten" marks and `.word` lines
+  src/**/*.c                              which functions are already C (the rest are INCLUDE_ASM)
+  asm/nonmatchings/**/*.s                 spimdisasm's "handwritten" marks and `.word` lines
   asm/text_00100000.s                     crt0 (same marks)
 
 For every function it records: size and size band, three shape keys, calls out / in, tail jumps, data and code
@@ -33,6 +33,7 @@ import collections
 import csv
 import hashlib
 import json
+import glob
 import os
 import re
 import struct
@@ -45,8 +46,8 @@ import rabbitizer as rz  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SYMS_ELF = os.path.join(ROOT, "build", "SLUS_200.15.syms.elf")
-SRC_C = os.path.join(ROOT, "src", "text_001000C0.c")
-ASM_DIR = os.path.join(ROOT, "asm", "nonmatchings", "text_001000C0")
+SRC_DIR = os.path.join(ROOT, "src")  # ER-013: one c file per region, src/ and src/sdk/
+ASM_DIR = os.path.join(ROOT, "asm", "nonmatchings")
 CRT0_ASM = os.path.join(ROOT, "asm", "text_00100000.s")
 OUT_DIR = os.path.join(ROOT, "build", "census")
 
@@ -130,7 +131,7 @@ def h12(items) -> str:
 def load_marks():
     """Per function: handwritten instruction count, `.word` count, invalid-instruction count, from the asm."""
     marks = {}
-    files = [os.path.join(ASM_DIR, f) for f in os.listdir(ASM_DIR) if f.endswith(".s")]
+    files = sorted(glob.glob(os.path.join(ASM_DIR, "**", "*.s"), recursive=True))
     for path in files + [CRT0_ASM]:
         cur = None
         with open(path, encoding="utf-8", errors="replace") as fh:
@@ -164,7 +165,8 @@ def load_marks():
 
 
 def load_c_status():
-    text = open(SRC_C, encoding="utf-8").read()
+    text = "\n".join(open(p, encoding="utf-8").read()
+                     for p in sorted(glob.glob(os.path.join(SRC_DIR, "**", "*.c"), recursive=True)))
     asm = set(re.findall(r"INCLUDE_ASM\([^,]+,\s*(func_[0-9A-F]{8})\)", text))
     c = set(re.findall(r"^\s*\w[\w\s\*]*\b(func_[0-9A-F]{8})\s*\([^;{)]*\)\s*\{", text, re.M))
     return asm, c
@@ -345,7 +347,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--md", action="store_true")
     args = ap.parse_args()
-    for p in (SYMS_ELF, SRC_C, ASM_DIR):
+    for p in (SYMS_ELF, SRC_DIR, ASM_DIR):
         if not os.path.exists(p):
             print("census: missing %s (run make split and make build/SLUS_200.15.syms.elf)" % p)
             return 1

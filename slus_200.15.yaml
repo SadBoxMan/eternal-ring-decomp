@@ -78,7 +78,26 @@ segments:
     subalign: null
     subsegments:
       - [0x000000, asm, text_00100000]   # crt0 (SCE crt0.s shape: Unconfirmed); kept as asm
-      - [0x0000C0, c, text_001000C0]     # rest of .text (game code, then SDK libraries; split by ER-004)
+      # ER-013: one c file per census region (docs/census.md 4.1 / 4.3), seams on function starts.
+      # File names are address names or the census's library labels (Unofficial); grades in census.md 4.3.
+      - [0x0000C0, c, text_001000C0]     # game (main = func_001000C0); one file until game seams are found
+      - [0x0C9B18, c, text_001C9B18]     # game VU0 helpers (Unconfirmed)
+      - [0x0CA0F0, c, text_001CA0F0]     # game-unk block (Unconfirmed)
+      - [0x0CE130, c, sdk/libgraph]      # SCE libraries from here, in link order
+      - [0x0CFD40, c, sdk/libkernl]      # syscall stub table; 20-byte pad to a 64-byte boundary before it
+      - [0x0D46E0, c, sdk/libdma]
+      - [0x0D5200, c, sdk/vudev]         # VU / VIF device block (Unconfirmed, no version tag)
+      - [0x0D6280, c, sdk/libpad]
+      - [0x0D7310, c, sdk/libvu0]        # libvu0 identity Unconfirmed
+      - [0x0D8050, c, sdk/libcdvd]
+      - [0x0DAA88, c, sdk/libmpeg]
+      - [0x0E2128, c, sdk/libipu]        # Unconfirmed
+      - [0x0E2788, c, sdk/libsdr]        # Unconfirmed (position only)
+      - [0x0E2D00, c, sdk/libmc]
+      - [0x0E3DE0, c, sdk/libm]          # newlib libm
+      - [0x0E6508, c, sdk/libgcc]        # Unconfirmed (call structure only)
+      - [0x0E9A50, c, sdk/libc]          # newlib libc
+      - [0x0F00E8, c, sdk/libkernl_tail] # libkernl objects linked after libc (Unconfirmed)
       - [0x0F0354, pad]                  # zero fill: .data is 128-aligned (outside the .text section)
       - [0x0F0380, data, data_001F0380]  # .data
       # .vudata: VU microcode load copies, kept as data words (ee-as 2.9 has no .incbin)
