@@ -533,11 +533,11 @@
     {
       "code": "ER-026",
       "title": "Adopt the patched ee-as (c.cond/bc1 nop)",
-      "status": "Waiting",
+      "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "LuciDin's ruling",
-      "notes": ""
+      "waits_on": "",
+      "notes": "Ruled: adopt (18 Nov)"
     },
     {
       "code": "ER-027",
@@ -545,6 +545,15 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-028",
+      "title": "Find Sony's own EE binutils build (research)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, medium",
       "waits_on": "",
       "notes": ""
     }

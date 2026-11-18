@@ -171,5 +171,12 @@ Standing rulings; each applies until LuciDin changes it.
 | **Accepted** | Inline `__asm__` only for VU0 macro / MMI instructions that C cannot express (Sony's libvu0 used it), in SDK and game code alike; each use marked with a comment and listed here; everything else in such functions stays plain C |
 | **Scope** | The SDK libraries (775 units) are in the matching scope (true 100%), matched after the 2,830 game functions |
 
+### 3.4 ER-014 rulings (Wed 18 Nov 2026, about 16:20 Eastern, via DISP-01)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** | The patched GNU as (ER-014): no nop between `c.cond.s` and `bc1t` / `bc1f` in reorder mode, as Sony's assembler evidently did (129 game sites; in noreorder both assemblers agree). A documented reconstruction of the original assembler's behaviour for every file, not a per-function trick; added to the toolchain by ER-026. If the exact Sony binutils build is found (ER-028), it replaces the patch |
+| **Accepted** | A non-void function that ends in a plain call with no return statement (falls off the end), when that is the only C shape that gives the original's tail jump and its semantics match the original (the caller gets what the callee left in `$v0`): func_00194D08. Natural old-style C, nothing added; marked with a `PORT NOTE` because a PC compiler treats the missing return as undefined, so the port supplies an as-shipped-equivalent return on its side only |
+
 No ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, dead code): park such functions with a
 one-line cause and ask.
