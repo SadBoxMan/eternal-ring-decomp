@@ -306,6 +306,28 @@ prints "in order".
 
 The old game file `text_001000C0.c` keeps `func_001000C0` to `func_00134358` (576 units, 22 of them C).
 
+**ER-014 matches next to the cut seams (Wed 18 Nov 2026): neutral, no evidence for or against.** Nine functions
+right at a seam were matched and placed: `func_00134460` (2nd function after S1), `func_001450F8` (last before S9),
+`func_0014A940` (2nd-last before S12), `func_0014C810` / `func_0014C820` (last two before S15), `func_0014D918`
+(last before S16), `func_0014E2C8` (last before S17), `func_00150810` / `func_00150818` (last two before S20).
+None of them needs a file-static variable or a static function in a way the code can show:
+
+- At `-O2` this ee-gcc does not inline non-`inline` functions, so a `static` helper and a global one compile to
+  the same `jal` / `j`; a file-static variable and a global one give the same `$gp` access. The matched bytes are
+  the same either way.
+- `.data` / `.sdata` / `.rodata` / `.lit4` are still one subsegment each (8.4), so the C files define no data:
+  every global is `extern`. A match that defines its own data (or literals or jump tables, which the C file's
+  object would carry: `docs/decomp_recipes.md` 2.2) cannot be placed until the data is split, and that is where
+  real seam evidence will come from.
+- Call locality (all `jal` callers of each helper lie in its own file: `func_0014C810` from `0x0014C380` /
+  `0x0014C3F8`, `func_0014D918` from `0x0014D7A0`, `func_0014E2C8` from `0x0014E120` / `0x0014E160`,
+  `func_00134460` from `0x001343E8`, `func_001450F8` from `0x00144F90` / `0x00145038`, `func_00150810` /
+  `func_00150818` from `0x00150350` / `0x00150400`) agrees with the cuts but is the scan's own "static calls"
+  evidence (O), not new. `func_00150810` / `func_00150818` read `D_0035BF20` (`.sdata`, 100000.0f), below
+  S20's `.sdata` cut `0x0035BF2C`: consistent, same evidence kind.
+
+Grades unchanged.
+
 ### 8.3 Seams not cut (15)
 
 | Seams | Why not |
