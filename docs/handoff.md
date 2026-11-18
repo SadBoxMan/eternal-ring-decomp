@@ -58,7 +58,15 @@ Status (Wed 18 Nov 2026, 00:45 Eastern): **a first PC build exists but does not 
 PS2Recomp natively; all 3,606 functions recompile (0 unhandled instructions) and link into a Windows exe that boots
 through IOP module load, `ERDATA.BIN`, memory card probe and GS setup into the first PSS movie, then stalls (MPEG
 ring backpressure; 141 functions ran). Next: ER-018 (boot past the movie), ER-019 (fork setup, after the GPL-3.0
-decision). Open question for LuciDin: what does a real PS2 show first after the PS2 logo?
+decision).
+
+**Reference boot sequence** (LuciDin in PCSX2 2.5.185, Wed 18 Nov 2026, ~16:00 Eastern, four screenshots): (1) the
+Agetec logo, red and white on black: the very first visual; (2) the FromSoftware logo, white on black; (3) the opening
+FMV (a lake with a stone pier and a domed pavilion, 4:3 with side bars); (4) the title screen: the Eternal Ring
+logo, menu NEWGAME / CONTINUE, copyright lines for Agetec and FromSoftware (2000), on white. Which file feeds each
+screen is Unconfirmed: the disc has `AGETEC.PSS` and `EROPEN.PSS` but no FromSoftware movie, so (2) may be drawn
+from `ERDATA.BIN`. The recompiled build stalls before (1) is shown (magenta frame), so its stall is in the very
+first movie.
 
 ## Queue (the dispatcher turns these into cards; first ones need the answers above)
 
@@ -81,7 +89,7 @@ decision). Open question for LuciDin: what does a real PS2 show first after the 
 | ER-015 | EE matching tools: a compare-function script for ee-gcc, a placement helper, a clone tool on `tools/census.py` strict keys, and a test of m2c on EE code. Done when one function can be compiled, diffed and placed by script | Opus, medium | ER-013 (shares `src/` and `tools/`) |
 | ER-016 | Phase 1 pilot: a seeded stratified sample of ~40 game shapes (10 small, 12 medium, 10 large, 4 huge, 4 COP1-heavy) fanned out to measure real rates and agent effort (high vs medium); re-cost `docs/census.md` 6.2 from measured rates. Coordinator Opus medium, agents Opus high, Ultracode on for this card only | Opus, medium + Ultracode | ER-013, ER-014, ER-015 and LuciDin's census rulings (`docs/census.md` 6.3) |
 | ER-017 (DONE Wed 18 Nov 2026; see `docs/game_seams.md`, `tools/seams.py`) | Game-internal file seams: research the game region for file boundaries (monotone .rodata / .data / .sdata reference runs, call clusters); candidate seam list with evidence. Result: 56 candidate windows = **22 Strong, 10 Medium, 24 Weak** (none Confirmed); Strong ones cut `0x001339F8`-`0x00150878` into 27 small files plus `0x001C8EE0` and `0x001CA8B0` (8 of them fixed to one function); large stretches with no seam found (`0x001000C0`-`0x0012B0D0`, `0x00151000`-`0x00187BD8`); 10 shared-string clusters = no-cut zones. Test compiles: text objects only 8-aligned, `.rodata` 16-byte padding comes from jump tables (`.align 4`), short strings go to `.sdata`, variables and strings in source order. No file names or asserts in the image | Opus, high | nothing (read-only; best before Phase 1 bulk) |
-| ER-018 | Recomp boot past the first movie: find why the PSS / MPEG ring backs up in the PS2Recomp build (MPEG / IPU HLE vs the game's movie loop at 0x1C5188-0x1C8980; EE loops at 0x1C529C), after LuciDin says what the first screen should be. Files: `C:\rs\recomp\game_build` (override), `docs/recomp_spike.md`. Done when the boot gets past the movie or the cause is written down | Opus, high | LuciDin's answer on the first screen |
+| ER-018 | Recomp boot past the first movie: find why the PSS / MPEG ring backs up in the PS2Recomp build (MPEG / IPU HLE vs the game's movie loop at 0x1C5188-0x1C8980; EE loops at 0x1C529C). Files: `C:\rs\recomp\game_build` (override), `docs/recomp_spike.md`. Done when the boot gets past the movie or the cause is written down. The first screen should be the Agetec logo (see "Reference boot sequence" above). Compare with PCSX2 (LuciDin has 2.5.185): use its debugger to break at the movie loop and see what the real game does there (IPU / MPEG calls, what it waits on); ask LuciDin before opening PCSX2; secondary monitor, muted; captures and save states outside git (e.g. `C:\rs\captures\`) | Opus, high | nothing: first screen known |
 | ER-019 | PS2Recomp fork setup: fork on LuciDin's GitHub, a game-override module for SLUS_200.15, as-shipped build options (verbose logs off, no `/fp:fast`). Done when the fork builds the game from our scripts | Opus, medium | LuciDin's GPL-3.0 decision and his yes to the fork |
 | ER-020 | Recomp opcode correctness: count which MMI / VU0 / COP1 opcodes the game uses that sit on PS2Recomp's open-bug list (`docs/research.md` 3), and plan differential tests against PCSX2 | Opus, medium | nothing |
 | ER-021 | Optional: try a newer MSVC (VS 17.12+) for the C1001 internal compiler error in PS2Recomp's unit tests (a Visual Studio update: LuciDin's call) | Sonnet, low | LuciDin's yes |

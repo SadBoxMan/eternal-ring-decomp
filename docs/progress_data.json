@@ -461,11 +461,11 @@
     {
       "code": "ER-018",
       "title": "Recomp boot past the first movie",
-      "status": "Waiting",
+      "status": "Queued",
       "track": "recomp",
       "model": "Opus, high",
-      "waits_on": "LuciDin: first screen",
-      "notes": ""
+      "waits_on": "",
+      "notes": "First screen: Agetec logo (LuciDin, PCSX2, 18 Nov); compare with PCSX2 debugger at the movie loop"
     },
     {
       "code": "ER-019",
