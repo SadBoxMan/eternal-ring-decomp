@@ -80,7 +80,15 @@ segments:
       - [0x000000, asm, text_00100000]   # crt0 (SCE crt0.s shape: Unconfirmed); kept as asm
       # ER-013: one c file per census region (docs/census.md 4.1 / 4.3), seams on function starts.
       # File names are address names or the census's library labels (Unofficial); grades in census.md 4.3.
-      - [0x0000C0, c, text_001000C0]     # game (main = func_001000C0); one file until game seams are found
+      - [0x0000C0, c, text_001000C0]     # game (main = func_001000C0)
+      # ER-022: game files cut at the Strong seams whose data cuts line up (docs/game_seams.md 8; seam S#)
+      - [0x0343E8, c, text_001343E8]     # S1
+      - [0x045120, c, text_00145120]     # S9
+      - [0x04A968, c, text_0014A968]     # S12
+      - [0x04C840, c, text_0014C840]     # S15
+      - [0x04D930, c, text_0014D930]     # S16
+      - [0x04E2E8, c, text_0014E2E8]     # S17
+      - [0x050878, c, text_00150878]     # S20
       - [0x0C9B18, c, text_001C9B18]     # game VU0 helpers (Unconfirmed)
       - [0x0CA0F0, c, text_001CA0F0]     # game-unk block (Unconfirmed)
       - [0x0CE130, c, sdk/libgraph]      # SCE libraries from here, in link order

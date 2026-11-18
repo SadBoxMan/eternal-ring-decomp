@@ -87,7 +87,7 @@ all objects, crt0 first --ee-ld -s--> build/SLUS_200.15.elf  --sha1--> OK
 
 | Piece | Why |
 |---|---|
-| `slus_200.15.yaml` | one segment `main` (vram `0x00100000`, rom = PT_LOAD bytes): crt0 kept as `asm`, the rest of `.text` as 18 `c` files of INCLUDE_ASM, one per census region (3.1), `.data`, `.vudata` (kept as data words), `.rodata`, `.lit4`, `.sdata`, `.sbss`, `.bss`; `pad` subsegments for the alignment gaps between sections |
+| `slus_200.15.yaml` | one segment `main` (vram `0x00100000`, rom = PT_LOAD bytes): crt0 kept as `asm`, the rest of `.text` as 25 `c` files of INCLUDE_ASM (census regions, the game region cut further at 7 seams by ER-022; 3.1), `.data`, `.vudata` (kept as data words), `.rodata`, `.lit4`, `.sdata`, `.sbss`, `.bss`; `pad` subsegments for the alignment gaps between sections |
 | `tools/split.py` | runs splat, writing denormal floats as `.word` (ee-as 2.9 misreads them; `docs/decomp_recipes.md` 1.3) |
 | `include/macro.inc`, `labels.inc`, `include_asm.h`, `common.h` | splat's macros rewritten for ee-as 2.9 syntax; `macro.inc` also includes the generated `gp_externs.inc` |
 | `tools/gen_gp_externs.py` | `build/include/gp_externs.inc`: `.extern sym, 4` for every symbol reached through `$gp`, so ee-as's `lw $2, sym` macros come out gp-relative (ee-as has no `%gp_rel`) |
@@ -97,16 +97,24 @@ all objects, crt0 first --ee-ld -s--> build/SLUS_200.15.elf  --sha1--> OK
 | link order | crt0's object first and all objects before `-T`: ld keeps only the first `.reginfo` (link-once), which must be crt0's |
 | `tools/func_check.py` | every function symbol of the unstripped link compared with the original bytes, and every `func_` / `D_` name checked against its address |
 
-### 3.1 Source file layout (ER-013, Wed 18 Nov 2026)
+### 3.1 Source file layout (ER-013, ER-022, Wed 18 Nov 2026)
 
 `.text` after crt0 is cut into one `c` subsegment per region of `docs/census.md` 4.1, seams on function starts
-(census 4.3 has each seam's evidence and grade). Each file's INCLUDE_ASM points at its own folder
+(census 4.3 has each seam's evidence and grade); ER-022 cut the game region further at the 7 Strong seams of
+`docs/game_seams.md` whose data cuts line up (section 8 there). Each file's INCLUDE_ASM points at its own folder
 `asm/nonmatchings/<file>/`. Data is not split: `.data` / `.rodata` / `.lit4` / `.sdata` / `.sbss` / `.bss` stay
-one subsegment each.
+one subsegment each (why ER-022 left it so: `docs/game_seams.md` 8.4).
 
 | File | Starts | Units (C) | Region |
 |---|---|---|---|
-| `src/text_001000C0.c` | 0x001000C0 | 2,725 (125) | game, one file until game-internal seams are found |
+| `src/text_001000C0.c` | 0x001000C0 | 576 (22) | game: main, boot and everything up to the first Strong seam |
+| `src/text_001343E8.c` | 0x001343E8 | 338 (8) | game, seam S1 (`docs/game_seams.md` 8.2) |
+| `src/text_00145120.c` | 0x00145120 | 105 (2) | game, seam S9 |
+| `src/text_0014A968.c` | 0x0014A968 | 52 (2) | game, seam S12 |
+| `src/text_0014C840.c` | 0x0014C840 | 30 (2) | game, seam S15 |
+| `src/text_0014D930.c` | 0x0014D930 | 23 (6) | game, seam S16 |
+| `src/text_0014E2E8.c` | 0x0014E2E8 | 59 (0) | game, seam S17 |
+| `src/text_00150878.c` | 0x00150878 | 1,542 (83) | game, seam S20, up to the VU0 helpers |
 | `src/text_001C9B18.c` | 0x001C9B18 | 28 | game VU0 helpers (Unconfirmed) |
 | `src/text_001CA0F0.c` | 0x001CA0F0 | 77 | game-unk (Unconfirmed) |
 | `src/sdk/libgraph.c`, `libkernl.c`, `libdma.c`, `vudev.c`, `libpad.c`, `libvu0.c`, `libcdvd.c`, `libmpeg.c`, `libipu.c`, `libsdr.c`, `libmc.c`, `libm.c`, `libgcc.c`, `libc.c` (2 C), `libkernl_tail.c` | 0x001CE130 on | 775 | SDK libraries in link order |
@@ -136,3 +144,4 @@ tools.
 | Symbols reached through `$gp` | 3,371 |
 | `make regress` | about 30 s (split 15 s, clean build 11 s, checks under 1 s) |
 | `make regress` after the ER-013 file split | split 22 s, clean build 35 s (18 C files; one measurement, Wed 18 Nov 2026) |
+| `make regress` after the ER-022 game split | split 22 s, clean build 34 s (25 C files; one measurement, Wed 18 Nov 2026) |

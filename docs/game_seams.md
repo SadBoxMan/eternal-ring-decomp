@@ -4,6 +4,8 @@ Written Wed 18 Nov 2026 by ER-017 (Opus 5.5, high). Read-only research: no build
 is produced by `tools/seams.py`; per-function and per-boundary tables go to `build/seams/` (gitignored, derived
 from game code). Section 7 lists what is Unconfirmed. **No seam here is Confirmed**: "Strong" means several kinds of
 evidence agree and the result survives changed parameters, not that a split has been built on it.
+**ER-022 (section 8) cut `.text` at 7 Strong seams** (S1, S9, S12, S15, S16, S17, S20) after checking their data
+cuts; they stay Strong (a byte-identical build is no evidence for a seam).
 
 ## 1. Summary
 
@@ -90,6 +92,9 @@ how many of the 5 variant settings. R = a `.rodata` padding point maps into the 
 table follows, so the padding alone is explained inside one file; R3 = the item before is not a string).
 
 ### 4.1 Strong (22)
+
+Cut by ER-022 (section 8): S1, S9, S12, S15, S16, S17, S20. Not cut: the 13 multi-function windows (data does not
+decide the start), S21 (a `.data` binding seen in the whole-file view), S22 (only `.bss` decides).
 
 | # | Window | Funcs | Labels L / R | Stab. | Also |
 |---|---|---|---|---|---|
@@ -224,7 +229,12 @@ number of Strong / Medium windows there; Weak windows inside it are not counted 
 
 ## 7. Not verified, Unconfirmed and Unofficial items
 
-- **Every seam and file here is a candidate**, graded by agreement of evidence; none has been built or confirmed.
+- **Every seam and file here is a candidate**, graded by agreement of evidence; none is confirmed. ER-022 built
+  7 of them (section 8): the build proves only that the cut links, not that it is the original file boundary.
+- ER-022 (section 8): the far labels behind the full-view inversions are read as globals of other files or
+  tracker misreads (Unconfirmed); the 3 `.rodata` labels near the end of `.rodata` may be SDK data (Unconfirmed);
+  `0x0034D1B0`-`0x0034D1C4` as one object (Unconfirmed); the data cut addresses in 8.2 are where the referenced
+  labels put them, not checked by a data split.
 - **Unconfirmed readings**: all subsystem readings in section 5 (from string themes); "small data-driven units" for
   the string-less run; the cause of the two R1 paddings (perhaps a 16-aligned array).
 - **Unofficial labels**: the file labels `g_*` in section 5; the evidence names O, C, R, RJ, R1-R3; "window",
@@ -236,3 +246,90 @@ number of Strong / Medium windows there; Weak windows inside it are not counted 
 - The grade thresholds (width 3 / 8, 3 labels, stability 4 of 5) and `LOCAL_SPAN` / K defaults are our choices, not
   measured optima.
 - Function counts in section 5 move by up to a window's width (section 5 note).
+
+## 8. The split at the Strong seams (ER-022, Wed 18 Nov 2026)
+
+ER-022 (Opus 5.5, high) checked the data cut of every Strong window (`tools/seams.py --cuts`), cut `.text` at the 7
+seams that pass and left the other 15 uncut. `make regress` is green on the split (whole-ELF SHA-1 and all 3,606
+functions; the 125 C functions of the old game file sit in their new files and still match).
+
+### 8.1 The check
+
+For a set of text cuts (the census seams `0x001C9B18` / `0x001CA0F0` plus the seams under test), each cut is
+checked per data section: the labels used only by the file before it (L) must all lie below the labels used only
+by the file after it (R), and no label may be used by both (a binding). Labels count as in the scan O (referencers
+within `LOCAL_SPAN` = 120 functions). Two views: **full** (the two whole neighbouring files) and **local** (only the
+labels used within K = 40 functions of the cut, the scan's own view). The data cut lies in (end of the highest L
+label, lowest R label]; `n` = how many splat labels start in that range (1 = pinned to one address). A window
+candidate is "decided by data" when some candidates fail and others pass. Output: `build/seams/cuts_<set>.csv`;
+`--cut-set all` (every Strong seam at its window's first candidate, every candidate tried), `fixed`, `cut` (the
+seams ER-022 cut, `CUT_STARTS` in the tool).
+
+```
+.venv\Scripts\python.exe tools/seams.py --cuts --cut-set all
+.venv\Scripts\python.exe tools/seams.py --cuts --cut-set cut
+```
+
+**Why the full view fails where one side is a long uncut stretch.** If one side is several hundred functions (the
+first game file before S1, the stretch after S20), it is many real files, and a handful of labels that lie far
+from the seam's data and are used only far (> 40 functions) from the cut give inversions with everything on the
+other side. Every full-view inversion at the cut seams was traced to such labels (`tools/seams.py` plus a scratch
+listing of the pairs):
+
+| Seam | Full-view inversions | All of them come from |
+|---|---|---|
+| S1 | `.rodata` 99, `.sdata` 284, `.data` 15 (pairs) | 3 `.rodata` labels near the end of `.rodata` (`0x00357DD8`, `0x00357E70`, `0x00358188`, above all game `.rodata`; perhaps SDK data: Unconfirmed) used by `func_001000C0`, `func_00101F20`, `func_00119DF0`; 2 `.sdata` labels (`0x0035C188`, `0x0035BF1C`) used by `func_00119DF0`, `func_001316A8`; 1 `.data` label (`0x00351378`) used by `func_00127868` |
+| S20 | `.sdata` 21, `.data` 45 | 1 `.sdata` label `0x0035B8D8` (near the start of `.sdata`) used by `0x00176BA0`-`0x00177098`; 9 `.data` labels in `0x001F6BB0`-`0x00205B70` (the start of `.data`) used by functions from `0x001583F8` to `0x001C16C0` |
+
+In every case the label sits below (or above) the whole data run of both files and is used only by code at least
+40 functions away: a global defined in some other file (or a tracker misread), not data of either file at the
+seam. The local view is clean at all 7 cut seams, and no cut seam has a binding in either view.
+
+### 8.2 Seams cut (7)
+
+| Seam | First function (file) | Funcs in file | Data cut: `.rodata` / `.sdata` / `.data` | Note |
+|---|---|---|---|---|
+| S1 | 0x001343E8 (`text_001343E8.c`) | 338 | `0x003546D8` / none / `0x0032FD20` (local view) | full view: far labels only (8.1); the file runs to S9 because S2-S8 stay uncut |
+| S9 | 0x00145120 (`text_00145120.c`) | 105 | `0x00354980`-`0x00354990` (2) / `0x0035BC94` / `0x0032FF20` | clean in both views |
+| S12 | 0x0014A968 (`text_0014A968.c`) | 52 | none / `0x0035BDD8` / `0x0032FF90` | clean |
+| S15 | 0x0014C840 (`text_0014C840.c`) | 30 | none / `0x0035BE3C` / `0x0032FFB0` | clean |
+| S16 | 0x0014D930 (`text_0014D930.c`) | 23 | none / `0x0035BE90` / none | clean |
+| S17 | 0x0014E2E8 (`text_0014E2E8.c`) | 59 | `0x00354A30`-`0x00354A50` (2) / `0x0035BEC8` / none | clean |
+| S20 | 0x00150878 (`text_00150878.c`) | 1,542 | `0x00354A90`-`0x00354AA0` (2) / `0x0035BF2C` (local) / `0x00330208` (local) | full view: far labels only (8.1); the file runs to the census seam 0x001C9B18 |
+
+"none" = one side uses no label of that section near the cut, so the data says nothing there. `.sbss` / `.bss`
+(second check) show no binding at S9-S20; at S1 the full view has 24 `.bss` inversions (`.bss` mixes COMMON,
+whose order is not tied to files; local view clean). **Link order**: per section, the data cuts of the 7 seams rise in the
+same order as the text cuts (`.sdata` `0x0035BC94` < `BDD8` < `BE3C` < `BE90` < `BEC8` < `BF2C`; `.data`
+`0x0032FD20` < `FF20` < `FF90` < `FFB0` < `0x00330208`; `.rodata` `0x003546D8` < `4980` < `4A30` < `4A90`): the tool
+prints "in order".
+
+The old game file `text_001000C0.c` keeps `func_001000C0` to `func_00134358` (576 units, 22 of them C).
+
+### 8.3 Seams not cut (15)
+
+| Seams | Why not |
+|---|---|
+| S2-S8, S10, S11, S13, S14, S18, S19 (13 windows of 2-3 functions) | every candidate start passes the check in both views, so the data does not decide which function opens the file; the card cuts a window only where data decides. The seams themselves line up (link order in order with `--cut-set all`) |
+| S21 (0x001C8EE0, fixed) | **binding**: the `.data` label `0x0034D1B0` is used by the save / load code (`0x001C4FF0`, `0x001C5120`, `0x001C53D8`, `0x001C56F0`) and by `0x001C92D0` and `0x001C9680` in the would-be new file (the labels `0x0034D1B8` and `0x0034D1C4` just after it are used only by those two; one object: Unconfirmed); the scan's K = 40 view misses it because they are more than 40 functions apart. It is either a global shared by two files (then the seam stands) or the save / load file reaches to the VU0 helpers; matching will tell. Also 4 full-view `.rodata` inversions from labels at `0x00356B58`-`0x00358630` used by code at `0x001750F0`-`0x001A9948` (far labels, as in 8.1) |
+| S22 (0x001CA8B0-0x001CA8D8, inside game-unk) | only `.bss` decides the start (4 `.bss` labels, `0x01B31D80`, `0x01B31DB0`, `0x01B31DB4`, ..., bind `0x001CA8B0` to the functions before it, so the file would start at `0x001CA8D8`); `.bss` mixes COMMON (global, order not tied to files), so this is not enough on its own; the primary sections have only one `.data` label near the cut |
+
+### 8.4 Data not split
+
+No file between two cuts has a pinned cut at both ends in all three primary sections (every file has at least one
+"none" or a 2-label range at one end), so by the card's rule the data stays as ER-003 left it: one subsegment per
+section. The cut addresses in 8.2 are where each file's data starts where the data shows it. Two further reasons to
+wait: a plain `rodata` / `sdata` subsegment at those addresses would not attach the data to the C file (that needs
+splat's `.rodata`-style subsegments named after the file, which change how splat emits the asm for INCLUDE_ASM
+functions: untested), and the uncut window seams inside S1's and S20's files would leave those files' data runs
+open anyway.
+
+### 8.5 Grades
+
+No grade changes. The byte-identical build is no evidence for a seam: objects are 8-aligned and every function's
+asm starts `.align 3`, so a cut on any function start links unchanged (`docs/census.md` 4.3). The data line-up of
+8.1 is a stricter use of the same evidence O (the same labels and tracker), not independent evidence. The 7 cut
+seams therefore stay **Strong** (now "cut"); evidence that would confirm them: a matched function needing a
+file-static variable or a static function that stays on its own side (section 6), or a data split that matches.
+S21 stays Strong in the table of 4.1 with the binding noted here; whether it should drop to Medium is left to the
+seam-method follow-up (ER-023).

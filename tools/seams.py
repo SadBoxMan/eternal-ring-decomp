@@ -40,11 +40,15 @@ Outputs (build/seams/, gitignored: derived from game code):
   clusters.csv    minimum file extents from strings shared by several functions (one copy per file)
   rodata.csv      every .rodata label: padding before it, string or not, referencing game functions
   symbols.json    cached symbol list (functions and data labels: addresses, sizes, names only)
-Usage:  .venv\\Scripts\\python.exe tools/seams.py [--md] [--span N] [--k N] [--out DIR]
+  cuts_<set>.csv  (--cuts, ER-022) per Strong seam and candidate start: one-sided labels per data section on each
+                  side (whole neighbouring files and within STEP_K), bindings, inversions, the data cut range
+Usage:  .venv\\Scripts\\python.exe tools/seams.py [--md] [--span N] [--k N] [--out DIR] [--cuts [--cut-set S]]
   --md    also print the evidence R table
   --span  LOCAL_SPAN; --k  STEP_K; --out  output folder (the sensitivity runs of docs/game_seams.md 2 use
           --out build/seams/var_<span>_<k>)
 The final grades in docs/game_seams.md 4 add stability over those runs to the tool's own grade.
+  --cuts  ER-022 data-cut check (docs/game_seams.md 8); --cut-set all (every Strong window), fixed (the 1-function
+          windows) or cut (CUT_STARTS, the seams cut in slus_200.15.yaml)
 """
 from __future__ import annotations
 
@@ -117,6 +121,139 @@ def lnds(vals):
     return out[::-1]
 
 
+# ER-022: the 22 Strong windows of docs/game_seams.md 4.1 (first and last candidate start of the new file)
+STRONG = [
+    (0x001343E8, 0x001343E8), (0x00134480, 0x00134488), (0x00134BB0, 0x00134DB0), (0x001359C0, 0x00135A50),
+    (0x00140AC0, 0x00140C18), (0x001416A8, 0x001416B8), (0x00142920, 0x00142A68), (0x00144218, 0x00144308),
+    (0x00145120, 0x00145120), (0x001464A8, 0x00146598), (0x00147018, 0x00147100), (0x0014A968, 0x0014A968),
+    (0x0014B2C0, 0x0014B3A0), (0x0014BF40, 0x0014BF48), (0x0014C840, 0x0014C840), (0x0014D930, 0x0014D930),
+    (0x0014E2E8, 0x0014E2E8), (0x0014F680, 0x0014F690), (0x0014FF38, 0x0014FF78), (0x00150878, 0x00150878),
+    (0x001C8EE0, 0x001C8EE0), (0x001CA8B0, 0x001CA8D8),
+]
+CENSUS_CUTS = (0x001C9B18, 0x001CA0F0)          # existing game files (ER-013): always cuts
+# ER-022: the seams cut in slus_200.15.yaml (Strong number, first function of the new file); docs/game_seams.md 8
+CUT_STARTS = [(1, 0x001343E8), (9, 0x00145120), (12, 0x0014A968), (15, 0x0014C840), (16, 0x0014D930),
+              (17, 0x0014E2E8), (20, 0x00150878)]
+
+
+def data_cuts(rows, refs, span_ok, dsyms, out_csv, cut_set="all"):
+    """ER-022: for each Strong window and each candidate start in it, put the text cuts at the census seams plus
+    every Strong seam (the others at their window's first candidate) and check, per data section, that the labels
+    used by the files on either side of the cut are in link order: every label of the file before lies below every
+    label of the file after (max L < min R), and no file-local-looking label (referencers within LOCAL_SPAN) is used
+    by both. Only labels in span_ok (LOCAL_SPAN) count, as in the scan. 'full' = the two whole files; 'local' = only
+    the labels referenced within STEP_K functions of the cut. The data cut lies in (end of max L, min R]; the
+    number of splat labels starting in that range says how far data alone pins it."""
+    addrs = [r["addr"] for r in rows]
+    idx = {a: i for i, a in enumerate(addrs)}
+    dstart = sorted(d[0] for d in dsyms)
+    dsize = {d[0]: d[1] for d in dsyms}
+    secs = (".rodata", ".sdata", ".data", ".sbss", ".bss")
+
+    def check(cut_idx, k):
+        """cut_idx: sorted function indices that start a file; k: position of the cut under test"""
+        c = cut_idx[k]
+        lo = cut_idx[k - 1] if k else 0
+        hi = cut_idx[k + 1] if k + 1 < len(cut_idx) else len(rows)
+        res = {}
+        for s in secs:
+            for mode in ("full", "local"):
+                a0, a1 = (lo, hi) if mode == "full" else (max(lo, c - STEP_K), min(hi, c + STEP_K))
+                L, R, both = [], [], []
+                for lab in span_ok[s]:
+                    fs = refs[s][lab]
+                    inl = any(a0 <= i < c for i in fs)
+                    inr = any(c <= i < a1 for i in fs)
+                    if inl and inr:
+                        both.append(lab)
+                    elif inl:
+                        L.append(lab)
+                    elif inr:
+                        R.append(lab)
+                L.sort()
+                R.sort()
+                inv = sum(bisect.bisect_left(R, x) for x in L)   # pairs (l, r) with l > r
+                ok = not both and inv == 0
+                rec = {"nL": len(L), "nR": len(R), "both": len(both), "inv": inv, "ok": ok,
+                       "maxL": L[-1] if L else None, "minR": R[0] if R else None, "ex_both": both[:3]}
+                if L and R and L[-1] < R[0]:
+                    e = L[-1] + max(dsize.get(L[-1], 1), 1)
+                    rec["cut_lo"] = e
+                    rec["cut_hi"] = R[0]
+                    rec["ncand"] = sum(1 for d in dstart if L[-1] < d <= R[0])
+                res[(s, mode)] = rec
+        return res
+
+    # cut_set "all": every Strong seam at its window's first candidate; "fixed": only the 1-function windows plus
+    # the census seams; "cut": the seams ER-022 cut (CUT_STARTS)
+    if cut_set == "all":
+        tested = list(enumerate(STRONG, 1))
+        base = sorted({idx[a] for a in CENSUS_CUTS} | {idx[f] for f, _ in STRONG})
+    elif cut_set == "fixed":
+        tested = [(n_, w) for n_, w in enumerate(STRONG, 1) if w[0] == w[1]]
+        base = sorted({idx[a] for a in CENSUS_CUTS} | {idx[w[0]] for _, w in tested})
+    else:
+        tested = [(n_, (a, a)) for n_, a in CUT_STARTS]
+        base = sorted({idx[a] for a in CENSUS_CUTS} | {idx[a] for _, a in CUT_STARTS})
+    out = []
+    for n_, (f, l_) in tested:
+        cands = [i for i in range(idx[f], idx[l_] + 1)]
+        for ci in cands:
+            cut_idx = sorted((set(base) - {idx[f]}) | {ci})
+            k = cut_idx.index(ci)
+            res = check(cut_idx, k)
+            prim_ok = all(res[(s, m)]["ok"] for s in (".rodata", ".sdata", ".data") for m in ("full", "local"))
+            sec_ok = all(res[(s, "full")]["ok"] for s in (".sbss", ".bss"))
+            out.append({"seam": "S%d" % n_, "start": addrs[ci], "ncands": len(cands), "prim_ok": prim_ok,
+                        "sec_ok": sec_ok, "res": res})
+    with open(out_csv, "w", newline="") as fh:
+        w = csv.writer(fh)
+        hdr = ["seam", "candidate_start", "window_funcs", "primary_ok", "bss_ok"]
+        for s in secs:
+            hdr += ["%s_full_L/R/both/inv" % s, "%s_local_L/R/both/inv" % s, "%s_cut_lo" % s, "%s_cut_hi" % s,
+                    "%s_labels_in_cut_range" % s]
+        w.writerow(hdr)
+        for o in out:
+            row = [o["seam"], "0x%08X" % o["start"], o["ncands"], int(o["prim_ok"]), int(o["sec_ok"])]
+            for s in secs:
+                rf, rl = o["res"][(s, "full")], o["res"][(s, "local")]
+                row += ["%d/%d/%d/%d" % (rf["nL"], rf["nR"], rf["both"], rf["inv"]),
+                        "%d/%d/%d/%d" % (rl["nL"], rl["nR"], rl["both"], rl["inv"]),
+                        "0x%08X" % rf["cut_lo"] if "cut_lo" in rf else "",
+                        "0x%08X" % rf["cut_hi"] if "cut_hi" in rf else "", rf.get("ncand", "")]
+            w.writerow(row)
+    # link order: the data cut ranges of consecutive tested seams must not overlap backwards (per section)
+    order_bad = []
+    for s in secs:
+        prev = None
+        for o in out:
+            rf = o["res"][(s, "full")]
+            if "cut_lo" not in rf:
+                continue
+            if prev is not None and rf["cut_hi"] < prev[1]:
+                order_bad.append("%s %s<%s" % (s, o["seam"], prev[0]))
+            prev = (o["seam"], rf["cut_lo"])
+    print()
+    print("ER-022 link order of the data cuts: %s" % (", ".join(order_bad) if order_bad else "in order"))
+    print("ER-022 data cuts (full file / local K; L/R/both/inv per section; cut range = (end of max L, min R]):")
+    for o in out:
+        bits = []
+        for s in secs:
+            rf, rl = o["res"][(s, "full")], o["res"][(s, "local")]
+            t = "%s %d/%d/%d/%d|%d/%d/%d/%d" % (s, rf["nL"], rf["nR"], rf["both"], rf["inv"],
+                                                 rl["nL"], rl["nR"], rl["both"], rl["inv"])
+            if "cut_lo" in rf:
+                t += " [%08X..%08X n=%d]" % (rf["cut_lo"], rf["cut_hi"], rf["ncand"])
+            elif "cut_lo" in rl:
+                t += " [local %08X..%08X n=%d]" % (rl["cut_lo"], rl["cut_hi"], rl["ncand"])
+            if rf["both"]:
+                t += " both:" + ",".join("%08X" % x for x in rf["ex_both"])
+            bits.append(t)
+        print("%-4s %08X (%d) prim=%s bss=%s  %s" % (o["seam"], o["start"], o["ncands"],
+                                                    "OK" if o["prim_ok"] else "NO", "ok" if o["sec_ok"] else "no",
+                                                    "; ".join(bits)))
+
+
 def main() -> int:
     global LOCAL_SPAN, STEP_K, OUT_DIR
     ap = argparse.ArgumentParser()
@@ -124,6 +261,10 @@ def main() -> int:
     ap.add_argument("--span", type=int, default=LOCAL_SPAN, help="LOCAL_SPAN (functions)")
     ap.add_argument("--k", type=int, default=STEP_K, help="STEP_K (functions on each side)")
     ap.add_argument("--out", default=OUT_DIR, help="output folder (default build/seams)")
+    ap.add_argument("--cuts", action="store_true", help="ER-022: data cut per section at the Strong windows")
+    ap.add_argument("--cuts-out", default=None, help="CSV for --cuts (default <out>/cuts_<cut-set>.csv)")
+    ap.add_argument("--cut-set", default="all", choices=("all", "fixed", "cut"),
+                    help="text cuts assumed by --cuts: all Strong windows, the 1-function ones, or CUT_STARTS")
     args = ap.parse_args()
     LOCAL_SPAN, STEP_K, OUT_DIR = args.span, args.k, args.out
     if not os.path.exists(BASE_ELF):
@@ -457,6 +598,9 @@ def main() -> int:
     print("file-name-like strings: %d" % len(names))
     for a_, s_, t in names[:40]:
         print("   %08X %s %r" % (a_, s_, t[:80]))
+    if args.cuts:
+        data_cuts(rows, refs, span_ok, dsyms, args.cuts_out or os.path.join(OUT_DIR, "cuts_%s.csv" % args.cut_set),
+                  args.cut_set)
     if args.md:
         print()
         print("| # | First function of the new file lies in | Funcs | .rodata block | Pad | Kind | Grade | "

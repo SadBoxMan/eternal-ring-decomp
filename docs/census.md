@@ -182,6 +182,10 @@ each windowed seam from the evidence in the last column. `make regress` is green
 | 18 | 0x001E9A50 | `src/sdk/libc.c` | 0x001E9A10-0x001E9A50 | 0x001E9A50: `func_001E9A10` calls the fp-bit routines `func_001E8DE8` / `func_001E8F80` (libgcc); `func_001E9A50` is `__errno`-shaped (reads `_impure_ptr`-like `D_003522FC`) | Confirmed seam (call graph) |
 | 19 | 0x001F00E8 | `src/sdk/libkernl_tail.c` | fixed | as given | Unconfirmed |
 
+**ER-022** (Wed 18 Nov 2026) cut the game file (row 2) further at 7 game-internal seams (`0x001343E8`,
+`0x00145120`, `0x0014A968`, `0x0014C840`, `0x0014D930`, `0x0014E2E8`, `0x00150878`); evidence and grades in
+`docs/game_seams.md` 8, layout in `docs/build.md` 3.1.
+
 File names are address names or the census's region labels (`vudev`, `libkernl_tail`: **Unofficial**). Objects
 are 8-aligned (every function's asm starts `.align 3`), so a seam on any function start links unchanged; the
 padding words before a seam stay at the end of the previous function's `.s`.

@@ -497,11 +497,11 @@
     {
       "code": "ER-022",
       "title": "Split the Strong game seams into files",
-      "status": "In progress",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Wed 18 Nov 2026: 7 Strong seams cut (S1, S9, S12, S15, S16, S17, S20; 7 new src/text_XXXXXXXX.c), make regress green; 15 not cut (13 windows data-undecided, S21 .data binding, S22 .bss only); data not split; docs/game_seams.md 8"
     },
     {
       "code": "ER-023",
