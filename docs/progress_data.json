@@ -556,6 +556,24 @@
       "model": "Sonnet, medium",
       "waits_on": "",
       "notes": "Done 18 Nov 2026: keep the patch; no public tree (2.9-ee-991111, upstream 2.25/2.29, decompals 2.40, ps2dev 2.45.1) omits the nop; Sony/SN source not public; docs/toolchain.md 4.4"
+    },
+    {
+      "code": "ER-029",
+      "title": "Recomp VBlank pacing (~60 Hz in the movie)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-030",
+      "title": "Recomp movie picture (GS IMAGE upload path)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
