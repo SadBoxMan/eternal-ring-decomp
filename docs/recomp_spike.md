@@ -18,7 +18,7 @@ logs and the disc copy all stay under `C:\rs\recomp\`. Only our helper scripts a
 | Commit | `e5636981a1c9de368f6b71e819c3dc188dfedbf4` (Fri 23 Oct 2026, "GIF: treat FLG=3 like IMAGE everywhere a GIFtag is parsed (#384)"); still the `HEAD` on 17 Nov 2026 (`git ls-remote`) |
 | Licence | GPL-3.0 (see `docs/research.md` §9; "only" vs "or later" still unresolved) |
 | Clone | `C:\rs\recomp\PS2Recomp` (clean, built there); `C:\rs\recomp\game_build` (local clone of it, holds the game output and two local edits, section 4.4) |
-| Prebuilt binaries | none used. All dependencies are fetched as source by CMake `FetchContent`: ELFIO Release_3.12, toml11 v4.4.0, fmt 12.1.0, libdwarf v2.2.0, rabbitizer 1.14.3, nlohmann/json v3.11.3, raylib 5.5, imgui v1.92.7-docking, rlImGui Raylib_5_5 (Studio, not built: SDL 2.32.10, ImGuiColorTextEdit, imgui_club, ImGuiFileDialog). `.gitmodules` does not exist despite the README's `--recurse-submodules` |
+| Prebuilt binaries | **Correction (ER-018, 18 Nov 2026):** the game build (`ps2EntryRunner`) does use one prebuilt: its CMake `ExternalProject` downloads FFmpeg n7.1 as LGPL Windows DLLs and import libraries (`System233/ffmpeg-msvc-prebuilt`, tag `n7.1-241205`, into `out\game\ThirdParty\ffmpeg-prefix`); the runtime uses it to decode movies (`PS2X_ENABLE_FFMPEG`, ON by default on Windows). The tool build below fetched only source. Original line: none used. All dependencies are fetched as source by CMake `FetchContent`: ELFIO Release_3.12, toml11 v4.4.0, fmt 12.1.0, libdwarf v2.2.0, rabbitizer 1.14.3, nlohmann/json v3.11.3, raylib 5.5, imgui v1.92.7-docking, rlImGui Raylib_5_5 (Studio, not built: SDL 2.32.10, ImGuiColorTextEdit, imgui_club, ImGuiFileDialog). `.gitmodules` does not exist despite the README's `--recurse-submodules` |
 
 ## 2. Build on native Windows
 
@@ -141,7 +141,7 @@ position the local patch asked for (not looked into).
 
 **Not chased** (project rule: ask LuciDin first). Question for LuciDin: on a real PS2, what does the game show
 first after the PS2 logo (the Agetec movie, a FromSoftware logo, a warning screen)? That tells whether step 6
-is the expected first movie and the stall is the MPEG / IPU path.
+is the expected first movie and the stall is the MPEG / IPU path. *Answered and chased by ER-018: see section 8.*
 
 ### 3.5 What the runtime still lacks (for this game), as far as the spike saw
 
@@ -223,3 +223,140 @@ rem 7. run (only with LuciDin's yes): ps2EntryRunner.exe C:\rs\recomp\boot\SLUS_
 - Whether Eternal Ring uses any of the MMI / VU0 opcodes with open upstream bugs.
 - The analyzer's 502 SDK names, apart from the libgraph start.
 - Why the heuristic run stubbed 155 functions, not 250.
+
+## 8. ER-018: the first movie (Wed 18 Nov 2026)
+
+Written by ER-018 (Opus 5.5, high), work 15:51 to about 16:40 Eastern. Question: why does the recompiled build stall
+in the first movie (section 3.4), and can it get past it? **Short answer: the stall had three causes, all in
+PS2Recomp's runtime, all fixed locally; the movie now plays to its end-of-movie wait, but (a) far too slowly and
+(b) without a visible picture.** So the boot is **not** past the first movie yet; the two remaining causes are
+written down in 8.5 for the next card.
+
+Nothing here is in git except this text and `tools/recomp/ER-018_runtime_patches.md` (a description in our own
+words). The patches, logs, screenshots and the PCSX2 captures stay in `C:\rs\recomp\` and `C:\rs\captures\er018\`.
+
+### 8.1 Reference: what the real game does (PCSX2 2.5.185, real BIOS, LuciDin's yes)
+
+One muted run of the US ISO, fast boot, PCSX2 window on the secondary monitor (LuciDin's saved layout). Instead of
+driving the debugger GUI, the game's own variables were read over PCSX2's PINE socket (read-only, every 0.25 s;
+`C:\rs\captures\er018\pine_probe.py`, log `pine_log.csv`). PINE and volume 0 were set in `PCSX2.ini` for the run
+only; the file was backed up and restored byte-identical afterwards (checked with `diff`). Addresses and what they
+hold come from the game code read in 8.2.
+
+| Reading | Agetec movie (from about 10.6 s after launch) | Second run of the same player (from about 23.5 s) |
+|---|---|---|
+| CreateThread result for the decoder thread (`0x35C3C8`, priority 0) | **3** (valid id) | 5 |
+| CreateThread result for the idle thread (`0x35C3CC`, priority 0) | **2** (valid id) | 4 |
+| Picture size (`sceMpeg` at `0x34D068`) | 640 x 448 | 640 x 448 |
+| Pictures decoded (`0x34D070`) | rises steadily to 206 (0xCE) at 17.4 s, so about 30 pictures a second for about 7 s | rising at the same rate when the run stopped |
+| Display queue (`0x34D014`, 5 slots) | 4 to 5 all the time | 4 to 5 |
+| VBlank handler "playing" flag / counter (`0x35C3E4` / `0x35C3E8`) | 1 / rises by about 60 a second | same |
+| Screenshot | Agetec logo (red and white on black) | the opening FMV (lake and pier), so this is `EROPEN.PSS` (Unconfirmed by a file log) |
+
+Between the two runs (17.9 s to 23.5 s) the player is idle (flag 0, thread ids unchanged), so the FromSoftware logo
+is **not** drawn by this movie player (where it comes from: not checked). The first stream's packet layout matches
+`AGETEC.PSS` (first private-stream-1 audio packet at file offset 0x1700E, which fits the callback counts in the
+recomp log), but no log names the file: **Unconfirmed**.
+
+### 8.2 How the game's movie player works (read from our split's asm)
+
+The player is game code in `text_00150878` and has the same shape as the SDK's PSS sample player (my reading:
+**Unconfirmed**; all role names below are **Unofficial**):
+
+| Address | Role |
+|---|---|
+| `func_001C53D8` | setup: display env (`func_001C5F40`: `sceGsResetGraph(0,1,2,1)`, `sceGsSetDefDispEnv`, `sceGsPutDispEnv`), videoDec create (`func_001C87E0`: `sceMpegCreate` and six `sceMpegAddCallback`s, types 0 to 5), audio buffer (`func_001C57C0`: 0xC000 bytes on the EE, a 0x6000-byte IOP buffer, preset size 0x6000), two `sceMpegAddStrCallback`s (video `func_001C6FE0`, type 0; audio `func_001C7108`, type 2), two threads at **priority 0** (idle `func_001C5798`, decoder `func_001C8B48`), CD stream open, VBlank-start handler `func_001C6E30` (INTC 2) and GIF-DMA-end handler `func_001C6F50` (DMAC 2) |
+| `func_001C5188` | main loop: CD stream to ring, `RotateThreadReadyQueue(0)` (`func_001C53D0`, syscall 0x2B; the stall PC 0x001C529C is its return address), `sceMpegDemuxPssRing`; display start gate at 0x001C52E8: audio preset (`func_001C5A48`: sent-to-IOP count `+0x50` >= `+0x48`) **and** display queue full (`func_001C8660`), then `func_001C6F90(1)` sets the playing flag; afterwards waits for the decoder to finish (0x001C5340-0x001C5388) |
+| `func_001C8B48` / `func_001C8BB8` | decoder thread: wait for a free display slot (`func_001C8700`, yielding), `sceMpegGetPicture(mpeg, slot, 0x460)`, mark the slot full, yield; until `sceMpegIsEnd` |
+| `func_001C6E30` | VBlank handler: if playing and `sceGsSyncPath(1,0)` reports idle, takes the oldest full slot and, by GS field (CSR bit 13), sends one of its two pre-built half-picture DMA packets (`func_001C6E00`), switching DISPFB with `func_001C64F8` (`sceGsPutDispEnv`) |
+| `func_001C6160` | builds each slot's GIF packet: 40 x 28 IMAGE transfers of 16 x 16 RGBA32 macroblocks (column by column, 1 KiB each) to a texture at TBP 4480, then sprites into the frame buffer |
+| `func_001C8CA8`, `func_001C8D30` | libmpeg **Nodata** (type 1) and **Background** (type 4) callbacks; **both call `func_001C5B38`, the only code that sends movie audio to the IOP** (SIF DMA) and raises the preset count |
+
+### 8.3 The three faults in PS2Recomp (e563698) and the fixes
+
+1. **Priority-0 threads were refused.** `EeScheduler::createThread` accepted priorities 1 to 127 only and returned
+   KE_ILLEGAL_PRIORITY (-403) for 0, although the runtime itself runs the main thread at 0. The game creates its
+   decoder and idle threads at 0, so neither existed (`activeThreads=1` in run 1) and nobody called
+   `sceMpegGetPicture`; the demux filled its picture queue and then refused input ("BACKPRESSURE"). The real BIOS
+   accepts 0 (8.1: ids 3 and 2). **Fix:** accept 0 to 127. After it: `activeThreads=3` (as on PCSX2) and the decoder
+   ran, but stopped after 5 pictures (the 5 display slots were never emptied).
+2. **libmpeg callbacks registered with `sceMpegAddCallback` were stored but never called.** The display never
+   started because its gate waits for movie audio to be preset on the IOP, and the game sends that audio only from
+   its Nodata and Background callbacks, which real libmpeg calls from inside `sceMpegGetPicture`. In the verbose
+   trace, `func_001C5A48` ran 362,445 times and never passed; `func_001C5B38` ran 0 times. **Fix:** the HLE
+   `sceMpegGetPicture` now calls every registered Background (type 4) callback once per call, on the calling
+   thread, before the picture step (Nodata is not called: it refills the guest IPU path, which the HLE does not
+   use). After it: audio was sent (`func_001C5B38` 7 calls in a short verbose run), the display started
+   (`func_001C6F90`), the VBlank handler sent pictures and the GIF handler freed slots; the main thread reached the
+   end-of-movie wait (PC 0x001C5368). The screen was still magenta.
+3. **PMODE stayed 0, so no frame was ever presented** (the magenta is the host window's own fill colour when the GS
+   backend returns no frame: `GenImageColor(..., MAGENTA)` in `ps2_runtime.cpp`). The HLE `sceGsSetDefDispEnv` wrote
+   only DISPFB and DISPLAY into the game's env struct and left PMODE, SMODE2 and BGCOLOR as the game's zeroed
+   memory, and the HLE `sceGsPutDispEnv` copies the struct into the registers, so both display circuits were off.
+   **Fix:** the HLE `sceGsSetDefDispEnv` now computes what the shipped libgraph code at 0x001CE2E8 computes: PMODE
+   0x66, SMODE2 from the GS params (non-interlaced 2; interlaced 3 in field mode, 1 in frame mode), DISPFB from psm
+   and width, DISPLAY with the NTSC (DX 0x27C; DY +0x32 interlaced, +0x19 not) or PAL (0x290; +0x48 / +0x24) origin,
+   MAGH = (2559 + w) / w - 1 and DH doubled in interlaced field mode, BGCOLOR 0; dx / dy are read from $t0 / $t1
+   (EABI) instead of the runtime's register-or-stack guess. After it: PMODE 0x66, SMODE2 3, DISPLAY
+   0x1BF9FF0183227C (DX 0x27C, DY 0x32, MAGH 3, DW 2559, DH 447), a frame is presented each time, and the magenta
+   is gone.
+
+### 8.4 Boot runs (muted, secondary monitor, killed by PID; LuciDin's yes)
+
+| Run | Build | Result |
+|---|---|---|
+| 3 (60 s) | fix 1 | still magenta; a second thread (the idle thread) is now seen running |
+| 4 (verbose, 24 s) | fix 1 | `activeThreads=3`; 5 pictures served, then the decoder waits for a display slot; the VBlank handler returns at once |
+| 5 (60 s) | fixes 1, 2 | magenta; at 60 s the main thread is at the end-of-movie wait 0x001C5368 |
+| 6 (verbose, 24 s) | fixes 1, 2 | display path runs; DISPFB1 switches to FBP 0x46 |
+| 7, 8 (24 s, 30 s) | + a temporary latch log | PMODE 0 and SMODE2 0 at every presentation |
+| 9, 10 (60 s, 40 s) | fixes 1-3 (+ debugger panel hidden at start) | black screen with some static garbage tiles that move with the field; no logo (screenshots every 2 s for 40 s) |
+| 11 (verbose, 40 s) | fixes 1-3 | per picture: one 1,218,752-byte GIF packet, then textured sprites (TBP 4480, FST) into FBP 0 / 0x46 |
+| 12 (150 s, temporary PC log) | fixes 1-3 | main thread at the end-of-movie wait from about 65 s to 150 s, the decoder still feeding the display; guest VBlank count only 928 after 150 s |
+| 13 (30 s) | final build (fixes 1-3, no diagnostics) | same picture as run 10 |
+
+### 8.5 What still blocks the first movie (for the next card)
+
+1. **Guest VBlank runs at about 5 to 9 per second, not 60.** `EeScheduler` raises VBlank only when both 16.7 ms of
+   host time **and** about 4.9 million EE cycles have passed. The movie threads spend their time in
+   `RotateThreadReadyQueue` loops, which add few guest cycles per host second, so VBlank falls behind (run 12:
+   vsync 469 at 75 s, 928 at 150 s; about 500 presentation latches in 60 s in run 9). The movie advances one
+   picture per two VBlanks, so it plays 7 to 12 times too slowly and had not finished after 150 s. Likely
+   direction: charge realistic cycle costs for syscalls and thread switches, or let VBlank follow host time when
+   every thread is only yielding (to be compared with how PCSX2 counts them). Not tried.
+2. **The movie picture is not visible.** The decoded pictures are real (FFmpeg, 640 x 448), they are written in the
+   macroblock column order the game's packets expect (checked against `func_001C6160`), the packets reach the GS
+   and frames are presented, yet the screen shows black plus static tiles. Not yet known whether the IMAGE
+   transfers land at TBP 4480 in the CPU GS backend, or whether the sprite sampling is wrong. Next step: dump GS
+   memory at TBP 4480 after one upload and compare it with the HLE frame.
+
+Other HLE gaps seen on the way (not needed for this movie, not changed): the HLE `sceGsResetGraph` sends PMODE and
+SMODE2 as A+D writes to 0x41 / 0x42, which the GS front end treats as SCISSOR_2 / ALPHA_1, so they never reach the
+privileged registers (only its 0x59-0x5F writes do); `ChangeThreadPriority` still refuses priority 0;
+`RotateThreadReadyQueue(0)` is read as "the caller's priority" (same result here, since the caller runs at 0);
+`sceMpegGetPictureRAW8` is a TODO; the libmpeg Nodata callback is never called.
+
+### 8.6 Files (outside git)
+
+| File | What |
+|---|---|
+| `C:\rs\recomp\patches\er018_movie_boot.patch` | the three fixes as a diff against e563698 (`EeScheduler.cpp`, `Stubs/MPEG.cpp`, `Stubs/GS.cpp`); SHA-1 929e44d0... |
+| `C:\rs\recomp\patches\er008_er018_local_run_tweaks.patch` | run conveniences, not fixes: ER-008's window position and no audio device, ER-018's debugger panel hidden at start (F1 shows it) |
+| `C:\rs\recomp\game_build` | the patched clone; both builds (`out\game` normal, `out\game_logs` verbose) are built from it |
+| `C:\rs\recomp\scripts\boot_run3.ps1` ... `boot_run13.ps1`, `C:\rs\recomp\build_game_logs.bat` | run and verbose-build scripts |
+| `C:\rs\recomp\boot3_*.txt` ... `boot13_*.txt`, `C:\rs\recomp\shots\boot3_*.png` ... `boot13_*.png` | logs and screenshots (the verbose traces, 0.4-0.7 GB each, were deleted) |
+| `C:\rs\captures\er018\` | PCSX2 PINE probe, run script, log and screenshots, `PCSX2.ini.bak` |
+
+A description of the patches in our own words is in `tools/recomp/ER-018_runtime_patches.md`. Nothing is pushed
+anywhere (the PS2Recomp fork waits on the GPL-3.0 decision, ER-019).
+
+### 8.7 Not verified / Unconfirmed
+
+- That the first stream is `AGETEC.PSS` and the second `EROPEN.PSS` (layout and screenshot match; no file log).
+- The SDK-sample reading of the player and every Unofficial name in 8.2.
+- That calling Background once per `sceMpegGetPicture` matches how often real libmpeg calls it (it is called while
+  waiting on the IPU, so likely several times per picture); enough here, audio rate not measured.
+- Movie audio: never heard (all runs muted; the IOP-side playback was not checked).
+- The VBlank-pacing explanation in 8.5 item 1 is my reading of the scheduler code and the counts; no profile taken.
+- Whether fix 3 is right for every game: it follows this game's libgraph 1.6x copy; other SDK versions may differ.
+- The unit tests (`ps2x_tests`) were not run against the patched runtime.

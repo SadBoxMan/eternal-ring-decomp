@@ -301,7 +301,7 @@
       "status": "In progress",
       "by": "",
       "text": "First PC build: recompiled EE code + HLE stubs compiles to a Windows exe and boots",
-      "notes": "ER-008 spike (18 Nov 2026): recompiled EE code + PS2Recomp HLE stubs compile to a Windows exe (0 errors) and boot through IOP module load, CD lookup, memory card probe and GS setup into the first PSS movie, then stall (MPEG ring backpressure; 141 of 3,606 functions ran). Not a playable boot. Needs: MPEG/IPU path, GS, VU1 checks."
+      "notes": "ER-008 spike (18 Nov 2026): the exe builds and boots into the first PSS movie, then stalled. ER-018 (18 Nov 2026): stall fixed (local PS2Recomp patch: priority-0 threads, libmpeg Background callback, sceGsSetDefDispEnv PMODE); the game's movie player runs and the GS presents frames, but guest VBlank runs at about 5-9 Hz and the movie picture is black. Not a playable boot. Needs: VBlank pacing, GS movie upload path, then GS, VU1 checks."
     }
   ],
   "tasks": [
@@ -461,11 +461,11 @@
     {
       "code": "ER-018",
       "title": "Recomp boot past the first movie",
-      "status": "In progress",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": "First screen: Agetec logo (LuciDin, PCSX2, 18 Nov); compare with PCSX2 debugger at the movie loop"
+      "notes": "Done Wed 18 Nov 2026: stall fixed, first movie not passed yet. Three PS2Recomp runtime faults fixed in a local patch outside git (priority-0 threads refused; sceMpegAddCallback Background callback never called, so no movie audio and no display start; HLE sceGsSetDefDispEnv left PMODE 0 = magenta). Movie now runs to its end-of-movie wait, but VBlank ~5-9 Hz and picture black. PCSX2 reference over PINE. docs/recomp_spike.md section 8, tools/recomp/ER-018_runtime_patches.md"
     },
     {
       "code": "ER-019",
