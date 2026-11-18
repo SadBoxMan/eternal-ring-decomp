@@ -36,6 +36,8 @@ handoff note in one small commit, and offer the next card. Keep turns short.
 - **Before LuciDin leaves the desk** (office days Wed / Thu 9 AM-2 PM, and before 2 AM), line up the next long run:
   cards cannot be started while he is on Remote Control. Do not turn Remote Control on for new sessions unless asked.
 - **Backups** are the dispatcher's job (after every 3-5 completed tasks and at block end); sessions never run them.
+  Until a backup tool exists (ER-025): `git bundle create "F:\Claude\Project Ringsmith\backups\repo.bundle" --all`
+  from the main checkout, then `git bundle verify` (history only; no game data, no build output). Log each one below.
 - **Archive** work sessions once verified finished; never ones still working, waiting on LuciDin, or holding
   uncommitted work.
 - **Windows paths in scripts.** Write them as Python raw strings (`r"C:\rs\..."`): plain strings turned `\r` / `\t`
@@ -83,3 +85,4 @@ The dispatcher is pinned. After start_session and detach_session, file each card
 
 - Tue 17 Nov 2026, 11:52 Eastern: drafted by the setup session. No dispatcher started yet.
 - Tue 17 Nov 2026, 12:01 Eastern: **DISP-01** started (first titled "Project Ringsmith dispatcher #1", renamed 12:12), id `local_15d323e2-b845-4337-9f74-b894bdc51e69` (Opus, high).
+- Wed 18 Nov 2026, 01:05 Eastern: first backup (DISP-01): `F:\Claude\Project Ringsmith\backups\repo.bundle`, all refs at 999d152, verified okay.

@@ -520,6 +520,15 @@
       "model": "Opus, high",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-025",
+      "title": "Backup tool (zip + git bundle to F:)",
+      "status": "Queued",
+      "track": "other",
+      "model": "Sonnet, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
