@@ -446,7 +446,7 @@
       "status": "Waiting",
       "track": "decomp",
       "model": "Opus, medium + Ultracode",
-      "waits_on": "ER-013, ER-014, ER-015",
+      "waits_on": "ER-024, ER-015",
       "notes": ""
     },
     {
@@ -514,7 +514,7 @@
     },
     {
       "code": "ER-024",
-      "title": "Data ownership test (one file owns its data)",
+      "title": "Per-file data split (.lit4, .rodata, own literals)",
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, high",
@@ -529,6 +529,24 @@
       "model": "Sonnet, medium",
       "waits_on": "",
       "notes": "tools/backup.py: zip + repo.bundle to F:, refuses ignored/game-data paths; first run 77 files, 169 KB, bundle verified and test-restored; see docs/build.md 5"
+    },
+    {
+      "code": "ER-026",
+      "title": "Adopt the patched ee-as (c.cond/bc1 nop)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "LuciDin's ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-027",
+      "title": "More plain-C matches (no own data)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
