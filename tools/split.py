@@ -95,16 +95,28 @@ def _c_sequence(c_path: Path, strip, c_func_re):
     return out
 
 
+def _defined_in_c(c_path: Path) -> set:
+    """Names the C file defines as data itself (`T name[...] = ...`, not extern): their INCLUDE line is gone on
+    purpose. Where the definition sits is left to the byte check (make regress)."""
+    from splat.segtypes.common.c import CommonSegC
+
+    text = CommonSegC.strip_c_comments(c_path.read_text(encoding="utf-8"))
+    return {m[1] for m in re.finditer(r"(?m)^(?!\s*extern\b)\s*[A-Za-z_][^;{}()=\n]*?[\s*](D_[0-9A-F]{8}|jtbl_[0-9A-F]{8})\b"
+                                      r"\s*(?:\[[^\]]*\]\s*)*=", text)}
+
+
 def _check_rodata_order(seg, entries, c_path: Path):
     from splat.segtypes.common.c import CommonSegC, C_FUNC_RE
 
+    in_c = _defined_in_c(c_path)
     expected = []  # (kind, name) with kind "func" or "rodata"
     for e in entries:
         if e.function is not None:
             expected.append(("func", e.function.getNameUnquoted()))
         else:
             for s in e.rodataSyms:
-                expected.append(("rodata", s.getNameUnquoted()))
+                if s.getNameUnquoted() not in in_c:
+                    expected.append(("rodata", s.getNameUnquoted()))
     actual = _c_sequence(c_path, CommonSegC.strip_c_comments, C_FUNC_RE)
     exp_funcs = {n for k, n in expected if k == "func"}
     # C definitions of names that are not functions of this text range (none expected) are left out of the check
@@ -184,7 +196,8 @@ def _owned_data(seg, sect: str, data_seg):
     inc = re.compile(rf"\b{macro}\s*\(\s*\"([^\"]*)\"\s*,\s*(\w+)\s*\)\s*;")
     from splat.segtypes.common.c import CommonSegC
     got = [m[2] for m in inc.finditer(CommonSegC.strip_c_comments(raw))]
-    if not got and FIX_INCLUDES:
+    in_c = _defined_in_c(c_path)
+    if not got and FIX_INCLUDES and not in_c:
         m = INC_RE.search(raw)
         folder = m[2] if m else f"asm/nonmatchings/{seg.name}"
         lines = raw.split("\n")
@@ -195,7 +208,7 @@ def _owned_data(seg, sect: str, data_seg):
         c_path.write_text("\n".join(lines), encoding="utf-8", newline="\n")
         got = names
         SUMMARY["ro_inserted"] += len(names)
-    if got != names:
+    if got != [n for n in names if n not in in_c]:
         ERRORS.append(f"{c_path.as_posix()}: {macro} lines {got[:3]}... differ from the owned {sect} symbols "
                       f"{names[:3]}... (all of them, in address order; --fix-includes writes them if none exist)")
 

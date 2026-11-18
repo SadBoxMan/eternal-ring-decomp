@@ -346,6 +346,10 @@ splat's `.rodata`-style subsegments named after the file, which change how splat
 functions: untested), and the uncut window seams inside S1's and S20's files would leave those files' data runs
 open anyway.
 
+**Superseded by ER-024 (8.6):** with spimdisasm's own references (instead of the census tracker) every game file's
+`.lit4` and `.rodata` run is pinned, and so are the `.sdata` / `.data` runs of the five files between S9 and S20; the
+split no longer needs the "untested" splat mechanism (rodata migration works with ee-as, `docs/build.md` 3.2).
+
 ### 8.5 Grades
 
 No grade changes. The byte-identical build is no evidence for a seam: objects are 8-aligned and every function's
@@ -355,3 +359,46 @@ seams therefore stay **Strong** (now "cut"); evidence that would confirm them: a
 file-static variable or a static function that stays on its own side (section 6), or a data split that matches.
 S21 stays Strong in the table of 4.1 with the binding noted here; whether it should drop to Medium is left to the
 seam-method follow-up (ER-023).
+
+### 8.6 The per-file data split (ER-024, Wed 18 Nov 2026)
+
+ER-024 (Opus 5.5, high) gave each game file its own data runs (`docs/build.md` 3.2) and listed, per section, which
+files' functions use each label, from the references spimdisasm resolves in the asm (the `%hi` / `%lo` pairs, `$gp`
+loads and jump-table bases the build itself assembles; the 17 C functions from gcc's output). Scratch script, not
+in the repo; the cuts are in `slus_200.15.yaml`.
+
+**What the references show (Confirmed from the split output):**
+
+- **`.lit4`** (2,817 words): every word is used by exactly one instruction of one function, and the words lie in
+  strict function order across the whole section (no inversion at all). The file runs are therefore exact at every
+  cut (table in `docs/build.md` 3.2). This says nothing about where files meet: a pool in function order fits any
+  text cut. It does confirm that the literal pool is gas's per-object pool in link order (literals never merged).
+- **`.rodata`**: every label used by functions is used by one game file only, and the files' runs follow link order
+  with no foreign label inside; labels used only from `.data` or by nothing lie between two labels of the same file.
+  It pins the cuts ER-022 left as 2-label ranges: S9 0x00354990 (`D_00354980` is used by `func_00142118`, before
+  S9), S17 0x00354A30 (`D_00354A28` is `text_0014D930`'s, used by `func_0014DF08`), S20 0x00354A90; and S16 gets a
+  `.rodata` run (one item, `D_00354A28`). Game `.rodata` ends at 0x00356AF0, where libgraph's begins. The labels ER-022
+  saw "near the end of `.rodata`" used by `func_001000C0` and others (8.1) are not used by game code in spimdisasm's
+  reading; they belong to SDK files (a census-tracker misread, as 8.1 suspected).
+- **`.sdata` / `.data` between S9 and S20**: runs pinned at both ends. `.data`: S9 0x0032FF20, S12 0x0032FF90, S15
+  0x0032FFB0, `text_0014C840` ends at 0x0032FFE0, where `text_0014E2E8`'s starts (ER-022 had "none" at S16 and S17:
+  `text_0014D930` has no `.data`), S20 0x00330208. `.sdata`: S9 0x0035BC94, S12 0x0035BDD8, S15 0x0035BE3C, S16
+  0x0035BE90, S17 0x0035BEC8, S20 0x0035BF2C, as in 8.2. Two labels inside `text_0014E2E8`'s runs are used only by
+  far code in `text_001000C0`: `D_0035BF1C` (`.sdata`, by `func_001316A8`) and `D_00330080` (`.data`, by
+  `func_001316A8`, `func_00131930`): globals defined in `text_0014E2E8` and used elsewhere (Unconfirmed reading).
+
+**How strong is the byte-identical build as evidence? Weak.** A cut at any label boundary links byte-identically
+as long as each object's start suits its alignment, so the build only shows the cuts are consistent with the
+alignments; the real evidence is the reference pattern above, the same kind as evidence O / S (now with exact
+references). The grades of S9, S12, S15, S16, S17, S20 stay **Strong**. What would confirm them: a matched function
+that defines data (a string, a `static`) in its file's run, or a file-static shared across a cut.
+
+**One new piece of alignment evidence (Medium):** an object that holds a gcc jump table is 16-aligned (gcc's
+`.align 4`; test compile, section 3). `text_001343E8`'s `.rodata` starts at 0x003546D8 with `D_003546D8` (used by
+`func_00134958`), and the jump table `jtbl_003546E0` (used by `func_00134F70`) follows at once. The table's object
+must start on a 16-byte boundary at or before 0x003546E0; starting before would put `func_00133458`'s table tail
+(0x003546C0-0x003546D8) and `func_00134F70`'s table in one object, against S1. So a file boundary lies after
+`func_00134958` and at or before `func_00134F70`: it agrees with window **S3** (0x00134BB0-0x00134DB0) and is
+independent of the label scan. It also means `text_001343E8` cannot take a C jump table until it is cut there
+(`docs/decomp_recipes.md` 2.5). Not checked: the same test at the other uncut windows inside `text_001000C0`,
+`text_001343E8` and `text_00150878` (follow-up).

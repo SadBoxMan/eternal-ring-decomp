@@ -87,8 +87,8 @@ all objects, crt0 first --ee-ld -s--> build/SLUS_200.15.elf  --sha1--> OK
 
 | Piece | Why |
 |---|---|
-| `slus_200.15.yaml` | one segment `main` (vram `0x00100000`, rom = PT_LOAD bytes): crt0 kept as `asm`, the rest of `.text` as 25 `c` files of INCLUDE_ASM (census regions, the game region cut further at 7 seams by ER-022; 3.1), `.data`, `.vudata` (kept as data words), `.rodata`, `.lit4`, `.sdata`, `.sbss`, `.bss`; `pad` subsegments for the alignment gaps between sections |
-| `tools/split.py` | runs splat, writing denormal floats as `.word` (ee-as 2.9 misreads them; `docs/decomp_recipes.md` 1.3) |
+| `slus_200.15.yaml` | one segment `main` (vram `0x00100000`, rom = PT_LOAD bytes): crt0 kept as `asm`, the rest of `.text` as 25 `c` files of INCLUDE_ASM (census regions, the game region cut further at 7 seams by ER-022; 3.1), `.data`, `.vudata` (kept as data words), `.rodata`, `.lit4`, `.sdata`, `.sbss`, `.bss`; the game files' own `.rodata` / `.lit4` (and for five files `.sdata` / `.data`) as dotted subsegments named after the C file (ER-024, 3.2), the rest of each data section as shared asm; `pad` subsegments for the alignment gaps between sections |
+| `tools/split.py` | runs splat, writing denormal floats as `.word` (ee-as 2.9 misreads them; `docs/decomp_recipes.md` 1.3), plus the per-file data steps of 3.2 (rodata order check and INCLUDE_RODATA files, `.lit4` loads as `li.s`, `.align 4` items, INCLUDE_SDATA / INCLUDE_DATA files) |
 | `include/macro.inc`, `labels.inc`, `include_asm.h`, `common.h` | splat's macros rewritten for ee-as 2.9 syntax; `macro.inc` also includes the generated `gp_externs.inc` |
 | `tools/gen_gp_externs.py` | `build/include/gp_externs.inc`: `.extern sym, 4` for every symbol reached through `$gp`, so ee-as's `lw $2, sym` macros come out gp-relative (ee-as has no `%gp_rel`) |
 | `tools/gen_elf_extras.py` | the sections after the load image that the whole-file SHA-1 needs: `.DVP.ovlytab`, `.DVP.ovlystrtab`, four `.DVP.overlay.*` (bytes from the original; `ee-dvp-as` is not built) |
@@ -102,8 +102,8 @@ all objects, crt0 first --ee-ld -s--> build/SLUS_200.15.elf  --sha1--> OK
 `.text` after crt0 is cut into one `c` subsegment per region of `docs/census.md` 4.1, seams on function starts
 (census 4.3 has each seam's evidence and grade); ER-022 cut the game region further at the 7 Strong seams of
 `docs/game_seams.md` whose data cuts line up (section 8 there). Each file's INCLUDE_ASM points at its own folder
-`asm/nonmatchings/<file>/`. Data is not split: `.data` / `.rodata` / `.lit4` / `.sdata` / `.sbss` / `.bss` stay
-one subsegment each (why ER-022 left it so: `docs/game_seams.md` 8.4).
+`asm/nonmatchings/<file>/`. ER-022 left the data as one subsegment per section (`docs/game_seams.md` 8.4); since
+ER-024 the game files own their data where the references pin it (3.2).
 
 | File | Starts | Units (C) | Region |
 |---|---|---|---|
@@ -127,6 +127,67 @@ Generated, gitignored (game data or derived from it): `asm/`, `linker/`, `basero
 `build_logs/`. Committed: the yaml, `symbol_addrs.txt`, `reloc_addrs.txt`, `src/`, `include/`, `Makefile`, the
 tools.
 
+### 3.2 Per-file data (ER-024, Wed 18 Nov 2026)
+
+A C file's own float literals, jump tables, strings and variables land in its own object (ER-014's blocker,
+`docs/decomp_recipes.md` 2.2). So each C file now **owns** the run of each data section that its functions use:
+the linker places `build/src/<file>.o(<section>)` where that run lies, and the data around it stays shared asm.
+`make regress` is green with all of it (whole-ELF SHA-1 and all 3,606 functions).
+
+**What is owned** (cuts from the references splat / spimdisasm resolve in the asm; `docs/game_seams.md` 8.6):
+
+| Section | Owners | Still shared asm |
+|---|---|---|
+| `.lit4` | all 8 game files: `text_001000C0` 0x00358B80, `text_001343E8` 0x003592C4, `text_00145120` 0x003597CC, `text_0014A968` 0x00359970, `text_0014C840` 0x003599D4, `text_0014D930` 0x00359A1C, `text_0014E2E8` 0x00359A4C, `text_00150878` 0x00359ACC to 0x0035B784 | nothing (no SDK file uses `.lit4`) |
+| `.rodata` | `text_001000C0` 0x00353E00, `text_001343E8` 0x003546D8, `text_00145120` 0x00354990, `text_0014D930` 0x00354A28, `text_0014E2E8` 0x00354A30, `text_00150878` 0x00354A90 to 0x00356AF0 (`text_0014A968`, `text_0014C840` have none) | `rodata_00356AF0` (the SDK, libgraph on) |
+| `.sdata` | `text_00145120` 0x0035BC94, `text_0014A968` 0x0035BDD8, `text_0014C840` 0x0035BE3C, `text_0014D930` 0x0035BE90, `text_0014E2E8` 0x0035BEC8 to 0x0035BF2C | `sdata_0035B800` (files before S9), `sdata_0035BF2C` (`text_00150878` on) |
+| `.data` | `text_00145120` 0x0032FF20, `text_0014A968` 0x0032FF90, `text_0014C840` 0x0032FFB0, `text_0014E2E8` 0x0032FFE0 to 0x00330208 (`text_0014D930` has none) | `data_001F0380` (files before S9), `data_00330208` (`text_00150878` on) |
+
+`.sdata` / `.data` of `text_001000C0`, `text_001343E8` and `text_00150878` are not owned yet: those files are each
+several real files (uncut seams), their runs mix globals used across files, and the ends are not checked symbol by
+symbol. `.sbss` / `.bss` are not owned (NOBITS; `.bss` mixes COMMON).
+
+**How a file gets its own data** (the recipe):
+
+1. Find the run: list the section's labels with the files whose functions use them (spimdisasm's references, as in
+   the asm). The file's run starts at its first label and ends where the next file's first label starts; every label
+   inside must be used by this file only or by no function (data-only or unreferenced labels between two of the
+   file's labels are its own by position). A label used only by a far file inside the run is a global defined here
+   (noted in `docs/game_seams.md` 8.6). If an end is not pinned, leave the section shared: do not guess a cut.
+2. In the yaml, give the run a dotted subsegment named after the C file (`[rom, .rodata, text_X]`, `.lit4`, `.sdata`,
+   `.data`), and start the shared asm again after it with a plain subsegment (`[rom, rodata, rodata_<vram>]`).
+   rom = vram - 0x00100000.
+3. `.rodata` only: run `.venv\Scripts\python.exe -I tools/split.py slus_200.15.yaml --fix-includes` once (after
+   `rm -rf asm linker`). splat migrates each function's own `.rodata` (jump tables, strings, floats used by one
+   function) into its INCLUDE_ASM file; the other symbols (used by several functions, only from data, or not at
+   all, and const tables spimdisasm does not migrate) need `INCLUDE_RODATA(folder, sym);` lines in the C file, in
+   splat's order. `--fix-includes` inserts them (each just before the next function that has migrated rodata). The
+   normal split then checks the order on every run and fails with the first difference.
+4. `.sdata` / `.data`: the same `--fix-includes` run writes an `INCLUDE_SDATA` / `INCLUDE_DATA` block (every symbol
+   of the run, in address order) after the `#include`; later splits check it.
+5. `.lit4`: nothing to edit. `tools/split.py` writes each INCLUDE_ASM `lwc1 $f, (D_x)` of an owned literal back as
+   `li.s $f, <value>`: gas then builds the object's literal pool in source order, the asm functions' literals and the
+   C functions' together, exactly as the original compile did (each literal word is used by one instruction, never
+   merged). A labelled word in `.lit4` cannot be used instead: ee-as asserts when a gp-relative macro names a symbol
+   defined in `.lit4` (`gas/config/tc-mips.c`, `nopic_need_relax`).
+6. `make regress`, commit the yaml and the C files.
+
+**Alignment.** Each object's section is as aligned as its most aligned item, and the linker starts each object on
+that boundary. gcc emits jump tables with `.align 4` (16 bytes); spimdisasm writes `.align 3`. `tools/split.py`
+writes `.align 4` before every jump table and before every label on a 16-byte boundary that has 8+ zero bytes before
+it in the file's run (8-byte alignment cannot explain such a gap), so when the item before it comes from C (without
+the zeros), the padding still comes out. While everything is asm the directive changes nothing. Not in
+`text_001343E8` (its `.rodata` starts at 0x003546D8, not 16-aligned): there a 16-aligned item would move the whole
+object, so **a C jump table cannot be placed in `text_001343E8`** until the file is cut where its real files meet
+(`docs/game_seams.md` 8.6). `text_0014D930`'s run is one 8-byte item, so nothing to do.
+
+**Gotchas.** Run a clean split after changing the yaml (`rm -rf asm linker`, or `make regress`): stale
+`asm/data/*.s` files from an old cut would be linked twice. A C file that defines one of its data symbols itself
+(`static const float D_x[4] = ...`) drops that INCLUDE line; the check accepts the gap and the byte check judges the
+position. A float literal is written as a literal in C (`1500.0f`): owned `.lit4` words have no labels any more,
+so an `extern float` stand-in (ER-014's workaround) no longer links. A variable of an owned `.sdata` / `.data` run
+can still be used through `extern` from C in the same file (`func_00150818` reads `D_0035BF20` so).
+
 ## 4. Numbers (measured by ER-003, Tue 17 Nov 2026)
 
 | Item | Value |
@@ -145,6 +206,7 @@ tools.
 | `make regress` | about 30 s (split 15 s, clean build 11 s, checks under 1 s) |
 | `make regress` after the ER-013 file split | split 22 s, clean build 35 s (18 C files; one measurement, Wed 18 Nov 2026) |
 | `make regress` after the ER-022 game split | split 22 s, clean build 34 s (25 C files; one measurement, Wed 18 Nov 2026) |
+| `make regress` after the ER-024 data split | split 18 s, clean build 33 s (one measurement, Wed 18 Nov 2026) |
 
 ## 5. Backups (ER-025, Wed 18 Nov 2026)
 

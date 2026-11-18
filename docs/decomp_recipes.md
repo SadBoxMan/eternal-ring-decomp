@@ -102,6 +102,10 @@ is used.
 
 ### 2.2 Blockers found by ER-014 (Confirmed; each parks a class of functions until fixed)
 
+**Status (ER-024, Wed 18 Nov 2026):** the `.lit4` and jump-table blockers are fixed by the per-file data split
+(`docs/build.md` 3.2; matching side in 2.5), except for jump tables in `text_001343E8` (2.5). The FP-compare `nop`
+waits on ER-026 (ruling 3.4).
+
 | Blocker | Evidence | Functions it parks | Fix (needs a card) |
 |---|---|---|---|
 | **Float literals (`.lit4`)**: gas, not gcc, turns `li.s` with a constant whose low 16 bits are not 0 into a `.lit4` entry **in the C file's own object**. `.lit4` is one asm data subsegment, so the new entry lands at the start of `.lit4` and shifts every literal by 4 | test build with `func_0014A948` written with `1500.0f`: map shows `.lit4 0x2c08` (was `0x2c04`), `text_00145120.o(.lit4)` 4 bytes at `0x00358B80`, func_check reports `D_00359DC4` and others MOVED (+4). Reverted, not committed | every function with such a float constant (`func_0014A948`, `func_001115E0` and, from the census, most COP1 functions) | split `.lit4` per C file (splat `.lit4` subsegments named after each C file) or move each file's literals out of the shared pool; the literals of one function are adjacent in the pool, and gas does not merge equal literals (0.01 appears twice in a row for `func_001115E0`) |
@@ -137,10 +141,27 @@ uses the unpatched ee-as; switching is LuciDin's call (toolchain change: `tools/
 
 | Function | File | Cause |
 |---|---|---|
-| `func_0014A948` | `text_00145120.c` | code matches with `1500.0f` as an extern variable, but the original was a literal in `.lit4` (2.2); the literal form shifts `.lit4` |
-| `func_001115E0` | `text_001000C0.c` | `.lit4` literals (0.01 twice) and the FP-compare hazard `nop` (2.2) |
-| `func_0017D930`, `func_0014F618` | `text_00150878.c`, `text_0014E2E8.c` | jump table in `.rodata` (2.2); code shape matches (masked compare) |
+| ~~`func_0014A948`~~ | `text_00145120.c` | matched by ER-024 (2.5) |
+| `func_001115E0` | `text_001000C0.c` | the FP-compare hazard `nop` (2.2): waits on ER-026; its `.lit4` literals (0.01 twice) are no longer a blocker (2.5) |
+| ~~`func_0017D930`, `func_0014F618`~~ | `text_00150878.c`, `text_0014E2E8.c` | matched by ER-024 (2.5) |
 | `func_001C6F90` | `text_00150878.c` | epilogue scheduling: the game puts the first `$gp` store between `ld $31` and `ld $16`; ours puts both loads first. Tried 6 store orders and 5 loop forms (`while`, `do`, `for(;;)`, `u32`, `int` return); no plain-C variant found |
+
+### 2.5 Functions with their own data (ER-024, Wed 18 Nov 2026; Confirmed by `make regress`, commit `8fcf48c`)
+
+The game files own their `.lit4` and `.rodata` (five of them also `.sdata` / `.data`; `docs/build.md` 3.2), so a
+function's own literals, jump tables and strings come from its C now.
+
+| Lesson | Proved by |
+|---|---|
+| **Float literals: write them as literals.** `1500.0f` in C gives `li.s`, gas puts the word in the file's own `.lit4` in source order, between the asm functions' literals (which `tools/split.py` writes as `li.s` too). Nothing else to do; the `.lit4` words have no labels any more, so an `extern float` stand-in no longer links | `func_0014A948` (`func_0012FAE8(a0, 4, 0x7F, ... + 0x850, 1500.0f)`, a sibling call) |
+| **Jump tables: a plain `switch`.** gcc emits the table into the file's `.rodata` (`.align 4`, 16 bytes); splat's migrated copy in the function's asm file is simply not included any more. Several case labels on one `return 1;` give one shared target; the default and the code after the `switch` follow the case bodies | `func_0017D930` (89-entry table, 20 cases return 1, else 0), `func_0014F618` (`switch` on a `u16` at offset 4, 6 cases return 0..5, else 6; the table is the last item of the file's `.rodata`, so the next file's 16-byte alignment makes the padding after it) |
+| **Where the INCLUDE_RODATA lines go.** splat's order: a symbol it does not migrate sits just before the next function that has migrated rodata. `tools/split.py` checks that order on every split; when a C function takes over a standalone symbol, define it in C where the bytes need it and drop the INCLUDE line (the check allows that; `make regress` judges the place) | all game files (270 standalone symbols) |
+| **No jump table in C in `text_001343E8` yet.** Its `.rodata` starts at 0x003546D8 (8-aligned), and a gcc table would make the object 16-aligned and move it. Park such functions there ("jump table in text_001343E8: needs the file cut", one line) until the file is cut where its real files meet | the alignment rule (`docs/build.md` 3.2) |
+| **Variables in owned `.sdata` / `.data`** can be read through `extern` in the same file (the INCLUDE_SDATA definition and gcc's `$gp` access agree) | `func_00150818` reads `D_0035BF20` (built and checked in `48f781a`) |
+
+Not verified yet: a matched function that **defines** data itself (a string literal, a `static` variable, an
+initialised global) in an owned run. The mechanism allows it (drop the INCLUDE line, define the symbol in C at the
+right place), but no such function is placed yet, so the order rules of gcc's data output are not confirmed here.
 
 ## 3. Rulings (LuciDin)
 
