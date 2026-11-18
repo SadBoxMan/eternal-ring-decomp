@@ -497,7 +497,7 @@
     {
       "code": "ER-022",
       "title": "Split the Strong game seams into files",
-      "status": "Queued",
+      "status": "In progress",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "",
