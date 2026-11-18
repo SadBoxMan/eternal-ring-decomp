@@ -25,7 +25,7 @@ Written Tue 17 Nov 2026, 11:52 Eastern, by the setup session.
 
 ## Decided (LuciDin, Tue 17 Nov 2026)
 
-- Task codes: **ER-NNN** (session title prefix, brief, commits; next free: ER-018).
+- Task codes: **ER-NNN** (session title prefix, brief, commits; next free: ER-022).
 - Disc: **NTSC-U (US)** only; it is the matching target.
 - Sidebar: dispatcher pinned in "Project Ringsmith"; cards in "Ringsmith Decomp", "Ringsmith Recomp / PC Port",
   "Ringsmith Misc", and "Ringsmith Assets" (asset rips, from when the recomp is complete; added 17 Nov 2026).
@@ -54,7 +54,11 @@ card whether a first PC build is now possible and says so to LuciDin. Tracker mi
 (1) a recompiler that handles the ELF (ER-008 spike: PS2Recomp or our own); (2) SCE library entry points caught
 and stubbed (HLE), using the census's SDK boundaries (ER-004); (3) a minimal runtime: memory map, syscalls,
 a video path for the GS. It does not wait on Phase 1 matching; matched C is swapped in later (hybrid build).
-Status: not yet possible (no recompiler result yet; ER-008 waits for LuciDin's click).
+Status (Wed 18 Nov 2026, 00:45 Eastern): **a first PC build exists but does not reach the game.** ER-008 built
+PS2Recomp natively; all 3,606 functions recompile (0 unhandled instructions) and link into a Windows exe that boots
+through IOP module load, `ERDATA.BIN`, memory card probe and GS setup into the first PSS movie, then stalls (MPEG
+ring backpressure; 141 functions ran). Next: ER-018 (boot past the movie), ER-019 (fork setup, after the GPL-3.0
+decision). Open question for LuciDin: what does a real PS2 show first after the PS2 logo?
 
 ## Queue (the dispatcher turns these into cards; first ones need the answers above)
 
@@ -77,3 +81,7 @@ Status: not yet possible (no recompiler result yet; ER-008 waits for LuciDin's c
 | ER-015 | EE matching tools: a compare-function script for ee-gcc, a placement helper, a clone tool on `tools/census.py` strict keys, and a test of m2c on EE code. Done when one function can be compiled, diffed and placed by script | Opus, medium | ER-013 (shares `src/` and `tools/`) |
 | ER-016 | Phase 1 pilot: a seeded stratified sample of ~40 game shapes (10 small, 12 medium, 10 large, 4 huge, 4 COP1-heavy) fanned out to measure real rates and agent effort (high vs medium); re-cost `docs/census.md` 6.2 from measured rates. Coordinator Opus medium, agents Opus high, Ultracode on for this card only | Opus, medium + Ultracode | ER-013, ER-014, ER-015 and LuciDin's census rulings (`docs/census.md` 6.3) |
 | ER-017 | Game-internal file seams: research the game region for file boundaries (monotone .rodata / .data / .sdata reference runs, call clusters); candidate seam list with evidence | Opus, high | nothing (read-only; best before Phase 1 bulk) |
+| ER-018 | Recomp boot past the first movie: find why the PSS / MPEG ring backs up in the PS2Recomp build (MPEG / IPU HLE vs the game's movie loop at 0x1C5188-0x1C8980; EE loops at 0x1C529C), after LuciDin says what the first screen should be. Files: `C:\rs\recomp\game_build` (override), `docs/recomp_spike.md`. Done when the boot gets past the movie or the cause is written down | Opus, high | LuciDin's answer on the first screen |
+| ER-019 | PS2Recomp fork setup: fork on LuciDin's GitHub, a game-override module for SLUS_200.15, as-shipped build options (verbose logs off, no `/fp:fast`). Done when the fork builds the game from our scripts | Opus, medium | LuciDin's GPL-3.0 decision and his yes to the fork |
+| ER-020 | Recomp opcode correctness: count which MMI / VU0 / COP1 opcodes the game uses that sit on PS2Recomp's open-bug list (`docs/research.md` 3), and plan differential tests against PCSX2 | Opus, medium | nothing |
+| ER-021 | Optional: try a newer MSVC (VS 17.12+) for the C1001 internal compiler error in PS2Recomp's unit tests (a Visual Studio update: LuciDin's call) | Sonnet, low | LuciDin's yes |

@@ -457,6 +457,42 @@
       "model": "Opus, high",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-018",
+      "title": "Recomp boot past the first movie",
+      "status": "Waiting",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "LuciDin: first screen",
+      "notes": ""
+    },
+    {
+      "code": "ER-019",
+      "title": "PS2Recomp fork setup",
+      "status": "Waiting",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "GPL-3.0 decision",
+      "notes": ""
+    },
+    {
+      "code": "ER-020",
+      "title": "Recomp opcode correctness check",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-021",
+      "title": "Newer MSVC for PS2Recomp C1001 (optional)",
+      "status": "Waiting",
+      "track": "recomp",
+      "model": "Sonnet, low",
+      "waits_on": "LuciDin's yes",
+      "notes": ""
     }
   ]
 }
