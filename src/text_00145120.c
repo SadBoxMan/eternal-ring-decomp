@@ -215,4 +215,10 @@ void func_0014A940(void) {
     func_0014FE10();
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_0014A948);
+extern void func_0012FAE8(void *, int, int, int, float);
+
+/* ER-024 (parked by ER-014 for its .lit4 literal). Types and offsets are Unconfirmed readings; the same call shape
+ * as func_00150818 (text_0014E2E8.c). */
+void func_0014A948(int **a0) {
+    func_0012FAE8(a0, 4, 0x7F, *(int *)((char *)*a0 + 0xE0) + 0x850, 1500.0f);
+}

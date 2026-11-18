@@ -111,9 +111,26 @@ segments:
       # .vudata: VU microcode load copies, kept as data words (ee-as 2.9 has no .incbin)
       - { start: 0x252770, type: data, name: vudata_00352770, linker_section: .vudata, linker_section_order: .vudata }
       - [0x253DA0, pad]                  # zero fill before the 128-aligned .rodata
-      - [0x253E00, rodata, rodata_00353E00]
+      # ER-024: per-file data. Each game file owns its .rodata and .lit4 run (docs/build.md 3.2): the cuts are where
+      # the labels referenced by one file's functions end and the next file's begin (every label used by one file
+      # only, the runs in link order; docs/game_seams.md 8.6). splat migrates each function's .rodata into its
+      # INCLUDE_ASM file; the rest is INCLUDE_RODATA in the C file. .lit4 comes from `li.s` (tools/split.py).
+      - [0x253E00, .rodata, text_001000C0]
+      - [0x2546D8, .rodata, text_001343E8]
+      - [0x254990, .rodata, text_00145120]
+      - [0x254A28, .rodata, text_0014D930]
+      - [0x254A30, .rodata, text_0014E2E8]
+      - [0x254A90, .rodata, text_00150878]
+      - [0x256AF0, rodata, rodata_00356AF0]   # SDK .rodata (libgraph on), still shared asm
       - [0x258B18, pad]
-      - [0x258B80, lit4, lit4_00358B80]
+      - [0x258B80, .lit4, text_001000C0]      # .lit4 is all game code; no SDK file uses it
+      - [0x2592C4, .lit4, text_001343E8]
+      - [0x2597CC, .lit4, text_00145120]
+      - [0x259970, .lit4, text_0014A968]
+      - [0x2599D4, .lit4, text_0014C840]
+      - [0x259A1C, .lit4, text_0014D930]
+      - [0x259A4C, .lit4, text_0014E2E8]
+      - [0x259ACC, .lit4, text_00150878]
       - [0x25B784, pad]
       - [0x25B800, sdata, sdata_0035B800]
       - { type: sbss, vram: 0x0035C480, name: sbss_0035C480 }   # .sbss is 0xEC bytes

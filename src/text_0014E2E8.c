@@ -48,7 +48,26 @@ INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F550);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F5F8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F618);
+INCLUDE_RODATA("asm/nonmatchings/text_0014E2E8", D_00354A68);
+/* ER-024 (parked by ER-014 for its jump table). Maps the u16 at offset 4 from 0x34..0x39 to 0..5, else 6;
+ * the field's meaning is Unconfirmed. */
+int func_0014F618(void *a0) {
+    switch (*(u16 *)((char *)a0 + 4)) {
+    case 0x34:
+        return 0;
+    case 0x35:
+        return 1;
+    case 0x36:
+        return 2;
+    case 0x37:
+        return 3;
+    case 0x38:
+        return 4;
+    case 0x39:
+        return 5;
+    }
+    return 6;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F680);
 

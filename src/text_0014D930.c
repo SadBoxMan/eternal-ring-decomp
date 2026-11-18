@@ -59,3 +59,5 @@ void func_0014E2C8(char *a0) {
         *(int *)(p + 0x10) = 1;
     }
 }
+
+INCLUDE_RODATA("asm/nonmatchings/text_0014D930", D_00354A28);
