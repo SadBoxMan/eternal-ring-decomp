@@ -128,6 +128,17 @@ What happened, from the runtime's own logs:
    functions (`func_001C5188` ... `func_001C8980`, which are in ER-004's game region, plus `func_001D0010` in
    libkernl). In 60 s only **141 of the 3,606 functions ran**. No picture was checked (no screenshot taken).
 
+**Second run (Wed 18 Nov 2026, 00:53-00:54 Eastern, LuciDin's "run it again" through the dispatcher).** Same
+setup, rebuilt with `PS2X_ENABLE_AGRESSIVE_LOGS=OFF` (no trace file was written; the console log now ends after the
+SIF module loads, so it no longer shows the MPEG lines). Child-process error dialogs were off (`SetErrorMode`).
+Window screenshots every 10 s (`C:\rs\recomp\shots\boot2_10s.png` ... `boot2_60s.png`, outside git). **From
+10 s to 60 s the screen is one solid magenta frame** (the PS2 picture area, black bars at the sides) with the
+runtime's own "Runtime Debugger" panel over it showing `PC 0x001C529C RA 0x001C529C SP 0x01EFFA90 GP 0x00360B70`.
+That is the same stall as run 1. LuciDin confirmed from his monitor: "It's just this". So no movie frame and no
+game picture ever reaches the screen. What the magenta means (for example the runtime's fill colour for a frame
+it has not been given) is **Unconfirmed**. The window opened maximised on the secondary monitor, not at the
+position the local patch asked for (not looked into).
+
 **Not chased** (project rule: ask LuciDin first). Question for LuciDin: on a real PS2, what does the game show
 first after the PS2 logo (the Agetec movie, a FromSoftware logo, a warning screen)? That tells whether step 6
 is the expected first movie and the stall is the MPEG / IPU path.
