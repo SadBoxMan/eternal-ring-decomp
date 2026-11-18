@@ -515,7 +515,7 @@
     {
       "code": "ER-024",
       "title": "Per-file data split (.lit4, .rodata, own literals)",
-      "status": "Queued",
+      "status": "In progress",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "",
@@ -551,7 +551,7 @@
     {
       "code": "ER-028",
       "title": "Find Sony's own EE binutils build (research)",
-      "status": "Queued",
+      "status": "In progress",
       "track": "decomp",
       "model": "Sonnet, medium",
       "waits_on": "",
