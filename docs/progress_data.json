@@ -428,16 +428,16 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-022 (both touch src/)",
+      "waits_on": "",
       "notes": "After ER-013 if both queued (both touch src/)"
     },
     {
       "code": "ER-015",
       "title": "EE matching tools (compare, place, clone, m2c test)",
-      "status": "Waiting",
+      "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-022 (both touch src/)",
+      "waits_on": "",
       "notes": ""
     },
     {
@@ -509,6 +509,15 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-024",
+      "title": "Data ownership test (one file owns its data)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
       "waits_on": "",
       "notes": ""
     }
