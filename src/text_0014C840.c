@@ -60,4 +60,7 @@ INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D8E8);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D8F8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D918);
+/* ER-014. Types and offsets are Unconfirmed readings. */
+float func_0014D918(char *a0) {
+    return *(float *)(*(char **)(a0 + 0x130) + 4) - *(float *)(*(char **)a0 + 0x94);
+}

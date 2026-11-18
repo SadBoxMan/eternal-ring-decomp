@@ -208,6 +208,11 @@ INCLUDE_ASM("asm/nonmatchings/text_00145120", func_0014A8B0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_0014A8F8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_0014A940);
+extern void func_0014FE10(void);
+
+/* ER-014. Tail call (sibling call: `j`). */
+void func_0014A940(void) {
+    func_0014FE10();
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_0014A948);

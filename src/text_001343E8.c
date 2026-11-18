@@ -2,7 +2,15 @@
 
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_001343E8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00134460);
+/* ER-014. Types and offsets are Unconfirmed readings. */
+int func_00134460(char *a0) {
+    char *p = *(char **)(a0 + 0xE8);
+
+    if (p == NULL) {
+        return 0;
+    }
+    return *(u16 *)(p + 4) == 3;
+}
 
 void func_00134480(void) {
 }
@@ -682,4 +690,12 @@ INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00144F90);
 
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00145038);
 
-INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_001450F8);
+/* ER-014. Types and offsets are Unconfirmed readings. */
+int func_001450F8(u8 *a0) {
+    u8 *p = *(u8 **)(a0 + 0xEC);
+
+    if (p[7] == 0) {
+        return 0;
+    }
+    return (*(u64 *)(p + 0x58) & 0xC00000) == 0;
+}

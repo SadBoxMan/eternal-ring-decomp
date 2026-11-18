@@ -114,6 +114,18 @@ INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_00150658);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_001507B8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_00150810);
+extern float D_0035BF20;
+extern void func_0012FA18(void *, float);
+extern void func_0012FB48(void *, int);
+extern void func_0012FAE8(void *, int, int, int, float);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_00150818);
+/* ER-014. Arguments Unconfirmed ($a0-$a3 pass through unchanged). */
+void func_00150810(void *a0) {
+    func_0012FA18(a0, D_0035BF20);
+}
+
+/* ER-014. Types and offsets are Unconfirmed readings. */
+void func_00150818(int **a0, int a1, int a2) {
+    func_0012FB48(a0, 0);
+    func_0012FAE8(a0, a1, a2, *(int *)((char *)*a0 + 0xE0) + 0x5D0, D_0035BF20);
+}

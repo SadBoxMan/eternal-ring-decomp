@@ -16,7 +16,12 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00100F70);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00101160);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00101200);
+/* ER-014. Clears n words; n is unsigned (the -1 end test is `li 0xffffffff`). */
+void func_00101200(int *p, u32 n) {
+    while (n-- != 0) {
+        *p++ = 0;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00101238);
 
@@ -74,7 +79,17 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001036D0);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001037F8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00103848);
+/* ER-014. Two float quads (0, 0, 0, 1) at word offsets 0x24 and 0x28; types Unconfirmed. */
+void func_00103848(float *a0) {
+    a0[0x24] = 0;
+    a0[0x25] = 0;
+    a0[0x26] = 0;
+    a0[0x27] = 1.0f;
+    a0[0x28] = 0;
+    a0[0x29] = 0;
+    a0[0x2A] = 0;
+    a0[0x2B] = 1.0f;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00103878);
 
@@ -286,7 +301,16 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00111480);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001114E8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00111548);
+extern void func_001CA018(void *, void *, void *);
+extern float func_001E41B8(float, float);
+
+/* ER-014. Types Unconfirmed; the return type (float) is a reading: the code is the same if nothing is returned. */
+float func_00111548(float *a0, float *a1) {
+    float v[4];
+
+    func_001CA018(v, a0, a1);
+    return func_001E41B8(v[0], v[2]);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00111578);
 
@@ -382,7 +406,13 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00114C98);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00114E30);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00115000);
+extern int D_0035B810;
+extern float D_001F0380[];
+
+/* ER-014. D_001F0380: rows of 0x40 floats (Unconfirmed). */
+void func_00115000(char *a0) {
+    *(float *)(a0 + 0xCC) += D_001F0380[(D_0035B810 & 0x3F) * 0x40] * 4.0f;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00115038);
 
@@ -569,7 +599,18 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001257E8);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00125818);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00125A00);
+extern char *D_0035B8A0;
+
+/* ER-014. 33 records of 0x180 bytes from offset 0xA80 (Unconfirmed). */
+void func_00125A00(void) {
+    int i;
+    char *p = D_0035B8A0 + 0xA80;
+
+    for (i = 0x20; i >= 0; i--) {
+        *(u16 *)(p + 2) |= 1;
+        p += 0x180;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00125A38);
 
@@ -583,7 +624,17 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00125C28);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00125C60);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00125CC0);
+extern char *D_0035B8A8;
+
+/* ER-014. Types and offsets are Unconfirmed readings. */
+void func_00125CC0(void) {
+    int i;
+    char *p = D_0035B8A8;
+
+    for (i = 0; i < *(u16 *)(p + 4); i++) {
+        (*(char **)(p + 0xE0))[i * 0xA0 + 0x79] = 1;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00125D00);
 

@@ -885,7 +885,18 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0016E180);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0016E368);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0016E390);
+extern u16 *D_0035C518;
+
+/* ER-014. Types and offsets are Unconfirmed readings. */
+void func_0016E390(void) {
+    int i;
+    u16 *p = D_0035C518;
+
+    p[3] = 0;
+    for (i = 7; i >= 0; i--) {
+        p[8 + i] = 0;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0016E3C8);
 
@@ -1613,7 +1624,21 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001949B0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00194B38);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00194D08);
+extern void func_001CA018(void *, void *, void *);
+
+/* ER-014. Returns -1 on the two early exits and falls off the end after the call (no return value):
+   only that shape gives the sibling call `j func_001CA018` (a call whose value is returned gets a frame). */
+int func_00194D08(char *a0) {
+    char *p = *(char **)(a0 + 0x20);
+
+    if (p == NULL) {
+        return -1;
+    }
+    if (*(s16 *)(p + 0x64) <= 0) {
+        return -1;
+    }
+    func_001CA018(a0 + 0x40, a0 + 0x50, *(char **)p + 0x90);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00194D38);
 

@@ -50,4 +50,12 @@ void func_0014E250(void) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014E258);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014E2C8);
+/* ER-014. Types and offsets are Unconfirmed readings. */
+void func_0014E2C8(char *a0) {
+    char *p = *(char **)(a0 + 0x14);
+
+    if (p != NULL) {
+        *(int *)(a0 + 0x14) = 0;
+        *(int *)(p + 0x10) = 1;
+    }
+}
