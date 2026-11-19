@@ -596,10 +596,10 @@
     {
       "code": "ER-033",
       "title": "FFmpeg from source (minimal LGPL, replaces prebuilt)",
-      "status": "Waiting",
+      "status": "Queued",
       "track": "recomp",
       "model": "Opus, medium",
-      "waits_on": "ER-029",
+      "waits_on": "one recomp card at a time",
       "notes": ""
     },
     {
@@ -626,7 +626,7 @@
       "status": "Queued",
       "track": "recomp",
       "model": "Opus, medium",
-      "waits_on": "ER-029",
+      "waits_on": "one recomp card at a time; not beside ER-044",
       "notes": ""
     },
     {
@@ -681,6 +681,33 @@
       "track": "decomp",
       "model": "Opus, medium (high for the parked four)",
       "waits_on": "one src/ writer at a time",
+      "notes": ""
+    },
+    {
+      "code": "ER-043",
+      "title": "Recomp first movie end (end-of-movie check 0x1C5368)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "one recomp card at a time",
+      "notes": ""
+    },
+    {
+      "code": "ER-044",
+      "title": "Recomp timing stage 2: per-block cycle costs",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "one recomp card at a time; not beside ER-036",
+      "notes": ""
+    },
+    {
+      "code": "ER-045",
+      "title": "Run ps2x_tests on the ER-018 + ER-029 runtime",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "one recomp card at a time",
       "notes": ""
     }
   ]
