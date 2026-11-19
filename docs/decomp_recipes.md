@@ -189,6 +189,23 @@ Still open (parked, 2.4): `mul.s; nop; nop; div.s` followed by `jr; nop` (`func_
 schedules the `div.s` into the delay slot with no `nop`s. Cause not known (another flag, another compiler build, or
 a source shape not yet found); not a gas hazard as far as checked (one try each, ER-026).
 
+### 2.7 FP compares, batch 1 (ER-035, Thu 19 Nov 2026; Confirmed by `make regress`, commit `2fd12a0`)
+
+Two more toolchain facts came out of the first batch, each ruled by LuciDin (3.5, 3.6) and now in the build:
+the patched ee-as `-r2` and `-fno-strict-aliasing`.
+
+| Lesson | Proved by |
+|---|---|
+| **No `nop` between `mtc1` and the next instruction that uses its register.** The game never has one (1,454 game sites, 19 SDK, 0 with a `nop`); our ee-as added one in reorder mode (`gas/config/tc-mips.c`, the `INSN_COPROC_MOVE_DELAY` test, `cop_interlocks` lacks the r5900). Fixed in the assembler (`-r2`, ruling 3.5); write plain C. `mfc1` followed by a use of its GPR still gets the `nop`, as in the game (`func_0012F550`) | `func_0012E908`, `func_0013DBC0`; the whole ELF unchanged |
+| **Build with `-fno-strict-aliasing`.** This ee-gcc enables type-based aliasing at `-O2`; the game reloads a pointer after a store of another type (a float store, then `*a0` read again), which strict aliasing removes. With the flag the whole ELF is still byte-identical (all earlier C functions unchanged). Whether Sony passed the flag or its compiler defaulted to it is Unconfirmed | `func_0013DBC0` (matches only with it) |
+| **`while (pi < f) f -= 2pi;` and `if (pi < f) do { ... } while (pi < f);` both exist and give different FP registers**: the `while` form keeps the constant in one register (`c.lt $f2,$f0` in loop and test); the `if` + `do` form copies it in the first branch's delay slot. Try both | `func_0012CD08` (`while`), `func_00130F50`, `func_0012E908` (`if` + `do`) |
+| **Register numbers follow variables**: when the game uses different registers for the same value in two places, a fresh local for each use (instead of reusing one pointer variable) can give its allocation | `func_0013DBC0` (four `char *` locals) |
+| **A value read back right after it is stored** (`*(float *)(e + 0x910) = 0.0f; z = *(float *)(e + 0x910);`) gives the game's `sw $0` + `lwc1` and a register kept for both later compares | `func_0013DBC0` |
+| **`int` from a float difference, then a sign**: `i = f - old; if (i != 0) { r = 1; if (i < 0) r = -1; } else r = 0;` gives `slt` + `movz`; a `?:` gives another layout | `func_0012F550` |
+| **`return a < b;` on floats** gives `c.lt; bc1t` over `li 1` / `move 0`; `if (x) return 1;` chains share one `jr $31; li 1` | `func_00123BA8` |
+
+**`div.s` and `sqrt.s` always have two `nop`s before them in the game** (754 `div.s` and 59 square-root words that rabbitizer prints as `c1 0x...` in game code, 19 `div.s` in the SDK; none without). Our compiler and assembler give none, so every function with a float divide or square root is parked for ER-034 (cause not known: a gcc option, Sony's assembler, or a compiler build; nothing in cc1's strings names it). This widens ER-034's `mul.s; nop; nop; div.s` to all divides and square roots. `sqrtf()` compiles to the game's inline `sqrt.s` + `c.eq.s` NaN check + call to `func_001E42E0` (so that libm function is `sqrtf`), but needs the symbol name `sqrtf` and the `nop`s.
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -224,6 +241,18 @@ Standing rulings; each applies until LuciDin changes it.
 |---|---|
 | **Accepted** | The patched GNU as (ER-014): no nop between `c.cond.s` and `bc1t` / `bc1f` in reorder mode, as Sony's assembler evidently did (129 game sites; in noreorder both assemblers agree). A documented reconstruction of the original assembler's behaviour for every file, not a per-function trick; added to the toolchain by ER-026. If the exact Sony binutils build is found (ER-028), it replaces the patch |
 | **Accepted** | A non-void function that ends in a plain call with no return statement (falls off the end), when that is the only C shape that gives the original's tail jump and its semantics match the original (the caller gets what the callee left in `$v0`): func_00194D08. Natural old-style C, nothing added; marked with a `PORT NOTE` because a PC compiler treats the missing return as undefined, so the port supplies an as-shipped-equivalent return on its side only |
+
+### 3.5 ER-035: ee-as, no nop after mtc1 (Thu 19 Nov 2026, 15:33 Eastern, LuciDin in the ER-035 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** | Second ee-as patch (`tools/toolchain/patches/ee-as_r5900_copmove_reorder.patch`): no coprocessor-move hazard `nop` between `mtc1` and the next instruction that uses its register, in reorder mode, for the r5900 (1,454 game sites, none with a `nop`). Same standing as 3.4; built into `ee-binutils-2.9-991111-r2` |
+
+### 3.6 ER-035: -fno-strict-aliasing (Thu 19 Nov 2026, 17:51 Eastern, LuciDin in the ER-035 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** | `CFLAGS` = `-O2 -G8 -fno-strict-aliasing` for every file: the game reloads memory across stores of other types (func_0013DBC0), and the whole ELF stays byte-identical with the flag |
 
 No ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, dead code): park such functions with a
 one-line cause and ask.

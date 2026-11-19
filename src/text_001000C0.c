@@ -526,9 +526,63 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00119F30);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00119FE0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0011B9D0);
+extern float func_00111578(float *, float *);
+extern float D_0035B958[];
+extern float D_0035B95C[];
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0011BAB0);
+/* ER-035. The turn toward the heading func_00111548 gives (an angle difference d = heading - a), limited to lim
+   per call: d itself when |d| < lim, else lim with d's sign, taking the short way round past pi (a reading).
+   D_0035B958 (-0.0 in .sdata) is read through %hi / %lo as in func_001115E0. Names and types Unconfirmed. */
+float func_0011B9D0(float *a0, float *a1, float a, float lim) {
+    float d = func_00111548(a0, a1) - a;
+    float ad = d;
+    float r;
+
+    if (!(0.0f < d)) ad = -d;
+    if (ad < lim) {
+        r = d;
+    } else {
+        if (ad < 3.14159274f) {
+            r = lim;
+            if (d < D_0035B958[0]) r = -r;
+        } else if (d < D_0035B958[0]) {
+            ad = d + 6.28318548f;
+            if (ad < lim) r = ad;
+            else r = lim;
+        } else {
+            ad = 6.28318548f - d;
+            if (ad < lim) r = -ad;
+            else r = -lim;
+        }
+    }
+    return r;
+}
+
+/* ER-035. func_0011B9D0 with func_00111578 and D_0035B95C (also -0.0). Names and types Unconfirmed. */
+float func_0011BAB0(float *a0, float *a1, float a, float lim) {
+    float d = func_00111578(a0, a1) - a;
+    float ad = d;
+    float r;
+
+    if (!(0.0f < d)) ad = -d;
+    if (ad < lim) {
+        r = d;
+    } else {
+        if (ad < 3.14159274f) {
+            r = lim;
+            if (d < D_0035B95C[0]) r = -r;
+        } else if (d < D_0035B95C[0]) {
+            ad = d + 6.28318548f;
+            if (ad < lim) r = ad;
+            else r = lim;
+        } else {
+            ad = 6.28318548f - d;
+            if (ad < lim) r = -ad;
+            else r = -lim;
+        }
+    }
+    return r;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0011BB90);
 
@@ -1402,7 +1456,64 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00132E80);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00132F80);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00133098);
+extern float func_0012CE18(char *, char *);
+extern float func_00130D00(char *, float);
+extern void func_0012F900(char *, int, int, int, int, float);
+extern void func_0012D3B8(char *, float, float);
+extern void func_00131140(char *, void *, void *, void *, void *, void *);
+extern void func_00133290(void);
+extern void func_00132E80(void);
+extern void func_00132CF8(void);
+
+/* ER-035. A state handler (a reading): on its first frame (+0x6E == 0) sets step 0.08 and limit 1.5; leaves through
+   func_0012F900 (state 0, 8) when func_00130D00 gives more than 20 degrees; otherwise picks state 10 or 11 from the
+   angle func_0012CE18 gives (+-2 degrees of hysteresis), moves +0x30 by +-step within +-limit, counts frames in
+   +0x14, and passes +0x30 to func_0012D3B8. Names, types and the state reading Unconfirmed. */
+void func_00133098(char *a0, char *a1) {
+    float ang;
+    float s;
+    float lim;
+    float f;
+    int old;
+
+    if (*(s16 *)(a0 + 0x6E) == 0) {
+        *(float *)(a0 + 0x34) = 0.08f;
+        *(float *)(a0 + 0x38) = 1.5f;
+        *(int *)(a0 + 0x10) = -1;
+        *(s16 *)(a0 + 0x6E) += 1;
+        *(float *)(a0 + 0x30) = 0.0f;
+        *(int *)(a0 + 0x14) = 0;
+    }
+    ang = func_0012CE18(a0, a1 + 0x90);
+    if (0.34906587f < func_00130D00(a0, 15.0f)) {
+        func_0012F900(a0, 0, *(s16 *)(a0 + 0x6C), 8, 1, 0.1f);
+        return;
+    }
+    old = *(int *)(a0 + 0x10);
+    if (old == 10) {
+        s = -1.0f;
+        if (ang <= 0.034906585f) s = 1.0f;
+    } else {
+        s = 1.0f;
+        if (-0.034906585f <= ang) s = -1.0f;
+    }
+    if (1.0f <= s) *(int *)(a0 + 0x10) = 10;
+    else *(int *)(a0 + 0x10) = 11;
+    f = *(float *)(a0 + 0x30) + s * *(float *)(a0 + 0x34);
+    *(float *)(a0 + 0x30) = f;
+    lim = *(float *)(a0 + 0x38);
+    if (f < -lim) {
+        f = -lim;
+    } else if (lim < f) {
+        f = lim;
+    }
+    *(float *)(a0 + 0x30) = f;
+    if (*(int *)(a0 + 0x10) != old) *(int *)(a0 + 0x14) = 0;
+    *(int *)(a0 + 0x14) += 1;
+    func_0012F900(a0, *(int *)(a0 + 0x10), *(int *)(a0 + 0x14), 10, 1, 0.1f);
+    func_0012D3B8(a1, *(float *)(a0 + 0x30), 1.0f);
+    func_00131140(a0, func_00133290, func_00133290, NULL, func_00132E80, func_00132CF8);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00133290);
 
