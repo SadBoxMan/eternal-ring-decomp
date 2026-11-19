@@ -83,7 +83,8 @@ function starts do not line up with all the bound addresses).
 So the instruction set this game uses (ER-002 counted 2,222 VU0 macro ops, 330 MMI ops, 408 `lq`/`sq`, COP1
 throughout) is all accepted: no instruction is rejected or stubbed. **Accepted is not the same as correct**:
 `docs/research.md` §3 lists open upstream bugs in PROT3W, PSLLH/PSRLH/PSRAH, PADDUH/PSUBUH, PABSW/PABSH,
-BC0T/BC0TL and VU0 R-register ops. Whether this game uses any of them was not counted.
+BC0T/BC0TL and VU0 R-register ops. Whether this game uses any of them was not counted. *(ER-020 counted it: see
+`docs/recomp_opcodes.md`.)*
 
 What the C++ looks like: one statement per guest instruction, with the address and disassembly as a comment,
 for example `vmulax.xyzw` becomes `PS2_VMUL` on `__m128` with `_mm_blendv_ps` masking. Guest floats follow PS2
@@ -220,7 +221,9 @@ rem 7. run (only with LuciDin's yes): ps2EntryRunner.exe C:\rs\recomp\boot\SLUS_
 - Which PSS was playing at the stall, and whether the screen showed anything (no screenshot).
 - A Release / LTCG build of the game; the unit tests past the debug assertion.
 - Whether a newer MSVC avoids the C1001.
-- Whether Eternal Ring uses any of the MMI / VU0 opcodes with open upstream bugs.
+- Whether Eternal Ring uses any of the MMI / VU0 opcodes with open upstream bugs. *Answered by ER-020 (19 Nov 2026):
+  `docs/recomp_opcodes.md` (yes: `sqrt.s` and `cvt.w.s` are wrong at every site; VU0 FDIV / VFTOI edge cases; vf0
+  not pinned in thread contexts; 128-bit alignment; the MMI the game uses is right by reading).*
 - The analyzer's 502 SDK names, apart from the libgraph start.
 - Why the heuristic run stubbed 155 functions, not 250.
 

@@ -479,11 +479,11 @@
     {
       "code": "ER-020",
       "title": "Recomp opcode correctness check",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "docs/recomp_opcodes.md: scan tool tools/recomp/opcode_scan.py; bugs sqrt.s (59 sites, reads f0) and cvt.w.s (423, rounds to nearest); suspect vf0 unpinned in StartThread contexts, 128-bit alignment, VU0 vdiv/vsqrt/vrsqrt/vftoi edges, IEEE compares, no round-to-zero, sdk-vudev vcallmsr/vlqi/vsqi; MMI used is OK by reading; differential test plan (kernel ELF + PCSX2 PINE, leaf-function harness). Analysis only, nothing run."
     },
     {
       "code": "ER-021",
