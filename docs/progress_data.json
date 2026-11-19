@@ -604,16 +604,16 @@
     },
     {
       "code": "ER-034",
-      "title": "The mul.s/div.s nop pattern",
+      "title": "The div.s / sqrt.s two-nop pattern (all 754+59 game sites)",
       "status": "Queued",
       "track": "decomp",
-      "model": "Opus, high",
+      "model": "Opus, high (xhigh if it resists)",
       "waits_on": "",
       "notes": ""
     },
     {
       "code": "ER-035",
-      "title": "FP-compare matches (87 unblocked functions)",
+      "title": "FP-compare matches (81 c.cond/bc1 functions)",
       "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
@@ -663,6 +663,24 @@
       "track": "recomp",
       "model": "Opus, medium",
       "waits_on": "ER-036",
+      "notes": ""
+    },
+    {
+      "code": "ER-041",
+      "title": "libgcc soft-double names (fp-bit routines)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "one src/ writer at a time",
+      "notes": ""
+    },
+    {
+      "code": "ER-042",
+      "title": "FP-compare batch 2 (parked 4, large 9, VU0 4, first C-defined data)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium (high for the parked four)",
+      "waits_on": "one src/ writer at a time",
       "notes": ""
     }
   ]
