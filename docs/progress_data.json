@@ -301,7 +301,7 @@
       "status": "In progress",
       "by": "",
       "text": "First PC build: recompiled EE code + HLE stubs compiles to a Windows exe and boots",
-      "notes": "ER-008 spike (18 Nov 2026): the exe builds and boots into the first PSS movie, then stalled. ER-018 (18 Nov 2026): stall fixed (local PS2Recomp patch: priority-0 threads, libmpeg Background callback, sceGsSetDefDispEnv PMODE); the game's movie player runs and the GS presents frames, but guest VBlank runs at about 5-9 Hz and the movie picture is black. Not a playable boot. Needs: VBlank pacing, GS movie upload path, then GS, VU1 checks."
+      "notes": "ER-008 spike (18 Nov 2026): the exe builds and boots into the first PSS movie, then stalled. ER-018 (18 Nov 2026): stall fixed (local PS2Recomp patch: priority-0 threads, libmpeg Background callback, sceGsSetDefDispEnv PMODE); the game's movie player runs and the GS presents frames. ER-029 (19 Nov 2026): VBlank pacing fixed (second local patch; 59.94 Hz measured): the Agetec movie now plays its 210 pictures in about 7 s as on PCSX2, but the player never sees the stream end (end-of-movie check, recomp_spike.md 9.5) and the picture is black with static. Not a playable boot. Needs: movie end, GS movie upload path (ER-030), then GS, VU1 checks."
     }
   ],
   "tasks": [
@@ -560,11 +560,11 @@
     {
       "code": "ER-029",
       "title": "Recomp VBlank pacing (~60 Hz in the movie)",
-      "status": "In progress",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done 19 Nov 2026: guest time follows host time (LuciDin: both, staged); VBlank 59.940 Hz measured, Agetec movie 210 pictures in ~7 s as on PCSX2; boot still stuck at the end-of-movie check (lead: func_001DBC40 reads a libmpeg field the HLE never writes, Unconfirmed); patch er029_vblank.patch outside git; recomp_spike.md 9"
     },
     {
       "code": "ER-030",

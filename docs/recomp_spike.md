@@ -320,7 +320,7 @@ The player is game code in `text_00150878` and has the same shape as the SDK's P
 
 ### 8.5 What still blocks the first movie (for the next card)
 
-1. **Guest VBlank runs at about 5 to 9 per second, not 60.** `EeScheduler` raises VBlank only when both 16.7 ms of
+1. **Guest VBlank runs at about 5 to 9 per second, not 60.** *(Fixed by ER-029: section 9.)* `EeScheduler` raises VBlank only when both 16.7 ms of
    host time **and** about 4.9 million EE cycles have passed. The movie threads spend their time in
    `RotateThreadReadyQueue` loops, which add few guest cycles per host second, so VBlank falls behind (run 12:
    vsync 469 at 75 s, 928 at 150 s; about 500 presentation latches in 60 s in run 9). The movie advances one
@@ -363,3 +363,132 @@ anywhere (the PS2Recomp fork waits on the GPL-3.0 decision, ER-019).
 - The VBlank-pacing explanation in 8.5 item 1 is my reading of the scheduler code and the counts; no profile taken.
 - Whether fix 3 is right for every game: it follows this game's libgraph 1.6x copy; other SDK versions may differ.
 - The unit tests (`ps2x_tests`) were not run against the patched runtime.
+
+## 9. ER-029: VBlank pacing (Thu 19 Nov 2026)
+
+Written by ER-029 (Opus 5.5, high). Question: why does guest VBlank run at 5 to 9 Hz (8.5 item 1), and how should
+the runtime pace it? **Short answer: the runtime's cycle counter is not a clock (it counts loop turns, not
+instructions), and VBlank waited for it. With LuciDin's ruling, guest time now follows host time; VBlank runs at
+59.94 Hz (measured) and the Agetec movie plays its 210 pictures in about 7 s, as on PCSX2. The boot still does not
+leave the movie: the player never sees the end of the stream (9.5).** The change is a second local patch,
+`C:\rs\recomp\patches\er029_vblank.patch`, on top of ER-018's (outside git; described in
+`tools/recomp/ER-029_vblank_patch.md`).
+
+### 9.1 Cause (read from the code)
+
+- `EeScheduler` raises VBlankStart only when **both** its host deadline (16,667 us after the last one) **and** its
+  cycle deadline (about 4.9 M EE cycles after the last one) have passed (`processDueDeadlines`).
+- The EE cycle counter only moves at checkpoints: generated code charges a fixed **32 cycles per backward branch
+  inside a function** (`eeCheckpointDue()`, emitted by `ps2xRecomp`'s `ControlFlowEmitter::emitInternalTarget`) and
+  **8 cycles per transfer through the dispatcher** (`dispatchGuestBranch`, and each turn of `EeScheduler::run`).
+  Straight-line code, direct calls and syscalls charge nothing, whatever their length. So the counter measures
+  loop turns, not time.
+- Eternal Ring's movie threads spend their time in `RotateThreadReadyQueue(0)` loops (8.2): each turn is a
+  syscall, a thread switch and a dispatcher pass, which costs the host far more than the 8 to 40 cycles it is
+  charged. The cycle deadline therefore arrives only 5 to 9 times per host second, and VBlank with it.
+- The EE side also used the wrong rate: 16,667 us is 60.00 Hz, while the IOP side (`kVblankPeriodCycles` in
+  `iop_emulator_const.h`) and the HLE CD stream clock (`Stubs/CD.cpp`) both use the NTSC field rate 60000/1001 Hz
+  (59.94), so EE and IOP VBlanks drifted apart by 0.1%.
+
+### 9.2 The model (LuciDin's ruling, 19 Nov 2026: "Both, staged")
+
+Two options were put to LuciDin: (a) make guest time follow host time in the runtime; (b) make the recompiler
+charge each block's real instruction count and keep the cycle gate. He chose both, staged: (a) now in ER-029,
+(b) later as its own card, with host time kept as a floor.
+
+What ER-029 does (all in `Kernel/EeScheduler.cpp` and `include/runtime/ee_scheduler.h`):
+
+1. **Guest time = host time at the console clock.** The scheduler keeps a host anchor (the host instant of EE cycle
+   0). Whenever events are processed, the EE cycle counter is pulled up to `(now - anchor) x 294,912,000`
+   (`syncCycleToHostTime`). Cycle advances go through the existing `accountCycles`, so the **EE timers and the IOP
+   also advance at the console rate** (the IOP runs `eeCycles / 8`).
+2. **Host deadlines are derived from cycle deadlines** (`hostDeadlineForCycle` = anchor + cycle / 294.912 MHz), for
+   VBlankStart, VBlankEnd, alarms and the idle wait on EE timers, so all events share one time base.
+3. **VBlank at the NTSC field rate.** Field n starts at EE cycle `floor(n x 294,912,000 x 1001 / 60,000)`
+   (4,920,115.2 cycles per field), computed from the field number each time, so no rounding accumulates; VBlankStart
+   events carry their field number. VBlankEnd stays 500 us after VBlankStart (unchanged).
+4. **Host time is polled at checkpoints.** Every 64 checkpoints, `checkpointDue` compares the host clock with the
+   earliest host deadline and returns to the dispatcher if it has passed, so a deadline is noticed even inside
+   generated code that charges few cycles.
+5. **Unchanged:** if charged cycles run ahead of host time (fast loops), the guest still waits at the cycle deadline
+   until the host deadline, so it never runs faster than the console.
+6. **Long host stalls** (debugger, window drag, a long HLE call): the guest clock catches up by at most 250 ms
+   (15 fields; **Unofficial** choice) and skips the rest of the stall, so a pause is not followed by a storm of
+   VBlanks. Shorter stalls are caught up in full, as on a console whose game misses VBlanks while busy.
+
+What the yield loops count as: nothing special. They charge what generated code charges; time passes by the host
+clock while they spin, as it does on the console while its threads yield.
+
+What matches the console and what does not:
+
+| Behaviour | After ER-029 |
+|---|---|
+| VBlank count over time, VBlank-driven clocks, logic run once per VBlank, field parity (CSR bit 13) | at the console rate, 59.94 Hz (measured, 9.3) |
+| EE timers, IOP progress (IOP VBlank waits, sound driver timing) | at the console rate in host time (by construction; not measured) |
+| How many turns a busy-wait or polling loop makes per VBlank (and any RNG advanced in such loops) | **not** console-matched: depends on host speed. It did not match before either; matching needs real cycle costs from the recompiler (follow-up, 9.6) |
+| A game frame that takes the host longer than a field | VBlanks still come on time and the game sees a missed VBlank, as an overloaded console would |
+
+### 9.3 Measurement (run 1, Thu 19 Nov 2026, about 15:37 Eastern; 90 s, muted, killed by PID)
+
+Build with a temporary diagnostic (removed before the final build) that printed, every 30 VBlanks, the VBlank count,
+host seconds since the anchor, EE seconds (cycles / 294.912 MHz), and three game variables from 8.1: the playing flag
+`0x35C3E4`, the handler's VBlank counter `0x35C3E8`, and `sceMpeg` frameCount `0x34D070`.
+
+| Reading | Recomp after ER-029 | PCSX2 2.5.185 (ER-018's PINE log, 8.1) |
+|---|---|---|
+| VBlank rate | 5,310 VBlanks from 1.502 s to 90.090 s = **59.940 Hz**; EE time equals host time to within 1 ms throughout | handler counter about 60 a second |
+| Movie start (playing flag 1) | about 1.33 s after launch (counter 10 at 1.502 s) | 10.89 s after launch (with BIOS and fast boot) |
+| Pictures decoded | 9 at 1.5 s, 112 at 5.0 s, 197 at 8.0 s, **210** from 8.5 s on: about 7.0 s of decoding, one picture per two VBlanks | rises to 206 at 17.43 s, then the counter is reset; playback took 421 VBlanks (counter 0x1A5) = about 7.0 s, so about 210 pictures |
+| After the last picture | playing flag stays 1, counter keeps rising, frameCount stays 210 until the run was killed at 90 s | videoDec state (`0x34D110`) goes 2 then 3, display queue empties, playing flag 0 at 17.94 s, then the FromSoftware logo |
+
+Before ER-029 (8.4 run 12): 928 VBlanks in 150 s (6.2 Hz) and the movie unfinished after 150 s.
+
+Run 2 (about 18:36 Eastern, 30 s): the final build, no diagnostics, runs the same way. The screen is black with
+static tiles, as in ER-018. In run 1's 6 s screenshot a fragment of the **red Agetec logo** shows at the bottom edge
+of the frame (`C:\rs\recomp\shots\er029_r1_06s.png`), which is a lead for ER-030 (a picture landing at the wrong
+place). Run 2's window opened at x = 806, which may be the primary monitor (run 1: x = 2012); the window code was
+not changed.
+
+### 9.4 Files (outside git)
+
+| File | What |
+|---|---|
+| `C:\rs\recomp\patches\er029_vblank.patch` | the change, as a diff against the ER-018 state of `ee_scheduler.h` and `EeScheduler.cpp` (237 lines; SHA-1 0bd1aee6...). Checked: applies on the ER-018 state to identical files and reverse-applies on `game_build` |
+| `C:\rs\recomp\work\er029_base\` | the two files as they were after ER-018 (the patch base) |
+| `C:\rs\recomp\scripts\er029_run1.ps1`, `er029_run2.ps1` | run scripts; logs `C:\rs\recomp\er029_r1_*.txt`, `er029_r2_*.txt`; screenshots `C:\rs\recomp\shots\er029_r1_*.png`, `er029_r2_*.png`; build logs `C:\rs\recomp\er029_build*.txt` |
+
+### 9.5 What still blocks the first movie (not traced: LuciDin, "write it down only")
+
+The main thread sits in the player's end-of-movie loop at 0x001C5368 (8.2): it loops until either
+`func_001C8B00(videoDec)` is true (the CD ring holds no data, `func_001C89D8` / `func_001C8080`, **and**
+`func_001DBC40(mpeg)` is non-zero) or `func_001C8980(videoDec)` (videoDec `+0xA8`, the state PCSX2 shows going to 3)
+equals 3. A cheap read found that **`func_001DBC40` runs as recompiled guest code, not through the HLE
+`sceMpegIsEnd`**: it returns the word at `*(mpeg + 0x40) + 4`, a field inside libmpeg's own state. The HLE MPEG path
+replaced `sceMpegGetPicture` and friends, so most likely nothing ever writes that field (my reading,
+**Unconfirmed**; that `func_001DBC40` is `sceMpegIsEnd` is also **Unconfirmed**, from its shape and its use). What
+sets videoDec `+0xA8` to 2 and 3 was not looked up. Next step: find the writers of videoDec `+0xA8` and of the libmpeg
+end field, and either bind `func_001DBC40` to the HLE `sceMpegIsEnd` or have the HLE write the field.
+
+### 9.6 Follow-ups
+
+1. The end of the first movie (9.5).
+2. Stage 2 of LuciDin's ruling: per-block cycle costs from the recompiler (instruction count per block, charged at
+   block exits), with host time kept as the floor. Touches `ps2xRecomp` (`control_flow_emitter.cpp`) and needs a
+   full regenerate.
+3. Unit tests (`ps2x_tests`) against the patched runtime: not run by ER-018 or ER-029 (no test in `ps2xTest` names
+   the VBlank period, but scheduler tests may rely on the old cadence).
+
+### 9.7 Not verified / Unconfirmed
+
+- The PCSX2 side was not run again: the comparison uses ER-018's PINE log (8.1). That PCSX2 also counted 210
+  pictures is inferred from its 421 VBlanks of playback (frameCount was last sampled at 206).
+- That EE timers and the IOP now run at the console rate (by construction; not measured). The IOP now runs about
+  36.9 M cycles per host second, far more than before; no slowdown was seen in the movie, but sound was never heard
+  (all runs muted).
+- VBlankEnd 500 us after VBlankStart (EE) against the IOP's period / 16 (about 1.04 ms): both unchanged; the real
+  NTSC VBlank length was not checked.
+- The alarm tick stays 64 us; one NTSC line is about 63.56 us (from the NTSC line rate; **Unconfirmed** for the
+  PS2's SetAlarm unit). Whether Eternal Ring uses SetAlarm was not checked.
+- The non-interlaced NTSC rate and PAL are not handled (the game runs interlaced NTSC: SMODE2 3, 8.3); some
+  emulators use a slightly different rate for non-interlaced NTSC (**Unconfirmed**).
+- The 250 ms catch-up cap and the 64-checkpoint poll interval are **Unofficial** choices.
