@@ -619,6 +619,51 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-036",
+      "title": "Recomp: fix confirmed opcode bugs (sqrt.s, cvt.w.s, vf0, 128-bit mask)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-029",
+      "notes": ""
+    },
+    {
+      "code": "ER-037",
+      "title": "Recomp opcode test harness (PCSX2 PINE vs recomp)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "LuciDin's yes for PCSX2 runs",
+      "notes": ""
+    },
+    {
+      "code": "ER-038",
+      "title": "Recomp VU0 FDIV / VFTOI / sign-magnitude compares",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-037",
+      "notes": ""
+    },
+    {
+      "code": "ER-039",
+      "title": "Rounding-mode ruling (round toward zero) and fix",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-037, LuciDin's ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-040",
+      "title": "sdk-vudev VU0 paths and HLE libvu0 check (low)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-036",
+      "notes": ""
     }
   ]
 }
