@@ -82,6 +82,52 @@ The dispatcher is pinned. After start_session and detach_session, file each card
 - "Ringsmith Assets" `cg-d09c277b-8fcc-4b4e-b4f6-928cb158929c`: asset rips; they begin after the recomp is complete
   (LuciDin, 17 Nov 2026).
 
+## STATE FOR A FRESH DISPATCHER (DISP-01 -> DISP-02, Thu 19 Nov 2026, 15:15 Eastern)
+
+**Where the project is.** Phase 0 complete. Native toolchain (ee-gcc 2.9-ee-991111 + patched ee-binutils `-r1`, MSYS2,
+`C:\rs\toolchain`), whole ELF byte-identical, `make regress` (~30 s; pre-commit hook), 10 game + 15 SDK source files,
+every game file owns its `.lit4` / `.rodata` (5 also `.sdata` / `.data`). Matched: 153 / 3,609 functions (2,352 bytes).
+Recomp: PS2Recomp e563698 + local patches (`C:\rs\recomp\patches\er018_movie_boot.patch`) builds a native exe that runs
+the Agetec movie player; picture = scattered red / white tiles, sometimes the correct top half of the logo (LuciDin);
+VBlank 5-9 Hz. Tracker `docs/progress_data.json` is current; usage log current; last backup at acf0284 (run
+`python tools/backup.py` after 3-5 more cards).
+
+**Running.** ER-029 (recomp VBlank pacing, Opus high, `local_f3810f8c-e5f4-4855-b904-7a92d3b6a55b`): WAITING for
+LuciDin's ruling on its timing model (asked ~00:00 19 Nov); no code changed yet. It reports to the dispatcher id in
+`docs/handoff.md` (DISP-01 told it the new id).
+
+**Next cards (one `src/` writer at a time; queue rows in `docs/handoff.md` hold the full task text):**
+- Decomp, ready: ER-035 (87 FP-compare functions, Opus medium), ER-034 (mul.s / div.s nop pattern, Opus high),
+  ER-031 (cut `text_001343E8` near S3, Opus medium), ER-027 (more plain-C incl. one function with own data, Opus
+  medium), ER-015 (matching tools, Opus medium) -> ER-016 (pilot, ~40 shapes, Ultracode for that card only).
+  ER-023 (seam method, Opus medium; `tools/seams.py`, `docs/game_seams.md`). ER-032 waits on ER-031.
+- Recomp: after ER-029: ER-030 (movie picture, Opus high; LuciDin's top-half observation is in its row), ER-033
+  (FFmpeg from source, minimal LGPL; decided by LuciDin 19 Nov), ER-020 (opcode check, Opus medium, ready now, no
+  shared files with ER-029).
+- Waiting on LuciDin: ER-019 (PS2Recomp fork: GPL-3.0 decision), ER-009 (saved redump page), ER-021 (newer VS),
+  ER-012 (VU assembler, only if VU microcode is rebuilt from source), ER-010 (Phase 2).
+
+**Open decisions for LuciDin:** GPL-3.0 for the port (ER-019); a saved redump SLUS-20015 page (ER-009); Ringsmith's
+weekly usage share (handoff Q2); first GitHub push (https://github.com/SadBoxMan/ringsmith: nothing pushed; author
+email would become public, see the 18 Nov note).
+
+**Rulings so far:** `docs/decomp_recipes.md` 3.1-3.4 (true 100%, matched = proven by regress; ELF layout pieces; SDK
+asm as .s, VU0 / MMI inline asm, SDK in scope after game code; patched gas adopted; fall-off-the-end form accepted with
+a PORT NOTE). Port: as shipped first; DualShock-family controllers first, Xbox later, mouse / keyboard secondary
+(`docs/roadmap.md`). Assets track after the recomp. PC port watch: `docs/handoff.md` + tracker `ms10`.
+
+**Quirks learned here.** (1) Commit through a temporary index (`GIT_INDEX_FILE=.git/disp-index`, `git read-tree HEAD`,
+add, commit, then `git reset -q -- <paths>` on the shared index) whenever a card is working in the checkout; cards that
+commit with their own temporary index leave the shared index stale (`git status` then shows staged reversals: fix with
+`git reset -q -- <paths>`, never `git reset --hard`). (2) Windows paths in Python heredocs: use raw strings or files in
+the scratchpad; plain strings turned `\r` / `\t` into control characters four times; check docs with
+`grep -caP '[\x00-\x08\x0b-\x1f]'`. (3) The app caps starts per user message (about 5 working at once / 10 per
+message); when `start_session` is refused, propose own_initiative cards; detach and file them when they check in.
+(4) `start_session` after another session's message is refused: propose instead. (5) Archive calls may need a second
+call with the `session` label the hook adds. (6) Re-run `tools/regress.py` (clean) yourself before approving any card
+that touched the build. (7) Weekly usage readings jumped 85% -> 0-2% on the night of 18 Nov (early reset); record what
+cards report. (8) Cards' "follow-ups" become ER rows in `docs/handoff.md` plus tracker tasks in the same closing commit.
+
 ## Hand-over log
 
 - Tue 17 Nov 2026, 11:52 Eastern: drafted by the setup session. No dispatcher started yet.
