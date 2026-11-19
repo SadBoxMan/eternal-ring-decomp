@@ -25,7 +25,7 @@ Written Tue 17 Nov 2026, 11:52 Eastern, by the setup session.
 
 ## Decided (LuciDin, Tue 17 Nov 2026)
 
-- Task codes: **ER-NNN** (session title prefix, brief, commits; next free: ER-034).
+- Task codes: **ER-NNN** (session title prefix, brief, commits; next free: ER-036).
 - Disc: **NTSC-U (US)** only; it is the matching target.
 - Sidebar: dispatcher pinned in "Project Ringsmith"; cards in "Ringsmith Decomp", "Ringsmith Recomp / PC Port",
   "Ringsmith Misc", and "Ringsmith Assets" (asset rips, from when the recomp is complete; added 17 Nov 2026).
@@ -101,6 +101,8 @@ first movie.
 | ER-031 | Cut `src/text_001343E8.c` near seam S3 (ER-024: its .rodata starts 8-aligned right before a jump table, so a file boundary lies between func_00134958 and func_00134F70) so its jump-table functions can be matched; run the same jump-table alignment test at the other uncut windows. Files: yaml, `src/text_001343E8.c` (+ new file), `docs/game_seams.md`, `docs/build.md` 3.1. Done when regress is green and the cut's evidence is written | Opus, medium (high if the alignment scan becomes a tool) | nothing (one `src/` writer at a time) |
 | ER-032 | Own the .sdata / .data of `src/text_001000C0.c`, `text_001343E8.c`, `text_00150878.c` where runs are pinned symbol by symbol | Opus, medium | ER-031 (and more cuts) |
 | ER-033 | FFmpeg from source (LuciDin, 19 Nov 2026: build from source, replacing PS2Recomp's prebuilt `System233/ffmpeg-msvc-prebuilt` DLLs): build a minimal LGPL-only FFmpeg from the official source at a pinned tag (MPEG-1 / MPEG-2 video decoding and whatever else the runtime's movie path calls; no GPL or non-free options), natively under MSYS2 with MSVC, debug symbols kept; wire PS2Recomp's game build to it instead of the download (local patch under `C:\rs\recomp\patches\`); record the configure line and licence check. Files: `tools/recomp/` (our build script), `docs/recomp_spike.md`. Done when the game build links against our FFmpeg, the boot behaves as before, and no prebuilt FFmpeg is left in use | Opus, medium | ER-029 (same build tree) |
+| ER-034 | The mul.s / div.s nop pattern: the game has `mul.s; nop; nop; div.s; jr; nop` where our gcc puts `div.s` in the delay slot with no nops (func_001C12D0, func_00142788, parked by ER-026); count how many functions have it, find the source shape or compiler setting that gives it, or write the cause down. Files: `src/`, `docs/decomp_recipes.md` 2.4 / 2.6 | Opus, high | nothing (one `src/` writer at a time) |
+| ER-035 | FP-compare matches: the 87 INCLUDE_ASM functions with the `c.cond` / `bc1` reorder pattern, now unblocked by the patched assembler (list them with the c.cond + bc1 + nop scan); match in batches, lessons into `docs/decomp_recipes.md` | Opus, medium (Ultracode only for a big fan-out) | nothing (one `src/` writer at a time) |
 | ER-019 | PS2Recomp fork setup: fork on LuciDin's GitHub, a game-override module for SLUS_200.15, as-shipped build options (verbose logs off, no `/fp:fast`). Done when the fork builds the game from our scripts | Opus, medium | LuciDin's GPL-3.0 decision and his yes to the fork |
 | ER-020 | Recomp opcode correctness: count which MMI / VU0 / COP1 opcodes the game uses that sit on PS2Recomp's open-bug list (`docs/research.md` 3), and plan differential tests against PCSX2 | Opus, medium | nothing |
 | ER-021 | Optional: try a newer MSVC (VS 17.12+) for the C1001 internal compiler error in PS2Recomp's unit tests (a Visual Studio update: LuciDin's call) | Sonnet, low | LuciDin's yes |

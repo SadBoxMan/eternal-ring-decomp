@@ -601,6 +601,24 @@
       "model": "Opus, medium",
       "waits_on": "ER-029",
       "notes": ""
+    },
+    {
+      "code": "ER-034",
+      "title": "The mul.s/div.s nop pattern",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-035",
+      "title": "FP-compare matches (87 unblocked functions)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
