@@ -12,8 +12,11 @@ Started Tue 17 Nov 2026 by ER-011.
 
 ```
 C:\rs\toolchain\ee-gcc-2.9-991111\gcc.exe -BC:\rs\toolchain\ee-gcc-2.9-991111\ -O2 -G8 -S file.c -o file.s
-C:\rs\toolchain\ee-binutils-2.9-991111\ee-as.exe -G8 -O2 -mabi=eabi file.s -o file.o
+C:\rs\toolchain\ee-binutils-2.9-991111-r1\ee-as.exe -G8 -O2 -mabi=eabi file.s -o file.o
 ```
+
+(`-r1` = with our gas patch since ER-026, 2.3; the unpatched `ee-binutils-2.9-991111` gives an extra `nop` after FP
+compares.)
 
 or in one step, with a folder that holds a copy of `ee-as.exe` named `as.exe`:
 
@@ -104,7 +107,7 @@ is used.
 
 **Status (ER-024, Wed 18 Nov 2026):** the `.lit4` and jump-table blockers are fixed by the per-file data split
 (`docs/build.md` 3.2; matching side in 2.5), except for jump tables in `text_001343E8` (2.5). The FP-compare `nop`
-waits on ER-026 (ruling 3.4).
+is handled by the toolchain since ER-026 (Thu 19 Nov 2026; ruling 3.4, 2.3, 2.6): write plain C.
 
 | Blocker | Evidence | Functions it parks | Fix (needs a card) |
 |---|---|---|---|
@@ -112,7 +115,11 @@ waits on ER-026 (ruling 3.4).
 | **Jump tables (`.rodata`)**: a `switch` compiles to the right code (masked compare matched), but gcc emits its own table into the C file's `.rodata`, which would shift the shared `.rodata` subsegment the same way | masked compare: `func_0017D930` (89-entry table, 20 cases return 1) and `func_0014F618` (6 cases) match apart from the `%hi` / `%lo` of the table | every function with a jump table or string literal (66 game functions use `jr` on a register) | the same per-file data split for `.rodata` (`docs/game_seams.md` 8.4) |
 | **FP-compare hazard `nop`**: when a `c.cond.s` is followed by `bc1t` / `bc1f` whose delay slot gcc leaves empty (gcc's output is in `.set reorder` there), our ee-as inserts a `nop` between them; the game has none (107 `bc1f` + 22 `bc1t` with an empty slot, all without the `nop`). Where gcc fills the slot itself, the game has the `nop` (1,069 cases), which our gas also gives (it comes from `mips_emit_delays` at `.set noreorder`). So Sony's assembler skipped this check for the r5900 in reorder mode only. In our source (`gas/config/tc-mips.c`, `append_insn`) the check is `! cop_interlocks`, and `cop_interlocks` lists only 4300 / 5400 | `func_001115E0`: our object has `c.lt.s; nop; bc1f; nop`, the game `c.lt.s; bc1f; nop` | the 129 game functions with that pattern | patch ee-as (see 2.3) |
 
-### 2.3 Experimental patched assembler (ER-014; not used by the build)
+### 2.3 Patched assembler (ER-014; adopted by ER-026, now the build's assembler)
+
+**ER-026 (Thu 19 Nov 2026):** the patch is `tools/toolchain/patches/ee-as_r5900_fpcc_reorder.patch`, applied by
+`tools/toolchain/build_ee_binutils.sh`; the Makefile uses `C:\rs\toolchain\ee-binutils-2.9-991111-r1\`
+(`docs/toolchain.md` 4.2). The paragraph "The build still uses the unpatched ee-as" below is history.
 
 A gas built from a copy of the source (`C:\rs\toolchain\er014\`: `src/` copy, `b/` build, `ee-as.exe`,
 `er014_gas.patch`) with one change in `append_insn` (`gas/config/tc-mips.c`, the FP-condition-code check):
@@ -142,7 +149,8 @@ uses the unpatched ee-as; switching is LuciDin's call (toolchain change: `tools/
 | Function | File | Cause |
 |---|---|---|
 | ~~`func_0014A948`~~ | `text_00145120.c` | matched by ER-024 (2.5) |
-| `func_001115E0` | `text_001000C0.c` | the FP-compare hazard `nop` (2.2): waits on ER-026; its `.lit4` literals (0.01 twice) are no longer a blocker (2.5) |
+| ~~`func_001115E0`~~ | `text_001000C0.c` | matched by ER-026 (2.6) |
+| `func_001C12D0` (ER-026) | `text_00150878.c` | `mul.s; nop; nop; div.s; jr; nop` in the game: our gcc puts the `div.s` in the `jr` delay slot and emits no `nop`s (`(a * pi) / 180` and a temporary give the same). The c.cond / bc1 part is fine. Same pattern in `func_00142788` (`text_001343E8.c`) |
 | ~~`func_0017D930`, `func_0014F618`~~ | `text_00150878.c`, `text_0014E2E8.c` | matched by ER-024 (2.5) |
 | `func_001C6F90` | `text_00150878.c` | epilogue scheduling: the game puts the first `$gp` store between `ld $31` and `ld $16`; ours puts both loads first. Tried 6 store orders and 5 loop forms (`while`, `do`, `for(;;)`, `u32`, `int` return); no plain-C variant found |
 
@@ -162,6 +170,24 @@ function's own literals, jump tables and strings come from its C now.
 Not verified yet: a matched function that **defines** data itself (a string literal, a `static` variable, an
 initialised global) in an owned run. The mechanism allows it (drop the INCLUDE line, define the symbol in C at the
 right place), but no such function is placed yet, so the order rules of gcc's data output are not confirmed here.
+
+### 2.6 FP compares with the patched assembler (ER-026, Thu 19 Nov 2026; Confirmed by `make regress`)
+
+The c.cond / bc1 `nop` is now the toolchain's job (2.3): write the compare as plain C. Where gcc leaves the `bc1x`
+delay slot empty (reorder), the patched ee-as gives the game's `c.lt.s; bc1f; nop`; where gcc fills it (noreorder),
+the `nop` before the branch stays, as in the game. A control build with the unpatched ee-as fails (12 bytes longer).
+
+| Lesson | Proved by |
+|---|---|
+| **A plain `if (x < y)` on floats** gives the game's reorder sites; an `if / else` that both store through the same pointer gives two `jr $31; swc1` tails | `func_001115E0` (steps `*a0` by 0.01 toward `a1`; the two 0.01 literals in the file's own `.lit4`), `func_0012EA28` (both kinds of site in one function: `bc1f; nop` and `c.lt.s; nop; bc1fl` with a filled slot) |
+| **A variable read through `%hi` / `%lo`** although it lies in `.sdata` (`D_0035B94C`, -0.0): declared as `extern float D_0035B94C[];` (no size, so gcc does not use `$gp`). Reading only; how the original declared it is not known | `func_001115E0` |
+| **Float constants with low 16 bits 0** (1.0, -1.0, 180.0, 360.0) come out as `lui $1; mtc1` from gas's `li.s`; others go to `.lit4` | `func_00148330` (two sibling calls `j func_00147F20` with 1.0 / -1.0) |
+| **Short loops get 3 `nop`s before `bc1t` from gcc itself** (`.set noreorder; nop` x3; Unconfirmed reading: gcc's r5900 short-loop workaround, padding a loop to 6 instructions; the gcc source was not read), so `do { f -= 2pi; } while (pi < f);` matches as written | `func_0012E7B0`, `func_00131608` (wrap an angle into [-pi, pi]) |
+| **Clamp with a return code**: `r = 0; if (hi < f) { f = hi; r = 1; } hi = -hi; if (f < hi) { f = hi; r = -1; }` | `func_0012EAB8` |
+
+Still open (parked, 2.4): `mul.s; nop; nop; div.s` followed by `jr; nop` (`func_001C12D0`, `func_00142788`). Our gcc
+schedules the `div.s` into the delay slot with no `nop`s. Cause not known (another flag, another compiler build, or
+a source shape not yet found); not a gas hazard as far as checked (one try each, ER-026).
 
 ## 3. Rulings (LuciDin)
 

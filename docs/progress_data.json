@@ -11,21 +11,21 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 147,
+          "done": 153,
           "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
-          "notes": "Matched = C placed in src/ and proven by the byte-identical build (make regress: whole-ELF SHA-1 + func_check, nothing masked); goal: true 100% (every function in C, NON_MATCHING 0), LuciDin 17 Nov 2026. Done 147 = 127 empty functions splat wrote as C + 17 real game functions matched by ER-014 + 3 by ER-024 (func_0014A948, func_0014F618, func_0017D930; 18 Nov 2026). Total 3,609 = the 3,606 function symbols func_check counts (4 crt0, 3,475 INCLUDE_ASM, 127 C at ER-003) + 3 INCLUDE_ASM blocks splat labels as data (func_001D73D0, func_001D7658, func_001DECA0, COP2/VU0-style words), which func_check does not count but still need C."
+          "notes": "Matched = C placed in src/ and proven by the byte-identical build (make regress: whole-ELF SHA-1 + func_check, nothing masked); goal: true 100% (every function in C, NON_MATCHING 0), LuciDin 17 Nov 2026. Done 153 = 127 empty functions splat wrote as C + 17 real game functions matched by ER-014 + 3 by ER-024 (18 Nov 2026) + 6 by ER-026 (func_001115E0, func_0012EA28, func_0012EAB8, func_0012E7B0, func_00131608, func_00148330; 19 Nov 2026). Total 3,609 = the 3,606 function symbols func_check counts (4 crt0, 3,475 INCLUDE_ASM, 127 C at ER-003) + 3 INCLUDE_ASM blocks splat labels as data (func_001D73D0, func_001D7658, func_001DECA0, COP2/VU0-style words), which func_check does not count but still need C."
         },
         {
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 1888,
+          "done": 2352,
           "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
-          "notes": "ER-003: .text 0xF0354 bytes. Done = function-symbol sizes of the C functions: 127 empty ones (8 bytes each, 1,016) + ER-014's 17 (688 bytes) + ER-024's 3 (184 bytes: 28 + 100 + 56)."
+          "notes": "ER-003: .text 0xF0354 bytes. Done = function-symbol sizes of the C functions: 127 empty ones (8 bytes each, 1,016) + ER-014's 17 (688 bytes) + ER-024's 3 (184 bytes: 28 + 100 + 56) + ER-026's 6 (464 bytes: 60 + 76 + 64 + 108 + 108 + 48)."
         },
         {
           "id": "m-dec-sdk",
@@ -533,11 +533,11 @@
     {
       "code": "ER-026",
       "title": "Adopt the patched ee-as (c.cond/bc1 nop)",
-      "status": "In progress",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": "Ruled: adopt (18 Nov)"
+      "notes": "Done 19 Nov 2026: patched ee-as adopted (tools/toolchain/patches/, ee-binutils-2.9-991111-r1); 6 FP-compare functions matched incl. func_001115E0; PORT NOTE on func_00194D08; commit 85b01e5"
     },
     {
       "code": "ER-027",

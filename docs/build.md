@@ -56,11 +56,13 @@ dumped disc (ER-001, `docs/disc_layout.md`).
    C:\msys64\usr\bin\bash.exe -lc "'/c/Users/<you>/Claude/Projects/Project Ringsmith/tools/toolchain/build_ee_gcc.sh'"
    C:\msys64\usr\bin\bash.exe -lc "'/c/Users/<you>/Claude/Projects/Project Ringsmith/tools/toolchain/build_ee_binutils.sh'"
    ```
-   (or copy the two scripts to `C:\rs\toolchain\` and run them there, as ER-002 / ER-011 did). Run
-   `build_ee_gcc.sh` first: it patches `config.sub`, which the binutils script checks for. Results:
+   Run `build_ee_gcc.sh` first: it patches `config.sub`, which the binutils script checks for. Run the binutils
+   script from the repo (not a copy): it applies our gas patch from `tools/toolchain/patches/` (ER-026; the c.cond /
+   bc1 `nop`, ruling `docs/decomp_recipes.md` 3.4) to `src-lf` before building. Results:
    `C:\rs\toolchain\ee-gcc-2.9-991111\` (`gcc.exe`, `cpp.exe`, `cc1.exe`) and
-   `C:\rs\toolchain\ee-binutils-2.9-991111\` (`ee-as.exe`, `ee-ld.exe`, ...). Details and pitfalls:
-   `docs/toolchain.md` 4.1 / 4.2. Another toolchain folder: `make TOOLCHAIN=D:/path ...`.
+   `C:\rs\toolchain\ee-binutils-2.9-991111-r1\` (`ee-as.exe`, `ee-ld.exe`, ...; the Makefile's `BIN_DIR`). The
+   unpatched assembler cannot build the game any more. Details and pitfalls: `docs/toolchain.md` 4.1 / 4.2.
+   Another toolchain folder: `make TOOLCHAIN=D:/path ...`.
 3. Python venv in the repo root:
    ```
    py -3.12 -m venv .venv

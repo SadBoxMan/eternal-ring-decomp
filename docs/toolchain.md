@@ -238,6 +238,21 @@ Notes:
   `E_MIPS_ABI_EABI64` (`0x4000`; `0x20920001` instead of the game's `0x20924001`). With them, the hand-assembled
   object is byte-identical to the driver's.
   The driver finds `as` through `-B<dir>\` if the dir holds `as.exe` (a copy of `ee-as.exe`).
+- **ee-as asserts on a gp-relative macro naming a labelled `.lit4` symbol** (`lwc1 $f, (D_x)` with `D_x` defined
+  in `.lit4`): `gas/config/tc-mips.c`, `nopic_need_relax`. Write such loads as `li.s $f, <value>` and let gas build
+  the pool (ER-024; `docs/build.md` 3.2, step 5).
+
+**Patched build in use (ER-026, Thu 19 Nov 2026).** The build uses `ee-binutils-2.9-991111-r1`: the same tree plus
+our one-line gas patch (ruling `docs/decomp_recipes.md` 3.4; why: 4.4).
+
+| Item | Value |
+|---|---|
+| Patch | `tools/toolchain/patches/ee-as_r5900_fpcc_reorder.patch` (ours, in the repo; `patch -p1` against `src-lf/ee`). In `append_insn` the FP condition-code hazard test gains `&& ! (mips_cpu == 5900 && ! mips_opts.noreorder)`: no `nop` between `c.cond.s` and `bc1t` / `bc1f` in reorder mode; in `.set noreorder` the `nop` stays. Same change as ER-014's `C:\rs\toolchain\er014\er014_gas.patch`; only the comment text differs |
+| Script | `tools/toolchain/build_ee_binutils.sh` applies every `patches/*.patch` to `C:\rs\toolchain\src-lf\ee` once (a reverse dry run spots an applied patch), then builds as before into the build dir `b-binutils-r1`, log `build_ee_binutils-r1.log`. Run: `$env:MSYSTEM = "MSYS"; C:\msys64\usr\bin\bash.exe -lc "'<repo>/tools/toolchain/build_ee_binutils.sh'"` (about 6 minutes at `-j4`) |
+| Output | `C:\rs\toolchain\ee-binutils-2.9-991111-r1\` (the same eleven files as above). SHA-1 `ee-as.exe` `1E9C29A26D57E530F690D7936FAA28A77A7BB984`, `ee-ld.exe` `AA1C6D026F7A04898445BAFDF3986A49239AB812` (local builds, not reproducible bit for bit; `ee-ld` has no source change) |
+| Where the path lives | `Makefile`: `BIN_DIR ?= $(TOOLCHAIN)/ee-binutils-2.9-991111-r1` |
+| Fallback | the unpatched ER-011 build stays in `C:\rs\toolchain\ee-binutils-2.9-991111\` (`make BIN_DIR=C:/rs/toolchain/ee-binutils-2.9-991111 ...`). With ER-026's C functions in place it no longer builds the game (control run, `text_001000C0` assembled with it: ELF 12 bytes longer, SHA-1 FAILED, 3,350 functions differ). `src-lf` now carries the patch; `patch -R -p1 -d /c/rs/toolchain/src-lf/ee < <patch>` takes it out again |
+| Proof | `make regress` green with the patched assembler (whole-ELF SHA-1, 3,606 of 3,606 functions), with six C functions that need it (`docs/decomp_recipes.md` 2.6); ER-014 had already shown the all-asm build unchanged by it |
 
 ### 4.3 First byte check (ER-011)
 
@@ -314,7 +329,7 @@ why ER-014's reorder-only form matches and the blunt form does not. Why Sony's a
 rule inside `append_insn`, or the assembler never inserting hazard nops in reorder mode for `bc1x` after `c.cond`,
 or scheduling the branch differently) is **not known**: it is a reading of the output only.
 
-**Recommendation: keep the patch.** No public source tree reproduces the behaviour, so there is nothing to switch to;
+**Recommendation: keep the patch.** (Adopted: ruling 3.4; in the toolchain since ER-026, section 4.2.) No public source tree reproduces the behaviour, so there is nothing to switch to;
 the patch is the smallest change that reproduces the game on 129 of 129 sites and still passes the whole-ELF and
 `func_check` regressions (ER-014). Label it, as ruling 3.4 does, a reconstruction of the original behaviour, not
 Sony's code. Re-open only if (a) an actual Sony or SN `ee-as` binary is supplied by LuciDin (it could be tested
@@ -404,6 +419,8 @@ Not verified:
 - ~~Whether `ee-ld` reproduces the game's `.reginfo`, DVP overlay sections and section header table~~: it does
   (ER-003, 6.1).
 - `ee-dvp-as` (VU assembler) is not built.
+- That ER-026's gas patch is how SCE's assembler worked (it reproduces the output only, 4.4); other hazard rules that
+  might differ (`mtc1` / `ctc1` then use, HI / LO) have not been met in C yet.
 - That the linker script is SCE's own `app.cmd` file, and that crt0 is byte-identical to an SDK `crt0.s`.
 - What `func_001D03E0` and `func_001CFD80` are (`_InitSys` and `Exit` are guesses).
 - ~~Why `.reginfo` `ri_gprmask` holds only crt0's registers~~: link-once `.reginfo`, crt0 linked first (ER-003, 6.1).
@@ -518,6 +535,8 @@ echo "Done: $OUT"
 ## Appendix B: `C:\rs\toolchain\build_ee_binutils.sh` (ER-011)
 
 Now also in the repo as `tools/toolchain/build_ee_binutils.sh` (ER-003; same SHA-1; `docs/build.md` 2). Kept here because `C:\rs` is not backed up. Script SHA-1 `C0E8DF1E4472A63E2C41926F25A7FBD8997E2B73`.
+**Superseded by ER-026:** the repo script now also applies `tools/toolchain/patches/` and writes to
+`ee-binutils-2.9-991111-r1` (section 4.2). The repo copy is the current one; this is the ER-011 original.
 
 ```bash
 #!/bin/bash
