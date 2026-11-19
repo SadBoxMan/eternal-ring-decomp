@@ -11,17 +11,17 @@ Started Tue 17 Nov 2026 by ER-011.
 ### 1.1 The working pipeline (ER-011, confirmed on 3 functions, 33 words)
 
 ```
-C:\rs\toolchain\ee-gcc-2.9-991111\gcc.exe -BC:\rs\toolchain\ee-gcc-2.9-991111\ -O2 -G8 -S file.c -o file.s
-C:\rs\toolchain\ee-binutils-2.9-991111-r1\ee-as.exe -G8 -O2 -mabi=eabi file.s -o file.o
+C:\rs\toolchain\ee-gcc-2.9-991111\gcc.exe -BC:\rs\toolchain\ee-gcc-2.9-991111\ -O2 -G8 -fno-strict-aliasing -S file.c -o file.s
+C:\rs\toolchain\ee-binutils-2.9-991111-r2\ee-as.exe -G8 -O2 -mabi=eabi file.s -o file.o
 ```
 
-(`-r1` = with our gas patch since ER-026, 2.3; the unpatched `ee-binutils-2.9-991111` gives an extra `nop` after FP
-compares.)
+(`-r2` = with both our gas patches since ER-035, 2.3 and 2.7; `-r1` has the first only; the unpatched
+`ee-binutils-2.9-991111` gives an extra `nop` after FP compares. `-fno-strict-aliasing` since ER-035, ruling 3.6.)
 
 or in one step, with a folder that holds a copy of `ee-as.exe` named `as.exe`:
 
 ```
-gcc.exe -B<gcc dir>\ -B<as dir>\ -O2 -G8 -c file.c -o file.o
+gcc.exe -B<gcc dir>\ -B<as dir>\ -O2 -G8 -fno-strict-aliasing -c file.c -o file.o
 ```
 
 - Compiler: ee-gcc **2.9-ee-991111**, built from SSXModding/ps2-ee-toolchain `b595ded` under MSYS2
@@ -189,7 +189,7 @@ Still open (parked, 2.4): `mul.s; nop; nop; div.s` followed by `jr; nop` (`func_
 schedules the `div.s` into the delay slot with no `nop`s. Cause not known (another flag, another compiler build, or
 a source shape not yet found); not a gas hazard as far as checked (one try each, ER-026).
 
-### 2.7 FP compares, batch 1 (ER-035, Thu 19 Nov 2026; Confirmed by `make regress`, commits `2fd12a0`, `187cff8`, and the func_0013B840 commit)
+### 2.7 FP compares, batch 1 (ER-035, Thu 19 Nov 2026; Confirmed by `make regress`, commits `2fd12a0`, `187cff8`, `7707c5e`)
 
 Two more toolchain facts came out of the first batch, each ruled by LuciDin (3.5, 3.6) and now in the build:
 the patched ee-as `-r2` and `-fno-strict-aliasing`.

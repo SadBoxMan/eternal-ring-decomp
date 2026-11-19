@@ -254,6 +254,17 @@ our one-line gas patch (ruling `docs/decomp_recipes.md` 3.4; why: 4.4).
 | Fallback | the unpatched ER-011 build stays in `C:\rs\toolchain\ee-binutils-2.9-991111\` (`make BIN_DIR=C:/rs/toolchain/ee-binutils-2.9-991111 ...`). With ER-026's C functions in place it no longer builds the game (control run, `text_001000C0` assembled with it: ELF 12 bytes longer, SHA-1 FAILED, 3,350 functions differ). `src-lf` now carries the patch; `patch -R -p1 -d /c/rs/toolchain/src-lf/ee < <patch>` takes it out again |
 | Proof | `make regress` green with the patched assembler (whole-ELF SHA-1, 3,606 of 3,606 functions), with six C functions that need it (`docs/decomp_recipes.md` 2.6); ER-014 had already shown the all-asm build unchanged by it |
 
+**Second patch, build r2 (ER-035, Thu 19 Nov 2026; ruling `docs/decomp_recipes.md` 3.5).** The build now uses
+`ee-binutils-2.9-991111-r2`: both patches in `tools/toolchain/patches/`.
+
+| Item | Value |
+|---|---|
+| Patch | `ee-as_r5900_copmove_reorder.patch`: in `append_insn` the coprocessor-move hazard test (`INSN_COPROC_MOVE_DELAY`, `mtc1` and the like) gains `&& ! (mips_cpu == 5900 && ! mips_opts.noreorder)`: no `nop` between `mtc1` and the next instruction that uses its register, in reorder mode. The game has 1,454 such pairs (SDK 19) and none with a `nop`. The `mfc1` load delay (GPR use after `mfc1`) is untouched; the game has that `nop` |
+| Script | `tools/toolchain/build_ee_binutils.sh` now builds into `b-binutils-r2` / `ee-binutils-2.9-991111-r2`, log `build_ee_binutils-r2.log` (slower than ER-026's 6 minutes this time; not timed); it checks both `Ringsmith ER-014/ER-026` and `Ringsmith ER-035` markers in `tc-mips.c` |
+| Output | SHA-1 `ee-as.exe` `5B47B468705BCB27A60E72D880974315517C2004`, `ee-ld.exe` `CFF60F9F87B512FEF3AEBFCA62B42A1E1BAC0F74` (local builds) |
+| Fallbacks | `-r1` (first patch only) and the unpatched ER-011 build stay; `src-lf` now carries both patches |
+| Proof | `make regress` green with r2 (ER-035 commits `2fd12a0` on); func_0012E908 and func_0013DBC0 need it |
+
 ### 4.3 First byte check (ER-011)
 
 Files (ours, outside the repo): `C:\rs\toolchain\tests\er011\` = `er002_shapes.c` (copy of ER-002's test),
@@ -350,6 +361,7 @@ decomp.me site, psdevwiki.com, tcrf.net.
 | ISA / CPU defaults of the `ee` target (`-mips3`, R5900, EABI, single-float, 32-bit pointers) | **Confirmed** | e_flags, code; they are the target's defaults, so no flag is needed |
 | `-O2` | **Unconfirmed** (fits 3 of 3 functions; `-O1` does not) | section 3.2 |
 | `-G 8` (small data on) | **Unconfirmed** value; small data on is **Confirmed** (5,735 gp-relative accesses, `.sdata` / `.sbss` / `.lit4`) | `-G 0` gives different code |
+| `-fno-strict-aliasing` | **In the build** (ruling `docs/decomp_recipes.md` 3.6, ER-035); whether Sony passed it or its compiler defaulted to it is **Unconfirmed** | this ee-gcc enables strict aliasing at `-O2`; func_0013DBC0 reloads a pointer after a float store, which only the flag gives; the whole ELF stays byte-identical with it |
 | `-fno-edge-lcm`, `-fomit-frame-pointer`, `-g` | **Unknown** | SSX Tricky's release flags (research.md §4) are a hypothesis only; `$fp` is used as a saved register (`s8`) in `main`, as MIPS GCC does at `-O` |
 | SDK libraries built with `-G 0` | **Unconfirmed** | 112 `lui $at; ori $at; mtc1` float constants (the no-small-data form of `li.s`) |
 | C++ (`-fno-exceptions` etc.) | **No sign of C++**: no `.gcc_except_table`, `.ctors` / `.dtors`, or mangled names among the strings | |

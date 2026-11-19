@@ -11,21 +11,21 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 153,
+          "done": 163,
           "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
-          "notes": "Matched = C placed in src/ and proven by the byte-identical build (make regress: whole-ELF SHA-1 + func_check, nothing masked); goal: true 100% (every function in C, NON_MATCHING 0), LuciDin 17 Nov 2026. Done 153 = 127 empty functions splat wrote as C + 17 real game functions matched by ER-014 + 3 by ER-024 (18 Nov 2026) + 6 by ER-026 (func_001115E0, func_0012EA28, func_0012EAB8, func_0012E7B0, func_00131608, func_00148330; 19 Nov 2026). Total 3,609 = the 3,606 function symbols func_check counts (4 crt0, 3,475 INCLUDE_ASM, 127 C at ER-003) + 3 INCLUDE_ASM blocks splat labels as data (func_001D73D0, func_001D7658, func_001DECA0, COP2/VU0-style words), which func_check does not count but still need C."
+          "notes": "Matched = C placed in src/ and proven by the byte-identical build (make regress: whole-ELF SHA-1 + func_check, nothing masked); goal: true 100% (every function in C, NON_MATCHING 0), LuciDin 17 Nov 2026. Done 163 = 127 empty functions splat wrote as C + 17 real game functions matched by ER-014 + 3 by ER-024 (18 Nov 2026) + 6 by ER-026 (func_001115E0, func_0012EA28, func_0012EAB8, func_0012E7B0, func_00131608, func_00148330; 19 Nov 2026) + 10 by ER-035 (func_00123BA8, func_00130F50, func_0012F550, func_0012CD08, func_0012E908, func_0011B9D0, func_0011BAB0, func_00133098, func_0013DBC0, func_0013B840; 19 Nov 2026). Total 3,609 = the 3,606 function symbols func_check counts (4 crt0, 3,475 INCLUDE_ASM, 127 C at ER-003) + 3 INCLUDE_ASM blocks splat labels as data (func_001D73D0, func_001D7658, func_001DECA0, COP2/VU0-style words), which func_check does not count but still need C."
         },
         {
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 2352,
+          "done": 5108,
           "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
-          "notes": "ER-003: .text 0xF0354 bytes. Done = function-symbol sizes of the C functions: 127 empty ones (8 bytes each, 1,016) + ER-014's 17 (688 bytes) + ER-024's 3 (184 bytes: 28 + 100 + 56) + ER-026's 6 (464 bytes: 60 + 76 + 64 + 108 + 108 + 48)."
+          "notes": "ER-003: .text 0xF0354 bytes. Done = function-symbol sizes of the C functions: 127 empty ones (8 bytes each, 1,016) + ER-014's 17 (688 bytes) + ER-024's 3 (184 bytes: 28 + 100 + 56) + ER-026's 6 (464 bytes: 60 + 76 + 64 + 108 + 108 + 48). + ER-035's 10 (2,756 bytes: 128 + 140 + 164 + 272 + 284 + 220 + 220 + 500 + 304 + 524)."
         },
         {
           "id": "m-dec-sdk",
@@ -614,11 +614,11 @@
     {
       "code": "ER-035",
       "title": "FP-compare matches (87 unblocked functions)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done 19 Nov 2026: 10 of the family matched (81 functions, not 87); ee-as r2 (no mtc1 nop, ruling 3.5) and -fno-strict-aliasing (ruling 3.6) adopted; 46 wait on ER-034 (two nops before every div.s / sqrt.s), 8 on libgcc names, 4 VU0, 4 parked, 9 not tried; commits 2fd12a0, 187cff8, 7707c5e"
     },
     {
       "code": "ER-036",
