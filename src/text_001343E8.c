@@ -404,7 +404,62 @@ INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_0013D838);
 
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_0013D9D0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_0013DBC0);
+extern void func_0013E760(void);
+extern void func_0013E678(void);
+extern void func_0013E758(void);
+extern void func_0013DCF0(void);
+extern void func_0013E8C8(char *);
+extern int func_00150280(char *);
+extern void func_001321E8(char *);
+extern void func_00131000(char *, void *);
+
+/* ER-035. Resets the state fields of a0, sets its three callbacks, and on the object at *a0 sets four flag bytes,
+   clears +0x910 of its +0xE0 block and puts 2000 / 300 into +0x12C / +0x130 when they equal that cleared value;
+   then hands over to func_001321E8 or sets func_0013DCF0 through func_00131000. Names and types Unconfirmed. The
+   separate locals and the read of +0x910 right after it is cleared give the game's loads and registers (needs
+   -fno-strict-aliasing, ruling 3.6). */
+void func_0013DBC0(char *a0) {
+    char *p;
+    char *e;
+    float z;
+    char *q;
+    char *t;
+
+    *(int *)(a0 + 0x20) = 0;
+    *(int *)(a0 + 0x24) = 0;
+    *(int *)(a0 + 0x28) = 1;
+    *(int *)(a0 + 0x2C) = 1;
+    a0[0xD] = 0;
+    a0[0xE] = 0;
+    a0[0x5A] = (a0[0x5A] | 8) & 0xFC;
+    *(void **)(a0 + 0xCC) = func_0013E760;
+    *(void **)(a0 + 0xC0) = func_0013E678;
+    *(void **)(a0 + 0xE0) = func_0013E758;
+    func_0013E8C8(a0);
+    p = *(char **)a0;
+    t = *(char **)(p + 0xE0);
+    *(float *)(a0 + 0x4C) = *(float *)(p + 0xA4);
+    t[0xF88] = 1;
+    (*(char **)(*(char **)a0 + 0xE0))[0x268] = 1;
+    (*(char **)(*(char **)a0 + 0xE0))[0x308] = 1;
+    (*(char **)(*(char **)a0 + 0xE0))[0x948] = 1;
+    q = *(char **)a0;
+    e = *(char **)(q + 0xE0);
+    *(float *)(e + 0x910) = 0.0f;
+    z = *(float *)(e + 0x910);
+    if (*(float *)(q + 0x12C) == z) {
+        *(float *)(q + 0x12C) = 2000.0f;
+    }
+    p = *(char **)a0;
+    if (*(float *)(p + 0x130) == z) {
+        *(float *)(p + 0x130) = 300.0f;
+    }
+    if (func_00150280(a0)) {
+        func_001321E8(a0);
+        return;
+    }
+    func_00131000(a0, func_0013DCF0);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_0013DCF0);
 

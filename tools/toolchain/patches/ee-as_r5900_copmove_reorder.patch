@@ -1,0 +1,23 @@
+Ringsmith ER-035 (ruling LuciDin 19 Nov 2026, docs/decomp_recipes.md 3.5)
+
+ee-as for the r5900: no coprocessor-move hazard nop between mtc1 (or another INSN_COPROC_MOVE_DELAY
+instruction) and the next instruction that uses its register, when assembled in reorder mode. In .set
+noreorder blocks nothing changes. The game has 1,454 such sites (SDK 19) with the use directly after the
+move and none with a nop between. Same form as ee-as_r5900_fpcc_reorder.patch; a documented
+reconstruction of Sony's assembler behaviour, not Sony's code.
+
+Applies to SSXModding/ps2-ee-toolchain b595ded, directory ee/ (patch -p1 -d <src>/ee), with or without
+ee-as_r5900_fpcc_reorder.patch.
+
+--- a/gas/config/tc-mips.c
++++ b/gas/config/tc-mips.c
+@@ -1452,7 +1452,8 @@
+       else if (! mips_opts.mips16
+ 	       && mips_opts.isa < 4
+ 	       && (((prev_pinfo & INSN_COPROC_MOVE_DELAY)
+-                    && ! cop_interlocks)
++                    && ! cop_interlocks
++		    && ! (mips_cpu == 5900 && ! mips_opts.noreorder)) /* Ringsmith ER-035 */
+ 		   || (mips_opts.isa < 2
+ 		       && (prev_pinfo & INSN_COPROC_MEMORY_DELAY))))
+ 	{

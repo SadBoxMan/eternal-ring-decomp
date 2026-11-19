@@ -16,9 +16,9 @@ SHELL := /usr/bin/bash
 # --- toolchain (built by tools/toolchain/*.sh; docs/toolchain.md 4, docs/build.md) -----------------------
 TOOLCHAIN ?= C:/rs/toolchain
 GCC_DIR   := $(TOOLCHAIN)/ee-gcc-2.9-991111
-# ER-026: -r1 = ee-as with tools/toolchain/patches/ (ruling docs/decomp_recipes.md 3.4); the unpatched ER-011
-# build stays in ee-binutils-2.9-991111 as a fallback (make BIN_DIR=C:/rs/toolchain/ee-binutils-2.9-991111).
-BIN_DIR   ?= $(TOOLCHAIN)/ee-binutils-2.9-991111-r1
+# ER-035: -r2 = ee-as with both patches in tools/toolchain/patches/ (rulings docs/decomp_recipes.md 3.4, 3.5).
+# ER-026's -r1 (first patch only) and the unpatched ER-011 build (ee-binutils-2.9-991111) stay as fallbacks.
+BIN_DIR   ?= $(TOOLCHAIN)/ee-binutils-2.9-991111-r2
 CC        := $(GCC_DIR)/gcc.exe
 AS        := $(BIN_DIR)/ee-as.exe
 LD        := $(BIN_DIR)/ee-ld.exe
@@ -40,7 +40,9 @@ GP_INC    := $(BUILD)/include/gp_externs.inc
 CRT0_O    := $(BUILD)/asm/text_00100000.o
 
 # --- flags (docs/decomp_recipes.md 1.1) -------------------------------------------------------------------
-CFLAGS    := -O2 -G8
+# ER-035: -fno-strict-aliasing (ruling docs/decomp_recipes.md 3.6): the game reloads memory across stores of other
+# types, which this compiler's -O2 default (strict aliasing on) does not.
+CFLAGS    := -O2 -G8 -fno-strict-aliasing
 CPPFLAGS  := -Iinclude
 ASFLAGS   := -G8 -O2 -mabi=eabi -Iinclude -I$(BUILD)/include
 LDFLAGS   := -G8 -T $(LD_SCRIPT)

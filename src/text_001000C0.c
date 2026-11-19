@@ -591,7 +591,18 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00123708);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001239B0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00123BA8);
+/* ER-035. Returns 1 when the point a1 (x at 0, z at 8) lies outside radius r of the position at a0 + 0x90 /
+   0x98, by a box test first, then by squared distance. Names and types Unconfirmed. */
+int func_00123BA8(float *a0, float *a1, float r) {
+    float dx = a1[0] - a0[0x90 / 4];
+    float dz = a1[2] - a0[0x98 / 4];
+
+    if (r < dx) return 1;
+    if (dx < -r) return 1;
+    if (r < dz) return 1;
+    if (dz < -r) return 1;
+    return r * r < dx * dx + dz * dz;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00123C28);
 
@@ -874,7 +885,29 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012CBF8);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012CC68);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012CD08);
+extern void func_0012CAD8(void *, void *, int);
+extern void func_0012EAF8(void *, void *);
+extern void func_001C9F60(void *, void *, void *);
+
+/* ER-035. Builds two matrices for entry idx of a0 (func_0012CAD8, func_0012EAF8), takes the heading of a2 seen
+   from there (atan2 of x and z, a reading) plus the entry's angle at +0x54 (entries of 0xA0 bytes at a0 + 0xE0),
+   and wraps it into [-pi, pi]. Names, types and the matrix reading Unconfirmed. */
+float func_0012CD08(void *a0, int idx, void *a2) {
+    float m0[4][4];
+    float m1[4][4];
+    float v0[4];
+    float v1[4];
+    float f;
+
+    func_0012CAD8(m0, a0, idx);
+    func_001CA018(v0, a2, m0[3]);
+    func_0012EAF8(m1, m0);
+    func_001C9F60(v1, m1, v0);
+    f = *(float *)(*(char **)((char *)a0 + 0xE0) + idx * 0xA0 + 0x54) + func_001E41B8(v1[0], v1[2]);
+    while (3.14159274f < f) f -= 6.28318548f;
+    while (f < -3.14159274f) f += 6.28318548f;
+    return f;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012CE18);
 
@@ -963,7 +996,35 @@ float func_0012E7B0(float a, float b) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012E820);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012E908);
+/* ER-035. Turns the angle *a0 toward a by step (func_0012E7B0 gives the wrapped difference); stops on a when the
+   step would pass it, wraps the result into [-pi, pi] and returns the difference left (0 when already there).
+   Names and types Unconfirmed. */
+float func_0012E908(float *a0, float a, float step) {
+    float cur = *a0;
+    float d = func_0012E7B0(a, cur);
+    float r;
+
+    if (d == 0.0f) return 0.0f;
+    if (d < 0.0f) cur -= step;
+    else cur += step;
+    r = func_0012E7B0(a, cur);
+    if (d * r <= 0.0f) {
+        cur = a;
+        r = 0.0f;
+    }
+    if (3.14159274f < cur) {
+        do {
+            cur -= 6.28318548f;
+        } while (3.14159274f < cur);
+    }
+    if (cur < -3.14159274f) {
+        do {
+            cur += 6.28318548f;
+        } while (cur < -3.14159274f);
+    }
+    *a0 = cur;
+    return r;
+}
 
 /* ER-026. Moves *a0 toward a1 by (a1 - *a0) * a2, by at most a3 either way. Names and types Unconfirmed. */
 void func_0012EA28(float *a0, float a1, float a2, float a3) {
@@ -1018,7 +1079,36 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012F418);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012F540);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012F550);
+/* ER-035. Steps *p by +step when a0 & a1 and by -step when a0 & a2 (button bits, a reading), then clamps it to
+   [lo, hi], or wraps it to the other end when wrap is set; returns the sign of the change made (truncated to int).
+   Names and types Unconfirmed. */
+int func_0012F550(u16 a0, u16 a1, u16 a2, float *p, float step, float lo, float hi, int wrap) {
+    float f, old;
+    int i, r;
+
+    if (p == NULL) return 0;
+    f = *p;
+    old = f;
+    if (a0 & a1) f += step;
+    if (a0 & a2) f -= step;
+    if (f < lo) {
+        if (wrap) f = hi;
+        else f = lo;
+    }
+    if (hi < f) {
+        if (wrap) f = lo;
+        else f = hi;
+    }
+    *p = f;
+    i = f - old;
+    if (i != 0) {
+        r = 1;
+        if (i < 0) r = -1;
+    } else {
+        r = 0;
+    }
+    return r;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012F5F8);
 
@@ -1154,7 +1244,24 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130D68);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130DF0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130F50);
+/* ER-035. Wraps *a0 into [-pi, pi], then clamps it to [lo, hi] (a reading). Names and types Unconfirmed. */
+void func_00130F50(float *a0, float lo, float hi) {
+    float f = *a0;
+
+    if (3.14159274f < f) {
+        do {
+            f -= 6.28318548f;
+        } while (3.14159274f < f);
+    }
+    if (f < -3.14159274f) {
+        do {
+            f += 6.28318548f;
+        } while (f < -3.14159274f);
+    }
+    if (f < lo) f = lo;
+    if (hi < f) f = hi;
+    *a0 = f;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130FE0);
 
