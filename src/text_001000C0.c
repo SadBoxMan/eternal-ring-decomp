@@ -316,7 +316,19 @@ float func_00111548(float *a0, float *a1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00111578);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001115E0);
+extern float D_0035B94C[];
+
+/* ER-026 (parked by ER-014). Steps *a0 by 0.01 toward a1. Names and types Unconfirmed; D_0035B94C (-0.0 in
+   .sdata) is read through %hi / %lo, so it is declared without a size (a sized float would be $gp-relative). */
+void func_001115E0(float *a0, float a1) {
+    float f = *a0;
+
+    if (f - a1 < D_0035B94C[0]) {
+        *a0 = f + 0.01f;
+    } else {
+        *a0 = f - 0.01f;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00111620);
 
@@ -932,17 +944,59 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012E6B8);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012E750);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012E7B0);
+/* ER-026. Wraps the angle a - b into [-pi, pi] (a reading); names and types Unconfirmed. gcc pads each short loop to 6 instructions itself. */
+float func_0012E7B0(float a, float b) {
+    float f = a - b;
+
+    if (3.14159274f < f) {
+        do {
+            f -= 6.28318548f;
+        } while (3.14159274f < f);
+    }
+    if (f < -3.14159274f) {
+        do {
+            f += 6.28318548f;
+        } while (f < -3.14159274f);
+    }
+    return f;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012E820);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012E908);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012EA28);
+/* ER-026. Moves *a0 toward a1 by (a1 - *a0) * a2, by at most a3 either way. Names and types Unconfirmed. */
+void func_0012EA28(float *a0, float a1, float a2, float a3) {
+    float d = (a1 - *a0) * a2;
+
+    if (d < -a3) {
+        *a0 = *a0 - a3;
+    } else if (a3 < d) {
+        *a0 = *a0 + a3;
+    } else {
+        *a0 = *a0 + d;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012EA78);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012EAB8);
+/* ER-026. *a0 += a1, clamped to [-a2, a2]; returns 1 / -1 when clamped high / low, else 0. Types Unconfirmed. */
+int func_0012EAB8(float *a0, float a1, float a2) {
+    float f = *a0 + a1;
+    int r = 0;
+
+    if (a2 < f) {
+        f = a2;
+        r = 1;
+    }
+    a2 = -a2;
+    if (f < a2) {
+        f = a2;
+        r = -1;
+    }
+    *a0 = f;
+    return r;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012EAF8);
 
@@ -1140,7 +1194,22 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00131548);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001315A8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00131608);
+/* ER-026. Wraps the angle a + b into [-pi, pi] (a reading); names and types Unconfirmed. gcc pads each short loop to 6 instructions itself. */
+float func_00131608(float a, float b) {
+    float f = a + b;
+
+    if (3.14159274f < f) {
+        do {
+            f -= 6.28318548f;
+        } while (3.14159274f < f);
+    }
+    if (f < -3.14159274f) {
+        do {
+            f += 6.28318548f;
+        } while (f < -3.14159274f);
+    }
+    return f;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00131678);
 

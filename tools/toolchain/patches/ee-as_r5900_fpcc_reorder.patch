@@ -1,0 +1,21 @@
+Ringsmith ER-026 (from ER-014; ruling LuciDin 18 Nov 2026, docs/decomp_recipes.md 3.4)
+
+ee-as for the r5900: no FP condition-code hazard nop between c.cond.s and bc1t / bc1f when the branch is
+assembled in reorder mode (gcc left the delay slot empty). In .set noreorder blocks the nop stays.
+Reproduces the game's 129 reorder sites and keeps its 1,069 noreorder ones. A documented reconstruction of
+Sony's assembler behaviour, not Sony's code (docs/toolchain.md 4.4).
+
+Applies to SSXModding/ps2-ee-toolchain b595ded, directory ee/ (patch -p1 -d <src>/ee).
+
+--- a/gas/config/tc-mips.c
++++ b/gas/config/tc-mips.c
+@@ -1511,7 +1511,8 @@
+       else if (! mips_opts.mips16
+ 	       && mips_opts.isa < 4
+ 	       && (prev_pinfo & INSN_WRITE_COND_CODE)
+-               && ! cop_interlocks)
++               && ! cop_interlocks
++	       && ! (mips_cpu == 5900 && ! mips_opts.noreorder)) /* Ringsmith ER-014/ER-026 */
+ 	{
+ 	  /* The previous instruction sets the coprocessor condition
+ 	     codes, but does not require a general coprocessor delay

@@ -16,7 +16,9 @@ SHELL := /usr/bin/bash
 # --- toolchain (built by tools/toolchain/*.sh; docs/toolchain.md 4, docs/build.md) -----------------------
 TOOLCHAIN ?= C:/rs/toolchain
 GCC_DIR   := $(TOOLCHAIN)/ee-gcc-2.9-991111
-BIN_DIR   := $(TOOLCHAIN)/ee-binutils-2.9-991111
+# ER-026: -r1 = ee-as with tools/toolchain/patches/ (ruling docs/decomp_recipes.md 3.4); the unpatched ER-011
+# build stays in ee-binutils-2.9-991111 as a fallback (make BIN_DIR=C:/rs/toolchain/ee-binutils-2.9-991111).
+BIN_DIR   ?= $(TOOLCHAIN)/ee-binutils-2.9-991111-r1
 CC        := $(GCC_DIR)/gcc.exe
 AS        := $(BIN_DIR)/ee-as.exe
 LD        := $(BIN_DIR)/ee-ld.exe

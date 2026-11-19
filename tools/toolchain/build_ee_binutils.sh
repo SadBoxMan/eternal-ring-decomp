@@ -4,22 +4,38 @@
 # host x86_64-pc-msys (LP64), target "ee" = mips64r5900-sky-elf.
 #
 # Needs the LF clone /c/rs/toolchain/src-lf with ER-002's config.sub patch (build_ee_gcc.sh step 1).
-# Run:  MSYSTEM=MSYS C:\msys64\usr\bin\bash.exe -lc /c/rs/toolchain/build_ee_binutils.sh
-# Output: /c/rs/toolchain/ee-binutils-2.9-991111/ee-{as,ld,objdump,objcopy,...}.exe (+ msys-2.0.dll)
+# ER-026: first applies our gas patches from patches/ beside this script, once (docs/toolchain.md 4.2, 4.4):
+#   ee-as_r5900_fpcc_reorder.patch  no c.cond / bc1x hazard nop in reorder mode (ER-014; ruling 3.4)
+# Run:  MSYSTEM=MSYS C:\msys64\usr\bin\bash.exe -lc "'<repo>/tools/toolchain/build_ee_binutils.sh'"
+# Output: /c/rs/toolchain/ee-binutils-2.9-991111-r1/ee-{as,ld,objdump,objcopy,...}.exe (+ msys-2.0.dll)
+#   (r1 = with the ER-026 patch; the unpatched ER-011 build stays in ee-binutils-2.9-991111 as a fallback)
 set -e
 export PATH="/usr/bin:$PATH"
 unset CC CXX
 
+HERE=$(cd "$(dirname "$0")" && pwd)
+PATCHES="$HERE/patches"
 ROOT=/c/rs/toolchain
 SRC=$ROOT/src-lf/ee
-BUILD=$ROOT/b-binutils
-OUT=$ROOT/ee-binutils-2.9-991111
-LOG=$ROOT/build_ee_binutils.log
+BUILD=$ROOT/b-binutils-r1
+OUT=$ROOT/ee-binutils-2.9-991111-r1
+LOG=$ROOT/build_ee_binutils-r1.log
 
 CFLAGS="-O0 -g0 -std=gnu89 -w -fcommon -Wno-int-conversion -Wno-implicit-function-declaration -Wno-implicit-int -Wno-return-mismatch -Wno-incompatible-pointer-types"
 export CFLAGS
 
 grep -q 'ER-002 x86_64' "$SRC/config.sub"
+
+# ER-026: apply each patch once (a reverse dry run that succeeds means it is already in the tree).
+for p in "$PATCHES"/*.patch; do
+    if patch -p1 -d "$SRC" -R --dry-run -s -f < "$p" > /dev/null 2>&1; then
+        echo "already applied: $(basename "$p")"
+    else
+        patch -p1 -d "$SRC" -N -s < "$p"
+        echo "applied: $(basename "$p")"
+    fi
+done
+grep -q 'Ringsmith ER-014/ER-026' "$SRC/gas/config/tc-mips.c"
 
 rm -rf "$BUILD"; mkdir -p "$BUILD"; cd "$BUILD"
 "$SRC/configure" --target=ee --host=x86_64-pc-msys --build=x86_64-pc-msys \

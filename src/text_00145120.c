@@ -201,7 +201,16 @@ INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147F78);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00148210);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00148330);
+extern void func_00147F20(void *, float);
+
+/* ER-026. Calls func_00147F20 with -1.0 if the float at 0x4C is 1.0, else with 1.0. Types Unconfirmed. */
+void func_00148330(char *a0) {
+    if (*(float *)(a0 + 0x4C) == 1.0f) {
+        func_00147F20(a0, -1.0f);
+    } else {
+        func_00147F20(a0, 1.0f);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00148360);
 

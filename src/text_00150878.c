@@ -1764,7 +1764,9 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00194B38);
 extern void func_001CA018(void *, void *, void *);
 
 /* ER-014. Returns -1 on the two early exits and falls off the end after the call (no return value):
-   only that shape gives the sibling call `j func_001CA018` (a call whose value is returned gets a frame). */
+   only that shape gives the sibling call `j func_001CA018` (a call whose value is returned gets a frame).
+   PORT NOTE (ruling 3.4): on that path the caller gets whatever func_001CA018 left in $v0; a PC build must not
+   rely on the missing return (undefined in C) and returns that as-shipped value explicitly on its side. */
 int func_00194D08(char *a0) {
     char *p = *(char **)(a0 + 0x20);
 
