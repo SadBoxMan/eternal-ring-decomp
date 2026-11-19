@@ -29,9 +29,10 @@ Written Tue 17 Nov 2026, 11:52 Eastern, by the setup session.
 - Disc: **NTSC-U (US)** only; it is the matching target.
 - Sidebar: dispatcher pinned in "Project Ringsmith"; cards in "Ringsmith Decomp", "Ringsmith Recomp / PC Port",
   "Ringsmith Misc", and "Ringsmith Assets" (asset rips, from when the recomp is complete; added 17 Nov 2026).
-- Code: GitHub repository **https://github.com/SadBoxMan/ringsmith** (LuciDin, 17 Nov 2026). No remote added and
-  nothing pushed yet: every push needs LuciDin's yes, given in that session, and a check that no game data is in the
-  history.
+- Code: GitHub repository **https://github.com/SadBoxMan/ringsmith** (LuciDin, 17 Nov 2026). Remote `github`; **first
+  push Thu 19 Nov 2026, 18:45 Eastern** (DISP-02, LuciDin's yes in that session): `main` at aaae66f, history checked
+  first (91 commits, no game data or embedded binaries; author email public as in Twinblade). Every later push still
+  needs LuciDin's yes, given in that session, and the same history check.
 
 ## Open questions for LuciDin
 

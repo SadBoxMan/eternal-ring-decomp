@@ -137,3 +137,4 @@ cards report. (8) Cards' "follow-ups" become ER rows in `docs/handoff.md` plus t
 - Wed 18 Nov 2026, 16:39 Eastern: backup (DISP-01, `tools/backup.py`): `ringsmith_20261118_1639_main.zip` (78 files, 203 KB) + `repo.bundle` at acf0284, verify okay.
 - Thu 19 Nov 2026, 15:18 Eastern: **DISP-02** started (Opus high), id `local_3709ebbc-a98e-49e9-a962-e7b2299d302f`, confirmed reachable; DISP-01 hands over at 44% context (state section above). DISP-01 stays open, read-only, until LuciDin archives it.
 - Thu 19 Nov 2026, 18:06 Eastern: backup (DISP-02, `tools/backup.py`): `ringsmith_20261119_1806_main.zip` (82 files, 236 KB) + `repo.bundle` at f6fe0e1, verify okay.
+- Thu 19 Nov 2026, 18:45 Eastern: **first GitHub push** (DISP-02, LuciDin's yes): remote `github` = https://github.com/SadBoxMan/ringsmith.git, `main` at aaae66f; history checked for game data first.
