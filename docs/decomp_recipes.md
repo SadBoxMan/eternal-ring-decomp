@@ -189,7 +189,7 @@ Still open (parked, 2.4): `mul.s; nop; nop; div.s` followed by `jr; nop` (`func_
 schedules the `div.s` into the delay slot with no `nop`s. Cause not known (another flag, another compiler build, or
 a source shape not yet found); not a gas hazard as far as checked (one try each, ER-026).
 
-### 2.7 FP compares, batch 1 (ER-035, Thu 19 Nov 2026; Confirmed by `make regress`, commit `2fd12a0`)
+### 2.7 FP compares, batch 1 (ER-035, Thu 19 Nov 2026; Confirmed by `make regress`, commits `2fd12a0`, `187cff8`, and the func_0013B840 commit)
 
 Two more toolchain facts came out of the first batch, each ruled by LuciDin (3.5, 3.6) and now in the build:
 the patched ee-as `-r2` and `-fno-strict-aliasing`.
@@ -203,6 +203,10 @@ the patched ee-as `-r2` and `-fno-strict-aliasing`.
 | **A value read back right after it is stored** (`*(float *)(e + 0x910) = 0.0f; z = *(float *)(e + 0x910);`) gives the game's `sw $0` + `lwc1` and a register kept for both later compares | `func_0013DBC0` |
 | **`int` from a float difference, then a sign**: `i = f - old; if (i != 0) { r = 1; if (i < 0) r = -1; } else r = 0;` gives `slt` + `movz`; a `?:` gives another layout | `func_0012F550` |
 | **`return a < b;` on floats** gives `c.lt; bc1t` over `li 1` / `move 0`; `if (x) return 1;` chains share one `jr $31; li 1` | `func_00123BA8` |
+| **Branch layout: an `if / else if / else` chain, not early `return`s.** With `if (c) { f(); return; } g();` gcc put `g()` on the fall-through; the game has `f()` there, which the `else` chain gives (tails of the chain then share the epilogue) | `func_0013B840` |
+| **Compare operand order picks the load order**: `a->x14 > a->x18` loads `+0x14` first, `a->x18 < a->x14` loads `+0x18` first (same `slt`) | `func_0013B840` |
+| **`f = p->a + s * p->b; p->a = f;` then clamp `f` and store it again** gives the game's two stores and register use; `p->a += s * p->b;` or a reload of `p->a` gives other registers | `func_00133098` |
+| **Two functions identical but for one callee and one `.sdata` constant** match with the same C (`func_0011B9D0` / `func_0011BAB0`): try the twin as soon as one matches | `func_0011BAB0` |
 
 **`div.s` and `sqrt.s` always have two `nop`s before them in the game** (754 `div.s` and 59 square-root words that rabbitizer prints as `c1 0x...` in game code, 19 `div.s` in the SDK; none without). Our compiler and assembler give none, so every function with a float divide or square root is parked for ER-034 (cause not known: a gcc option, Sony's assembler, or a compiler build; nothing in cc1's strings names it). This widens ER-034's `mul.s; nop; nop; div.s` to all divides and square roots. `sqrtf()` compiles to the game's inline `sqrt.s` + `c.eq.s` NaN check + call to `func_001E42E0` (so that libm function is `sqrtf`), but needs the symbol name `sqrtf` and the `nop`s.
 
