@@ -533,7 +533,7 @@
     {
       "code": "ER-026",
       "title": "Adopt the patched ee-as (c.cond/bc1 nop)",
-      "status": "Queued",
+      "status": "In progress",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
@@ -560,7 +560,7 @@
     {
       "code": "ER-029",
       "title": "Recomp VBlank pacing (~60 Hz in the movie)",
-      "status": "Queued",
+      "status": "In progress",
       "track": "recomp",
       "model": "Opus, high",
       "waits_on": "",
