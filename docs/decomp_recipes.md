@@ -46,6 +46,11 @@ gcc.exe -B<gcc dir>\ -B<as dir>\ -O2 -G8 -fno-strict-aliasing -c file.c -o file.
   ER-011's three test functions (moved into the repo by ER-003).
 - For placed functions the gate is `make regress` (ER-003): the whole ELF's SHA-1 plus `tools/func_check.py`,
   which compares every function of the linked build exactly, nothing masked (`docs/build.md`).
+- **Matching tools (ER-015, Thu 19 Nov 2026): `docs/matching_tools.md`.** `tools/cmpfunc.py` compiles a scratch or
+  `src/` file with the Makefile's own settings and compares functions with the original (side-by-side R5900 diff;
+  jal, `%hi` / `%lo`, `$gp` targets and `.lit4` values checked); `tools/place.py` swaps INCLUDE_ASM and C;
+  `tools/clones.py` tries a placed function's C on its strict clone family; m2c's `mipsee` target gives first drafts.
+  ER-011's `er011_compare.py` is superseded (kept for its record).
 
 ### 1.3 The 1999 assembler and splat's output (ER-003, confirmed by the whole-ELF match)
 

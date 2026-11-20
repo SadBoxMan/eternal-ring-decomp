@@ -224,3 +224,62 @@ written to a temporary file, verified, then moved into place. It prints one line
 verify result.
 
 **Only the dispatcher runs it**, after every 3-5 completed cards and at block end; work sessions never do.
+
+## 6. Worktrees (ER-015, Thu 19 Nov 2026)
+
+Decomp waves run several `src/` writers at once, each in its own git worktree on its own branch, merged into `main`
+by the dispatcher one at a time. A worktree builds on its own; tested by ER-015 in
+`.claude\worktrees\intelligent-lamport-969901` (a path with spaces): **`make regress` PASS, 51 s** (whole-ELF SHA-1
+and all 3,606 functions); ER-034 was active in the main checkout then (whether it was building at that moment was not checked). Nothing in the main checkout
+changed.
+
+**Setup** (PowerShell, in the new worktree's root; `$m` is the main checkout):
+
+```
+$m = "C:\Users\lukea\Claude\Projects\Project Ringsmith"
+cmd.exe /c mklink /J disc  "$m\disc"
+cmd.exe /c mklink /J .venv "$m\.venv"
+.venv\Scripts\python.exe -I tools/regress.py      # clean split + build + checks: must end "regress: PASS"
+```
+
+That is all: the regress run makes the worktree's own `asm/`, `linker/`, `baserom/`, `assets/`, `build/` and
+`build_logs/` (the first run splits from clean). Later, `make -j4` / `make check` work as in section 1.
+
+| Item | Shared? | Why |
+|---|---|---|
+| `disc/` (the original ELF) | **junction** to the main checkout | read only; `tools/regress.py` pins it at `disc/extract/SLUS_200.15` |
+| `.venv/` | **junction** | read only; the pre-commit hook and the Makefile call `.venv/Scripts/python.exe`. **Never `pip install` in a worktree**: it would change the main checkout's venv |
+| `C:\rs\toolchain` | shared by path | the Makefile's `TOOLCHAIN`; nothing writes it |
+| hooks | shared by git config | `core.hooksPath` is the main checkout's `tools\hooks` (absolute), but the hook runs `tools/regress.py --staged` of the worktree it commits in (ER-015's commit `829df8e`: the gate ran in the worktree, PASS 54 s) |
+| `asm/`, `linker/`, `baserom/`, `assets/`, `build/`, `build_logs/` | **never shared** | each worktree writes its own; `tools/regress.py` deletes and rewrites them on every run, so a junction here would wipe another checkout's build. A stale `asm/` from another branch can also hold files this branch's yaml does not make |
+
+**Findings**
+
+- **The space in the path does not matter.** The Makefile and tools use paths relative to the checkout root, and the
+  toolchain sits at `C:\rs\toolchain` (no space; the 1999 configure scripts are the only part that breaks on spaces,
+  `docs/toolchain.md` 4). Both the main checkout and this worktree build with a space in their path. One exception
+  to watch: `make BASEELF=...` with an absolute path that has a space breaks make's prerequisite list; the junction
+  avoids that.
+- **Line endings:** this machine's Git has `core.autocrlf=true` (system gitconfig), but `.gitattributes`
+  (`* text=auto eol=lf`) forces LF, so a fresh worktree checks out LF files and gcc is happy (Twinblade's worktrees
+  broke on this; Ringsmith's do not).
+- **Removing a worktree is safe with the junctions in place** (tested on scratch folders, Thu 19 Nov 2026):
+  `git worktree remove --force` deletes the folder's contents but leaves the junction itself (and the target intact);
+  Python's `shutil.rmtree` and PowerShell 5.1 `Remove-Item -Recurse -Force` both remove the junction without touching
+  the target. Still, unlink the junctions first: `cmd.exe /c rmdir disc` and `cmd.exe /c rmdir .venv` (rmdir on a
+  junction removes only the link), then `git worktree remove`.
+- **Timings (one measurement, ER-015):** clean split 33 s, clean build 18 s more, checks under 1 s: 51 s in all (another
+  session may have been loading the machine). Main-checkout runs were 51 s for ER-024's layout
+  (section 4).
+- **Tools in a worktree:** `tools/cmpfunc.py`, `tools/place.py`, `tools/clones.py` and `tools/census.py` work there
+  unchanged (they find the root from their own path); they need the worktree's own `build/SLUS_200.15.syms.elf`, which
+  the first regress run leaves.
+
+**Rules for waves** (from Twinblade's two-stream trial, `Project Twinblade/docs/decomp_pilot.md` part 3, and this test):
+
+1. One worktree and one branch per writer; each writer owns whole `src/` files (no two writers in one file).
+2. Shared tools (`tools/split.py`, `gen_ld.py`, the Makefile, the yaml) have one owner at a time; a change there goes
+   to `main` first and the others merge `main` before their next batch.
+3. Recipes, tracker and handoff lines conflict when two branches append to the same section: keep them in the shared
+   notes folder (or one short block per card) and fold them in at merge time.
+4. Merge often; a fast-forward merge runs no hook, so run `make regress` on `main` after each merge.
