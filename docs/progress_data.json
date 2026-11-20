@@ -736,6 +736,24 @@
       "model": "Opus, medium",
       "waits_on": "one recomp card at a time; LuciDin's yes for PCSX2",
       "notes": ""
+    },
+    {
+      "code": "ER-049",
+      "title": "Place the 20 clone matches (clones.py)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, medium",
+      "waits_on": "owns text_001000C0, text_001343E8, text_00145120, text_0014E2E8, text_00150878",
+      "notes": ""
+    },
+    {
+      "code": "ER-050",
+      "title": "m2c bulk driver for EE (for ER-016)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "nothing (tools/ only)",
+      "notes": ""
     }
   ]
 }
