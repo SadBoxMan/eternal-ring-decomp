@@ -44,7 +44,27 @@ INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D050);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D068);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D098);
+extern void func_0012B218(void *, int);
+extern void func_0014D138(void *, void *);
+extern void func_0014D1E0(void *, float);
+extern void func_0014D8D0(void *, int);
+
+/* ER-015 (drafted with m2c, compared with tools/cmpfunc.py, placed with tools/place.py). Field meanings,
+ * argument types and the callback's arguments are Unconfirmed readings. */
+void func_0014D098(char *a0, void *a1) {
+    *(int *)(a0 + 0x28) = *(int *)(a0 + 0x28) + 1;
+    (*(void (**)(void *))(a0 + 0x44))(a0);
+    func_0012B218(a0, 2);
+    if (*(s8 *)(a0 + 0xF) != 0) {
+        func_0014D8D0(a1, 1);
+        func_0014D138(a0, a1);
+    } else {
+        func_0014D8D0(a1, 0);
+        func_0012B218(a0, 4);
+    }
+    func_0012B218(a0, 1);
+    func_0014D1E0(a1, *(float *)(a0 + 0x4C));
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D138);
 
