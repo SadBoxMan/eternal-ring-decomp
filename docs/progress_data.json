@@ -709,6 +709,33 @@
       "model": "Opus, medium",
       "waits_on": "one recomp card at a time",
       "notes": ""
+    },
+    {
+      "code": "ER-046",
+      "title": "Recomp boot to the title screen (opening FMV to its end)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "one recomp card at a time",
+      "notes": ""
+    },
+    {
+      "code": "ER-047",
+      "title": "Recomp FromSoftware logo stage is black",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "one recomp card at a time; not beside ER-030 (gs/)",
+      "notes": ""
+    },
+    {
+      "code": "ER-048",
+      "title": "One extra GetPicture at movie end (low)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "one recomp card at a time; LuciDin's yes for PCSX2",
+      "notes": ""
     }
   ]
 }
