@@ -242,6 +242,10 @@ cmd.exe /c mklink /J .venv "$m\.venv"
 .venv\Scripts\python.exe -I tools/regress.py      # clean split + build + checks: must end "regress: PASS"
 ```
 
+**The junctions point at the main checkout's own `disc/` and `.venv/`: read-only use only. Never write through them
+from a worktree** (no `pip install`, no edits, no new files in `disc/`): any change lands in the main checkout and in
+every other worktree at once.
+
 That is all: the regress run makes the worktree's own `asm/`, `linker/`, `baserom/`, `assets/`, `build/` and
 `build_logs/` (the first run splits from clean). Later, `make -j4` / `make check` work as in section 1.
 
