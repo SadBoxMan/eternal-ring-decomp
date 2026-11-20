@@ -301,7 +301,7 @@
       "status": "In progress",
       "by": "",
       "text": "First PC build: recompiled EE code + HLE stubs compiles to a Windows exe and boots",
-      "notes": "ER-008 spike (18 Nov 2026): the exe builds and boots into the first PSS movie, then stalled. ER-018 (18 Nov 2026): stall fixed (local PS2Recomp patch: priority-0 threads, libmpeg Background callback, sceGsSetDefDispEnv PMODE); the game's movie player runs and the GS presents frames. ER-029 (19 Nov 2026): VBlank pacing fixed (second local patch; 59.94 Hz measured): the Agetec movie now plays its 210 pictures in about 7 s as on PCSX2, but the player never sees the stream end (end-of-movie check, recomp_spike.md 9.5) and the picture is black with static. Not a playable boot. Needs: movie end, GS movie upload path (ER-030), then GS, VU1 checks."
+      "notes": "ER-008 spike (18 Nov 2026): the exe builds and boots into the first PSS movie, then stalled. ER-018 (18 Nov 2026): stall fixed (local PS2Recomp patch: priority-0 threads, libmpeg Background callback, sceGsSetDefDispEnv PMODE); the game's movie player runs and the GS presents frames. ER-029 (19 Nov 2026): VBlank pacing fixed (second local patch; 59.94 Hz measured): the Agetec movie plays its 210 pictures in about 7 s as on PCSX2. ER-043 (19 Nov 2026): the movie now ends as on PCSX2 (libmpeg end checks bound to HLE; third local patch), about 4.5 s of black where the FromSoftware logo belongs, then the opening FMV plays (bottom half of the picture correct). Not a playable boot. Needs: boot to the title screen, the logo stage, GS movie upload path (ER-030), then GS, VU1 checks."
     }
   ],
   "tasks": [
@@ -686,11 +686,11 @@
     {
       "code": "ER-043",
       "title": "Recomp first movie end (end-of-movie check 0x1C5368)",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, high",
       "waits_on": "one recomp card at a time",
-      "notes": ""
+      "notes": "Done 19 Nov 2026: first movie ends, boot reaches the opening FMV. libmpeg IsEnd / IsRefBuffEmpty bound to HLE (make_configs.py) + third local patch er043_mpeg_isend.patch (HLE IsEnd accepts demuxed stream end when no sceCdSt stream). FromSoftware logo stage black (~4.5 s). recomp_spike.md 10"
     },
     {
       "code": "ER-044",

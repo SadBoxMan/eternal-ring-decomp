@@ -355,7 +355,7 @@ anywhere (the PS2Recomp fork waits on the GPL-3.0 decision, ER-019).
 
 ### 8.7 Not verified / Unconfirmed
 
-- That the first stream is `AGETEC.PSS` and the second `EROPEN.PSS` (layout and screenshot match; no file log).
+- That the first stream is `AGETEC.PSS` and the second `EROPEN.PSS` (layout and screenshot match; no file log). *ER-043: the recomp now plays the second movie too, and it shows the opening FMV; file names still inferred.*
 - The SDK-sample reading of the player and every Unofficial name in 8.2.
 - That calling Background once per `sceMpegGetPicture` matches how often real libmpeg calls it (it is called while
   waiting on the IPU, so likely several times per picture); enough here, audio rate not measured.
@@ -459,6 +459,8 @@ not changed.
 
 ### 9.5 What still blocks the first movie (not traced: LuciDin, "write it down only")
 
+*Fixed by ER-043 (section 10). Correction: `func_001DBC40` returns `sys[1] == 0`, not the word itself.*
+
 The main thread sits in the player's end-of-movie loop at 0x001C5368 (8.2): it loops until either
 `func_001C8B00(videoDec)` is true (the CD ring holds no data, `func_001C89D8` / `func_001C8080`, **and**
 `func_001DBC40(mpeg)` is non-zero) or `func_001C8980(videoDec)` (videoDec `+0xA8`, the state PCSX2 shows going to 3)
@@ -492,3 +494,97 @@ end field, and either bind `func_001DBC40` to the HLE `sceMpegIsEnd` or have the
 - The non-interlaced NTSC rate and PAL are not handled (the game runs interlaced NTSC: SMODE2 3, 8.3); some
   emulators use a slightly different rate for non-interlaced NTSC (**Unconfirmed**).
 - The 250 ms catch-up cap and the 64-checkpoint poll interval are **Unofficial** choices.
+
+## 10. ER-043: the end of the first movie (Thu 19 Nov 2026)
+
+Written by ER-043 (Opus 5.5, high), work 18:49 to 19:12 Eastern. Question: why does the player wait forever at
+its end-of-movie check 0x001C5368 (9.5)? **Short answer: two gaps between the game's libmpeg calls and the HLE MPEG
+path, both fixed. The Agetec movie now ends as on PCSX2, the player shuts down, the screen stays black for about
+4.5 s (where PCSX2 shows the FromSoftware logo; nothing is visible here) and the opening FMV starts: LuciDin saw the
+lake picture in run 2.** The fix is two libmpeg bindings in our `tools/recomp/make_configs.py` and a third local
+patch, `C:\rs\recomp\patches\er043_mpeg_isend.patch` (described in `tools/recomp/ER-043_mpeg_end_patch.md`).
+
+### 10.1 How the player ends a movie (read from our split's asm; role names Unofficial)
+
+| Address | What it does |
+|---|---|
+| `func_001C5188` main loop | `a3` is the stream size in bytes. It reads the file with `sceRead` (`0x001D2F30`, HLE) 64 KiB at a time into the ring and demuxes with `sceMpegDemuxPssRing`, counting the bytes down; when fewer than 5 remain it calls `func_001C8A30` until it succeeds, then waits in the end loop at 0x001C5368 |
+| `func_001C8A30` | writes the 4 bytes at `D_0035C400` (`00 00 01 B7`, the MPEG sequence end code; read from the ELF) into the video bitstream buffer and sets the videoDec state (`+0xA8`, 0x0034D110) from 0 to **2** (input finished) |
+| end loop 0x001C5368 | leaves when `func_001C8B00(videoDec)` is true (ring empty, `func_001C89D8`, **and** `func_001DBC40(mp)`) or the state is **3** |
+| `func_001C8BB8` decoder thread | loops `while (!func_001DBC30(mp) && state != 1)`: wait for a free display slot, `sceMpegGetPicture`, mark the slot full, yield; then `sceMpegReset`; `func_001C8B48` waits until the display queue (`0x0034D014`) is empty and sets the state to **3** |
+| `func_001DBC30` | `return mp->sys[0]`: **sceMpegIsEnd** (our reading, Unconfirmed) |
+| `func_001DBC40` | `return mp->sys[1] == 0` (`sltiu 1`; 9.5 said "returns the word", which was wrong): **sceMpegIsRefBuffEmpty** (Unconfirmed) |
+| `func_001DBAD8` | `return 1`: likely sceMpegDelete (Unconfirmed); not on the path |
+
+So the 2-then-3 that PCSX2 shows (9.3) is "input finished" then "decoder done and display drained". The order of the
+libmpeg functions (GetDecodeMode, IsEnd, IsRefBuffEmpty, Reset, ClearRefBuff) and the player's shape fit the SDK's
+PSS sample player (Unconfirmed, as in 8.2).
+
+### 10.2 The two causes
+
+1. **IsEnd and IsRefBuffEmpty ran as guest code.** The analyzer's symbol database does not name `0x001DBC30` and
+   `0x001DBC40` (a few instructions each), so `ps2_recomp` recompiled them; they read `*(mp+0x40)` words 0 and 1,
+   libmpeg's private state, which the HLE `sceMpegGetPicture` never writes (run 1 log: both stay 0 for the whole
+   run). The decoder thread's loop could therefore never end. The runtime already has HLE `sceMpegIsEnd` and
+   `sceMpegIsRefBuffEmpty`; our `make_configs.py` now adds both bindings to the `stubs` list. Regenerating changes
+   exactly three files (checked by comparing all 3,610 generated files with the ER-008 output).
+2. **The HLE never learned that the input had ended.** HLE `sceMpegIsEnd` needs a "producer EOF", which only the
+   `sceCdSt*` stubs raise. Eternal Ring never calls `sceCdSt*` (no reference from game code or data: only libcdvd's
+   own files name them); it reads with `sceRead`. Run 1 with the bindings: `streamEnded=1` (the PSS's own program
+   end code was demuxed), no decoded picture left, presentation complete, but `producerEof=0`, so IsEnd stayed 0;
+   the decoder thread kept calling `sceMpegGetPicture`, which returns at once with no picture once the stream has
+   ended, and kept re-queuing old slots (display queue 5 for ever, playing flag 1). **Fix** (`MPEG.cpp`): the gate
+   also passes when no `sceCdSt` stream was ever started (`cdStreamGeneration` 0, globally and for this playback)
+   and `streamEnded` is set. Games that stream with `sceCdSt` keep the old rule.
+
+The game's own `00 00 01 B7` goes into the guest video bitstream buffer, which the HLE decoder does not read (it
+decodes from the demuxed PSS), so the HLE cannot see it; the PSS's program end code arrives at the same point (the
+whole file demuxed), so it serves as the end of input.
+
+### 10.3 Runs (Thu 19 Nov 2026, muted, window on the secondary monitor, killed by PID; LuciDin's yes)
+
+| Run | Build | Result |
+|---|---|---|
+| 1 (19:02, 40 s) | bindings + temporary state log | IsEnd now HLE; `producerEof=0` from VBlank 487 on; state 2, display queue 5, playing flag 1 until killed |
+| 2 (19:05, 17 s: a pipeline mistake in my run command ended the script early; then one screenshot and a kill by PID) | both fixes + temporary state log | see 10.4; LuciDin, watching: the opening FMV (lake, mountains, forest) in the bottom half of the window, garbage in the top half |
+| 3 (19:06, 24 s, a screenshot each second) | final build, no diagnostics | Agetec movie (static tiles, a red Agetec logo fragment at the bottom edge at 7 s), **black from 9 s to 13 s**, opening FMV from about 14 s (bottom half correct at 15 s) |
+
+The window opened at x = 2012 (the secondary monitor, `DISPLAY1` at x 1920 to 3839) in all three runs; the run
+script (`C:\rs\recomp\scripts\er043_run.ps1`) now moves it there if it ever opens on the primary monitor (not needed
+this time). ER-029's x = 806 was not reproduced.
+
+### 10.4 Measurement (run 2 state log, every 30 VBlanks, plus IsEnd changes)
+
+| Reading | Recomp after ER-043 | PCSX2 2.5.185 (ER-018's PINE log, 8.1 / 9.3) |
+|---|---|---|
+| Pictures | 210 served; the last one at about VBlank 487 | about 210 (421 VBlanks of playback) |
+| State | 0, then **2** by VBlank 480 (input finished), **3** by VBlank 510 | 2 then 3 |
+| End | IsEnd 1 at VBlank 489; by VBlank 510 display queue 0, playing flag 0, frameCount reset to 0 (`sceMpegReset`) | queue empties, playing flag 0 at 17.94 s, counter reset |
+| Gap before the next player run | player idle from about VBlank 500 to 774, about 4.5 s | 17.9 s to 23.5 s, about 5.6 s, showing the FromSoftware logo |
+| Next player run | starts at VBlank 774 and decodes at the same rate (122 pictures by VBlank 1020); the picture is the opening FMV | `EROPEN.PSS` (8.1) |
+
+The second movie being the opening FMV is now seen in the recomp too (LuciDin, run 2); the file name `EROPEN.PSS`
+is still an inference (no file log). Why the gap is about 1 s shorter than on PCSX2: not checked (Unconfirmed
+reading: PCSX2 reads at disc speed, while the HLE file reads take no guest time).
+
+### 10.5 Files (outside git)
+
+| File | What |
+|---|---|
+| `C:\rs\recomp\patches\er043_mpeg_isend.patch` | the `MPEG.cpp` change as a diff against its ER-018 state (SHA-1 1d73ebcb...); checked: applies there to a file identical to `game_build`'s, reverse-applies on `game_build` |
+| `C:\rs\recomp\work_er043\` | configs and generated output with the two bindings (`out_split`), the three replaced generated files as they were (`pre_er043\`), `MPEG.cpp` before ER-043 (`pre_diag\`) |
+| `C:\rs\recomp\scripts\er043_run.ps1` | run script (a screenshot every `-Step` s, window placement check); logs `C:\rs\recomp\er043_r1_*.txt` to `er043_r3_*.txt`; screenshots `C:\rs\recomp\shots\er043_r*`, contact sheet `er043_r3_sheet_07-15.png`; build logs `C:\rs\recomp\er043_build*.txt` |
+
+`EeScheduler.cpp` / `ee_scheduler.h` were checked identical to the ER-029 patch result after the temporary
+diagnostic was removed.
+
+### 10.6 Not verified / Unconfirmed
+
+- The names sceMpegIsEnd / sceMpegIsRefBuffEmpty / sceMpegDelete for `0x001DBC30` / `0x001DBC40` / `0x001DBAD8`
+  (from shape, order and use).
+- That the black screen between the movies is the FromSoftware logo stage: inferred from its place and length;
+  nothing visible is drawn there in the recomp, and what draws the logo on the PS2 was not looked up.
+- One extra `sceMpegGetPicture` with no picture after the last one (upstream's presentation rule in HLE IsEnd), so
+  one old slot is shown for one display period at the very end; whether the real decoder does the same: not checked.
+- The opening FMV's own end and the title screen: the runs stopped at 17 s and 24 s.
+- PCSX2 was not run again (the comparison uses ER-018's PINE log); sound never heard (muted); `ps2x_tests` not run.
