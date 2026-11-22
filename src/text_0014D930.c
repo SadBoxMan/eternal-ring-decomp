@@ -239,7 +239,26 @@ void func_0014E248(void) {
 void func_0014E250(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014E258);
+extern void func_0012C788(void *);
+extern char *func_0012FEB8(s32, void *, void *);
+extern void func_001C9B18(void *, void *);
+
+/* ER-100: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+void func_0014E258(char *arg0, char *arg1) {
+    f32 v[4]; /* unused: only sizes the stack frame (ruling 3.13) */
+    char *p;
+
+    func_0012C788(arg1);
+    p = *(char **)(arg0 + 0x14);
+    if (p == NULL) {
+        p = func_0012FEB8(0x6C, arg1 + 0x90, arg1 + 0xA0);
+        if (p == NULL) {
+            return;
+        }
+        *(char **)(arg0 + 0x14) = p;
+    }
+    func_001C9B18(*(char **)(p + 0x18) + 0x10, arg1 + 0x90);
+}
 
 /* ER-014. Types and offsets are Unconfirmed readings. */
 void func_0014E2C8(char *a0) {
