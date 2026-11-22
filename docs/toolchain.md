@@ -215,6 +215,18 @@ What the build needed (all in the script):
 4. `libiberty` built as a sibling of the gcc build directory (gcc links `../libiberty/libiberty.a`).
 5. Host flags relax GCC 15's errors on 1990s C only (`-std=gnu89 -fcommon -Wno-implicit-int ...`, `-O0`).
 
+**Patched build in use (ER-034, Sun 22 Nov 2026; ruling `docs/decomp_recipes.md` 3.7).** The build uses
+`ee-gcc-2.9-991111-r1`: the same tree plus our machine-description patch.
+
+| Item | Value |
+|---|---|
+| Patch | `tools/toolchain/patches/ee-gcc_r5900_fdiv_nops.patch` (`patch -p1` against `src-lf/ee`). In `gcc/config/mips/mips.md`, `divsf3` and `sqrtsf2` output `nop\n\tnop\n\tdiv.s` / `nop\n\tnop\n\tsqrt.s` with `length` 3 (was 1). `define_delay` takes only length-1 insns, so a divide or square root never goes in a delay slot, and it always has two `nop`s before it, as on all 832 sites in the game (754 `div.s` + 59 `sqrt.s` game, 19 `div.s` SDK; census in `decomp_recipes.md` 2.8). The tree already has an r5900 workaround of the same kind (`mips_r5900_lengthen_loops`, short loops). Why the chip needs it is not known (Unconfirmed: an FPU divide erratum). No `-m` option of this ee-gcc does it (`TARGET_SWITCHES` read) |
+| Script | `tools/toolchain/build_ee_gcc.sh` now applies every `patches/ee-gcc_*.patch` to `C:\rs\toolchain\src-lf\ee` once (reverse dry run), checks the `Ringsmith ER-034` marker in `mips.md`, and builds into `b-gcc-r1` / `ee-gcc-2.9-991111-r1`, log `build_ee_gcc-r1.log` (about 2 minutes). Run: `$env:MSYSTEM = "MSYS"; C:\msys64\usr\bin\bash.exe -lc "'<repo>/tools/toolchain/build_ee_gcc.sh'"` |
+| Output | SHA-1 `cc1.exe` `460DD93D37759A805EAC17A92BCF4731C544E78F`, `gcc.exe` `57E2CDB082982D2E124B6FEC1BF0ACE14A224504` (local builds) |
+| Where the path lives | `Makefile`: `GCC_DIR := $(TOOLCHAIN)/ee-gcc-2.9-991111-r1` |
+| Fallback | ER-002's unpatched build stays in `C:\rs\toolchain\ee-gcc-2.9-991111\` (`b-gcc`); `src-lf` now carries the patch (`patch -R -p1 -d /c/rs/toolchain/src-lf/ee < <patch>` takes it out) |
+| Proof | `make regress` green with r1 (and ee-as r3); before any C function with a divide was placed, the whole ELF was already byte-identical with it (no C function had a divide). Control: with `func_001C12D0` placed, the stock compiler gives SHA-1 `65a10c55...` (FAIL), r1 gives `6087a8ca...` (OK) |
+
 ### 4.2 Binutils (ER-011, Tue 17 Nov 2026)
 
 **Working: EE binutils 2.9-ee-991111 built from the same GPL tree as an MSYS2 program**, first try, same method as
@@ -264,6 +276,17 @@ our one-line gas patch (ruling `docs/decomp_recipes.md` 3.4; why: 4.4).
 | Output | SHA-1 `ee-as.exe` `5B47B468705BCB27A60E72D880974315517C2004`, `ee-ld.exe` `CFF60F9F87B512FEF3AEBFCA62B42A1E1BAC0F74` (local builds) |
 | Fallbacks | `-r1` (first patch only) and the unpatched ER-011 build stay; `src-lf` now carries both patches |
 | Proof | `make regress` green with r2 (ER-035 commits `2fd12a0` on); func_0012E908 and func_0013DBC0 need it |
+
+**Third patch, build r3 (ER-034, Sun 22 Nov 2026; ruling `docs/decomp_recipes.md` 3.8).** The build now uses
+`ee-binutils-2.9-991111-r3`: all three `ee-as_*.patch` files in `tools/toolchain/patches/`.
+
+| Item | Value |
+|---|---|
+| Patch | `ee-as_r5900_mfc1_reorder.patch`: in `append_insn` the load-delay test for `INSN_LOAD_COPROC_DELAY` (`mfc1`, `cfc1`, `dmfc1`) gains `&& ! (mips_cpu == 5900 && ! mips_opts.noreorder)`: no `nop` between `mfc1` and the next instruction that uses its GPR, in reorder mode. The memory load delay (`INSN_LOAD_MEMORY_DELAY`) is untouched. The game has 58 such pairs (45 game, 13 SDK), none with a `nop`; the 11 where the user is a branch (gcc's noreorder blocks; the `nop` comes from gas at `.set noreorder`) keep it. This corrects ER-035's note that the `mfc1` delay `nop` is always in the game: it is there only before branches |
+| Script | `tools/toolchain/build_ee_binutils.sh` applies only `patches/ee-as_*.patch` now (the `ee-gcc_*` ones are `build_ee_gcc.sh`'s), checks the three markers, builds into `b-binutils-r3` / `ee-binutils-2.9-991111-r3`, log `build_ee_binutils-r3.log` |
+| Output | SHA-1 `ee-as.exe` `7E7F70C78D3981286C64629ED17743F3BBEF0E74`, `ee-ld.exe` `4A335C2EA19656D0D945AC59E3EA167A467F287C` (local builds) |
+| Fallbacks | `-r2`, `-r1` and the unpatched ER-011 build stay; `src-lf` now carries all three patches |
+| Proof | `make regress` green with r3; control with every ER-034 function placed: r2 gives SHA-1 `949181d4...` (FAIL: func_001B8BC0 and its copies), r3 `6087a8ca...` (OK) |
 
 ### 4.3 First byte check (ER-011)
 

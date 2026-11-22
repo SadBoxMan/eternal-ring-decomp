@@ -11,7 +11,7 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 262,
+          "done": 269,
           "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
@@ -21,7 +21,7 @@
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 10884,
+          "done": 12008,
           "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
@@ -605,11 +605,11 @@
     {
       "code": "ER-034",
       "title": "The div.s / sqrt.s two-nop pattern (all 754+59 game sites)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high (xhigh if it resists)",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Sun 22 Nov 2026. Cause found and adopted (LuciDin rulings 3.7, 3.8): ee-gcc r1 emits every div.s / sqrt.s as nop; nop; div.s (length 3, never in a delay slot; 832 of 832 sites) and ee-as r3 drops the mfc1 load-delay nop in reorder mode (58 sites). 7 matched (func_001C12D0, func_001536A0, func_001B8BC0, func_001B8CD8, func_001B8FF0, func_00149330, func_001304C8; make regress green); 4 parked; 23 of ER-035's 46 still wait on ER-041 (sqrtf 12, soft-double 11). Rate: 11 tried, 7 matched."
     },
     {
       "code": "ER-035",

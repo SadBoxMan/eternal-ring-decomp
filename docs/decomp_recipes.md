@@ -11,12 +11,14 @@ Started Tue 17 Nov 2026 by ER-011.
 ### 1.1 The working pipeline (ER-011, confirmed on 3 functions, 33 words)
 
 ```
-C:\rs\toolchain\ee-gcc-2.9-991111\gcc.exe -BC:\rs\toolchain\ee-gcc-2.9-991111\ -O2 -G8 -fno-strict-aliasing -S file.c -o file.s
-C:\rs\toolchain\ee-binutils-2.9-991111-r2\ee-as.exe -G8 -O2 -mabi=eabi file.s -o file.o
+C:\rs\toolchain\ee-gcc-2.9-991111-r1\gcc.exe -BC:\rs\toolchain\ee-gcc-2.9-991111-r1\ -O2 -G8 -fno-strict-aliasing -S file.c -o file.s
+C:\rs\toolchain\ee-binutils-2.9-991111-r3\ee-as.exe -G8 -O2 -mabi=eabi file.s -o file.o
 ```
 
-(`-r2` = with both our gas patches since ER-035, 2.3 and 2.7; `-r1` has the first only; the unpatched
-`ee-binutils-2.9-991111` gives an extra `nop` after FP compares. `-fno-strict-aliasing` since ER-035, ruling 3.6.)
+(`ee-gcc-...-r1` = with our compiler patch since ER-034 (2.8, ruling 3.7: `nop; nop; div.s`); the unpatched
+`ee-gcc-2.9-991111` stays as a fallback. `ee-binutils-...-r3` = with all three gas patches since ER-034 (2.3, 2.7,
+2.8; rulings 3.4, 3.5, 3.8); `-r2` has the first two, `-r1` the first only; the unpatched `ee-binutils-2.9-991111`
+gives an extra `nop` after FP compares. `-fno-strict-aliasing` since ER-035, ruling 3.6.)
 
 or in one step, with a folder that holds a copy of `ee-as.exe` named `as.exe`:
 
@@ -157,7 +159,8 @@ uses the unpatched ee-as; switching is LuciDin's call (toolchain change: `tools/
 |---|---|---|
 | ~~`func_0014A948`~~ | `text_00145120.c` | matched by ER-024 (2.5) |
 | ~~`func_001115E0`~~ | `text_001000C0.c` | matched by ER-026 (2.6) |
-| `func_001C12D0` (ER-026) | `text_00150878.c` | `mul.s; nop; nop; div.s; jr; nop` in the game: our gcc puts the `div.s` in the `jr` delay slot and emits no `nop`s (`(a * pi) / 180` and a temporary give the same). The c.cond / bc1 part is fine. Same pattern in `func_00142788` (`text_001343E8.c`) |
+| ~~`func_001C12D0`~~ (ER-026) | `text_00150878.c` | matched by ER-034 (2.8: the `nop; nop; div.s` comes from the compiler, ruling 3.7) |
+| `func_00142788` (ER-026, ER-034) | `text_001343E8.c` | the divides match since ER-034; the clamp tail does not: the game computes the clamped value in `$f0` and copies it with `mov.s $f2, $f0` (the `*p` register) before the store; about 30 C shapes tried (if / else, `?:`, temporaries, `*p` in place) |
 | ~~`func_0017D930`, `func_0014F618`~~ | `text_00150878.c`, `text_0014E2E8.c` | matched by ER-024 (2.5) |
 | `func_001C6F90` | `text_00150878.c` | epilogue scheduling: the game puts the first `$gp` store between `ld $31` and `ld $16`; ours puts both loads first. Tried 6 store orders and 5 loop forms (`while`, `do`, `for(;;)`, `u32`, `int` return); no plain-C variant found |
 
@@ -192,9 +195,9 @@ the `nop` before the branch stays, as in the game. A control build with the unpa
 | **Short loops get 3 `nop`s before `bc1t` from gcc itself** (`.set noreorder; nop` x3; Unconfirmed reading: gcc's r5900 short-loop workaround, padding a loop to 6 instructions; the gcc source was not read), so `do { f -= 2pi; } while (pi < f);` matches as written | `func_0012E7B0`, `func_00131608` (wrap an angle into [-pi, pi]) |
 | **Clamp with a return code**: `r = 0; if (hi < f) { f = hi; r = 1; } hi = -hi; if (f < hi) { f = hi; r = -1; }` | `func_0012EAB8` |
 
-Still open (parked, 2.4): `mul.s; nop; nop; div.s` followed by `jr; nop` (`func_001C12D0`, `func_00142788`). Our gcc
-schedules the `div.s` into the delay slot with no `nop`s. Cause not known (another flag, another compiler build, or
-a source shape not yet found); not a gas hazard as far as checked (one try each, ER-026).
+~~Still open (parked, 2.4): `mul.s; nop; nop; div.s` followed by `jr; nop`.~~ Solved by ER-034 (2.8): the
+compiler emits every `div.s` / `sqrt.s` as `nop; nop; div.s`, an insn of length 3 that never goes in a delay slot
+(ruling 3.7).
 
 ### 2.7 FP compares, batch 1 (ER-035, Thu 19 Nov 2026; Confirmed by `make regress`, commits `2fd12a0`, `187cff8`, `7707c5e`)
 
@@ -203,7 +206,7 @@ the patched ee-as `-r2` and `-fno-strict-aliasing`.
 
 | Lesson | Proved by |
 |---|---|
-| **No `nop` between `mtc1` and the next instruction that uses its register.** The game never has one (1,454 game sites, 19 SDK, 0 with a `nop`); our ee-as added one in reorder mode (`gas/config/tc-mips.c`, the `INSN_COPROC_MOVE_DELAY` test, `cop_interlocks` lacks the r5900). Fixed in the assembler (`-r2`, ruling 3.5); write plain C. `mfc1` followed by a use of its GPR still gets the `nop`, as in the game (`func_0012F550`) | `func_0012E908`, `func_0013DBC0`; the whole ELF unchanged |
+| **No `nop` between `mtc1` and the next instruction that uses its register.** The game never has one (1,454 game sites, 19 SDK, 0 with a `nop`); our ee-as added one in reorder mode (`gas/config/tc-mips.c`, the `INSN_COPROC_MOVE_DELAY` test, `cop_interlocks` lacks the r5900). Fixed in the assembler (`-r2`, ruling 3.5); write plain C. `mfc1` followed by a use of its GPR still gets the `nop` when the use is a branch, as in the game (`func_0012F550`); before a normal instruction the game has none (ER-034, 2.8, ruling 3.8) | `func_0012E908`, `func_0013DBC0`; the whole ELF unchanged |
 | **Build with `-fno-strict-aliasing`.** This ee-gcc enables type-based aliasing at `-O2`; the game reloads a pointer after a store of another type (a float store, then `*a0` read again), which strict aliasing removes. With the flag the whole ELF is still byte-identical (all earlier C functions unchanged). Whether Sony passed the flag or its compiler defaulted to it is Unconfirmed | `func_0013DBC0` (matches only with it) |
 | **`while (pi < f) f -= 2pi;` and `if (pi < f) do { ... } while (pi < f);` both exist and give different FP registers**: the `while` form keeps the constant in one register (`c.lt $f2,$f0` in loop and test); the `if` + `do` form copies it in the first branch's delay slot. Try both | `func_0012CD08` (`while`), `func_00130F50`, `func_0012E908` (`if` + `do`) |
 | **Register numbers follow variables**: when the game uses different registers for the same value in two places, a fresh local for each use (instead of reusing one pointer variable) can give its allocation | `func_0013DBC0` (four `char *` locals) |
@@ -215,7 +218,7 @@ the patched ee-as `-r2` and `-fno-strict-aliasing`.
 | **`f = p->a + s * p->b; p->a = f;` then clamp `f` and store it again** gives the game's two stores and register use; `p->a += s * p->b;` or a reload of `p->a` gives other registers | `func_00133098` |
 | **Two functions identical but for one callee and one `.sdata` constant** match with the same C (`func_0011B9D0` / `func_0011BAB0`): try the twin as soon as one matches | `func_0011BAB0` |
 
-**`div.s` and `sqrt.s` always have two `nop`s before them in the game** (754 `div.s` and 59 square-root words that rabbitizer prints as `c1 0x...` in game code, 19 `div.s` in the SDK; none without). Our compiler and assembler give none, so every function with a float divide or square root is parked for ER-034 (cause not known: a gcc option, Sony's assembler, or a compiler build; nothing in cc1's strings names it). This widens ER-034's `mul.s; nop; nop; div.s` to all divides and square roots. `sqrtf()` compiles to the game's inline `sqrt.s` + `c.eq.s` NaN check + call to `func_001E42E0` (so that libm function is `sqrtf`), but needs the symbol name `sqrtf` and the `nop`s.
+**`div.s` and `sqrt.s` always have two `nop`s before them in the game** (754 `div.s` and 59 square-root words that rabbitizer prints as `c1 0x...` in game code, 19 `div.s` in the SDK; none without). Our compiler and assembler give none, so every function with a float divide or square root is parked for ER-034 (cause not known: a gcc option, Sony's assembler, or a compiler build; nothing in cc1's strings names it). This widens ER-034's `mul.s; nop; nop; div.s` to all divides and square roots. `sqrtf()` compiles to the game's inline `sqrt.s` + `c.eq.s` NaN check + call to `func_001E42E0` (so that libm function is `sqrtf`), but needs the symbol name `sqrtf` and the `nop`s. **The `nop`s are solved by ER-034 (2.8, ruling 3.7); the `sqrtf` name is still ER-041's.**
 
 ### 2.8 Bulk m2c placement (ER-054, Sun 22 Nov 2026; Confirmed by `make regress`, 78 functions)
 
@@ -224,6 +227,30 @@ the patched ee-as `-r2` and `-fno-strict-aliasing`.
 | **m2c drafts in plain C match as placed**: unknown fields as `*(T *)((char *)p + off)`, unknown types as `s32`, `.lit4` literals written as float literals, `%hi` / `%lo` data as `extern T D_X[];` (`tools/m2c_bulk.py --plain`, `docs/matching_tools.md` 6.2) | the 78 ER-054 functions in `text_00145120`, `text_0014A968`, `text_0014C840`, `text_0014D930`, `text_0014E2E8` |
 | **One prototype per callee per file.** Drafts made one at a time guess a callee's parameters differently; in one file they must agree. Where a callee's value is used, keep the declaration that returns it; an argument m2c dropped because it passes through untouched in `$a0` can be written explicitly with no change to the code | `func_00149920` (`func_0012F8C8` as `s32`), `func_001507B8` (`func_00131088(arg0)`) |
 | **Arithmetic on `void *`** (m2c's `arg0 + 0x90`) compiles as byte arithmetic in ee-gcc (a GNU extension) and matches; kept as m2c wrote it | `func_0014FF98` |
+
+### 2.8 Divides, square roots and mfc1 (ER-034, Sun 22 Nov 2026; Confirmed by `make regress`)
+
+Two more toolchain facts, each ruled by LuciDin (3.7, 3.8) and now in the build: ee-gcc `-r1` and ee-as `-r3`
+(`docs/toolchain.md` 4.1, 4.2). Evidence: notes folder `ER-034_evidence.md` (dispatcher's folder).
+
+| Lesson | Proved by |
+|---|---|
+| **Every `div.s` / `sqrt.s` is `nop; nop; div.s`, from the compiler.** Census of the whole `.text`: 754 `div.s` and 59 `sqrt.s` in game code, 19 `div.s` in the SDK, each with exactly two `nop`s after the last real instruction (whatever it is: `lwc1`, `mtc1`, `mul.s`, another `div.s`, ...; 3 sites after `jal sqrtf; nop` and a label still have two after the label), and **none in a delay slot** (133 are followed by a branch / `jr`, always with a `nop` in its slot). gcc chooses delay slots itself, so an assembler alone cannot give that. The `divsf3` / `sqrtsf2` patterns of `mips.md` now output `nop\n\tnop\n\tdiv.s` with length 3 (`tools/toolchain/patches/ee-gcc_r5900_fdiv_nops.patch`), which also keeps them out of delay slots. Write plain C | `func_001C12D0` (control: the stock compiler gives `jr; div.s`, ELF SHA-1 fails), `func_00149330`, `func_001304C8`, `func_001536A0` |
+| **No `nop` between `mfc1` and a normal instruction that uses its GPR.** The game has 58 such sites (45 game, 13 SDK) with the use directly after, none with a `nop`; the 11 sites whose user is a branch (gcc's noreorder blocks) keep the `nop`. Our ee-as added it in reorder mode (`INSN_LOAD_COPROC_DELAY` test, `cop_interlocks` lacks the r5900). Fixed in the assembler (`ee-as_r5900_mfc1_reorder.patch`, `-r3`); write plain C | `func_001B8BC0` and its byte-identical copies `func_001B8CD8`, `func_001B8FF0` (`(int)(f) & 0xFFF` table index; control: r2 fails) |
+| **`(int)x * 2pi` and `(float)(int)` conversions** (`cvt.w.s` printed as `.word`, `mfc1`, `mtc1`, `cvt.s.w`) come from plain casts | `func_001304C8` (`f - (int)(f / 2pi) * 2pi`) |
+| **A call's value used in a table index: put it in a local first.** `D[(int)(f(x) * k) & 0xFFF]` makes gcc compute the table address before the call (kept in `$s0`, bigger frame); `a = f(x); return D[...]` computes it after, as the game does | `func_001B8BC0` |
+| **A sign as a nested `?:`**: `sign = (d == 0.0f) ? 0.0f : ((d < 0.0f) ? -1.0f : 1.0f); return (sign < 0.0f) ? -s : s;` gives the game's shared zero register and return copy; the `if` chain (ER-035's `func_0012F550` shape) does not here | `func_001304C8` |
+| **Clamp into the bound itself**: `lim = (v < -lim) ? -lim : ((lim < v) ? lim : v);` gives the game's `b; mov.s` / `bc1fl; mov.s` pair with the result in `lim`'s register | `func_00149330` |
+| **Angle wrap on memory**: `*a0 += d; while (pi < *a0) *a0 -= 2pi; while (*a0 < -pi) *a0 += 2pi;` gives the game's one store after each loop (gcc keeps `*a0` in a register in the loop) | `func_00149330` |
+
+Parked by ER-034 (one-line causes): `func_00142788` (2.4); `func_0012BF08` (only `$s3` / `$s4` swapped between
+the result flag and the `out` pointer; 6 orders of declarations and initialisation tried); `func_0019B6D0` (the angle
+stays in `$f0` instead of `$f12` before the call, and `$s2` / `$s3` swapped for the struct base of `D_001FF390`; a
+struct type for it fixed the rest; 6 tries); `func_00163158` (FP register choice in the first block and the three
+add tails; 8 tries, close). `func_0012BDA8` (the twin of `func_0012BF08` with an extra call) not tried.
+
+Still blocked after ER-034 (from ER-035's list of 46): 12 functions call `sqrtf` (`func_001E42E0` needs that name)
+and 11 call the soft-double routines (libgcc names): both ER-041; 3 have VU0 code.
 
 ## 3. Rulings (LuciDin)
 
@@ -272,6 +299,18 @@ Standing rulings; each applies until LuciDin changes it.
 | Ruling | Item |
 |---|---|
 | **Accepted** | `CFLAGS` = `-O2 -G8 -fno-strict-aliasing` for every file: the game reloads memory across stores of other types (func_0013DBC0), and the whole ELF stays byte-identical with the flag |
+
+### 3.7 ER-034: ee-gcc, nop; nop before div.s / sqrt.s (Sun 22 Nov 2026, 02:04 Eastern, LuciDin in the ER-034 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** | Compiler patch `tools/toolchain/patches/ee-gcc_r5900_fdiv_nops.patch`: `divsf3` / `sqrtsf2` emit `nop; nop; div.s` (`sqrt.s`) as one insn of length 3, so never in a delay slot (832 of 832 sites in the game and SDK). Same standing as 3.4 / 3.5: a documented reconstruction of the original toolchain's behaviour for every file, not a per-function trick; built into `ee-gcc-2.9-991111-r1` |
+
+### 3.8 ER-034: ee-as, no nop after mfc1 (Sun 22 Nov 2026, about 02:50 Eastern, LuciDin in the ER-034 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** | Third ee-as patch (`tools/toolchain/patches/ee-as_r5900_mfc1_reorder.patch`): no load-delay `nop` between `mfc1` and the next instruction that uses its GPR, in reorder mode, for the r5900 (58 sites, none with a `nop`; the 11 branch users in noreorder keep it). Same standing as 3.4 / 3.5; built into `ee-binutils-2.9-991111-r3` |
 
 No ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, dead code): park such functions with a
 one-line cause and ask.
