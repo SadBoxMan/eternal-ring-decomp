@@ -156,7 +156,11 @@ python -I tools/m2c_bulk.py --file text_00145120                 every INCLUDE_A
 python -I tools/m2c_bulk.py func_00145208 func_00145428          named functions
 python -I tools/m2c_bulk.py --list picks.txt                     one name per line (# comments); --file / names mix
    [--ctx none|src|harvest] [--single] [--depth 2] [--rounds 4] [--par 4] [--label NAME] [--m2c DIR] [--timeout 120]
+   [--plain]                                                     also write placeable plain C for each MATCH (6.2)
 ```
+
+**`make regress` deletes all of `build/`, `build/m2c_bulk/` included**: copy a run's folder out (e.g. to a scratch
+folder outside the repo) before placing from it and running regress (ER-054 lost its first run that way).
 
 Nothing goes into `src/`. Each run writes `build/m2c_bulk/<label>/` (gitignored: the drafts are game code; the
 label defaults to the file names plus the context mode, and the run clears its own `asm/`, `c/`, `obj/`,
@@ -164,8 +168,8 @@ label defaults to the file names plus the context mode, and the run clears its o
 per function `c/<func>.c` (the kept draft, compilable as it stands), `c/<func>.m2c.txt` (m2c's raw output),
 `c/<func>.diff.txt` (the cmpfunc-style report) or `c/<func>.err.txt` (gcc's message). A MATCH draft goes in with
 `tools/place.py c func_X build/m2c_bulk/<label>/c/func_X.c` and `make regress` (the masked compare is a working
-aid, not proof; ruling `docs/decomp_recipes.md` 3.1). Strip the draft's `#include` lines of the m2c headers first
-and turn its `M2C_FIELD` / `M2C_UNK` into plain C (casts, `s32`): the build does not include m2c's macro header.
+aid, not proof; ruling `docs/decomp_recipes.md` 3.1). The raw draft includes m2c's headers and uses its macros,
+which the build does not have: place the `--plain` form instead (`c/func_X.plain.c`, 6.2).
 
 **What it does for each function**
 
@@ -273,6 +277,63 @@ Failure kinds seen on reading single diffs (examples, not counted over all rows;
 - store order and the registers of address loads (`func_001464A8`, `func_00146FE0`: same instructions, the
   `lui` / `addiu` pairs in another order and registers).
 
+### 6.2 `--plain` and the first bulk placement (ER-054, Sun 22 Nov 2026)
+
+With `--plain`, after the run every MATCH draft is turned into a file `tools/place.py c` takes as it stands,
+`c/<func>.plain.c`, which is **compiled and compared again** (Plain column of the table; only a plain MATCH is meant
+for placing):
+
+| Draft (m2c `--valid-syntax`) | Plain form |
+|---|---|
+| m2c's headers, `m2c_extra.h`, the context header | `#include "common.h"` only |
+| `M2C_FIELD(e, T *, off)` | `*(T *)((char *)e + off)` (m2c's macro uses `s8 *`: same arithmetic); offset 0 -> `*(T *)e`; `&M2C_FIELD(..)` -> the pointer; parentheses only before a postfix operator |
+| `M2C_UNK`, `M2C_UNK8/16/32/64`, `f64` | `s32`, `s8` / `s16` / `s32` / `s64`, `double` |
+| `extern T D_X __attribute__((section(".data")));` (the draft aid for `%hi` / `%lo`) | `extern T D_X[];` (recipe 2.6), `D_X` -> `D_X[0]`, `&D_X` -> `D_X` |
+| `T func_X(..); /* extern */` | `extern T func_X(..);` |
+
+Declarations: one `extern` line per function / symbol the body names, taken in this order from (1) the target
+`src/` file's own extern lines or C definitions, so `place.py` drops lines the file already has and the new function
+agrees with the file; (2) the run's own matched functions (their final signature, e.g. after the return-wrapper
+variant); (3) the draft's own extern lines; (4) the prototypes header it was compiled with. Skipped (listed in the
+Plain column): another `M2C_` macro left (`M2C_ERROR`, `M2C_BITWISE`, ...), `s128` / `u128` (`common.h` has none).
+At the end the tool lists names that two plain drafts of one file declare differently (they clash when both are
+placed). The comment above each function: `ER-054: drafted with m2c (tools/m2c_bulk.py --plain); names, types and
+offsets are Unconfirmed readings.` Left as m2c wrote it: arithmetic on `void *` (a GNU extension ee-gcc accepts),
+`temp_` / `arg` / `sp` names, m2c's own casts.
+
+**First placement** (default context, `--plain`; five files, 241 asm functions; nothing compiler-steering added).
+Every file placed, then `make regress` (-j4): **78 functions placed, all green** (3,606 match, SHA-1 unchanged),
+5,460 bytes.
+
+| File | Asm functions tried | Masked MATCH | Plain MATCH | Placed (regress green) | Same size, 1-2 words differ | Place + regress |
+|---|---|---|---|---|---|---|
+| `text_00145120` | 96 | 27 | 25 | 25 | 4 (`func_00145238`, `func_00145248`, `func_00148B00`, `func_0014A8B0`) | 46 s + one fix + 43 s |
+| `text_0014A968` | 48 | 22 | 19 | 19 | 2 (`func_0014B420`, `func_0014C620`) | 45 s |
+| `text_0014C840` | 26 | 8 | 8 | 8 | 1 (`func_0014D380`) | 49 s |
+| `text_0014D930` | 16 | 7 | 6 | 6 | 1 (`func_0014DDD8`) | 51 s |
+| `text_0014E2E8` | 55 | 21 | 20 | 20 | 3 (`func_0014FF38`, `func_0014FF58`, `func_001501D8`) | 44 s + one fix + 45 s |
+| **All** | **241** | **85** | **78** | **78** | 11 | bulk run 3 min 22 s (0.84 s per function, par 4) |
+
+Two placements needed declarations aligned by hand (the build failed with conflicting types; fixed, compared with
+`cmpfunc` on the `src/` file, then regress green): `func_001507B8` (m2c left out the argument that passes through
+in `$a0` to `func_00131088`, whose file prototype takes it; written `func_00131088(arg0) == (s32) func_00150350`
+as `func_0014F210` does, `arg0` as `void *`, and the caller's extern changed to match) and `func_00149920` (two
+drafts guessed `func_0012F8C8` differently; the `s32` one that `func_00147850` uses kept, the other dropped).
+
+Not placed (masked MATCH, plain form failed; all still `INCLUDE_ASM`):
+
+| Function | File | Cause |
+|---|---|---|
+| `func_001462D8` | `text_00145120` | `s128` in the draft (no 128-bit type in `common.h`) |
+| `func_001492D0` | `text_00145120` | calls `func_0012B238` with arguments; the file declares it `(void)` (ER-049's clone prototype) |
+| `func_0014FE10` | `text_0014E2E8` | the file's extern for it is `void func_0014FE10(void)` (ER-049), the draft's definition differs |
+| `func_0014B3A0`, `func_0014B3E0`, `func_0014B4C8` | `text_0014A968` | `func_0014BC88` (placed, its own draft has 1 parameter) is called with 2 |
+| `func_0014E120` | `text_0014D930` | `func_0014E2C8` (an ER-049 clone, `(void)`) is called with arguments |
+
+All seven are declaration clashes, not code differences: the clone prototypes `(void)` of ER-049 and m2c's
+parameter count for a pass-through callee. Skipped by nature: 22 functions with `div.s` / `sqrt.s` (ER-034; none
+matched as drafts); no VU0 inline asm in these five files.
+
 ## 7. Not verified
 
 - The tools were checked on the functions named above only; relocation types other than the five handled
@@ -280,8 +341,11 @@ Failure kinds seen on reading single diffs (examples, not counted over all rows;
 - `place.py c` on a function with `INCLUDE_RODATA` neighbours that it takes over: not met yet (the text edit works; the
   standalone symbol needs dropping by hand).
 - m2c: the six-function sample above only.
-- `m2c_bulk.py` (ER-050): run on two game files only (148 functions). **None of its MATCH drafts was placed or
-  checked by `make regress`** (the card placed nothing in `src/`): the matches are masked compares. Drafts that
+- `m2c_bulk.py --plain` (ER-054): run on five game files (241 functions); its 78 plain MATCHes there are placed and
+  proven by `make regress`. Not met yet: a plain draft with `M2C_BITWISE`, a struct-typed `%hi` / `%lo` extern, a
+  `&M2C_FIELD` before a postfix operator (handled in code, untested).
+- `m2c_bulk.py` (ER-050): its first run placed nothing (masked compares only); ER-054 placed the matches of these
+  files. Drafts that
   match only with the `%hi` / `%lo` section-attribute extern need the recipe form before placement. Not tried on
   SDK code, VU0 / MMI functions, jump tables in `text_001343E8`, or functions over 255 instructions. The failure
   kinds in 6.1 come from reading a few diffs, not from a count.

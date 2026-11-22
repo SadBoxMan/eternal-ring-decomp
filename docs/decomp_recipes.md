@@ -217,6 +217,14 @@ the patched ee-as `-r2` and `-fno-strict-aliasing`.
 
 **`div.s` and `sqrt.s` always have two `nop`s before them in the game** (754 `div.s` and 59 square-root words that rabbitizer prints as `c1 0x...` in game code, 19 `div.s` in the SDK; none without). Our compiler and assembler give none, so every function with a float divide or square root is parked for ER-034 (cause not known: a gcc option, Sony's assembler, or a compiler build; nothing in cc1's strings names it). This widens ER-034's `mul.s; nop; nop; div.s` to all divides and square roots. `sqrtf()` compiles to the game's inline `sqrt.s` + `c.eq.s` NaN check + call to `func_001E42E0` (so that libm function is `sqrtf`), but needs the symbol name `sqrtf` and the `nop`s.
 
+### 2.8 Bulk m2c placement (ER-054, Sun 22 Nov 2026; Confirmed by `make regress`, 78 functions)
+
+| Lesson | Proved by |
+|---|---|
+| **m2c drafts in plain C match as placed**: unknown fields as `*(T *)((char *)p + off)`, unknown types as `s32`, `.lit4` literals written as float literals, `%hi` / `%lo` data as `extern T D_X[];` (`tools/m2c_bulk.py --plain`, `docs/matching_tools.md` 6.2) | the 78 ER-054 functions in `text_00145120`, `text_0014A968`, `text_0014C840`, `text_0014D930`, `text_0014E2E8` |
+| **One prototype per callee per file.** Drafts made one at a time guess a callee's parameters differently; in one file they must agree. Where a callee's value is used, keep the declaration that returns it; an argument m2c dropped because it passes through untouched in `$a0` can be written explicitly with no change to the code | `func_00149920` (`func_0012F8C8` as `s32`), `func_001507B8` (`func_00131088(arg0)`) |
+| **Arithmetic on `void *`** (m2c's `arg0 + 0x90`) compiles as byte arithmetic in ee-gcc (a GNU extension) and matches; kept as m2c wrote it | `func_0014FF98` |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.

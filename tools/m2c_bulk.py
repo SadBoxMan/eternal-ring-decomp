@@ -441,6 +441,7 @@ class Row:
     flags: str = ""
     notes: str = ""
     seconds: float = 0.0
+    plain: str = ""                 # --plain: result of the plain-C form (MATCH / diff / compile error / skipped)
 
 
 UNSET_RE = re.compile(r"M2C_ERROR\(/\* Read from unset register")
@@ -460,6 +461,7 @@ class Attempt:
     size_ours: int | None = None
     size_game: int | None = None
     files: dict[str, str] = field(default_factory=dict)   # suffix -> text (written for the kept attempt only)
+    protos_h: Path | None = None                           # the prototypes header the draft was compiled with
 
     def score(self) -> tuple:
         size_off = abs((self.size_ours or 0) - (self.size_game or 0)) if self.compiles else 10 ** 6
@@ -527,7 +529,7 @@ def compile_compare(name: str, addr: int | None, c_text: str, c_path: Path, out:
 
 def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, ctx: Path | None,
             protos_h: Path | None, ctx_label: str, game: eematch.Game, timeout: int, hilo: set[str]) -> Attempt:
-    at = Attempt(ctx_label)
+    at = Attempt(ctx_label, protos_h=protos_h)
     rc, draft, err = run_m2c(m2c_dir, a_out, ctx, timeout)
     at.files["m2c.txt"] = draft + ("\n/* stderr:\n" + err + "*/\n" if err.strip() else "")
     fail = re.search(r"Decompilation failure:\s*\n\s*\n?(.*)", draft)
@@ -620,7 +622,8 @@ def job(name: str, asm_path: Path, out: Path, m2c_dir: Path, ctxs: list[tuple[Pa
         if tried[-1].match:
             break
     best = min(tried, key=Attempt.score)
-    for suffix in ("m2c.txt", "c", "err.txt", "diff.txt"):
+    KEPT[name] = (best.files.get("c", ""), best.protos_h)
+    for suffix in ("m2c.txt", "c", "err.txt", "diff.txt", "plain.c", "plain.diff.txt", "plain.err.txt"):
         p = out / "c" / f"{name}.{suffix}"
         if suffix in best.files:
             p.write_text(best.files[suffix], encoding="utf-8", newline="\n")
@@ -635,6 +638,215 @@ def job(name: str, asm_path: Path, out: Path, m2c_dir: Path, ctxs: list[tuple[Pa
     row.notes = "; ".join(notes)
     row.seconds = round(time.time() - t0, 2)
     return row
+
+
+# --- plain C (--plain, ER-054) ------------------------------------------------------------------------------
+
+KEPT: dict[str, tuple[str, Path | None]] = {}     # function -> (kept draft text, its prototypes header)
+
+PLAIN_TYPES = [("M2C_UNK8", "s8"), ("M2C_UNK16", "s16"), ("M2C_UNK32", "s32"), ("M2C_UNK64", "s64"),
+               ("M2C_UNK", "s32"), ("f64", "double")]
+NAME_RE = re.compile(r"\b(?:func|D)_[0-9A-F]{8}\b")
+PLAIN_COMMENT = ("/* ER-054: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed "
+                 "readings. */")
+
+
+def _close_paren(s: str, i: int) -> int:
+    """Index of the ')' that closes the '(' just before s[i]."""
+    depth = 1
+    while i < len(s):
+        if s[i] == "(":
+            depth += 1
+        elif s[i] == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    raise ValueError("unbalanced parentheses")
+
+
+def _split_top(s: str) -> list[str]:
+    out, depth, cur = [], 0, ""
+    for ch in s:
+        if ch == "," and depth == 0:
+            out.append(cur)
+            cur = ""
+            continue
+        depth += ch == "("
+        depth -= ch == ")"
+        cur += ch
+    return out + [cur]
+
+
+def _simple(e: str) -> bool:
+    return re.fullmatch(r"[A-Za-z_]\w*", e) is not None
+
+
+def plain_fields(text: str) -> str:
+    """M2C_FIELD(e, T *, off) -> *(T *)((char *)e + off) (m2c's macro uses s8 *: the same arithmetic); offset 0 ->
+    *(T *)e; &M2C_FIELD(..) -> the pointer itself; parentheses only where a postfix operator follows."""
+    key = "M2C_FIELD("
+    while (i := text.find(key)) >= 0:
+        j = _close_paren(text, i + len(key))
+        args = _split_top(text[i + len(key):j])
+        if len(args) != 3:
+            raise ValueError("M2C_FIELD with other than 3 arguments")
+        e, t, off = (plain_fields(a).strip() for a in args)
+        base = e if _simple(e) else f"({e})"
+        if re.fullmatch(r"0x0*|0+", off):
+            ptr = f"({t}){base}"
+        else:
+            ptr = f"({t})((char *){base} + {off})"
+        amp = i > 0 and text[i - 1] == "&" and (i < 2 or text[i - 2] != "&")
+        after = text[j + 1:].lstrip()
+        if amp:
+            start, rep = i - 1, f"({ptr})" if after[:1] in ("[", ".", "(") or after.startswith("->") else ptr
+        else:
+            rep = f"*{ptr}"
+            if after[:1] in ("[", ".", "(") or after.startswith("->"):
+                rep = f"({rep})"
+            start = i
+        text = text[:start] + rep + text[j + 1:]
+    return text
+
+
+def plain_types(text: str) -> str:
+    for a, b in PLAIN_TYPES:
+        text = re.sub(rf"\b{a}\b", b, text)
+    return text
+
+
+def decl_name(line: str) -> str | None:
+    m = NAME_RE.findall(line)
+    return m[0] if m else None
+
+
+def file_decls(src_file: str) -> dict[str, str]:
+    """Existing declarations of a src/ file: extern lines (first wins) and prototypes made from C definitions."""
+    p = ROOT / "src" / f"{src_file}.c"
+    out: dict[str, str] = {}
+    if not p.exists():
+        return out
+    text = p.read_text(encoding="utf-8")
+    for line in text.splitlines():
+        s = line.strip()
+        if s.startswith("extern ") and s.endswith(";") and (n := decl_name(s)):
+            out.setdefault(n, s)
+    for m in SIG_RE.finditer(text):
+        if not m[1].strip().startswith("static"):
+            out.setdefault(m[2], f"{' '.join(m[1].split())} {m[2]}({m[3].strip() or 'void'});")
+    return out
+
+
+def plain_parts(c_text: str, name: str):
+    """Kept draft -> (head declarations {name: plain line}, plain function text, hilo names), or a skip reason."""
+    body_lines = [ln for ln in c_text.splitlines() if not ln.startswith("#include")]
+    text = "\n".join(body_lines).strip() + "\n"
+    m = SIG_RE.search(text)
+    while m and m[2] != name:
+        m = SIG_RE.search(text, m.end())
+    if not m:
+        return "no definition found"
+    head, func = text[:m.start()], text[m.start():]
+    decls: dict[str, str] = {}
+    hilo: set[str] = set()
+    for line in head.splitlines():
+        s = re.sub(r"/\*\s*extern\s*\*/", "", line).strip()
+        if not s:
+            continue
+        n = decl_name(s)
+        if not n or not s.endswith(";"):
+            return f"unexpected line before the function: {s[:60]}"
+        hm = re.match(r'^extern ([\w \*]+?)\s*\b(D_[0-9A-F]{8})\s+__attribute__\(\(section\("\.data"\)\)\);$', s)
+        if hm:                                   # recipe form (docs/decomp_recipes.md 2.6): extern T D_X[];
+            s = f"extern {hm[1].strip()} {hm[2]}[];"
+            hilo.add(n)
+        elif not s.startswith("extern "):
+            s = "extern " + s
+        decls[n] = plain_types(" ".join(s.split()))
+    for n in hilo:                               # D_X (a value) -> D_X[0], then &D_X -> D_X
+        func = re.sub(rf"(?<![&\w]){n}\b(?!\s*\[)", f"{n}[0]", func)
+        func = re.sub(rf"&{n}\b", n, func)
+    func = plain_types(plain_fields(func))
+    left = sorted(set(re.findall(r"\bM2C_\w+", func)))
+    if left:
+        return "m2c macro left: " + ", ".join(left)
+    if re.search(r"\b[su]128\b", func + "".join(decls.values())):
+        return "128-bit type (common.h has no s128 / u128)"
+    return decls, func, hilo
+
+
+def proto_lines(path: Path | None) -> dict[str, str]:
+    out: dict[str, str] = {}
+    if path and path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if (n := decl_name(line)) and line.strip().endswith(";"):
+                s = line.strip()
+                out.setdefault(n, plain_types(s if s.startswith("extern ") else "extern " + s))
+    return out
+
+
+def make_plain(rows: list[Row], out: Path, game: eematch.Game) -> None:
+    """For every MATCH row: write c/<func>.plain.c (common.h only, no m2c macros or section attributes, the
+    declarations it needs), compile and compare it again; row.plain gets the result. Declarations come, in this
+    order, from the target src/ file (so place.py drops lines it already has), from the run's own matched
+    functions (their final signatures), from the draft's own extern lines, then from its prototypes header."""
+    matched = [r for r in rows if r.match]
+    parts = {}
+    for r in matched:
+        c_text, _ph = KEPT.get(r.func, ("", None))
+        parts[r.func] = plain_parts(c_text, r.func)
+    run_sigs = {}
+    for n, p in parts.items():
+        if isinstance(p, tuple):
+            m = SIG_RE.search(p[1])
+            run_sigs[n] = f"extern {' '.join(m[1].split())} {n}({m[3].strip() or 'void'});"
+    fdecls_cache: dict[str, dict[str, str]] = {}
+    for r in rows:
+        if not r.match:
+            continue
+        p = parts[r.func]
+        if not isinstance(p, tuple):
+            r.plain = f"skipped: {p}"
+            continue
+        head, func, _hilo = p
+        fdecls = fdecls_cache.setdefault(r.file, file_decls(r.file))
+        protos = proto_lines(KEPT[r.func][1])
+        lines = []
+        for n in dict.fromkeys(NAME_RE.findall(func)):
+            if n == r.func:
+                if n in fdecls and fdecls[n].startswith("extern"):
+                    lines.append(fdecls[n])      # the file's own extern for it must agree with the definition
+                continue
+            for src in (fdecls, run_sigs, head, protos):
+                if n in src:
+                    lines.append(src[n])
+                    break
+            else:
+                lines.append(f"/* m2c_bulk: no declaration for {n} */")
+        text = '#include "common.h"\n\n' + "".join(ln + "\n" for ln in lines) + ("\n" if lines else "") + \
+            PLAIN_COMMENT + "\n" + func.strip() + "\n"
+        res, msg = compile_compare(r.func, game.addr(r.func), text, out / "obj" / f"{r.func}.plain.c", out, game)
+        (out / "c" / f"{r.func}.plain.c").write_text(text, encoding="utf-8", newline="\n")
+        if res is None:
+            r.plain = "compile error: " + gcc_error_class(msg)
+            (out / "c" / f"{r.func}.plain.err.txt").write_text(msg, encoding="utf-8", newline="\n")
+        elif res is False:
+            r.plain = "compare failed: " + msg[:80]
+        else:
+            (out / "c" / f"{r.func}.plain.diff.txt").write_text(eematch.report(res), encoding="utf-8", newline="\n")
+            r.plain = "MATCH" if res.match else "diff: " + diff_class(res)
+    # one name declared two ways by drafts of the same file would clash when both are placed
+    by_file: dict[str, dict[str, set[str]]] = collections.defaultdict(lambda: collections.defaultdict(set))
+    for r in rows:
+        if r.plain == "MATCH":
+            for ln in (out / "c" / f"{r.func}.plain.c").read_text(encoding="utf-8").splitlines():
+                if ln.startswith("extern ") and (n := decl_name(ln)):
+                    by_file[r.file][n].add(" ".join(ln.split()))
+    for f, names in sorted(by_file.items()):
+        for n, ds in sorted(names.items()):
+            if len(ds) > 1:
+                print(f"m2c_bulk: plain: {f}: {n} declared {len(ds)} ways by the drafts: " + " | ".join(sorted(ds)))
 
 
 # --- main ---------------------------------------------------------------------------------------------------
@@ -656,6 +868,9 @@ def main() -> int:
     ap.add_argument("--m2c", default=str(DEFAULT_M2C), help=f"m2c folder (default {DEFAULT_M2C})")
     ap.add_argument("--par", type=int, default=4, help="parallel jobs (default 4)")
     ap.add_argument("--timeout", type=int, default=120, help="m2c timeout per function, seconds")
+    ap.add_argument("--plain", action="store_true",
+                    help="also write c/<func>.plain.c for every MATCH: plain C for tools/place.py (no m2c macros or "
+                         "headers, recipe-form %%hi/%%lo externs), compiled and compared again")
     args = ap.parse_args()
     sys.stdout.reconfigure(line_buffering=True)
 
@@ -745,6 +960,8 @@ def main() -> int:
             rows.append(row)
             print(f"  {row.func} {row.band:>8} {row.klass:<20} {row.detail[:90]}")
 
+    if args.plain:
+        make_plain(rows, out, game)
     write_results(out, rows, args, harvested, time.time() - t_start)
     return 0
 
@@ -802,13 +1019,16 @@ def write_results(out: Path, rows: list[Row], args, harvested: int, secs: float)
         for f, c in flags.most_common():
             lines.append(f"| {f} | {c} | {sum(r.match for r in rows if f in r.flags.split('; '))} |")
         lines.append("")
-    summary_end = len(lines)
-    lines += ["| Function | Band | Compiles | Match | Diff words | Class | Detail | Flags | Notes |",
-              "|---|---|---|---|---|---|---|---|---|"]
+    if args.plain:
+        pc = collections.Counter(r.plain.split(":")[0] for r in rows if r.match)
+        lines += ["| Plain C (`--plain`, MATCH drafts) | Functions |", "|---|---|"] + \
+                 [f"| {k} | {v} |" for k, v in pc.most_common()] + [""]
+    lines += ["| Function | Band | Compiles | Match | Diff words | Class | Detail | Flags | Notes | Plain |",
+              "|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
         lines.append(f"| {r.func} | {r.band} | {'yes' if r.compiles else 'no'} | {'yes' if r.match else 'no'} | "
                      f"{'' if r.diff_words is None else r.diff_words} | {r.klass} | {r.detail.replace('|', '/')} | "
-                     f"{r.flags} | {r.notes} |")
+                     f"{r.flags} | {r.notes} | {r.plain.replace('|', '/')} |")
     (out / "results.md").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     print("\n".join(lines[:12]))
     print(f"m2c_bulk: table in {(out / 'results.md').relative_to(ROOT)}")
