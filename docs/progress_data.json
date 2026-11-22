@@ -1195,6 +1195,24 @@
       "model": "Opus, high",
       "waits_on": "ER-074 (one recomp card at a time)",
       "notes": ""
+    },
+    {
+      "code": "ER-100",
+      "title": "Rest of the five ER-054 files (parked five, six untried, 9+ word DIFFs)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high for the parked five (medium for the rest)",
+      "waits_on": "nothing",
+      "notes": ""
+    },
+    {
+      "code": "ER-101",
+      "title": "Census of never-stored .sdata floats; m2c_bulk declares them extern const",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "nothing",
+      "notes": ""
     }
   ]
 }
