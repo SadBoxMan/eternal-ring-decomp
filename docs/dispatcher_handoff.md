@@ -36,8 +36,9 @@ handoff note in one small commit, and offer the next card. Keep turns short.
 - **Before LuciDin leaves the desk** (office days Wed / Thu 9 AM-2 PM, and before 2 AM), line up the next long run:
   cards cannot be started while he is on Remote Control. Do not turn Remote Control on for new sessions unless asked.
 - **Backups** are the dispatcher's job (after every 3-5 completed tasks and at block end); sessions never run them.
-  Run `python tools/backup.py` from the repo root (ER-025): a zip of our sources plus `repo.bundle` in
-  `F:\Claude\Project Ringsmith\backups\`; it prints one line: check it says "bundle verify okay". Never run by work
+  **Drive E: from Sun 22 Nov 2026 (LuciDin; F: was the drive before).** Run from the repo root (ER-025):
+  `python tools/backup.py "E:\Claude\Project Ringsmith\backups"` (the script's default is still F: until ER-056):
+  a zip of our sources plus `repo.bundle`; it prints one line: check it says "bundle verify okay". Never run by work
   sessions. Log each one below.
 - **Archive** work sessions once verified finished; never ones still working, waiting on LuciDin, or holding
   uncommitted work.

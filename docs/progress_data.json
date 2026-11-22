@@ -799,6 +799,15 @@
       "model": "Opus, medium",
       "waits_on": "nothing",
       "notes": ""
+    },
+    {
+      "code": "ER-056",
+      "title": "Backup default drive E: (backup.py, build.md 5)",
+      "status": "Queued",
+      "track": "other",
+      "model": "Sonnet, low",
+      "waits_on": "nothing",
+      "notes": ""
     }
   ]
 }
