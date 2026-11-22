@@ -781,6 +781,24 @@
       "model": "Sonnet, medium",
       "waits_on": "nothing (tools/seams.py only)",
       "notes": ""
+    },
+    {
+      "code": "ER-054",
+      "title": "Bulk-place the small m2c matches (--plain, file by file)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "one src/ writer per file",
+      "notes": ""
+    },
+    {
+      "code": "ER-055",
+      "title": "m2c misses a tail-j delay-slot store (low)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "nothing",
+      "notes": ""
     }
   ]
 }
