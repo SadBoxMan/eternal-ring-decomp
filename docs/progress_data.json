@@ -883,7 +883,7 @@
     },
     {
       "code": "ER-065",
-      "title": "place.py / cmpfunc.py fixes (+ renumber the duplicate recipes 2.8)",
+      "title": "place.py / cmpfunc.py fixes (+ duplicate recipes 2.8 / 2.10, place.py comment-line drop)",
       "status": "Queued",
       "track": "decomp",
       "model": "Sonnet, medium",
@@ -915,6 +915,33 @@
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "no other card editing tools/split.py",
+      "notes": ""
+    },
+    {
+      "code": "ER-069",
+      "title": "GCSE reloads across joins (toolchain; ruling)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "nothing; adoption needs LuciDin's ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-070",
+      "title": "ee-as r4: delay-slot swap after mtc1 (toolchain; ruling)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "nothing; adoption needs LuciDin's ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-071",
+      "title": "func_00124BE8 by hand",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-069, ER-070",
       "notes": ""
     }
   ]
