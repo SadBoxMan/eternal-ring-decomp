@@ -128,7 +128,19 @@ void func_001397D0(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_001397E0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_001399B8);
+extern float func_0012CE18(char *, char *);
+extern float func_00130258(char *);
+extern float func_00131608(float a, float b);
+
+/* ER-041 (proven under make regress, put back for the file's owner), placed by ER-072: picks a turn of at most 60
+   degrees toward a1 (a reading). Names and types Unconfirmed. */
+float func_001399B8(char *a0, char *a1, float f) {
+    float s, d;
+    s = (func_0012CE18(a0, a1 + 0x90) < 0.0) ? -1.0f : 1.0f;
+    d = func_00131608(func_00130258(a0), s * f);
+    d = (d < -1.0471976f) ? -1.0471976f : ((1.0471976f < d) ? 1.0471976f : d);
+    return func_00131608(*(float *)(a1 + 0xA4), d);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139A70);
 

@@ -381,9 +381,46 @@ void func_00140F10(s8 *arg0, s32 arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140FB8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_001411E8);
-
+extern double fabs(double);
+extern void func_00140B88(s8 *arg0, void *arg1);
+extern void func_0012CB70(float *, char *, char *);
+extern float func_00130758(char *);
+extern void func_001CA018(float *, char *, char *);
+extern void func_00130180(float *, char *, float *);
+extern s32 func_00131088(void *);
 extern void func_00140E00(s8 *, s32);
+
+/* ER-041 (proven under make regress, put back for the file's owner), placed by ER-072 with the file's prototype of
+   func_00131088. Names and types Unconfirmed. */
+void func_001411E8(char **a0, char *a1, char *a2) {
+    float v[4];
+    float w[4];
+    float ang;
+    s32 st = func_00131088(a0);
+
+    if (st != (s32) func_00140B88 && st != (s32) func_00140E00) {
+        return;
+    }
+    func_0012CB70(v, *a0, a1 + 0x50);
+    if (fabs(v[0]) > 200.0f) return;
+    if (100.0f < v[1]) return;
+    if (v[1] < -100.0f) return;
+    if (800.0f < v[2]) return;
+    if (v[2] <= 0.0f) return;
+    if (func_00130758((char *)a0) <= 400.0f) return;
+    *(float *)((char *)a0 + 0x94) -= 4.0f;
+    func_001CA018(w, a2, a2 + 0x10);
+    func_00130180(w, *a0, w);
+    if (0.0f <= v[0]) {
+        *(float *)((char *)a0 + 0x44) = -10.0f;
+        ang = 0.69813174f;
+    } else {
+        *(float *)((char *)a0 + 0x44) = 10.0f;
+        ang = -0.69813174f;
+    }
+    func_0012E820((char *)a0 + 0x40, ang, 15.0f);
+}
+
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_001413B0(s8 *arg0) {
@@ -479,7 +516,6 @@ void func_00142608(s8 *arg0, s32 arg1) {
     }
 }
 
-extern s32 func_00131088(void *);
 extern void func_00141748(s8 *arg0);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
