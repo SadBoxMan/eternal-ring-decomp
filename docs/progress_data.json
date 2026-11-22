@@ -1402,6 +1402,33 @@
       "model": "Opus xhigh / Fable",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-123",
+      "title": "Rest of ER-096 (text_00150878 hard ones)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-124",
+      "title": "m2c_bulk store-order variant",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-125",
+      "title": "text_001000C0 rerun with store-order sort",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-124",
+      "notes": ""
     }
   ]
 }
