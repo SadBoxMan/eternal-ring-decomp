@@ -83,7 +83,60 @@ The dispatcher is pinned. After start_session and detach_session, file each card
 - "Ringsmith Assets" `cg-d09c277b-8fcc-4b4e-b4f6-928cb158929c`: asset rips; they begin after the recomp is complete
   (LuciDin, 17 Nov 2026).
 
-## STATE FOR A FRESH DISPATCHER (DISP-01 -> DISP-02, Thu 19 Nov 2026, 15:15 Eastern)
+## STATE FOR A FRESH DISPATCHER (DISP-02 -> DISP-03, Sun 22 Nov 2026, 15:10 Eastern)
+
+**Where the project is.** Decomp: **787 / 3,609 functions matched (57,200 bytes)**, every one proven by `make regress`
+(whole-ELF SHA-1 + all 3,606 functions; ruling 3.1). Toolchain now: ee-gcc `-r1` (fdiv nops, 3.7) with CFLAGS
+`-O2 -G8 -fno-strict-aliasing -fno-edge-lcm` (3.6, 3.11), ee-binutils `-r4` (3.4 c.cond/bc1, 3.5 mtc1, 3.8 mfc1, 3.12
+delay-slot swap). Code-shape rulings: 3.4 (no-return, also func_001776D8), 3.9 (+ extension: explicit / empty case labels),
+3.10 (double literal replaces a standalone .rodata constant), 3.13 (an unused local that only sizes the frame, narrowly).
+Split: ER-031 cut five files out of `text_001343E8` plus S22 / 0x001CB528; `tools/split.py` aligns 8- and 16-byte rodata
+and accepts anonymous-constant takeovers. Tools: `m2c_bulk.py` (`--plain`, job-object gcc timeout, pass-through retry,
+`--rerun-diffs`, `--tag`), `place.py`, `cmpfunc.py`, `clones.py`, `census.py`, `seams.py` (`docs/matching_tools.md`).
+Recipes section 2 runs 2.1-2.22 (numbers collide when parallel cards merge: renumber on merge, keep both).
+**Recomp / port:** PS2Recomp + local patches (`C:\rs\recomp\patches\`: er018, er029, er043, er046, er058; ER-074 changed only
+our scripts) boots both movies, the FromSoftware logo and title screen (as PCSX2), the attract loop, and runs past NEWGAME
+into the opening cutscene (15 min, no fault). Movie pictures invisible (ER-030), 3D models missing (ER-102), single-digit FPS
+(ER-104), no sound (ER-105). Tracker `ms10` notes current.
+
+**Running.** ER-099 (PCSX2 memory card import, Opus high, `local_739cb03e-323f-42ee-8472-6ea9a3fff63d`, started 14:59 in the
+main checkout + `C:\rs\recomp`): it reports to the dispatcher id in `docs/handoff.md` (DISP-02 tells it the new id).
+
+**How waves run (LuciDin, 21-22 Nov).** Decomp in waves: each `src/` writer owns whole files and works in its own worktree
+(`docs/build.md` 6: junctions to the main checkout's `disc/` and `.venv`, read-only); **one port card in every wave**
+(recomp cards one at a time: shared build tree). Merge each branch yourself: fast-forward when it already has main, else
+`git merge --no-ff`; resolve docs (keep both sides; metrics = main's numbers + the card's delta, never the card's total);
+then a clean `python tools/regress.py`. If a card is building in the main checkout, merge with `RINGSMITH_SKIP_REGRESS=1`
+and prove main in `C:\rs\wt\dispverify` (quirk 9). After a toolchain / CFLAGS / split.py change lands, tell every running
+card to merge main. Never remove a worktree's junctions while its session is running (DISP-02 did once, ER-069).
+Managerial rights: each card asks LuciDin at STEP 0; toolchain changes and new matching shapes always go to him.
+
+**Ready next (file ownership in brackets; one writer per file):**
+- `text_001000C0.c`: ER-089 (frame-sizing locals, 3.13), ER-091, ER-092, ER-093 (large), ER-094 (func_00126F00). Opus high.
+- `text_00150878.c`: ER-095 (3.4 applied), ER-096 (hard ones), ER-098 (187 DIFFs rerun). Also ER-051's S21 / 0x001C4F68 cuts
+  (yaml + this file: not beside the others). Opus medium / high.
+- Five small files (`text_00145120`, `0014A968`, `0014C840`, `0014D930`, `0014E2E8`): ER-100. Opus high / medium.
+- ER-031's five files: ER-107 after ER-106. Toolchain research (no `src/`): ER-090 (loop register promotion), ER-106
+  (alias model). Tools: ER-084, ER-097 (m2c_bulk), ER-101 (const floats census). ER-088 folds into bulk cards.
+- Port, one at a time, after ER-099: ER-102 (3D models), ER-103 (libvu0 HLE audit; reading can run beside), ER-030 (movie
+  picture), ER-036 (opcode bugs), ER-033 (FFmpeg from source), ER-104, ER-105, ER-059, ER-075, ER-048, ER-044, ER-045.
+- Thursday / Friday only (LuciDin): Fable and Ultracode. Candidates: ER-016 pilot fan-out, ER-093 if it resists Opus.
+- Assets (after the recomp is complete): ER-057, music first (LuciDin).
+
+**Open decisions for LuciDin:** GPL-3.0 for the port (ER-019); saved redump page (ER-009); Ringsmith's weekly share;
+optional: pull the public-source SDK parts (newlib / libgcc) ahead of ruling 3.3's "SDK after game" order (DISP-02 suggested,
+not decided). **GitHub:** first push Thu 19 Nov 18:41 (main at aaae66f); 169 commits on main since, not pushed: every push
+needs his yes in that session plus the history check.
+
+**Quirks learned by DISP-02.** (10) Never write Windows paths through `printf` or plain Python strings: `\r`, `\b` became
+control characters three more times; use raw strings in a scratch .py file, then `grep -caP '[\x00-\x08\x0b-\x1f]'`.
+(11) `grep -c` returns exit 1 on zero matches: do not chain a commit after it with `&&`. (12) Archive calls need a second call
+with the hook's `session` label; several sessions may already be archived by LuciDin from the sidebar. (13) Cards often report
+"code from the dispatcher" rows: assign the next free ER code on merge (next free: ER-108). (14) `tools/backup.py` defaults to
+E: (ER-056). (15) PCSX2 is at `C:\Users\lukea\Games\Emulated\Playstation 2`; port runs keep the console hidden (handoff item 7).
+DISP-01's quirks 1-9 above still hold.
+
+## OLDER STATE (DISP-01 -> DISP-02, Thu 19 Nov 2026, 15:15 Eastern)
 
 **Where the project is.** Phase 0 complete. Native toolchain (ee-gcc 2.9-ee-991111 + patched ee-binutils `-r1`, MSYS2,
 `C:\rs\toolchain`), whole ELF byte-identical, `make regress` (~30 s; pre-commit hook), 10 game + 15 SDK source files,
