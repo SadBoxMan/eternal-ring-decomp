@@ -301,7 +301,7 @@
       "status": "In progress",
       "by": "",
       "text": "First PC build: recompiled EE code + HLE stubs compiles to a Windows exe and boots",
-      "notes": "ER-008 spike (18 Nov 2026): the exe builds and boots into the first PSS movie, then stalled. ER-018 (18 Nov 2026): stall fixed (local PS2Recomp patch: priority-0 threads, libmpeg Background callback, sceGsSetDefDispEnv PMODE); the game's movie player runs and the GS presents frames. ER-029 (19 Nov 2026): VBlank pacing fixed (second local patch; 59.94 Hz measured): the Agetec movie plays its 210 pictures in about 7 s as on PCSX2. ER-043 (19 Nov 2026): the movie now ends as on PCSX2 (libmpeg end checks bound to HLE; third local patch), about 4.5 s of black where the FromSoftware logo belongs, then the opening FMV plays (bottom half of the picture correct). ER-046 (22 Nov 2026): the opening FMV ends (fourth local patch: video ends on its sequence end code), the boot reaches the title screen loop, which draws nothing (black), then the attract movies. Not a playable boot. ER-058 / ER-047 (22 Nov 2026): the FromSoftware logo and the title screen show as on PCSX2, also on the attract loop's second pass (fifth local patch: LoadImage address, D2 chain mode with QWC, libgraph double buffer after the shipped code, field presentation, GS reset); menus respond; the movie pictures are now invisible. NEWGAME reaches loading, then stops at a missing recompiled function (ER-074). Not a playable build. Needs: movie picture (ER-030), ER-074, then GS, VU1 checks."
+      "notes": "ER-008 spike (18 Nov 2026): the exe builds and boots into the first PSS movie, then stalled. ER-018 (18 Nov 2026): stall fixed (local PS2Recomp patch: priority-0 threads, libmpeg Background callback, sceGsSetDefDispEnv PMODE); the game's movie player runs and the GS presents frames. ER-029 (19 Nov 2026): VBlank pacing fixed (second local patch; 59.94 Hz measured): the Agetec movie plays its 210 pictures in about 7 s as on PCSX2. ER-043 (19 Nov 2026): the movie now ends as on PCSX2 (libmpeg end checks bound to HLE; third local patch), about 4.5 s of black where the FromSoftware logo belongs, then the opening FMV plays (bottom half of the picture correct). ER-046 (22 Nov 2026): the opening FMV ends (fourth local patch: video ends on its sequence end code), the boot reaches the title screen loop, which draws nothing (black), then the attract movies. Not a playable boot. ER-058 / ER-047 (22 Nov 2026): the FromSoftware logo and the title screen show as on PCSX2, also on the attract loop's second pass (fifth local patch: LoadImage address, D2 chain mode with QWC, libgraph double buffer after the shipped code, field presentation, GS reset); menus respond; the movie pictures are now invisible. NEWGAME reaches loading, then stopped at a missing recompiled function. ER-074 (22 Nov 2026): fixed (a libvu0 function the split labels as data; our syms_to_csv.py / make_configs.py); the game runs into the opening in-engine cutscene, but only the sky draws (every 3D model missing), at single-digit FPS, no sound. Not a playable build. Needs: the 3D model path (VU1 / VIF1 / PATH1, libvu0 HLE audit), speed, movie picture (ER-030)."
     }
   ],
   "tasks": [
@@ -965,11 +965,11 @@
     {
       "code": "ER-074",
       "title": "Recomp NEWGAME: missing recompiled function 0x1D73D0",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, high",
       "waits_on": "one recomp card at a time",
-      "notes": ""
+      "notes": "Done 22 Nov 2026: past NEWGAME into the opening cutscene (15 min, no fault). 0x1D73D0 (libvu0 Normalize, a split dlabel block) had no recompiled body; syms_to_csv.py now takes func_* OBJECT symbols (3 blocks) with address names, make_configs.py recompiles Normalize from the shipped code (DROP_STUBS). Next stop: only the sky draws (3D models missing), single-digit FPS, no sound. recomp_spike.md 13"
     },
     {
       "code": "ER-075",

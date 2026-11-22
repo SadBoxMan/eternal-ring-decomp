@@ -803,3 +803,92 @@ of ER-059 (the attract order; the recomp now shows the same order, with the movi
 - The two logo stages and the title compared with PCSX2 by eye only (window captures), not pixel by pixel; the fade
   timing was not measured.
 - Sound never heard (all runs muted); `ps2x_tests` not run against the patched runtime.
+
+## 13. ER-074: past NEWGAME (Sun 22 Nov 2026)
+
+Written by ER-074 (Opus 5.5, high), work 13:56 to about 15:10 Eastern. Question: why does the game thread stop after
+NEWGAME at `[guest-branch:missing-target] kind=DirectCall op=JAL source=0x123cac target=0x1d73d0` (12.5)? **Short
+answer: 0x001D73D0 (libvu0, `sceVu0Normalize` by the analyzer's name, Unconfirmed) is one of three functions our
+split writes as data blocks, and `syms_to_csv.py` passed only FUNC symbols to PS2Recomp, so it had no body. With the
+three blocks given function boundaries and Normalize recompiled from the shipped code, NEWGAME loads and the opening
+in-engine cutscene runs (15 min, no fault; subtitles advance). The next stop: the cutscene shows only the sky, where
+PCSX2 shows the ship, the characters, the sea and the coast; and it runs at single-digit FPS.** No PS2Recomp runtime
+change was needed; the fix is in our `tools/recomp/syms_to_csv.py` and `make_configs.py` (described in
+`tools/recomp/ER-074_data_blocks.md`).
+
+### 13.1 Cause
+
+`docs/toolchain.md` 6.1 lists three blocks that spimdisasm labels as data (`dlabel`, `STT_OBJECT`, still named
+`func_*`): `func_001D73D0` (56 bytes), `func_001D7658` (120) and `func_001DECA0` (88). The first two each hold a VU0
+`vsqrt` with a non-zero `fsf` field (`0x4A2503BD`, `0x4BA703BD`), which rabbitizer flags as invalid; PS2Recomp's own
+decoder ignores the field and translates them. The third holds a 16-byte constant (`0x00FF00FF` x 4) that the code
+loads with `lq` and also runs through (as `dsra32 $zero, $ra, 3`, a no-op) before its `jr ra`. Only 0x001D73D0
+mattered for NEWGAME: the game calls it from 20+ sites (the NEWGAME path at 0x00123CAC in `func_00123C28`); 0x001D7658
+is called only by the HLE'd `sceVu0RotMatrixZ / X / Y`, and 0x001DECA0 already had a stand-alone entry
+(`entry_1deca0_0x1decf8`, the analyzer's `_copyRefImage` entry point) with the same instructions.
+
+### 13.2 The fix
+
+| Change | Effect |
+|---|---|
+| `syms_to_csv.py`: also the `func_*` OBJECT symbols in executable sections; address names for every row | CSV: 3,609 functions, exactly the ER-008 list plus the three rows (the decomp's 13 newer names such as `sqrtf` / `dpadd` are not passed on: a generated `sqrtf` could clash with the C runtime) |
+| `make_configs.py`: `DROP_STUBS` removes `sceVu0Normalize@0x001D73D0` from the analyzer's stubs | Normalize runs as recompiled shipped code. The HLE handler normalises all four components by a 4-component length and returns zero below 1e-6; the shipped code normalises xyz by the xyz length and writes w = 0 (our reading of the encodings; the generated C++ matches it instruction by instruction). `_sceVu0ecossin` stays HLE (wrong calling convention, but unreachable, see the patch note) |
+| Generated output | Against ER-043's: 3 new files, 1 removed, 4 changed (two renamed tail calls in libmpeg `func_001DDD80`, registration, two headers); 3,359 recompiled, 250 stubs, 0 decode failures, 0 unhandled instructions. `game_build` held exactly ER-043's output before (all 3,608 runner files compared) |
+| Build | `build_game.bat`, 0 errors (`C:\rs\recomp\er074_build1.txt`); rebuilt with the audio switch (`er074_build2_audio.txt`) |
+
+### 13.3 Runs (Sun 22 Nov 2026, window on the secondary monitor, console hidden, killed by PID; LuciDin drove with pad input and sound on, his request)
+
+| Run | Time | Result |
+|---|---|---|
+| 1 | 14:31, killed at about 56 s on LuciDin's word ("being odd") | LuciDin: no Agetec logo, "hung" after the FromSoftware logo. Both expected at this stage: the movies are invisible since ER-058 (ER-030), and the invisible opening FMV ran for 81 s to 132 s in ER-058's runs. Log identical to ER-058's runs |
+| 2 | 14:32, window closed at 62 s | The faded FromSoftware logo stayed on screen from about 20 s to 60 s (ER-058 run 9 showed plain black during the FMV). Not chased (13.5) |
+| 3 | 14:33:58 to 14:48:58 (extended from 8 to 15 min on LuciDin's word; `er074_attach.ps1`) | LuciDin skipped the invisible FMV to the title screen and chose NEWGAME: **loading, then the opening cutscene**: from about 90 s a letterboxed scene (dark top edge, then grey cloudy sky) that changes slowly; the subtitle "I gotta be going, now." at about 811-840 s. No `missing-target`, no exception in the logs. LuciDin: single-digit FPS; **no sound heard** with `PS2X_AUDIO=1` |
+
+Captures: `C:\rs\recomp\shots\er074_r1_*` to `er074_r3_*`, contact sheet `er074_r3_sheet_30s.png`; logs
+`C:\rs\recomp\er074_r*_*.txt`.
+
+### 13.4 Reference: PCSX2 (LuciDin drove, Sun 22 Nov 2026, about 14:52 Eastern, sound on)
+
+The same cutscene frame, with the subtitle "I gotta be going, now.": a sailor (the boat's captain: Unconfirmed
+reading) on the deck of a small sailing boat, sail and mast behind him, sea and a coastline, under the same cloudy
+sky (LuciDin's screenshot, `C:\rs\captures\er074\pcsx2_luci_newgame_cutscene.webp`; PCSX2 at 60 FPS). LuciDin:
+"Characters and the ship should be visible over the sky". So in the recomp the sky (a background layer) draws, and
+**every 3D model is missing**: ship, character, sea surface, coast. The read-only window watcher
+(`er074_watch_pcsx2.ps1`) saved no captures this time (cause not looked into).
+
+### 13.5 Next stops (written down, not chased)
+
+1. **3D models missing.** Reading (Unconfirmed): the models go through VU1 (the game's 4 VU microprograms in
+   `.DVP.overlay`, ER-002) by VIF1 DMA and XGKICK (PATH1), which the runtime runs in its VU1 / VIF1 interpreter; none
+   of that was exercised before NEWGAME. Where it breaks (VIF1 DMA not sent, microprogram not uploaded, XGKICK not
+   reaching the GS, or VU0 / libvu0 maths giving degenerate matrices: the whole of libvu0 except Normalize is HLE'd)
+   is not known.
+2. **Speed.** Single-digit FPS in the cutscene (the subtitle came about 13 min after launch). Candidates
+   (Unconfirmed): the VU1 interpreter ("performance is very bad", PS2Recomp README), the CPU GS backend.
+3. **libvu0 HLE.** The analyzer binds about 40 libvu0 functions to HLE handlers; both of the two checked are wrong for
+   this game (Normalize, ecossin). The rest (ApplyMatrix, MulMatrix, RotMatrix*, CameraMatrix, ViewScreenMatrix,
+   RotTransPers, ...) feed exactly the 3D path of item 1.
+4. **No sound** with the audio device open: the runtime has no SPU2; its audio backend plays VAG samples it catches
+   through a guessed sound-RPC path, while the game's own IOP sound modules (SDRDRV, FSIOPSND, MODHSYN) run in the
+   IOP interpreter (`SPU:T/O` printed at boot in every run since ER-058).
+5. Run 2's frozen faded logo during the FMV, where ER-058 run 9 showed black: one run only, pad / sound on; not
+   chased.
+
+### 13.6 Files (outside git)
+
+| File | What |
+|---|---|
+| `C:\rs\recomp\work_er074\` | `split_functions.csv`, configs, `out_split` (final), `out_split_withstub` (Normalize still HLE, for comparison), `pre_er074\` (the replaced generated files), `pre_audio\` (`ps2_runtime.cpp` before the audio switch), `recomp_split.log` |
+| `C:\rs\recomp\patches\er074_local_run_audio.patch` | `PS2X_AUDIO=1` run switch, diff against the ER-058 state of `ps2_runtime.cpp` (SHA-1 f5997866...); checked: reverse-applies on `game_build` |
+| `C:\rs\recomp\scripts\er074_run.ps1`, `er074_attach.ps1`, `er074_watch_pcsx2.ps1` | run script (`-Pad`, `-Sound`), run extender, PCSX2 watcher |
+| `C:\rs\captures\er074\` | LuciDin's PCSX2 screenshot |
+
+### 13.7 Not verified / Unconfirmed
+
+- The names `sceVu0Normalize`, `_sceVu0ecossin`, `_copyRefImage` (the analyzer's database).
+- That the recompiled Normalize gives the console's results bit for bit: PS2Recomp's `vsqrt` takes `max(0, x)` (the
+  VU takes `|x|`; the input is a sum of squares here) and its `vdiv` returns 0 for x / 0 (the VU returns the signed
+  maximum; with `vmulq` on a zero vector both give zero, but not checked by a test).
+- Whether the cutscene's camera, timing and subtitle order match PCSX2 beyond the one frame compared.
+- The other two data blocks were not exercised (0x001D7658 unreachable; 0x001DECA0 unchanged).
+- Sound (nothing heard); `ps2x_tests` not run; the FMV is still invisible (ER-030).
