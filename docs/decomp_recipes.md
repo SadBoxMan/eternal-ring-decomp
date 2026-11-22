@@ -461,5 +461,11 @@ Standing rulings; each applies until LuciDin changes it.
 |---|---|
 | **Accepted** | A `switch` that lists explicit `case` labels sharing the `default` body (func_0013D4D0: `case 0:` and `case 12:` beside `default:`), when that is the only C shape that gives the original's jump table (its base and entry count) and the listing reads as the original source naming those values. Natural C, not a matching trick; ER-072 may use the same shape on the other jump-table functions |
 
+### 3.10 ER-072: a double literal replaces its standalone .rodata constant (Sun 22 Nov 2026, about 05:35 Eastern, via DISP-02)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** | When a C function's own double (or float) literal is emitted by gcc as an anonymous `.rodata` constant that takes the place of a standalone `INCLUDE_RODATA` / `D_` symbol (func_001371C0, func_0013AA28, func_0013BD90, func_0013DF90, func_0014DF08, func_0014EEF0), `tools/split.py`'s order check may accept dropping that `INCLUDE_RODATA`: the literal is ordinary source and `make regress` still proves every byte. ER-077 implements it |
+
 No ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, dead code): park such functions with a
 one-line cause and ask.

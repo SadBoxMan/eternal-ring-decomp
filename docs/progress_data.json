@@ -914,7 +914,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "split.py part folds into ER-077; census.py part free",
+      "waits_on": "folded into ER-077",
       "notes": ""
     },
     {
@@ -992,10 +992,10 @@
     {
       "code": "ER-077",
       "title": "Anonymous double constants vs the INCLUDE_RODATA order check (with ER-068's split.py part)",
-      "status": "Waiting",
+      "status": "Queued",
       "track": "decomp",
       "model": "Opus, high",
-      "waits_on": "LuciDin's ruling",
+      "waits_on": "nothing (ruling 3.10 accepted)",
       "notes": ""
     },
     {
