@@ -1357,6 +1357,51 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-118",
+      "title": "strict-aliasing pair in the five files (ruling)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-106",
+      "notes": ""
+    },
+    {
+      "code": "ER-119",
+      "title": "func_00146598 and func_00145578 by hand",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-120",
+      "title": "m2c_bulk rerun over the five files + size DIFFs",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-112",
+      "notes": ""
+    },
+    {
+      "code": "ER-121",
+      "title": "m2c_bulk tries ruling 3.14",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-122",
+      "title": "FP-tie three (Thu/Fri, xhigh or Fable)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus xhigh / Fable",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
