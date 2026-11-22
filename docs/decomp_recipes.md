@@ -395,6 +395,13 @@ MATCHes of `tools/m2c_bulk.py --plain`, 10 more after aligning declarations, `fu
 | `func_0013FCF8` | GCSE hoists the `u16` reload of `+0x6E` above the table (2.11's toolchain difference; with `-fno-gcse`, diagnostic only, only one block's store order is left); its double `D_00354968` has `.align 3` now |
 | `func_0013AA28`, `func_0013BD90`, `func_0013DF90` | each reads a double constant from a standalone `INCLUDE_RODATA` (`D_00354800`, `D_00354848`, `D_00354928` / `D_00354930`): `tools/split.py`'s order check blocker of 2.10 (`func_001371C0`). Not drafted by hand |
 
+### 2.13 Bulk pass over `text_001000C0` (ER-060 part 2, Sun 22 Nov 2026; Confirmed by `make regress`, 58 functions)
+
+| Lesson | Proved by |
+|---|---|
+| **A sibling-call wrapper's return type does not show in its own code**: `return g(x);` compiled as `j g` is the same for `s32` and `f32`. m2c guesses `s32`; a caller that reads `$f0` after calling it (or a `cvt.w.s` that the game lacks) shows it is `f32`. Fix the wrapper, its callee's extern and the caller together; no byte changes in the wrapper | `func_001314C8`, `func_00131508` (`f32`, `j func_001E3EC8`), `func_0012DA68`, `func_00130758` |
+| **A float passed through in `$f12`** works like the integer `$a0` of 2.9: the function never sets `$f12` before calling a callee that reads it, so give it an `f32` parameter and pass it on (no move is emitted) | `func_0012B6B0` (to `func_0012BAE0`) |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.

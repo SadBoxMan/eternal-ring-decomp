@@ -388,6 +388,42 @@ hand versions are in recipes 2.12.
 `cmpfunc` limit seen again: a `%lo` of a function address (`.text`-relative) whose `%hi` sits in another block is
 "no HI16 before it" (8 functions here); all proven by `make regress`.
 
+### 6.5 `text_001000C0` (ER-060 part 2, Sun 22 Nov 2026)
+
+`--plain`, default context, `--par 4`, the whole file (525 asm functions, 623 s; label `er060b`), with a watchdog
+beside it that kills any `cc1.exe` of the worktree running over 2 minutes (none was needed: no draft looped). Results:
+525 drafts, 400 compile, **58 masked MATCH, 55 plain MATCH**. All 55 placed in two batches (28 + 27), `make regress`
+(-j4) green after each; the other 3 masked MATCHes placed after aligning declarations by hand (third regress green):
+**58 functions, 4,752 bytes**, nothing compiler-steering. The comment above each says `ER-060: drafted with m2c ...
+Unconfirmed readings` (the tool writes `ER-054`; changed in the copies before placing, the tool is untouched).
+
+| Function | What it took |
+|---|---|
+| `func_0012B6B0` | calls `func_0012BAE0` without setting `$f12`, and `func_0012BAE0` reads `$f12` (another draft, `func_0012F958`, passes a float there): given an `f32 fparg0` parameter passed through; same code (recipes 2.13) |
+| `func_0012DA68` | uses `func_001314C8`'s `$f0`: `func_001314C8` / `func_00131508` (placed in batch 2 as `s32`, sibling `j func_001E3EC8`) and the file's `func_001E3EC8` extern made `f32`; same code |
+| `func_00130758` | returns `func_001114E8`'s float as it is (no `cvt.w.s` in the game): `float func_00130758(void *)` |
+| `func_00132CF8` | the file's extern was `void func_00132CF8(void)` (an address-taking user, recipes 2.9 / 2.12): changed to `(s8 *)`; three declarations moved above it |
+
+`place.py`'s extern-below limit (6.3) met 3 times (`D_0035B8A0`, `D_0035B8A8`, and `func_00133290` / `func_00132E80` /
+`func_00133098`); fixed by moving the file's line up. A small checker run after each batch (every `extern` line of a
+placed draft must be declared above the placed definition) found the first two before the build; the third was a
+plain prototype line (no `extern`), caught by the compile. No implicit declarations in the build log.
+
+**Skipped:** the 14 functions recipes 2.10 / 2.11 park or leave for ER-069 / ER-070 / ER-071 / ER-073 (none was a
+MATCH anyway), and the 29 VU0-flagged functions (none matched; they need inline asm, ruling 3.3).
+
+**Left in asm (not placed):**
+
+| Kind | Functions |
+|---|---|
+| same size, 1-2 words differ (rerun as a list of 18, label `er060c`: none matched, unlike ER-062's run) | `func_00101238`, `func_00103E30`, `func_0010CAF0` (div), `func_00111660`, `func_00129ED8`, `func_0012A140`, `func_0012B238`, `func_0012C778`, `func_0012F838`, `func_0012F870`, `func_00130A88`, `func_00130AD0`, `func_00130CE0`, `func_00130FE0`, `func_00131000`, `func_001320B8`, `func_001321D8`, `func_001328D8` |
+| same size, 3-8 words differ | 33 |
+| same size, 9+ words differ | 53 |
+| size differs | 238 |
+| compile error (mostly harvested signatures: `void value not ignored` 32, too few / many arguments 35, `invalid use of void expression` 18) | 125 (13 of them with `M2C_ERROR`) |
+
+The run's `results.md` / `.csv` (game code: not in git) are in the scratch folder of the ER-060 part 2 session only.
+
 ## 7. Not verified
 
 - The tools were checked on the functions named above only; relocation types other than the five handled
