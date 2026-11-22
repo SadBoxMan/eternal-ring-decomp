@@ -11,7 +11,7 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 757,
+          "done": 776,
           "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
@@ -21,7 +21,7 @@
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 52100,
+          "done": 54380,
           "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
@@ -848,11 +848,11 @@
     {
       "code": "ER-061",
       "title": "Fix the 7 declaration clashes, place 6 drafts",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "ER-054 / ER-049 files free; s128 typedef ruling for func_001462D8",
-      "notes": ""
+      "notes": "Done Sun 22 Nov 2026 in other cards: 4 by ER-064 (func_001462D8, func_0014B3A0, func_0014B3E0, func_0014B4C8), the last 3 by ER-083 / ER-085 (func_001492D0, func_0014FE10, func_0014E120; the clones of func_0012B238 in text_00145120 and of func_0014FE10 pass their arguments on)."
     },
     {
       "code": "ER-062",
@@ -1046,11 +1046,11 @@
     {
       "code": "ER-083",
       "title": "ER-064 part 2: rerun --plain on text_0014D930 / text_0014E2E8",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "nothing",
-      "notes": ""
+      "notes": "Sun 22 Nov 2026 with ER-085 (branch claude/recursing-hellman-1bca67, recipes 2.20, matching_tools 6.8): run er083, 38 asm functions, 7 masked MATCH; 6 placed (712 bytes, make regress green): func_0014E120, func_0014E160, func_0014E740, func_0014E960, func_0014FE10, func_0014FBA0 (by hand after the small-list rerun). func_0014F550 / func_00150350 also matched here but ER-069 part 2 placed them on main first (counted there); ER-069's 8-byte shift did not reproduce."
     },
     {
       "code": "ER-084",
@@ -1064,11 +1064,11 @@
     {
       "code": "ER-085",
       "title": "Hand work in the three ER-064 files (10 DIFFs, 15 div/sqrt drafts)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium (high for stack-buffer ones)",
       "waits_on": "nothing",
-      "notes": ""
+      "notes": "Sun 22 Nov 2026 (branch claude/recursing-hellman-1bca67, recipes 2.20): 13 placed (1,568 bytes, make regress green): func_001492D0, 8 of the 3-8 word DIFFs, 4 div/sqrt (func_00149978, func_00145918, func_00147CF8 with extern const .sdata floats, func_0014CCD0 with case 2: under ruling 3.9 extended by LuciDin). Parked with causes: func_00147F78 (4 words), func_00145FE8 (5), func_00149EE8 / func_0014A500, func_0014D3F8; 6 not attempted. Two follow-ups queued in handoff."
     },
     {
       "code": "ER-086",

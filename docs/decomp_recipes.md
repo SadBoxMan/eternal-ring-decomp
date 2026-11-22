@@ -567,6 +567,40 @@ func_0017D290 and func_001BF5B0, left by ER-060 for `s128`, no longer need it: w
 `func_001C9B18` with plain arguments (placed above); func_00161568's parse error is gone the same way. No typedef was
 added.
 
+### 2.21 The five small game files, round 2 (ER-083 + ER-085, Sun 22 Nov 2026; Confirmed by `make regress`, 19 functions)
+
+19 functions placed in `text_00145120` (9), `text_0014A968` (2), `text_0014C840` (4), `text_0014D930` (2),
+`text_0014E2E8` (6 with func_0014FBA0 from ER-083's small-list rerun), 2,280 bytes; `make regress` (-j4) green after
+each batch and after merging main (ee-as r4). Branch `claude/recursing-hellman-1bca67`. Runs: `m2c_bulk.py --plain`
+over `text_0014D930` / `text_0014E2E8` (label `er083`, 38 functions, 7 masked MATCH) and over the other three
+(`er085`, 94 functions, 1 masked MATCH), then hand work on the same-size DIFFs of 3-8 words and the div / sqrt drafts.
+
+| Lesson | Proved by |
+|---|---|
+| **The file's small `.sdata` floats can be `extern const`.** Where the game loads two `$gp` floats ahead of the stores that follow (or loads one once for two uses across a store), gcc with `-fno-strict-aliasing` reloads a plain `extern float` after each store; `extern const float` lets it keep the loads early, as the game does. Reading (Unconfirmed): the original declared these tuning values `const`. Not every one is: func_00147F78's `D_0035BD40` is reloaded on both paths in the game (a `const` one gives 80 more differing words) | func_00145918 (`D_0035BCF0`, `D_0035BCF4`), func_00147CF8 (`D_0035BD58`, `D_0035BD54`); seen also in func_00145FE8 / func_00147F78 (parked) |
+| **A branch-likely whose slot sets `$a0` from the copy in `$s0` means the next callee reads `$a0`.** func_00149978's `bc1tl ...; daddu $a0, $s0` over `jal func_001302C8`: with `func_001302C8()` gcc fills the slot without `likely` (`$a0` dead on the fall-through); with `func_001302C8(arg0)` (the pass-through of 2.10, no move emitted) `$a0` is live on both paths and gcc uses `bc1tl`. Checked against `func_001302C8`'s asm: it reads `0($a0)` | func_00149978 |
+| **Parameter order in a prototype changes the scheduling of a call's argument setup.** `func_0012B890`'s float argument declared before the last `int` (`(void **, s32, s32, s32, s16, f32, s32)`) gives func_00149DD8's `mov.s $f12` before the `jal` with `daddu $t1, $zero` in the slot; float last gives the reverse. EABI passes both the same way, so the other four calls in `text_00145120` compile to the same bytes either way (only that file's prototype was changed; `text_0014A968` / `text_0014C840` keep the old order) | func_00149DD8 |
+| **A callee that returns `s32`** moves a later temporary from `$v0` to `$v1` (2.15 again): `func_0012F9C0` (`extern s32`), func_00149DD8's counter `lhu $v1` | func_00149DD8 |
+| **m2c reads a constant in a tail `j`'s delay slot as a parameter** (the `$t1` of `j func_0012B890; addiu $t1, $zero, 1`): write the constant | func_0014C4D8, func_0014D3D0 |
+| **A two-state `switch` (0, 1) as the game's compare tree (`==1`, `<2`, `!=0`) needs `case 2:` listed beside the default** (ruling 3.9, extended by LuciDin in the ER-085 session). Without it gcc tests `==0` first | func_0014CCD0 |
+| **`p = table; for (i = 0; i < 3; i++) if (x == *p++) ...`** gives the game's loop (load before the loop, `bnel` with the next load in the likely slot); a `do` / `while` with `i++` first, an index or `p` stepped in the `for` header give other code | func_00146350 |
+| **A `(void)` clone's callee given its real parameters** (2.13): `func_0012B238(void *, void *)` in `text_00145120` (its clones func_00147D88 / func_00149C10 pass both on) let func_001492D0 in; `func_0014FE10` is `s32 (void *, s32)` in `text_0014E2E8` as in the other files, its clone func_0014FE08 passes both on. Two of ER-061's clashes | func_001492D0, func_0014FE10 |
+| **m2c's `arg0 + 0x4C` on a `void **` scales by 4** (0x130 in our build): the drafts' `void **` arguments need `(char *)arg0 + off` before any pointer arithmetic | func_0014CCD0, func_00145FE8 (draft) |
+
+ER-069's 8-byte ELF shift (func_00144488 / func_0014F550 / func_00150350 placed together) did **not** reproduce: on main
+3967dfb plus this branch the three placed together (func_00144488 temporarily) gave `make regress` PASS. ER-069
+part 2 placed all three on main the same day (52a553d), so they count there, not here. Its cause stays unknown.
+
+Parked by ER-085 (one-line causes; C in the dispatcher's notes folder `ER-085_c/`):
+
+| Function | Cause |
+|---|---|
+| func_00147F78 | 4 words: FP register choice in the `else` arm's `*= D_0035BD3C` pair (the game holds the constant in `$f1`; ours in `$f0` / `$f2`); about 20 shapes incl. `const` (m2c's lost stack buffer is solved: `float m[16], v[4], w[4]`, 0xD0 frame) |
+| func_00145FE8 | 5 words: the top block's `lhu 0x8C` / `sw 0x2C` order and the register of the `0x94 + 0xB0` sum; needs `const` floats and `func_0012B890`'s new order; 20 shapes |
+| func_00149EE8, func_0014A500 | twins, 8 bytes long: case 1's block layout (our `sh 0x6C` is cross-jumped into case 2's tail; func_00149EE8's `else` call becomes a sibling `j`); 24 store orders each; need `func_00131140` as `s32` and `func_0014A948(arg0)` |
+| func_0014D3F8 | 13 words: the angle constant chosen by the `200.0f` tests lands in `$f1`, the game's in `$f0` (shared with `-200.0f`); 3 branch shapes, 4 expression shapes, all 120 declaration orders |
+| func_001459A8, func_001485A8, func_00146598, func_0014A0B8, func_00146DF8, func_0014B528 | not attempted (jump tables / 2-11 instructions off / 57-182 words) |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -632,6 +666,7 @@ Standing rulings; each applies until LuciDin changes it.
 | Ruling | Item |
 |---|---|
 | **Accepted** | A `switch` that lists explicit `case` labels sharing the `default` body (func_0013D4D0: `case 0:` and `case 12:` beside `default:`), when that is the only C shape that gives the original's jump table (its base and entry count) and the listing reads as the original source naming those values. Natural C, not a matching trick; ER-072 may use the same shape on the other jump-table functions |
+| **Accepted** (extension, Sun 22 Nov 2026, about 14:34 Eastern, LuciDin in the ER-085 session) | The same for a compare tree: func_0014CCD0's two-state `switch` (0, 1) lists an empty `case 2:` beside the default, the only shape found that gives the game's `==1`, `<2`, `!=0` tests (2.20) |
 
 ### 3.10 ER-072: a double literal replaces its standalone .rodata constant (Sun 22 Nov 2026, about 05:35 Eastern, via DISP-02)
 
