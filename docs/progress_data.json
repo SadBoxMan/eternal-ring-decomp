@@ -1438,6 +1438,33 @@
       "model": "Opus, high",
       "waits_on": "port playable",
       "notes": ""
+    },
+    {
+      "code": "ER-127",
+      "title": "Recomp: cutscene start flicker",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-128",
+      "title": "Recomp: which libvu0 change mattered (harness)",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-129",
+      "title": "Recomp: 2D UI a bit off",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
