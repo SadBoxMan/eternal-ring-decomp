@@ -725,7 +725,7 @@
       "status": "Queued",
       "track": "recomp",
       "model": "Opus, high",
-      "waits_on": "one recomp card at a time; not beside ER-030 (gs/)",
+      "waits_on": "folded into ER-058's card",
       "notes": ""
     },
     {
@@ -817,6 +817,24 @@
       "model": "Opus, high",
       "waits_on": "Assets track start (after the recomp is complete)",
       "notes": "LuciDin Sun 22 Nov 2026, 01:58 Eastern: music is the first asset to rip"
+    },
+    {
+      "code": "ER-058",
+      "title": "Recomp title screen draws nothing (fold in ER-047)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "one recomp card at a time",
+      "notes": ""
+    },
+    {
+      "code": "ER-059",
+      "title": "Title wait, attract order, run timing vs PCSX2 (low)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "LuciDin's yes for PCSX2",
+      "notes": ""
     }
   ]
 }
