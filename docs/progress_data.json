@@ -879,7 +879,7 @@
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "nothing now ER-062 is merged (the five ER-054 files)",
-      "notes": ""
+      "notes": "Overlaps ER-066 (pass-through retry, small-list reruns): run them as one card once ER-060 has finished with m2c_bulk.py"
     },
     {
       "code": "ER-065",
@@ -896,7 +896,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-060 done with m2c_bulk.py",
+      "waits_on": "ER-060 done with m2c_bulk.py; fold into ER-064 if ER-064 runs after ER-060",
       "notes": ""
     }
   ]
