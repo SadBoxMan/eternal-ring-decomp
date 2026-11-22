@@ -794,11 +794,11 @@
     {
       "code": "ER-055",
       "title": "m2c misses a tail-j delay-slot store (low)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "nothing",
-      "notes": ""
+      "notes": "Sun 22 Nov 2026, with ER-084: 140 tail-j slots (not nop / stack pop) in 139 functions, 82 still in asm on main"
     },
     {
       "code": "ER-056",
@@ -1055,11 +1055,11 @@
     {
       "code": "ER-084",
       "title": "m2c_bulk: tail-j delay-slot rewrite",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "nothing",
-      "notes": ""
+      "notes": "Sun 22 Nov 2026: tail j delay slot moved before the j in m2c_bulk's asm rewrite; func_001501D8 drafts func_0012FB48(arg0, 0); 17 new masked matches in A/B on main (matching_tools 6.10)"
     },
     {
       "code": "ER-085",
@@ -1172,11 +1172,11 @@
     {
       "code": "ER-097",
       "title": "m2c_bulk --plain: byte strides for data bases (with ER-084)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "nothing",
-      "notes": ""
+      "notes": "Sun 22 Nov 2026: char[] byte bases and element pointer steps; ER-080's five examples plain MATCH without hand edits, plus 3 more (matching_tools 6.10)"
     },
     {
       "code": "ER-098",
@@ -1208,11 +1208,11 @@
     {
       "code": "ER-101",
       "title": "Census of never-stored .sdata floats; m2c_bulk declares them extern const",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "nothing",
-      "notes": ""
+      "notes": "Sun 22 Nov 2026: tools/sdata_consts.py census (396 of 445 .sdata floats never stored); does not tell D_0035BD40 apart, so extern const is a variant kept on MATCH; no new match in the five ER-054 files"
     },
     {
       "code": "ER-102",
@@ -1301,6 +1301,33 @@
       "status": "Queued",
       "track": "port",
       "model": "Sonnet, low",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-112",
+      "title": "Place ER-084's new plain MATCHes",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-113",
+      "title": "m2c_bulk --plain rerun over text_00150878",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-098",
+      "notes": ""
+    },
+    {
+      "code": "ER-114",
+      "title": "m2c_bulk --plain: named prototypes",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
     }
