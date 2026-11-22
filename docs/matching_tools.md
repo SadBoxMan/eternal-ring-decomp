@@ -560,6 +560,23 @@ toolchain and ER-041 names; 107 asm functions, 125 harvested signatures, 117 s a
   `func_0014D890` in `text_0014C840`): each extern line moved above the new function before the build (a scratch
   check listed every name a placed body uses that is declared only below it).
 
+### 6.8 The five ER-054 files with the current toolchain (ER-083 + ER-085, Sun 22 Nov 2026)
+
+`--plain` runs with ee-gcc r1, `-fno-edge-lcm` (ruling 3.11) and ee-as r3 (r4 merged afterwards, regress still
+green), default context, `--par 4`. Lessons in `docs/decomp_recipes.md` 2.20.
+
+| Run | Files | Asm functions | Masked MATCH | Plain MATCH | Placed |
+|---|---|---|---|---|---|
+| `er083` (43 s) | `text_0014D930`, `text_0014E2E8` | 38 | 7 | 5 (+2 needing a declaration fix) | func_0014E120, func_0014E160, func_0014E740, func_0014E960 (`func_0014F298` returns `s32`), func_0014FE10 (clone prototype); func_0014F550 / func_00150350 were placed on main by ER-069 part 2 the same hour |
+| `er083` rerun (`--rerun-diffs --chunk 8`, 13 s) | same | 8 same-size DIFFs | 0 | 0 | func_0014FBA0 by hand afterwards (store order) |
+| `er085` (106 s) | `text_00145120`, `text_0014A968`, `text_0014C840` | 94 | 1 | 0 (+1 needing a declaration fix) | func_001492D0 (`func_0012B238` given its two parameters) |
+
+By hand from the `er085` drafts (same-size DIFFs of 3-8 words, then div / sqrt): func_00146EF0, func_0014C748,
+func_0014D050, func_00148360 (store order, `perm` script: 97 orders), func_00149DD8, func_0014C4D8, func_0014D3D0,
+func_00146350, func_00149978, func_00145918, func_00147CF8, func_0014CCD0: 12, plus the 3 above and 4 from `er083`,
+19 in all. A small store-order script (every order of N statements, cmpfunc per try; notes folder
+`ER-085_c/perm.py`) found func_00148360 and func_0014FBA0 in under 100 compiles each.
+
 ## 7. Not verified
 
 - The tools were checked on the functions named above only; relocation types other than the five handled
