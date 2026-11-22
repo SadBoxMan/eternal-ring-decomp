@@ -1,6 +1,6 @@
 # Project Ringsmith handoff
 
-**EVERY SESSION READS THIS PARAGRAPH.** Dispatcher: **"Ringsmith DISP-02"**, id `local_3709ebbc-a98e-49e9-a962-e7b2299d302f` (started Thu 19 Nov 2026, 15:16 Eastern; DISP-01 was `local_15d323e2-b845-4337-9f74-b894bdc51e69`).
+**EVERY SESSION READS THIS PARAGRAPH.** Dispatcher: **"Ringsmith DISP-03"**, id `local_9d112acd-e664-4a1c-9a42-3bfb18b6adaa` (started Sun 22 Nov 2026, 15:11 Eastern; DISP-02 was `local_3709ebbc-a98e-49e9-a962-e7b2299d302f`, DISP-01 `local_15d323e2-b845-4337-9f74-b894bdc51e69`).
 (1) STEP 0 of every card: check your model, effort and Ultracode (get_session "self") and the plan usage (get_usage);
 if they are not what the card names, stop, say what is needed and wait for LuciDin to switch and say go (if he says
 he is overriding, carry on). (2) START MESSAGE: once STEP 0 passes, send the dispatcher one short message: task code
