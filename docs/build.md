@@ -212,7 +212,7 @@ can still be used through `extern` from C in the same file (`func_00150818` read
 
 ## 5. Backups (ER-025, Wed 18 Nov 2026)
 
-`python tools/backup.py` writes `F:\Claude\Project Ringsmith\backups\ringsmith_<YYYYMMDD>_<HHMM>_<tag>.zip` (tag `main`
+`python tools/backup.py` writes `E:\Claude\Project Ringsmith\backups\ringsmith_<YYYYMMDD>_<HHMM>_<tag>.zip` (tag `main`
 for the main checkout, else the worktree folder name) and rewrites `repo.bundle` (all refs; `git clone repo.bundle`
 restores every commit) in the same folder. The zip holds our own work only: `src/`, `include/`, `tools/`, `docs/`,
 `Programs/`, the yaml, `symbol_addrs.txt`, `reloc_addrs.txt`, `Makefile`, `requirements.txt`, `CLAUDE.md`,

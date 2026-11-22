@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Backup of our own work to the external drive (zip + git bundle). Run by the dispatcher only (docs/build.md).
 
-Writes F:\\Claude\\Project Ringsmith\\backups\\ringsmith_<YYYYMMDD>_<HHMM>_<tag>.zip (tag `main` for the main checkout,
+Writes E:\\Claude\\Project Ringsmith\\backups\\ringsmith_<YYYYMMDD>_<HHMM>_<tag>.zip (tag `main` for the main checkout,
 else the worktree's folder name) with src, include, tools, docs, Programs, the yaml, symbol_addrs.txt, reloc_addrs.txt,
 Makefile, requirements.txt, CLAUDE.md, .gitignore and .gitattributes, plus repo.bundle in the same folder (all refs,
 rewritten each time: `git clone repo.bundle` restores every commit). Keeps the last 48 zips per tag.
@@ -25,7 +25,7 @@ import time
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEST = sys.argv[1] if len(sys.argv) > 1 else r'F:\Claude\Project Ringsmith\backups'
+DEST = sys.argv[1] if len(sys.argv) > 1 else r'E:\Claude\Project Ringsmith\backups'
 DIRS = ('src/', 'include/', 'tools/', 'docs/', 'Programs/')
 FILES = ('slus_200.15.yaml', 'symbol_addrs.txt', 'reloc_addrs.txt', 'Makefile', 'requirements.txt', 'CLAUDE.md',
          '.gitignore', '.gitattributes')
