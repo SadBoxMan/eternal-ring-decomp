@@ -71,7 +71,47 @@ void func_0014AA18(s8 *arg0, void *arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014AAA8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014ABE8);
+extern s32 func_0012B890(void **, s32, s32, s32, s16, s32, f32 fparg0);
+extern s32 func_0012BA30(void *, s32, s32);
+extern int func_0012E568(int, int);
+extern s32 func_0012F9C0(void **, s32);
+extern s32 func_0012FC38(void **, s32, s32, s32);
+extern void func_00130CE0(char *, float);
+void func_0014B0E8(void *arg0);
+extern s32 func_0014B0F8(void *, void *, s32);
+extern void func_0014AD58();
+extern void func_0014AFA8();
+
+/* ER-100: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+void func_0014ABE8(void **arg0, void *arg1) {
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        func_0014B0E8(arg0);
+        *(s8 *)((char *)arg0 + 8) = 0;
+        *(s8 *)((char *)arg0 + 9) = 0;
+        *(u16 *)((char *)arg0 + 0x74) = func_0012E568(0x1E, 0x78);
+        *(s16 *)((char *)arg0 + 0x6E) += 1;
+    }
+    if (func_0012B890(arg0, 1, 9, *(s16 *)((char *)arg0 + 0x6C), 0x14, 0, 0.15f) != 0) {
+        if (*(u16 *)(*(char **)((char *)arg1 + 0xE0) + 0x26C) == 0x13) {
+            func_0012F9C0(arg0, 2);
+        }
+        if (*(s8 *)((char *)arg0 + 8) == 0 && func_0012FC38(arg0, 0, 0x14, 0x1C) != 0) {
+            *(s8 *)((char *)arg0 + 8) = 1;
+        }
+    } else {
+        func_00130CE0((char *)arg0, 20.0f);
+    }
+    if (*(s8 *)((char *)arg0 + 9) == 0) {
+        *(s8 *)((char *)arg0 + 9) = func_0014B0F8(arg0, arg1, 0);
+    }
+    if (func_0012BA30(arg1, 1, 9) != 0) {
+        if (--*(s16 *)((char *)arg0 + 0x74) < 0) {
+            if (*(s8 *)((char *)arg0 + 9) != 0) {
+                func_00131140((char *)arg0, func_0014ABE8, func_0014AD58, func_0014AD58, func_0014AD58, func_0014AFA8);
+            }
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014AD58);
 
@@ -166,7 +206,6 @@ void func_0014B3E0(s8 *arg0) {
 
 extern s32 func_0014BD10(s8 *arg0);
 extern void func_0014BCC8(s8 *arg0);
-extern int func_0012E568(int, int);
 extern s16 D_001FFB06[];
 
 /* ER-062: by hand from the m2c draft (the 0x6C / 0x74 compare written with 0x6C first, recipe 2.7); names, types and offsets are Unconfirmed readings. */
@@ -190,7 +229,6 @@ void func_0014B4C8(s8 *arg0) {
     }
 }
 
-extern void func_00130CE0(char *, float);
 extern f32 func_001302C8(void *);
 extern float func_00130378(char *, s32);
 extern f32 func_0012E7B0(f32, f32);
@@ -327,12 +365,42 @@ void func_0014BF48(s8 *arg0) {
     func_0014C810(arg0, (s32) func_0014C500);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014BFE0);
+extern void func_0012CBF8(void *, void *, s32, void *);
+void func_0014C620(void *arg0);
 
-extern s32 func_0012B890(void **, s32, s32, s32, s16, s32, f32 fparg0);
-extern s32 func_0012F9C0(void **, s32);
+/* ER-100: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+void func_0014BFE0(void **arg0, s32 arg1) {
+    f32 v[4];
+    s32 n;
+
+    switch (*(s16 *)((char *)arg0 + 0x6E)) {
+    case 0:
+        *(s32 *)((char *)arg0 + 0x10) = 0;
+        *(s32 *)((char *)arg0 + 0x30) = 0;
+        *(s16 *)((char *)arg0 + 0x6E) += 1;
+        func_0012F9C0(arg0, 4);
+    case 1:
+        func_0012CBF8(v, (void *)arg1, 5, *(void **)((char *)arg0 + 0x130));
+        if (func_0012B890(arg0, 0, 0xB, *(s16 *)((char *)arg0 + 0x6C), 0x14, 0, 0.2f) != 0 && func_0012BA30((void *)arg1, 0, 0xB) != 0) {
+            func_0012B540((void *)arg1, 0, 0x11, 1);
+            *(u16 *)((char *)arg0 + 0x6C) = 0;
+            *(s16 *)((char *)arg0 + 0x6E) += 1;
+        }
+        break;
+    case 2:
+        if ((*(u16 *)((char *)arg0 + 0x6C) & 0xF) == 0) {
+            func_0014C620(arg0);
+            n = *(s32 *)((char *)arg0 + 0x10) + 1;
+            *(s32 *)((char *)arg0 + 0x10) = n;
+            if (n >= 5) {
+                func_0014C5E8(arg0);
+            }
+        }
+        break;
+    }
+}
+
 extern void func_0014C630(void **);
-extern s32 func_0012BA30(void *, s32, s32);
 s32 func_0014C760(void **arg0, s32 arg1);
 extern void func_0014C110(void **, void *);
 
