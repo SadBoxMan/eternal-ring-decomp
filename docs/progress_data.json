@@ -473,7 +473,7 @@
       "status": "Waiting",
       "track": "recomp",
       "model": "Opus, medium",
-      "waits_on": "GPL-3.0 decision",
+      "waits_on": "LuciDin's yes to a GitHub fork of PS2Recomp (licence decided 22 Nov 2026: GPL-3.0; the 9 patches are in the Recomp repo's patches/ since ER-110)",
       "notes": ""
     },
     {
@@ -1285,6 +1285,15 @@
       "model": "Opus, medium",
       "waits_on": "ER-108",
       "notes": ""
+    },
+    {
+      "code": "ER-110",
+      "title": "Split into Decomp and Recomp repos",
+      "status": "Done",
+      "track": "other",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": "Two repos (LuciDin 22 Nov): Decomp (full history, all docs; origin eternal-ring-decomp) and Recomp (port, GPL-3.0; origin ringsmith, fast-forward of aaae66f) under Project Ringsmith. Port files moved with their paths; 9 PS2Recomp patches in Recomp patches/ (reproduce game_build's runtime files); regress PASS in Decomp; backup.py also bundles Recomp; stale worktrees removed, dispverify repaired."
     }
   ]
 }

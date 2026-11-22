@@ -53,8 +53,8 @@ dumped disc (ER-001, `docs/disc_layout.md`).
    path with its space never reaches the 1999 configure scripts. From PowerShell:
    ```
    $env:MSYSTEM = "MSYS"
-   C:\msys64\usr\bin\bash.exe -lc "'/c/Users/<you>/Claude/Projects/Project Ringsmith/tools/toolchain/build_ee_gcc.sh'"
-   C:\msys64\usr\bin\bash.exe -lc "'/c/Users/<you>/Claude/Projects/Project Ringsmith/tools/toolchain/build_ee_binutils.sh'"
+   C:\msys64\usr\bin\bash.exe -lc "'/c/Users/<you>/Claude/Projects/Project Ringsmith/Decomp/tools/toolchain/build_ee_gcc.sh'"
+   C:\msys64\usr\bin\bash.exe -lc "'/c/Users/<you>/Claude/Projects/Project Ringsmith/Decomp/tools/toolchain/build_ee_binutils.sh'"
    ```
    Run `build_ee_gcc.sh` first: it patches `config.sub`, which the binutils script checks for. Run the binutils
    script from the repo (not a copy): it applies our gas patch from `tools/toolchain/patches/` (ER-026; the c.cond /
@@ -262,6 +262,12 @@ last 48 zips per tag, and a lock file (`repo.bundle.lock`) stops two runs writin
 written to a temporary file, verified, then moved into place. It prints one line: zip path, KB, file count, bundle
 verify result.
 
+**The port repository too (ER-110, Sun 22 Nov 2026).** From the main checkout, when the sibling folder `..\Recomp`
+is a git repository, the same run also writes `ringsmith_<YYYYMMDD>_<HHMM>_recomp.zip` (every file git sees there:
+tracked plus untracked-not-ignored, under the same ignore / deny checks) and `recomp.bundle` (all its refs, written and
+verified the same way, own lock file), and adds them to the one output line (`| recomp ...; recomp.bundle verify okay`).
+A worktree run backs up only itself, as before.
+
 **Only the dispatcher runs it**, after every 3-5 completed cards and at block end; work sessions never do.
 
 ## 6. Worktrees (ER-015, Thu 19 Nov 2026)
@@ -275,7 +281,7 @@ changed.
 **Setup** (PowerShell, in the new worktree's root; `$m` is the main checkout):
 
 ```
-$m = "C:\Users\lukea\Claude\Projects\Project Ringsmith"
+$m = "C:\Users\lukea\Claude\Projects\Project Ringsmith\Decomp"     # the main checkout since ER-110 (22 Nov 2026)
 cmd.exe /c mklink /J disc  "$m\disc"
 cmd.exe /c mklink /J .venv "$m\.venv"
 .venv\Scripts\python.exe -I tools/regress.py      # clean split + build + checks: must end "regress: PASS"
@@ -293,7 +299,7 @@ That is all: the regress run makes the worktree's own `asm/`, `linker/`, `basero
 | `disc/` (the original ELF) | **junction** to the main checkout | read only; `tools/regress.py` pins it at `disc/extract/SLUS_200.15` |
 | `.venv/` | **junction** | read only; the pre-commit hook and the Makefile call `.venv/Scripts/python.exe`. **Never `pip install` in a worktree**: it would change the main checkout's venv |
 | `C:\rs\toolchain` | shared by path | the Makefile's `TOOLCHAIN`; nothing writes it |
-| hooks | shared by git config | `core.hooksPath` is the main checkout's `tools\hooks` (absolute), but the hook runs `tools/regress.py --staged` of the worktree it commits in (ER-015's commit `829df8e`: the gate ran in the worktree, PASS 54 s) |
+| hooks | shared by git config | `core.hooksPath` is `tools/hooks`, relative (checked by ER-110: a relative hooks path resolves in each worktree's own root, so it survived the move to `Decomp` unchanged), and the hook runs `tools/regress.py --staged` of the worktree it commits in (ER-015's commit `829df8e`: the gate ran in the worktree, PASS 54 s) |
 | `asm/`, `linker/`, `baserom/`, `assets/`, `build/`, `build_logs/` | **never shared** | each worktree writes its own; `tools/regress.py` deletes and rewrites them on every run, so a junction here would wipe another checkout's build. A stale `asm/` from another branch can also hold files this branch's yaml does not make |
 
 **Findings**

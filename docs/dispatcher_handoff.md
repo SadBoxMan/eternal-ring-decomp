@@ -1,6 +1,7 @@
 # Project Ringsmith dispatcher handoff
 
-For every dispatcher session. Read this, `docs/handoff.md`, `docs/roadmap.md`, `docs/usage_log.md` and the memory index
+For every dispatcher session (since ER-110 this file is in `Project Ringsmith\Decomp\docs\`; see "Repository layout").
+Read this, `docs/handoff.md`, `docs/roadmap.md`, `docs/usage_log.md` and the memory index
 (`C:\Users\lukea\.claude\projects\C--Users-lukea-Claude-Projects-Project-Ringsmith\memory\MEMORY.md`) at start.
 Modelled on the Project Twinblade dispatcher (17 dispatchers, Oct-Nov 2026); its `docs/dispatcher_handoff.md` holds
 the full history of how the rules below were learned.
@@ -39,7 +40,9 @@ handoff note in one small commit, and offer the next card. Keep turns short.
   **Drive E: from Sun 22 Nov 2026 (LuciDin; F: was the drive before).** Run from the repo root (ER-025):
   `python tools/backup.py` (default E:\Claude\Project Ringsmith\backups since ER-056, 3095f89):
   a zip of our sources plus `repo.bundle`; it prints one line: check it says "bundle verify okay". Never run by work
-  sessions. Log each one below.
+  sessions. Log each one below. Since ER-110 run it in `Decomp` (`git -C` does not apply: `cd Decomp` first, or
+  `python Decomp\tools\backup.py`); it also writes a `_recomp` zip and `recomp.bundle` of the sibling Recomp
+  repository on the same line (check "recomp.bundle verify okay" too).
 - **Archive** work sessions once verified finished; never ones still working, waiting on LuciDin, or holding
   uncommitted work.
 - **Windows paths in scripts.** Write them as Python raw strings (`r"C:\rs\..."`): plain strings turned `\r` / `\t`
@@ -49,6 +52,27 @@ handoff note in one small commit, and offer the next card. Keep turns short.
   build becomes possible (LuciDin, 17 Nov 2026).
 - **Usage records.** One row per session in `docs/usage_log.md` from each completion message; LuciDin uses the log
   to teach others about cost, so keep it complete.
+
+## Repository layout (ER-110, Sun 22 Nov 2026)
+
+| Folder | Repository | Remote `origin` | Holds |
+|---|---|---|---|
+| `C:\Users\lukea\Claude\Projects\Project Ringsmith\` | none (parent) | - | `CLAUDE.md` (not in git; imports `Decomp\CLAUDE.md` so sessions started here get the rules), the app's `.claude\` |
+| `...\Project Ringsmith\Decomp` | decomp, full history | https://github.com/SadBoxMan/eternal-ring-decomp | `src/`, `include/`, `tools/`, yaml, Makefile, hooks, `.venv`, gitignored `disc/`, `asm/`, `build/`; **every project doc** (handoff, this file, tracker data, usage log, roadmap, `CLAUDE.md`) |
+| `...\Project Ringsmith\Recomp` | port, GPL-3.0 | https://github.com/SadBoxMan/ringsmith | `tools/recomp/`, `docs/recomp_spike.md`, `docs/recomp_opcodes.md`, `patches/` (local PS2Recomp patches), `README.md`, `LICENSE`, a short `CLAUDE.md` |
+| `C:\rs\recomp` | none (PS2Recomp clone + build tree) | - | MSVC build, `game_build`, generated C++, boot files (game data), working copies of the patches |
+| `C:\rs\wt\dispverify` | worktree of Decomp | - | the dispatcher's verify worktree (junctions to `Decomp\disc`, `Decomp\.venv`) |
+
+- **Cards start with `cwd` = `...\Decomp` (decomp, docs, tracker) or `...\Recomp` (port)**: app worktrees need a git
+  folder, and the parent is not one. A port card that also updates the handoff note or tracker commits those in
+  Decomp (two commits, one per repository). Port scripts read the decomp's outputs from the sibling `..\Decomp`
+  (`Recomp\README.md`, "What it needs"), so a port card still needs Decomp's `build/SLUS_200.15.syms.elf`.
+- The dispatcher itself stays in the parent folder and works with `git -C Decomp ...` / `git -C Recomp ...`.
+- **Memory:** the Claude memory folder is keyed on the session's folder: the parent keeps
+  `C--Users-lukea-Claude-Projects-Project-Ringsmith`; sessions started in Decomp or Recomp get their own (empty)
+  folders. The dispatcher decides what to copy or point to there.
+- Pushes: each repository's `main` to its own `origin`, each with LuciDin's yes in that session and the history check;
+  never force. The `claude/*` branches stay local (they are in `repo.bundle`).
 
 ## Standard card brief (copy it; fill the task)
 
@@ -180,7 +204,7 @@ message); when `start_session` is refused, propose own_initiative cards; detach 
 (4) `start_session` after another session's message is refused: propose instead. (5) Archive calls may need a second
 call with the `session` label the hook adds. (6) Re-run `tools/regress.py` (clean) yourself before approving any card
 that touched the build. (7) Weekly usage readings jumped 85% -> 0-2% on the night of 18 Nov (early reset); record what
-cards report. (8) Cards' "follow-ups" become ER rows in `docs/handoff.md` plus tracker tasks in the same closing commit. (9) Merging a card's branch while another card builds in the main checkout: a cherry-pick or merge that touches `src/` runs the pre-commit hook, which wipes and rebuilds the shared `build/` with that card's uncommitted changes (happened 22 Nov 02:21 with ER-034). Merge such branches with `RINGSMITH_SKIP_REGRESS=1` (say so in the message) and prove `main` in the dispatcher's own worktree `C:\rs\wt\dispverify` (detached; junctions to `disc` and `.venv`; `git -C C:\rs\wt\dispverify checkout --detach main`, then `.venv\Scripts\python.exe -I tools/regress.py` there).
+cards report. (8) Cards' "follow-ups" become ER rows in `docs/handoff.md` plus tracker tasks in the same closing commit. (9) Merging a card's branch while another card builds in the main checkout: a cherry-pick or merge that touches `src/` runs the pre-commit hook, which wipes and rebuilds the shared `build/` with that card's uncommitted changes (happened 22 Nov 02:21 with ER-034). Merge such branches with `RINGSMITH_SKIP_REGRESS=1` (say so in the message) and prove `main` in the dispatcher's own worktree `C:\rs\wt\dispverify` (detached; junctions to `disc` and `.venv`; `git -C C:\rs\wt\dispverify checkout --detach main`, then `.venv\Scripts\python.exe -I tools/regress.py` there; since ER-110 its junctions point at `Decomp\disc` and `Decomp\.venv`).
 
 ## Hand-over log
 

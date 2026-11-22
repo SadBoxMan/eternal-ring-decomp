@@ -6,6 +6,10 @@ Owner: LuciDin. Started Tue 17 Nov 2026. DRAFT: items marked **(open)** wait on 
 The global rules in `~/.claude/CLAUDE.md` apply in full (cards, archive question, shift gears, "Query:", ask about
 expected behaviour first, Eastern times, the 5-hour bar). This file adds the project's own rules.
 
+**Two repositories since ER-110 (Sun 22 Nov 2026):** this one, `Project Ringsmith\Decomp` (decomp and every project
+doc; GitHub eternal-ring-decomp), and `Project Ringsmith\Recomp` (the port, GPL-3.0; GitHub ringsmith). Paths in
+these rules are relative to `Decomp`. Layout: `docs/dispatcher_handoff.md` "Repository layout".
+
 ## Read at session start
 
 1. `docs/handoff.md`: the top paragraph (dispatcher id, start and completion messages), open threads, the queue.
