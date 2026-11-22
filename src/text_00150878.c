@@ -5224,7 +5224,153 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BB250);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BB2C8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BB750);
+extern void func_001BBD40(void);
+extern void func_001BBD78(s32);
+extern u8 D_001F65EB[];
+extern s32 D_001FF390[];
+extern s32 D_001FF530[];
+extern float sqrtf(float);
+extern int abs(int);
+/* ER-123: the table behind *(D_002029D0 + 0): eight s16 values, then eight (chance, value) pairs; Unofficial names, Unconfirmed reading. */
+typedef struct { s16 chance; s16 value; } ChancePair;
+typedef struct { s16 v[8]; ChancePair p[8]; } ChanceTbl;
+/* ER-123: by hand from the asm (recipes 2.26). Names, types and offsets are Unconfirmed readings. The base pointers are
+   assigned inside each loop body (gcc hoists them); that is the only shape found that gives the game's %hi registers. */
+void func_001BB750(void) {
+    s32 a[8];
+    s32 b[8];
+    s32 c[8];
+    s32 d[8];
+    s32 i;
+    s32 sel;
+    s32 dist;
+    s32 v;
+    s32 w;
+    s32 k;
+    s32 neg;
+    u8 m;
+    s32 *pF;
+    s32 *pG;
+    char *p29;
+    char *q50;
+    char *pAD;
+    char *r50;
+
+    func_001BBD40();
+    pF = D_001FF390;
+    if (pF[0x65] > 0) {
+        return;
+    }
+    m = D_001F65EB[0];
+    if (m < 2 || m > 21) {
+        sel = 5;
+    }
+    if (m >= 2 && m <= 5) {
+        sel = 3;
+    }
+    if (m >= 6 && m <= 9) {
+        sel = 2;
+    }
+    if (m >= 10 && m <= 13) {
+        sel = 4;
+    }
+    if (m >= 14 && m <= 17) {
+        sel = 0;
+    }
+    if (m >= 18 && m <= 21) {
+        sel = 1;
+    }
+    for (i = 0; i < 8; i++) {
+        p29 = D_002029D0;
+        q50 = D_00202A50;
+        c[i] = (*(s16 **)(p29 + 4))[i];
+        if (sel == i) {
+            c[i] = c[i] * 106 / 100;
+        }
+        dist = abs(sel - i);
+        if (dist == 3) {
+            c[i] = c[i] * 97 / 100;
+        }
+        d[i] = (*(s16 **)(q50 + 4))[i];
+        if (sel == i) {
+            d[i] = d[i] * 106 / 100;
+        }
+        if (dist == 3) {
+            d[i] = d[i] * 97 / 100;
+        }
+    }
+    for (i = 0; i < 8; i++) {
+        if (D_001FF530[0] > 0 && i == 6) {
+            a[6] = 0;
+            continue;
+        }
+        v = (*(s16 **)D_002029D0)[i];
+        neg = 0;
+        k = 0x1000;
+        if (v == 0) {
+            a[i] = 0;
+            continue;
+        }
+        if (v < 0) {
+            neg = 1;
+            v = abs(v);
+        }
+        w = c[i];
+        if (w < 0) {
+            k = w * 8 + 0x1000;
+            w = abs(w);
+        }
+        w = w * k * 9 / 500 + k;
+        a[i] = v * w;
+        if (neg) {
+            a[i] = -a[i] / 4;
+        }
+    }
+    for (i = 0; i < 8; i++) {
+        f32 f;
+        w = d[i];
+        neg = 0;
+        if (w < 0) {
+            neg = 1;
+            w = abs(w);
+        }
+        f = w << 12;
+        w = (s32)sqrtf(f * sqrtf(f)) << 4;
+        if (neg) {
+            w = -w;
+        }
+        b[i] = w;
+    }
+    w = 0;
+    for (i = 0; i < 7; i++) {
+        v = a[i] - b[i];
+        if (v < 0) {
+            v /= 2;
+        }
+        if (v > 0 && a[i] != 0) {
+            w += v;
+        }
+    }
+    w /= 4096;
+    pG = D_001FF390;
+    *(s16 *)D_00202AD0 = (w > 0) ? w : 1;
+    if (pG[0x67] > 0) {
+        return;
+    }
+    if (pG[0x65] > 0) {
+        return;
+    }
+    for (i = 0; i < 8; i++) {
+        r50 = D_00202A50;
+        pAD = (char *)D_00202AD0;
+        v = (*(ChanceTbl **)D_002029D0)->p[i].chance;
+        if (v != 0 && func_001E9C70() % 256 <= v - 1) {
+            *(u16 *)(pAD + 2) |= 1 << i;
+            (*(u16 **)(r50 + 0xC))[i] = (*(ChanceTbl **)D_002029D0)->p[i].value;
+            func_001BBD78(i);
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BBC00);
 
@@ -5772,7 +5918,6 @@ void func_001BFEB8(char *arg0) {
     *(s32 *)arg0 = 0;
 }
 
-extern s32 D_001FF390[];
 /* ER-098: by hand from the m2c draft (tools/m2c_bulk.py, recipes 2.20); names, types and offsets are Unconfirmed readings. */
 void func_001BFF20(s32 *arg0) {
     s32 *p = D_001FF390;
