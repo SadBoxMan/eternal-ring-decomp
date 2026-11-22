@@ -37,7 +37,7 @@ handoff note in one small commit, and offer the next card. Keep turns short.
   cards cannot be started while he is on Remote Control. Do not turn Remote Control on for new sessions unless asked.
 - **Backups** are the dispatcher's job (after every 3-5 completed tasks and at block end); sessions never run them.
   **Drive E: from Sun 22 Nov 2026 (LuciDin; F: was the drive before).** Run from the repo root (ER-025):
-  `python tools/backup.py "E:\Claude\Project Ringsmith\backups"` (the script's default is still F: until ER-056):
+  `python tools/backup.py` (default E:\Claude\Project Ringsmith\backups since ER-056, 3095f89):
   a zip of our sources plus `repo.bundle`; it prints one line: check it says "bundle verify okay". Never run by work
   sessions. Log each one below.
 - **Archive** work sessions once verified finished; never ones still working, waiting on LuciDin, or holding
@@ -142,3 +142,4 @@ cards report. (8) Cards' "follow-ups" become ER rows in `docs/handoff.md` plus t
 - Thu 19 Nov 2026, 22:18 Eastern: plan from LuciDin: Fri 20 Nov = decomp day (ER-034 first, then ER-041, ER-042, ER-031 / ER-027 / ER-015; ER-023 beside); recomp pauses after ER-046 and resumes Sat 21 Nov (ER-030 with ER-047, then ER-036 ...). No 2 AM cutoff on the night of 19-20 Nov (LuciDin). Weekly reset Sat 09:00: fresh dispatcher (DISP-03) then.
 - Sat 21 Nov 2026, 20:47 Eastern: LuciDin gave the dispatcher managerial rights for all cards today (21 Nov). Wave 1 started: ER-049, ER-050 (worktree), ER-023; ER-034 after ER-049. Weekly bar reset (7%).
 - Sun 22 Nov 2026, 01:36 Eastern: backup (DISP-02) to **E:** on LuciDin's word (F: not connected): `python tools/backup.py "E:\Claude\Project Ringsmith\backups"` -> `ringsmith_20261122_0136_main.zip` (90 files, 308 KB) + `repo.bundle` at 9a135fb, verify okay (folder created for it). ER-052 ruled: wait for matching. Wave 2 started 01:37: ER-034 (main checkout), ER-054 (worktree; owns text_00145120 / 0014A968 / 0014C840 / 0014D930 / 0014E2E8), ER-053 (tools/seams.py only).
+- Sun 22 Nov 2026, 01:53 Eastern: backup by ER-056's test run (plain `python tools/backup.py`, now defaulting to E:): `ringsmith_20261122_0153_main.zip` (90 files, 309 KB) + `repo.bundle` at d95736a, verify okay.
