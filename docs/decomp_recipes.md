@@ -218,7 +218,7 @@ the patched ee-as `-r2` and `-fno-strict-aliasing`.
 | **`f = p->a + s * p->b; p->a = f;` then clamp `f` and store it again** gives the game's two stores and register use; `p->a += s * p->b;` or a reload of `p->a` gives other registers | `func_00133098` |
 | **Two functions identical but for one callee and one `.sdata` constant** match with the same C (`func_0011B9D0` / `func_0011BAB0`): try the twin as soon as one matches | `func_0011BAB0` |
 
-**`div.s` and `sqrt.s` always have two `nop`s before them in the game** (754 `div.s` and 59 square-root words that rabbitizer prints as `c1 0x...` in game code, 19 `div.s` in the SDK; none without). Our compiler and assembler give none, so every function with a float divide or square root is parked for ER-034 (cause not known: a gcc option, Sony's assembler, or a compiler build; nothing in cc1's strings names it). This widens ER-034's `mul.s; nop; nop; div.s` to all divides and square roots. `sqrtf()` compiles to the game's inline `sqrt.s` + `c.eq.s` NaN check + call to `func_001E42E0` (so that libm function is `sqrtf`), but needs the symbol name `sqrtf` and the `nop`s. **The `nop`s are solved by ER-034 (2.8, ruling 3.7); the `sqrtf` name is still ER-041's.**
+**`div.s` and `sqrt.s` always have two `nop`s before them in the game** (754 `div.s` and 59 square-root words that rabbitizer prints as `c1 0x...` in game code, 19 `div.s` in the SDK; none without). Our compiler and assembler give none, so every function with a float divide or square root is parked for ER-034 (cause not known: a gcc option, Sony's assembler, or a compiler build; nothing in cc1's strings names it). This widens ER-034's `mul.s; nop; nop; div.s` to all divides and square roots. `sqrtf()` compiles to the game's inline `sqrt.s` + `c.eq.s` NaN check + call to `func_001E42E0` (so that libm function is `sqrtf`), but needs the symbol name `sqrtf` and the `nop`s. **The `nop`s are solved by ER-034 (2.8, ruling 3.7); the `sqrtf` name by ER-041 (2.10).**
 
 ### 2.8 Bulk m2c placement (ER-054, Sun 22 Nov 2026; Confirmed by `make regress`, 78 functions)
 
@@ -250,7 +250,7 @@ struct type for it fixed the rest; 6 tries); `func_00163158` (FP register choice
 add tails; 8 tries, close). `func_0012BDA8` (the twin of `func_0012BF08` with an extra call) not tried.
 
 Still blocked after ER-034 (from ER-035's list of 46): 12 functions call `sqrtf` (`func_001E42E0` needs that name)
-and 11 call the soft-double routines (libgcc names): both ER-041; 3 have VU0 code.
+and 11 call the soft-double routines (libgcc names): both ER-041; 3 have VU0 code. **Names in since ER-041 (2.10).**
 
 ### 2.9 Near misses by hand (ER-062, Sun 22 Nov 2026; Confirmed by `make regress`, commit `a751ee2`, 11 functions)
 
@@ -260,6 +260,27 @@ and 11 call the soft-double routines (libgcc names): both ER-041; 3 have VU0 cod
 | **Compare operand order picks the load order** (2.7) holds in m2c drafts too: m2c wrote `x74 < x6C`, the game loads `+0x6C` first, `x6C > x74` matches (same `slt`) | `func_0014B420` |
 | **A `%lo` sharing a `lui` with another branch** (one `lui $v0, %hi(D_X)` reaching two `lwc1 %lo(D_X)($v0)` in different cases) comes from plain C with `extern f32 D_X[];` read in both cases; gcc shares the `%hi` itself | `func_0014DDD8` (`D_0035BEB0`) |
 | **A taken address needs the same prototype as the definition.** A file that only takes a function's address may have declared it `(void)`; once the function is placed with a parameter, that extern must be changed to match (no code change) | `func_00145238`, `func_001501D8` |
+
+### 2.10 Doubles and `sqrtf` (ER-041, Sun 22 Nov 2026; Confirmed by `make regress` in ER-041's worktree)
+
+The names gcc emits for these are in `symbol_addrs.txt` since ER-041 (`docs/census.md` 4.4): `sqrtf`, and libgcc's
+GOFAST soft-double routines `dpadd`, `dpsub`, `dpmul`, `dpdiv`, `dpcmp`, `litodp`, `dptoli`, `dptoul`, `dptofp`,
+`fptodp` (not `__adddf3` / `__ltdf2`: this ee-gcc is configured for GOFAST). Write plain C with doubles; never call
+these routines by name. Proof functions (placed, regress green, then put back for their files' owners; C in the
+dispatcher's notes folder `ER-041_c/`):
+
+| Lesson | Proved by |
+|---|---|
+| **`sqrtf` from `extern float sqrtf(float);` at file scope** gives gcc's builtin: `nop; nop; sqrt.s`, `c.eq.s` NaN test, `jal sqrtf` only on NaN. A declaration inside the function body gives a plain `jal sqrtf` | `func_0012D568` (`len = sqrtf(x*x + y*y + z*z); if (max < len) { scale(max / len, v, v); len = max; } return len;`) |
+| **A float compared with a double constant** (`f < 0.0`, a `fabs()` result against a float literal) is promoted: `jal fptodp`, then `jal dpcmp` with the constant in `$a1` (0.0 as `$0`, 200.0 built with `ori` / `dsll32`, others from `.rodata`), then a branch on the sign of `$v0`; every comparison operator calls `dpcmp` | `func_001399B8`, `func_001411E8` |
+| **`fabs()` of a double** (`extern double fabs(double);` at file scope) gives `dpcmp(d, 0)`, `bgez`, `dpsub(0, d)` | `func_001411E8` (`if (fabs(v[0]) > 200.0f) return;`) |
+| **A sign as `?:`**: `s = (f(x) < 0.0) ? -1.0f : 1.0f;` loads `1.0f` after the call, as the game does; `s = 1.0f; if (...) s = -1.0f;` hoists the load above the call | `func_001399B8` |
+| **Each branch's own call, not one call with a chosen pointer**: `if (a && g(...)) { f(p, A); return 1; } if (...) ...` lets gcc cross-jump the shared `jal f; li 1` tail with `$a0` / `$a1` set in each branch, as the game has; `fn = A; ... f(p, fn);` gives one setup | `func_001371C0` (masked MATCH only, see below) |
+
+Not proven: `func_001371C0` matches on the masked compare, but its double constant `D_00354718`
+(`(double)0.17453293f`, 10 degrees) is gcc's anonymous `.rodata` entry in C, and `tools/split.py`'s order check
+refuses dropping the `INCLUDE_RODATA` line (the C defines no symbol of that name). Placing it needs a decision on
+that check, or the file cut (ER-031) first.
 
 ## 3. Rulings (LuciDin)
 

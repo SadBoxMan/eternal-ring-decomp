@@ -41,11 +41,11 @@
           "id": "m-dec-named",
           "phase": "Phase 2: understanding",
           "name": "Functions named",
-          "done": 0,
+          "done": 11,
           "total": null,
           "unit": "functions",
           "source": "Phase 2",
-          "notes": "Not started."
+          "notes": "ER-041 (22 Nov 2026): 11 names in symbol_addrs.txt with evidence (docs/census.md 4.4): sqrtf and the libgcc GOFAST soft-double routines dpadd, dpsub, dpmul, dpdiv, dpcmp, litodp, dptoli, dptoul, dptofp, fptodp (names gcc emits itself). Game functions are not named yet."
         },
         {
           "id": "m-dec-readable",
@@ -667,12 +667,12 @@
     },
     {
       "code": "ER-041",
-      "title": "libgcc soft-double names (fp-bit routines)",
-      "status": "Queued",
+      "title": "libgcc soft-double names and sqrtf",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "one src/ writer at a time",
-      "notes": ""
+      "notes": "Done Sun 22 Nov 2026 (03:15-03:48 ET, Opus high; code commit 5b91db7). 11 names in symbol_addrs.txt (GOFAST: dpadd/dpsub/dpmul/dpdiv/dpcmp/litodp/dptoli/dptoul/dptofp/fptodp, not __adddf3/__ltdf2; sqrtf = func_001E42E0); make regress green, no byte changed. Proven under make regress then put back (other cards' files): func_001399B8, func_001411E8, func_0012D568; func_001371C0 masked match (rodata order check). 22 waiting functions listed (notes folder ER-041_list.md, C in ER-041_c/). m-dec-funcs unchanged (280)."
     },
     {
       "code": "ER-042",

@@ -145,7 +145,7 @@ exact first function of a region is Confirmed only where the seam window is a si
 | libsdr | `.data` right after `PsIIlibsdr  1620`; `func_001E2788` is called from game init. No library-specific string: **Unconfirmed** by name, position only. |
 | libmc | `libmc:` / `bind error libmc` strings, `.data` after `PsIIlibmc   1650`. |
 | libm | newlib float wrappers carrying their own names (`acosf`, `asinf`, `atan2f`, `sqrtf`) and calling `__errno` (`func_001E9A50`); the two 58-60 instruction float functions before them are called 59 and 87 times from the game (sin / cos shapes: Unconfirmed). |
-| libgcc | `func_001E6508` walks a table of function pointers until a null (GCC's global destructor list); from `0x001E8178` the soft-double routines of GCC's `fp-bit.c` (unpack both operands, operate, pack: `func_001E82A8` unpack, `func_001E8178` pack, `func_001E8A58` compare parts), called by game code. Identity by call structure only: **Unconfirmed**. |
+| libgcc | `func_001E6508` walks a table of function pointers until a null (GCC's global destructor list); from `0x001E8178` the soft-double routines of GCC's `fp-bit.c` (unpack both operands, operate, pack: `func_001E82A8` unpack, `func_001E8178` pack, `func_001E8A58` compare parts), called by game code. Identity by call structure only: **Unconfirmed**. ER-041: the fp-bit block is GCC's `fp-bit.c` built for GOFAST names (`dpadd`, `dpcmp`, `fptodp`, ...), Confirmed by the toolchain source and three callers proven under `make regress` (4.4). |
 | libc | newlib: `vfprintf` (`bug in vfprintf: bad base`, `(null)`, hex digit tables), `strtod` (`Infinity`, `NaN`), `_impure_ptr` users, `__errno`, MMI string routines (word-at-a-time `0x01010101` tests), reentrant syscall wrappers (`errno = 0; call; if -1 ...`) calling libkernl's file stubs. |
 | libkernl-tail | data-cache maintenance loops (`cache` + `mfc0 $28` TagLo), called from libpad: libkernl objects pulled in late by the archive order (libc before libkernl). **Unconfirmed**. |
 
@@ -204,6 +204,65 @@ Tried and ruled out: alignment padding (functions are 8-aligned and the 0/4-byte
 function order, so they give no positive seam). Candidates for a later card: monotone runs of each function's
 `.rodata` / `.data` / `.sdata` references (each object's data is contiguous in link order), static-looking call
 clusters, and string themes.
+
+### 4.4 Names the compiler emits: `sqrtf` and the GOFAST soft-double routines (ER-041, Sun 22 Nov 2026)
+
+gcc calls some library routines **by name** without the C naming them: double arithmetic, double comparisons and
+float / double / int conversions become calls to libgcc's fp-bit routines (the EE FPU is single precision), and
+`sqrtf()` becomes an inline `sqrt.s` plus a call to `sqrtf` when the result is NaN (`docs/decomp_recipes.md` 2.7).
+A C function that does these links only if the symbols carry those names, so they are in `symbol_addrs.txt`.
+
+**Which names: GOFAST, not `__adddf3` / `__ltdf2`.** A probe compiled with the build's ee-gcc (`-O2 -G8`) calls
+`dpadd` (+), `dpsub` (- and unary minus, as `0.0 - x`), `dpmul`, `dpdiv`, **`dpcmp` for all six comparisons**
+(`<`, `<=`, `>`, `>=`, `==`, `!=`; the caller tests the sign of `$v0`), `fptodp` (float -> double), `dptofp`
+(double -> float), `litodp` (int -> double), `dptoli` (double -> int), `dptoul` (double -> unsigned), and
+`__fixdfdi` / `__floatdidf` / `__fixunsdfdi` for 64-bit integers. The toolchain's own source says why (`C:\rs\toolchain\src-lf\ee\gcc\config`):
+`mips/t-r5900` builds `fp-bit.c` and `dp-bit.c` whole as `LIB2FUNCS_EXTRA`, each with `#define US_SOFTWARE_GOFAST`
+(and `NO_DENORMALS`); `mips/elf64.h` sets `INIT_SUBTARGET_OPTABS INIT_GOFAST_OPTABS`; `gofast.h` maps every DF
+comparison libfunc to `dpcmp`; `fp-bit.c` lines 231-255 define `add` -> `dpadd`, ..., `df_to_sf` -> `dptofp`,
+`sf_to_df` -> `fptodp`. The game agrees: only **one**
+double compare routine is linked (`func_001E8B70`), and it has no NaN test, i.e. fp-bit's `compare` (`dpcmp`),
+not one of `_lt_f2`, `_gt_f2`, ... (which return a fixed value for NaN). ER-035 / ER-041's working guesses
+(`__extendsfdf2`, `__ltdf2`, `__subdf3`) were wrong for this toolchain.
+
+| Address | Name | Evidence (all read from the game's code) | Grade |
+|---|---|---|---|
+| 0x001E42E0 | `sqrtf` | newlib `wf_sqrt.c` wrapper line by line: `__ieee754_sqrtf` (`func_001E5290`), `_LIB_VERSION == _IEEE_` (-1) at `D_003582C0`, `isnanf` (`func_001E6350`), `x < 0` -> `struct exception` with type 1 (DOMAIN), name = the string `"sqrtf"` at `D_00357DD0`, `arg1 = arg2 = (double)x`, retval 0.0 for `_SVID_` else `D_00357DD8` (`0x7FF8000000000000`, the folded `0.0/0.0`), `errno = EDOM` (33) through `__errno`-shaped `func_001E9A50`, `matherr` (`func_001E5F78`), `return (float)exc.retval`. **Proven:** `func_0012D568` (calls it through gcc's builtin) matched under `make regress` | Confirmed |
+| 0x001E8588 | `dpadd` | unpack both (`func_001E82A8`), `_fpadd_parts` (`func_001E8348`), pack (`func_001E8178`) | Confirmed (code; no placed caller yet) |
+| 0x001E85E0 | `dpsub` | as `dpadd` but flips b's sign (`xori 1` on the unpacked sign word) first. **Proven:** `func_001411E8` (`fabs` of a double) matched under `make regress` | Confirmed |
+| 0x001E8648 | `dpmul` | unpack both, 64-bit partial products through `func_001E7608` (a `__muldi3`-like helper: the r5900 has no `dmult`), pack; source order after `sub` | Confirmed (code) |
+| 0x001E88F0 | `dpdiv` | unpack both, shift-and-subtract loop, pack; source order after `multiply` | Confirmed (code) |
+| 0x001E8A58 | (fp-bit `__fpcmp_parts_d`, left address-named) | NaN -> 1; both infinite -> `b->sign - a->sign`; zero, sign, exponent, fraction tests in fp-bit's order | Unconfirmed name, not needed |
+| 0x001E8B70 | `dpcmp` | unpack both, `__fpcmp_parts_d`, no NaN test (fp-bit `compare`). **Proven:** `func_001399B8`, `func_001411E8` matched under `make regress` | Confirmed |
+| 0x001E8BC0 | `litodp` | int -> unpacked number, pack only (fp-bit `si_to_float`) | Confirmed (code) |
+| 0x001E8C78 | `dptoli` | unpack; NaN / zero -> 0; saturates to `0x7FFFFFFF` / `0x80000000` above exponent 30; negates for sign (fp-bit `float_to_si`) | Confirmed (code) |
+| 0x001E8D10 | `dptoul` | unpack; saturates to `0xFFFFFFFF` above exponent 31, shifts left above 60 (fp-bit `float_to_usi`) | Confirmed (code) |
+| 0x001E8E18 | `dptofp` | unpack double, `__make_fp` (`func_001E99E0`); called by the libm wrappers for `return (float)exc.retval` | Confirmed (code) |
+| 0x001E9A10 | `fptodp` | unpack float (`func_001E8F80`), `__make_dp` (`func_001E8DE8`); called by the libm wrappers for `exc.arg1 = (double)x`. **Proven:** `func_001399B8`, `func_001411E8` | Confirmed |
+
+**Proven** = placed in `src/` in ER-041's worktree with `make regress` green (whole-ELF SHA-1 and all 3,606
+functions), then put back to INCLUDE_ASM before the commit, because their files belong to other wave 3 cards
+(`text_001343E8.c` ER-031, `text_001000C0.c` ER-063); the C is in the dispatcher's notes folder, `ER-041_c/`, for
+the file owners to place. Control: with the three proof functions placed and the names removed, the link fails with undefined `sqrtf`,
+`fptodp` and `dpcmp`; with the names, `make regress` passes. The renames alone change no byte (whole-ELF SHA-1 and
+all 3,606 functions unchanged).
+
+**Layout of the libgcc fp-bit block (left address-named: gcc never emits these names for the EE; names from the
+source's macros, the address of each by order and shape, none proven by a match):** double object `0x001E8178`-`0x001E8E70` in fp-bit's source order (pack, unpack, `_fpadd_parts`, add, sub,
+multiply, divide, `__fpcmp_parts`, compare, `si_to_float`, `float_to_si`, `float_to_usi`, negate `func_001E8DB0`,
+`__make_dp` `func_001E8DE8`, `df_to_sf`), then the single-float object `0x001E8E70`-`0x001E9A50` in the same order
+(`fpadd` `func_001E9248`, `fpsub` `func_001E92A0`, `fpmul` `func_001E9308`, `fpdiv` `func_001E9500`, `fpcmp`
+`func_001E9778`, `sitofp` `func_001E97C8`, `fptosi` `func_001E9880`, `fptoui` `func_001E9910`, `__negsf2`
+`func_001E99A8`, `__make_fp` `func_001E99E0`, then `fptodp`). Functions nobody calls (negate, the float arithmetic)
+are present because each file is one whole object (`LIB2FUNCS_EXTRA`, no `FINE_GRAINED_LIBRARIES`); internals are
+`__pack_d` / `__unpack_d` / `__fpcmp_parts_d` (and `_f`), `_fpadd_parts` is static. `func_001E6D20` / `func_001E6E10` /
+`func_001E6F08` (libgcc2 64-bit conversions calling the dp routines) are not identified.
+
+**Not renamed:** `func_001E9B0C` (in ER-041's candidate list) is not fp-bit: it is libc's `memset` by shape (args
+dst / byte / count, byte replicated with `pcpyh` / `pcpyld` and stored with `sq` when 16-aligned; 307 game callers).
+Name Unconfirmed (no string), and game C calls it explicitly, which links under the address name. Likewise the other
+libm wrappers (`acosf` / `asinf` / `atan2f`, `func_001E3FB8` / `func_001E40B8` / `func_001E41B8`, names from their
+own `exc.name` strings) are called explicitly and stay address-named for now.
 
 ## 5. Clone families
 
@@ -323,6 +382,10 @@ About 50 fan-out cards plus a few plain ones. Twinblade's fan-out workflows took
 
 - **Unconfirmed regions**: game-vu0, game-unk, sdk-vudev, libvu0, libipu, libsdr, libgcc, libkernl-tail (identity by
   position and code style only); every seam window in 4.3.
+- **ER-041 (4.4)**: the addresses of the fp-bit internals and single-float routines (names from the source, mapping
+  by order and shape), `memset` for `func_001E9B0C`, and `__muldi3` for `func_001E7608` are Unconfirmed readings
+  (left address-named); `dpadd`, `dpmul`, `dpdiv`, `litodp`,
+  `dptoli`, `dptoul`, `dptofp` are confirmed from code but not yet by a placed caller.
 - **Unconfirmed readings**: syscall names (SetupThread, SetupHeap, FlushCache, Exit) come from ps2sdk's public
   syscall numbering, not from this game; "sin / cos shapes", "vfprintf / strtod shapes", "IDCT-like" are readings of
   code style; the rotation-like libvu0 trio is not named.
