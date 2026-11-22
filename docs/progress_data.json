@@ -870,7 +870,7 @@
       "track": "decomp",
       "model": "Opus, medium (high for the parked four)",
       "waits_on": "nothing for the first 11; ER-041 for the 23",
-      "notes": "Part 1 (text_001000C0.c) done Sun 22 Nov 2026: 2 matched (func_0012BF08, func_0012BDA8; +564 bytes); 5 parked (GCSE reload: func_00113C30, func_00113ED8, func_00131D40; gas mtc1 delay-slot swap: func_00126F00; func_00124BE8 not attempted in depth). Still open: the 10 untried in text_00150878 / text_001343E8 / text_00145120 and parked func_00142788, func_0019B6D0, func_00163158; 23 wait on ER-041. Recipes 2.10."
+      "notes": "Part 1 + widened scope merged 22 Nov (5d8ca89, d57cb73, 011043e): 5 matched in text_001000C0; parked to ER-069 / ER-070 / ER-071; large ones ER-073; other files' div / sqrt functions still open"
     },
     {
       "code": "ER-064",
@@ -888,7 +888,7 @@
       "track": "decomp",
       "model": "Sonnet, medium",
       "waits_on": "nothing (tools/ only)",
-      "notes": ""
+      "notes": "Also: recipes has two 2.8 headings (ER-054 / ER-034), two 2.10 (ER-041 / ER-063 part 1) and ER-063's part 1 text repeated in 2.11 (after the 011043e merge): renumber and drop the duplicate; place.py drops an existing comment line (ER-063 D)"
     },
     {
       "code": "ER-066",
@@ -951,6 +951,15 @@
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "switch-listing question for LuciDin",
+      "notes": ""
+    },
+    {
+      "code": "ER-073",
+      "title": "Three large functions in text_001000C0 (after ER-069)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium (high without ER-069)",
+      "waits_on": "ER-069",
       "notes": ""
     }
   ]
