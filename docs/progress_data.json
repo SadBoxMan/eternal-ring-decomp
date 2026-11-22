@@ -1338,7 +1338,7 @@
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": "Done Sun 22 Nov 2026 (17:28-18:30 ET, Opus high), branch er-115-text-001000c0, commit 8196aa8: func_00113ED8 placed (760 bytes). Cause: sibcall placeholder USE after a tail call outside a loop stops jump2 cross-jumping (goto found); record pointer in k stops the $a1 preference. Recipes 2.27."
+      "notes": "Done Sun 22 Nov 2026 (17:28-18:20 ET, Opus high), branch er-115-text-001000c0, commit 8196aa8: func_00113ED8 placed (760 bytes). Cause: sibcall placeholder USE after a tail call outside a loop stops jump2 cross-jumping (goto found); record pointer in k stops the $a1 preference. Recipes 2.27."
     },
     {
       "code": "ER-116",
