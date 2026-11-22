@@ -895,7 +895,7 @@ sky (LuciDin's screenshot, `C:\rs\captures\er074\pcsx2_luci_newgame_cutscene.web
 
 ## 14. ER-099: PCSX2 memory cards in the recomp (Sun 22 Nov 2026)
 
-Written by ER-099 (Opus 5.5, high), work 14:59 to about 15:25 Eastern. Question: can a save made in PCSX2 be loaded in
+Written by ER-099 (Opus 5.5, high), work 14:59 to 15:21 Eastern. Question: can a save made in PCSX2 be loaded in
 the recomp, so live gameplay can be tested without playing from NEWGAME (as Project Twinblade's port takes DuckStation
 cards)? **Short answer: yes. With `PS2X_MC0_IMPORT` / `PS2X_MC1_IMPORT` pointing at a copy of a PCSX2 card (8 MB
 `.ps2` image or PCSX2 folder card), the game's card poll finds the saves, CONTINUE lists them, and LuciDin loaded one
