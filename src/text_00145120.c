@@ -794,7 +794,16 @@ void func_00148B60(s8 *arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00148BB0);
+extern void func_0014FE08();
+extern void func_00148BE0();
+
+/* ER-112: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_00148BB0(char *arg0) {
+    *(s8 *)(arg0 + 0x154) = 0x32;
+    *(void **)(arg0 + 0xC4) = func_0014FE08;
+    *(void **)(arg0 + 0xC8) = func_0014FE08;
+    func_00131000(arg0, func_00148BE0);
+}
 
 extern int func_0012E568(int, int);
 extern float func_00130758(char *);
