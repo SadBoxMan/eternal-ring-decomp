@@ -354,7 +354,11 @@ f32 func_0014F550(void **arg0, s32 arg1) {
     return (2.0f * ((f32) temp_17 / (f32) func_0012B180(*(void **)arg0, (s32) *(s8 *)((char *)arg0 + 0xF)))) + -1.0f;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F5F8);
+/* ER-112: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_0014F5F8(s8 *arg0) {
+    *(u8 *)((char *)arg0 + 0x5A) |= 0x40;
+    func_00131000(arg0, func_0014F1D8);
+}
 
 /* ER-024 (parked by ER-014 for its jump table). Maps the u16 at offset 4 from 0x34..0x39 to 0..5, else 6;
  * the field's meaning is Unconfirmed. */
