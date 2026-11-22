@@ -6,6 +6,10 @@ else the worktree's folder name) with src, include, tools, docs, Programs, the y
 Makefile, requirements.txt, CLAUDE.md, .gitignore and .gitattributes, plus repo.bundle in the same folder (all refs,
 rewritten each time: `git clone repo.bundle` restores every commit). Keeps the last 48 zips per tag.
 
+ER-110 (Sun 22 Nov 2026): run from the main checkout, it also backs up the port repository beside it (the sibling
+folder ..\\Recomp; skipped if it is not there): ringsmith_<YYYYMMDD>_<HHMM>_recomp.zip with every file git sees there
+(same checks) and recomp.bundle (all its refs) in the same folder, on the same output line.
+
 Never game data or build output: the file list is what git sees (tracked files plus untracked files not ignored),
 filtered to the lists below; every path is then checked against .gitignore (`git check-ignore --no-index`) and a
 hard-coded deny list, and the run refuses (exit 2, nothing written) if any selected path is ignored or denied.
@@ -36,8 +40,11 @@ DENY_SUFFIX = ('.iso', '.elf', '.irx', '.bin', '.cue', '.o', '.pyc')
 KEEP = 48
 
 
-def git(*args, input=None):
-    return subprocess.run(['git', *args], cwd=ROOT, capture_output=True, input=input)
+RECOMP = os.path.join(os.path.dirname(ROOT), 'Recomp')   # the port repository (ER-110), backed up from main only
+
+
+def git(*args, input=None, cwd=ROOT):
+    return subprocess.run(['git', *args], cwd=cwd, capture_output=True, input=input)
 
 
 def checkout_tag():
@@ -52,32 +59,33 @@ def checkout_tag():
     return re.sub(r'[^A-Za-z0-9_-]', '_', os.path.basename(ROOT)) or 'worktree'
 
 
-def select_files():
-    """sorted list of repo-relative paths to back up; exits 2 if any would be ignored or denied"""
-    r = git('ls-files', '-z', '--cached', '--others', '--exclude-standard')
+def select_files(root=ROOT, everything=False):
+    """sorted list of repo-relative paths to back up (everything=True: every file git sees, for the port
+    repository); exits 2 if any would be ignored or denied"""
+    r = git('ls-files', '-z', '--cached', '--others', '--exclude-standard', cwd=root)
     if r.returncode:
         sys.exit('git ls-files failed: ' + r.stderr.decode().strip())
     chosen = []
     for p in sorted(set(r.stdout.decode('utf-8').split('\0')) - {''}):
-        if not (p in FILES or p.startswith(DIRS)) or p.startswith(SKIP):
+        if not everything and (not (p in FILES or p.startswith(DIRS)) or p.startswith(SKIP)):
             continue
-        if '__pycache__/' in p or not os.path.isfile(os.path.join(ROOT, p)):   # deleted but still in the index
+        if '__pycache__/' in p or not os.path.isfile(os.path.join(root, p)):   # deleted but still in the index
             continue
         chosen.append(p)
     bad = [p for p in chosen if p.startswith(DENY_PREFIX) or p.lower().endswith(DENY_SUFFIX)]
     if chosen:
-        c = git('check-ignore', '--no-index', '-z', '--stdin', input='\0'.join(chosen).encode('utf-8'))
+        c = git('check-ignore', '--no-index', '-z', '--stdin', input='\0'.join(chosen).encode('utf-8'), cwd=root)
         bad += [p for p in c.stdout.decode('utf-8').split('\0') if p]
     if bad:
-        print('backup REFUSED: these selected paths are game data, build output or git-ignored: '
+        print(f'backup REFUSED ({root}): these selected paths are game data, build output or git-ignored: '
               + ', '.join(sorted(set(bad))[:20]), file=sys.stderr)
         sys.exit(2)
     return chosen
 
 
-def write_bundle():
-    """(ok, note): waits up to 2 minutes while another backup holds repo.bundle.lock, then gives way to it"""
-    bundle = os.path.join(DEST, 'repo.bundle')
+def write_bundle(root=ROOT, name='repo.bundle'):
+    """(ok, note): waits up to 2 minutes while another backup holds <name>.lock, then gives way to it"""
+    bundle = os.path.join(DEST, name)
     lock = bundle + '.lock'
     deadline = time.time() + 120
     while True:
@@ -90,22 +98,40 @@ def write_bundle():
                 os.write(fd, f'{os.getpid()}\n'.encode())
                 os.close(fd)
                 tmp = bundle + '.tmp'
-                r = git('bundle', 'create', tmp, '--all')
+                r = git('bundle', 'create', tmp, '--all', cwd=root)
                 if r.returncode:
-                    return False, '; bundle FAILED: ' + r.stderr.decode().strip()[:200]
-                v = subprocess.run(['git', 'bundle', 'verify', tmp], cwd=ROOT, capture_output=True, text=True)
+                    return False, f'; {name} FAILED: ' + r.stderr.decode().strip()[:200]
+                v = subprocess.run(['git', 'bundle', 'verify', tmp], cwd=root, capture_output=True, text=True)
                 if v.returncode:
-                    return False, '; bundle verify FAILED: ' + (v.stderr or v.stdout).strip()[:200]
+                    return False, f'; {name} verify FAILED: ' + (v.stderr or v.stdout).strip()[:200]
                 os.replace(tmp, bundle)
-                return True, '; bundle verify okay'
+                return True, '; bundle verify okay' if name == 'repo.bundle' else f'; {name} verify okay'
             finally:
                 try:
                     os.remove(lock)
                 except OSError:
                     pass
         if time.time() > deadline:
-            return False, '; bundle left to the other backup that was writing it'
+            return False, f'; {name} left to the other backup that was writing it'
         time.sleep(5)
+
+
+def write_zip(root, files, tag, stamp):
+    """writes ringsmith_<stamp>_<tag>.zip and keeps the last KEEP zips of that tag; returns its path"""
+    out = os.path.join(DEST, f'ringsmith_{stamp}_{tag}.zip')
+    try:
+        with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
+            for p in files:
+                z.write(os.path.join(root, p), p)
+    except BaseException:
+        if os.path.exists(out):
+            os.remove(out)
+        raise
+    mine = [p for p in glob.glob(os.path.join(DEST, 'ringsmith_*.zip'))
+            if (re.match(r'ringsmith_\d{8}_\d{4}_(.+)\.zip$', os.path.basename(p)) or [None, None])[1] == tag]
+    for p in sorted(mine, key=lambda p: os.path.basename(p))[:-KEEP]:
+        os.remove(p)
+    return out
 
 
 def main():
@@ -113,25 +139,24 @@ def main():
         print(f'backup skipped: {os.path.dirname(DEST)} is not available (drive not connected?)')
         return 1
     files = select_files()
-    os.makedirs(DEST, exist_ok=True)
     tag = checkout_tag()
-    out = os.path.join(DEST, f'ringsmith_{datetime.datetime.now().strftime("%Y%m%d_%H%M")}_{tag}.zip')
-    try:
-        with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
-            for p in files:
-                z.write(os.path.join(ROOT, p), p)
-    except BaseException:
-        if os.path.exists(out):
-            os.remove(out)
-        raise
+    recomp = tag == 'main' and os.path.exists(os.path.join(RECOMP, '.git'))
+    rfiles = select_files(RECOMP, everything=True) if recomp else []
+    os.makedirs(DEST, exist_ok=True)
+    stamp = datetime.datetime.now().strftime('%Y%m%d_%H%M')
+    out = write_zip(ROOT, files, tag, stamp)
     ok, note = write_bundle()
-    mine = [p for p in glob.glob(os.path.join(DEST, 'ringsmith_*.zip'))
-            if (re.match(r'ringsmith_\d{8}_\d{4}_(.+)\.zip$', os.path.basename(p)) or [None, None])[1] == tag]
-    for p in sorted(mine, key=lambda p: os.path.basename(p))[:-KEEP]:
-        os.remove(p)
     head = git('rev-parse', '--short', 'HEAD').stdout.decode().strip()
-    print(f'backup {out}: {len(files)} files, {os.path.getsize(out) // 1024} KB'
-          + (f'; repo.bundle at {head}' if ok else '') + note)
+    line = (f'backup {out}: {len(files)} files, {os.path.getsize(out) // 1024} KB'
+            + (f'; repo.bundle at {head}' if ok else '') + note)
+    if recomp:
+        rout = write_zip(RECOMP, rfiles, 'recomp', stamp)
+        rok, rnote = write_bundle(RECOMP, 'recomp.bundle')
+        rhead = git('rev-parse', '--short', 'HEAD', cwd=RECOMP).stdout.decode().strip()
+        line += (f' | recomp {os.path.basename(rout)}: {len(rfiles)} files, {os.path.getsize(rout) // 1024} KB'
+                 + (f'; recomp.bundle at {rhead}' if rok else '') + rnote)
+        ok = ok and rok
+    print(line)
     return 0 if ok else 1
 
 
