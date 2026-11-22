@@ -672,7 +672,7 @@
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "one src/ writer at a time",
-      "notes": "Done Sun 22 Nov 2026 (03:15-04:00 ET, Opus high). 11 names in symbol_addrs.txt (GOFAST: dpadd/dpsub/dpmul/dpdiv/dpcmp/litodp/dptoli/dptoul/dptofp/fptodp, not __adddf3/__ltdf2; sqrtf = func_001E42E0), commit 5b91db7; make regress green, no byte changed. 4 matched and committed in files freed by ER-062 (48f1dc6, 34893a6): func_00145428, func_00148210, func_0014D510, func_0014DAC8 (m-dec-funcs 284, bytes 13,932). Proven then put back (other cards' files): func_001399B8, func_001411E8, func_0012D568. Blocked by the rodata order check: func_001371C0, func_0014DF08, func_0014EEF0. 22 waiting functions listed (notes folder ER-041_list.md, C in ER-041_c/)."
+      "notes": "Done Sun 22 Nov 2026 (03:15-03:55 ET, Opus high). 11 names in symbol_addrs.txt (GOFAST: dpadd/dpsub/dpmul/dpdiv/dpcmp/litodp/dptoli/dptoul/dptofp/fptodp, not __adddf3/__ltdf2; sqrtf = func_001E42E0), commit 5b91db7; make regress green, no byte changed. 4 matched and committed in files freed by ER-062 (48f1dc6, 34893a6): func_00145428, func_00148210, func_0014D510, func_0014DAC8 (m-dec-funcs 284, bytes 13,932). Proven then put back (other cards' files): func_001399B8, func_001411E8, func_0012D568. Blocked by the rodata order check: func_001371C0, func_0014DF08, func_0014EEF0. 22 waiting functions listed (notes folder ER-041_list.md, C in ER-041_c/)."
     },
     {
       "code": "ER-042",
