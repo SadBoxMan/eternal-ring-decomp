@@ -344,7 +344,7 @@ Parked by ER-063 (one-line causes; drafts in the notes folder `ER-063_drafts/`):
 
 **Two toolchain differences found (the effects are measured; the causes in the original toolchain are readings; neither adopted, each needs a ruling and a card):**
 
-- **GCSE removes a reload the game keeps.** At a join after `if (*(u16 *)(a0 + 0xE8) & 1) {...} else {...}` the game reads `a0+0xE8` again (`lhu` in both arms, `b; lhu` in the delay slot); our ee-gcc reuses the first load. With `--cflags=-fno-gcse` (diagnostic only) the head of `func_00113C30` matches and its size is right, and the reload of the counter in `func_00131D40` matches too. But the whole ELF built with `-fno-gcse` is not identical: `func_0012F550` (ER-035) needs GCSE's copy propagation. So the original compiler ran GCSE but did not remove redundant loads across joins (reading: an older or differently configured `gcse.c`; not checked in the source). Parks `func_00113C30`, `func_00113ED8` (same head), `func_00131D40`, and after ER-041's merge `func_0012D600` (with `-fno-gcse` all but 7 words match), `func_0012EBB0` and `func_0012EEB0` (both match up to their six angle-wrap loops; the loops differ with and without GCSE, and a `static inline` wrap helper did not help).
+- **GCSE removes a reload the game keeps.** At a join after `if (*(u16 *)(a0 + 0xE8) & 1) {...} else {...}` the game reads `a0+0xE8` again (`lhu` in both arms, `b; lhu` in the delay slot); our ee-gcc reuses the first load. With `--cflags=-fno-gcse` (diagnostic only) the head of `func_00113C30` matches and its size is right, and the reload of the counter in `func_00131D40` matches too. But the whole ELF built with `-fno-gcse` is not identical: `func_0012F550` (ER-035) needs GCSE's copy propagation. So the original compiler ran GCSE but did not remove redundant loads across joins (reading: an older or differently configured `gcse.c`; not checked in the source). **Solved by ER-069: the edge-based LCM, `-fno-edge-lcm` in `CFLAGS` since ruling 3.11 (2.13).** Parks `func_00113C30`, `func_00113ED8` (same head), `func_00131D40`, and after ER-041's merge `func_0012D600` (with `-fno-gcse` all but 7 words match), `func_0012EBB0` and `func_0012EEB0` (both match up to their six angle-wrap loops; the loops differ with and without GCSE, and a `static inline` wrap helper did not help).
 - **ee-as does not swap a use of an `mtc1`-written FPR into a delay slot.** Where gcc leaves a `jal` in `.set reorder` (after a divide trap block, for example), gas fills the slot itself; ours refuses to swap `cvt.s.w $f12, $f12` after `mtc1 $a2, $f12` and emits `nop` (the swap check still applies the coprocessor-move delay that ruling 3.5 removed for `nop` insertion). Census of the game's asm: **288** sites with such a use in the slot after `mtc1; jal/j/branch` (265 `cvt.s.w`, 7 `mul.s`, 5 `mov.s`, 4 `add.s`, 3 `sub.s`, 4 `swc1`), **0** in the unswapped form (2 hits were `c.cond` before `bc1`, which cannot move). Script: notes folder `ER-063_drafts/census_mtc1_slot.py`. Parks `func_00126F00` (one word; 5 more words of `ld` order in its struct copies are still open after 7 shapes).
 
 Parked by ER-063 (one-line causes; drafts in the notes folder `ER-063_drafts/`):
@@ -394,6 +394,35 @@ MATCHes of `tools/m2c_bulk.py --plain`, 10 more after aligning declarations, `fu
 | `func_0013D088` | one delay slot: the game's `beqz n, return` takes the epilogue's `ld $ra`, ours fills from the fall-through; then everything shifts (3 shapes) |
 | `func_0013FCF8` | GCSE hoists the `u16` reload of `+0x6E` above the table (2.11's toolchain difference; with `-fno-gcse`, diagnostic only, only one block's store order is left); its double `D_00354968` has `.align 3` now |
 | `func_0013AA28`, `func_0013BD90`, `func_0013DF90` | each reads a double constant from a standalone `INCLUDE_RODATA` (`D_00354800`, `D_00354848`, `D_00354928` / `D_00354930`): `tools/split.py`'s order check blocker of 2.10 (`func_001371C0`). Not drafted by hand |
+
+### 2.13 Reloads after joins: `-fno-edge-lcm` (ER-069, Sun 22 Nov 2026; ruling 3.11)
+
+The first toolchain difference of 2.11 ("GCSE removes a reload the game keeps") is solved: it is this ee-gcc's
+**edge-based LCM** (`-fedge-lcm`, on by default; Cygnus, 27 Sep 1999), which deletes a partially redundant load
+after a join by copying the value on the other incoming edge. The game keeps those loads. `CFLAGS` now has
+`-fno-edge-lcm` (`docs/toolchain.md` 5.1); GCSE still runs, so func_0012F550 is unaffected. Evidence: notes folder
+`ER-069_evidence.md`.
+
+| Lesson | Proved by |
+|---|---|
+| **Write the reloads as plain C.** A field read again after an `if` that stored it on one path (`if (a[0] < lo) a[0] = lo; if (hi < a[0]) ...`), a flag word tested before and after an `if / else`, and an angle wrapped in place on an argument pointer (`while (pi < out[0]) out[0] -= 2pi;`, six loops in a row) now compile with the game's reloads. No `volatile`, no copies | func_0012EEB0 (`make regress` with it placed, scratch; control without the flag fails) |
+| **`-fno-gcse` is no longer a diagnostic to reach for**: where it helped (2.11), `-fno-edge-lcm` gives the same code and keeps the whole ELF identical | func_00113C30, func_0012D600, func_0013FCF8 (masked compares: same words as `-fno-gcse`) |
+
+Parked functions this moves (all in files owned by other cards in wave 4; listed for their owners):
+
+| Function | File | With the flag (masked compare) |
+|---|---|---|
+| func_0012EEB0 | `text_001000C0.c` | **MATCH** with ER-063's C unchanged; placing it needs the `(void)` clone func_0012F158 and its extern changed to `(float *, float *)`, passing both on (2.12; same `j`) |
+| func_0012EBB0 | `text_001000C0.c` | not re-tried (same wrap loops as func_0012EEB0) |
+| func_0012D600 | `text_001000C0.c` | 7 words, right size: `&m[8]` goes to `$s0` before `sqrtf` in the game, and the order of the first call's `$a0` / `$a1` setup |
+| func_00113C30 | `text_001000C0.c` | 80 words, right size: the register numbering in both arms (ER-063's note: an unused `float buf[16]` gives the 0x80 frame, dead code needs a ruling) |
+| func_00113ED8, func_00131D40 | `text_001000C0.c` | not re-tried (same head as func_00113C30; the `u16` counter reload) |
+| func_0013FCF8 | `text_0013DBC0.c` | 10 words, right size: store order in case 0 |
+| func_00144488, func_0014F550, func_00150350 | `text_0013DBC0.c`, `text_0014E2E8.c` | m2c `--plain` drafts MATCH only with the flag (census); placed together in a scratch run the ELF moved 8 bytes (`.sdata` -0x80: a `.lit4` pool matter of those drafts, not checked further); place one at a time |
+
+**Seen, not understood:** func_00145D08 (`text_0013DBC0.c`) wraps `+0x190` of a loaded pointer: the game reloads
+and stores the field on every loop pass and copies the pointer to `$v0` for the second loop. Neither setting gives
+it in 4 source forms (with the flag `loop.c` keeps the field in a register in the loop, as func_00149330's in 2.8).
 
 ## 3. Rulings (LuciDin)
 
@@ -466,6 +495,12 @@ Standing rulings; each applies until LuciDin changes it.
 | Ruling | Item |
 |---|---|
 | **Accepted** | When a C function's own double (or float) literal is emitted by gcc as an anonymous `.rodata` constant that takes the place of a standalone `INCLUDE_RODATA` / `D_` symbol (func_001371C0, func_0013AA28, func_0013BD90, func_0013DF90, func_0014DF08, func_0014EEF0), `tools/split.py`'s order check may accept dropping that `INCLUDE_RODATA`: the literal is ordinary source and `make regress` still proves every byte. ER-077 implements it |
+
+### 3.11 ER-069: -fno-edge-lcm (Sun 22 Nov 2026, 13:48 Eastern, LuciDin in the ER-069 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** (option A of three: flag; r2 compiler with the default changed; not adopted) | `CFLAGS` = `-O2 -G8 -fno-strict-aliasing -fno-edge-lcm` for every file: GCSE without the edge-based LCM, which removes loads after joins that the game keeps (func_0012EEB0; 4 more parked functions move; m2c census +3 matches, 0 lost); the whole ELF stays byte-identical. A stock flag of the same compiler (also in SSX Tricky's SDK-era makefile), not a patch; `GCC_DIR` stays r1 |
 
 No ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, dead code): park such functions with a
 one-line cause and ask.

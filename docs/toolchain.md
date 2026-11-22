@@ -385,9 +385,44 @@ decomp.me site, psdevwiki.com, tcrf.net.
 | `-O2` | **Unconfirmed** (fits 3 of 3 functions; `-O1` does not) | section 3.2 |
 | `-G 8` (small data on) | **Unconfirmed** value; small data on is **Confirmed** (5,735 gp-relative accesses, `.sdata` / `.sbss` / `.lit4`) | `-G 0` gives different code |
 | `-fno-strict-aliasing` | **In the build** (ruling `docs/decomp_recipes.md` 3.6, ER-035); whether Sony passed it or its compiler defaulted to it is **Unconfirmed** | this ee-gcc enables strict aliasing at `-O2`; func_0013DBC0 reloads a pointer after a float store, which only the flag gives; the whole ELF stays byte-identical with it |
-| `-fno-edge-lcm`, `-fomit-frame-pointer`, `-g` | **Unknown** | SSX Tricky's release flags (research.md §4) are a hypothesis only; `$fp` is used as a saved register (`s8`) in `main`, as MIPS GCC does at `-O` |
+| `-fno-edge-lcm` | **In the build** (ruling `docs/decomp_recipes.md` 3.11, ER-069, section 5.1); whether Sony passed it or its compiler predates the edge LCM is **Unconfirmed** | the game keeps loads after joins that this ee-gcc's default edge-based LCM removes; func_0012EEB0 matches only with it; the whole ELF stays byte-identical with it |
+| `-fomit-frame-pointer`, `-g` | **Unknown** | SSX Tricky's release flags (research.md §4) are a hypothesis only; `$fp` is used as a saved register (`s8`) in `main`, as MIPS GCC does at `-O` |
 | SDK libraries built with `-G 0` | **Unconfirmed** | 112 `lui $at; ori $at; mtc1` float constants (the no-small-data form of `li.s`) |
 | C++ (`-fno-exceptions` etc.) | **No sign of C++**: no `.gcc_except_table`, `.ctors` / `.dtors`, or mangled names among the strings | |
+
+### 5.1 `-fno-edge-lcm` (ER-069, Sun 22 Nov 2026; ruling 3.11)
+
+**What the flag switches (Confirmed in the source, `gcc/toplev.c`, `gcse.c`, `lcm.c` of the b595ded tree).** This
+ee-gcc has three GCSE switches, all on by default: `-fedge-lcm` (PRE by edge-based lazy code motion, `pre_edge_lcm`:
+it may insert a computation on a CFG edge and delete a partially redundant one after the join), `-fedge-lm` (load
+motion for `MEM`s at a `SYMBOL_REF` address) and `-fedge-sm` (store motion); the last two need the first. Off, PRE
+uses the older block-based `pre_lcm` (insertions at block ends only) and neither motion runs. `gcc/ChangeLog`,
+Mon Sep 27 1999, Andrew MacLeod (Cygnus): all three are new there, about six weeks before the 991111 snapshot.
+GCSE itself (copy / constant propagation, PRE) still runs, which is why func_0012F550 (needs GCSE's copy propagation;
+breaks with `-fno-gcse`) is unaffected.
+
+**What it does to the game's code (Confirmed, RTL dump `-dG` of func_0012D600).** With edge LCM, the load of
+`a[0]` after `if (a[0] < lo0) a[0] = lo0;` is partially redundant (the store kills it on one path only), so gcc
+copies the value on the store's edge and deletes the reload after the join ("PRE/HOIST: edge (3,4), copying
+expression 8"; 2 substs, 4 insns created). With `-fno-edge-lcm`: 0 substs, the reload stays, as in the game.
+`-fno-edge-lm` or `-fno-edge-sm` alone change nothing in the parked functions: it is the LCM itself.
+
+**Evidence** (notes folder `ER-069_evidence.md`; scratch files `C:\rs\toolchain\er069\`):
+
+| Test | Current build before ER-069 | With `-fno-edge-lcm` |
+|---|---|---|
+| Whole ELF, every placed function | PASS | **PASS** (3,606 of 3,606) |
+| func_0012EEB0 placed (scratch, put back), `make regress` | **FAIL** (SHA-1 `9b6ca991...`, only it differs) | **PASS** (`6087a8ca...`) |
+| func_00113C30 / func_0012D600 / func_0013FCF8 (masked, ER-063 / ER-072 drafts) | 157 / 68 / 155 words, sizes wrong | 80 / 7 / 10 words, sizes right (same as `-fno-gcse`); the rest is C shape |
+| m2c census, 693 functions with a compiling draft (6 files) | 97 MATCH | 100 MATCH: +3 (func_00144488, func_0014F550, func_00150350), **0 lost**; 157 drafts change |
+
+**Reading (Unconfirmed):** either SCE's builds passed `-fno-edge-lcm` (SSX Tricky's SDK-era demo makefile does,
+`docs/research.md` 4), or the game's compiler was a 2.9-ee snapshot from before 27 Sep 1999. In this tree both give
+the same code. No compiler patch was needed, so `GCC_DIR` stays `ee-gcc-2.9-991111-r1` and no r2 was built.
+
+**Not understood yet:** func_00145D08's wrap loops (a field through a loaded pointer reloaded and stored on every
+pass, the pointer copied to `$v0` for the second loop) come out with neither setting in 4 source forms; with the
+flag `loop.c` keeps the field in a register in the loop. Not a counterexample (neither matches), but open.
 
 ## 6. What ER-003 (splat split) needs
 

@@ -45,7 +45,9 @@ CRT0_O    := $(BUILD)/asm/text_00100000.o
 # --- flags (docs/decomp_recipes.md 1.1) -------------------------------------------------------------------
 # ER-035: -fno-strict-aliasing (ruling docs/decomp_recipes.md 3.6): the game reloads memory across stores of other
 # types, which this compiler's -O2 default (strict aliasing on) does not.
-CFLAGS    := -O2 -G8 -fno-strict-aliasing
+# ER-069: -fno-edge-lcm (ruling docs/decomp_recipes.md 3.11): GCSE without the edge-based LCM (Cygnus, 27 Sep 1999,
+# on by default), which removes partially redundant loads at joins; the game reloads there (docs/toolchain.md 5).
+CFLAGS    := -O2 -G8 -fno-strict-aliasing -fno-edge-lcm
 CPPFLAGS  := -Iinclude
 ASFLAGS   := -G8 -O2 -mabi=eabi -Iinclude -I$(BUILD)/include
 LDFLAGS   := -G8 -T $(LD_SCRIPT)
