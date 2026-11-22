@@ -494,7 +494,7 @@ rerun, 17 by hand). Nothing compiler-steering.
 | Function | Size | Cause |
 |---|---|---|
 | func_00113C30 | 676 | **placed by ER-089 (2.23)**; was: 45 words: which variable gets `$a0` / `$a1` in the head and the loop (the game copies the loaded id from `$v0` into `$a1` at the join); the 0x80 frame needs an unused `float buf[16]` (nothing touches `sp+0..0x3F`): dead code, needs a ruling |
-| func_00113ED8 | 760 | **re-parked by ER-089 (2.23)**: cross-jumped found tails; was: same head as func_00113C30 and the same untouched 0x40 bytes of stack (unused buffer, ruling); not drafted further |
+| func_00113ED8 | 760 | **placed by ER-115 (2.27)**; re-parked by ER-089 (2.23): cross-jumped found tails; was: same head as func_00113C30 and the same untouched 0x40 bytes of stack (unused buffer, ruling); not drafted further |
 | func_00131D40 | 732 | wrap loops not promoted in the game (above); head and table call: register choice |
 | func_00126F00 | 476 | **placed by ER-094 (2.23)**: `extern const` vectors |
 | func_00120EF0 | 1,348 | **ER-091 (2.23): 71 words, right size, re-parked**; was: 265 of 337 words: the scratchpad constant hoisted in ours (above) and the `D_001FF390` base CSE; structure, struct copy and data match |
@@ -600,7 +600,7 @@ Parked by ER-085 (one-line causes; C in the dispatcher's notes folder `ER-085_c/
 | ~~func_00149EE8, func_0014A500~~ | placed by ER-100 (2.24: store order and ruling 3.14) |
 | func_0014D3F8 | 13 words: the angle constant chosen by the `200.0f` tests lands in `$f1`, the game's in `$f0` (shared with `-200.0f`); 3 branch shapes, 4 expression shapes, all 120 declaration orders. ER-100 (`-dl` dump): our `r = a * pi / 180` chain is tied into one register (pi, product and the block-local `r` all in `$f20`); the game keeps pi in `$f1`, the product in `$f0`, only `r` in `$f20` |
 | ~~func_001459A8, func_001485A8, func_0014A0B8, func_00146DF8, func_0014B528~~ | placed by ER-100 (2.24) |
-| func_00146598 | not attempted by ER-100 (0x2EC, clamp logic; the m2c draft is 11 words long) |
+| func_00146598 | still parked: ER-119 got it to 2 words (2.26) |
 
 ER-100 rechecked func_00147F78 and func_00145FE8 (ee-as r4 changes nothing): both are local-alloc ties. func_00147F78:
 `K * x98` ties the product to K's register, while the game's product is in x98's, and `x98 * K` drops K to `$f2` (108
@@ -673,8 +673,8 @@ compiler-steering. Drafts of the parked two and the two helper scripts: notes fo
 
 | Function | Size | Cause |
 |---|---|---|
-| func_00113ED8 | 760 | right instructions, 4 words short: our post-reload cross-jumping merges the two `func_001C9F60` found tails (both blocks end `set $a1; call` at jump2, `-dS -dJ` dumps), the game keeps both; plus one `nop` before the game's loop top. 8 found-path forms tried |
-| func_00120EF0 | 1,348 | right size, 71 words: the store block after the struct copy (the game re-materializes `&D_002029D0` / `&D_00202A50` / `&D_001FF8B0` more often than our CSE; about 700 statement orders searched, struct forms worse) and a `rec` / bit-index saved-register swap |
+| func_00113ED8 | 760 | **placed by ER-115 (2.27)**: `goto found;` to a call after the loop (sibcall USE stops the cross-jump), record pointer in `k`; was: right instructions, 4 words short: our post-reload cross-jumping merges the two `func_001C9F60` found tails (both blocks end `set $a1; call` at jump2, `-dS -dJ` dumps), the game keeps both; plus one `nop` before the game's loop top. 8 found-path forms tried |
+| func_00120EF0 | 1,348 | **re-parked by ER-116 (2.27)**, 72 words with three regions fixed; was: right size, 71 words: the store block after the struct copy (the game re-materializes `&D_002029D0` / `&D_00202A50` / `&D_001FF8B0` more often than our CSE; about 700 statement orders searched, struct forms worse) and a `rec` / bit-index saved-register swap |
 
 ### 2.24 The five small game files, round 3 (ER-100, Sun 22 Nov 2026; Confirmed by `make regress`, 31 functions)
 
@@ -703,7 +703,7 @@ the C of the parked ones are in the dispatcher's notes, `ER-100_notes.md` and `E
 **Parked by ER-100's helper (needs a ruling; Unconfirmed reading):** func_0014C840 (26 words) and func_0014D930 (18
 words) match only with `-fstrict-aliasing`, as a diagnostic (ruling 3.6 forbids it). The game moves the `*arg0` load
 above stores of other types and keeps those stores in source order; 120 orders and more were tried for each. This is
-the same family as 2.22's func_0013F288 / func_0013AA28. Not attempted: func_00146598, func_00145578 (79 words) and
+the same family as 2.22's func_0013F288 / func_0013AA28. Not attempted: func_00146598, func_00145578 (79 words; both taken by ER-119, 2.26) and
 the 86 drafts whose size differs.
 
 ### 2.25 `text_00150878` round: whole-file small-list rerun, field order, ruling 3.4 (ER-095 + ER-096 + ER-098, Sun 22 Nov 2026; Confirmed by `make regress`, 71 functions)
@@ -751,6 +751,65 @@ func_001C4838 (4), func_001C8700 (5), func_0016E368, func_0017D6B8, func_0018B8A
 `(void)` with an argument), func_001C6880 / func_001C6B18 / func_001C6BD8 (64-bit packing), func_001A7CA8,
 func_001B34F8, func_001BE9C0, func_001C20B0, func_001C8600 (not tried); about 130 of 9+ words (only the sorter
 tried them).
+
+### 2.26 The five small game files, round 4 (ER-112 + ER-119, Sun 22 Nov 2026; Confirmed by `make regress`, 6 functions)
+
+6 placed, 656 bytes, branch `er-119-five-files` (worktree `C:\rs\wt\er119`), commits `87fc92e` (ER-112: func_00148BB0,
+func_0014C630, func_0014D028, func_0014DEA0, func_0014F5F8) and `f69bb83` (ER-119: func_00145578); `make regress`
+(-j4) green after each and after merging main. ER-112's rerun (`m2c_bulk.py --plain --tag ER-112`, label `er112`, 5
+functions) gave 3 masked MATCHes; func_0014C630 / func_0014D028 came out one instruction short this time (the run
+harvested no callee signatures, so `func_0012C3E8` lost its pass-through `$a0`), and all three plain forms clashed
+with their file's own declarations. All five were written by hand into each file's declarations from the drafts (ER-084's
+drafts in the notes `ER-084_c/` agree) and each matched first try. func_0014DEA0 needed its file's
+`extern void func_0014DEA0(void)` changed to `(char *)`.
+
+| Lesson | Proved by |
+|---|---|
+| **A callee called with two arguments by one caller and one by another takes both** (recipes 2.10 / 2.24 again): func_00145578 sets `$a1` from its own `arg1` before each `jal func_00145F70`, which never reads `$a1`. `func_00145F70(void **, void *)` (second parameter unused) lets it compile; its other caller func_00145208 passes its own second parameter through (same bytes, no move emitted) | func_00145578, func_00145208, func_00145F70 |
+| **The store order the game emits was the source order here**, not ascending offsets (2.25): case 1 `x30, x6C, x6E, xE`; the counter block `x10 -= 1, x30, x74, xD, x6E, x6C, xE`. Ascending was not tried first; the emitted order matched at once except the `x30` pair below | func_00145578 |
+| **`extern const` again** (2.21): `D_0035BCEC` is loaded ahead of the `x10` decrement's store in the game; plain, gcc keeps the load after it (`x30` written first gives the load early but swaps the two stores) | func_00145578 |
+| **A limit written out in each comparison** (as a `DEG2RAD(x)`-style macro would expand: `if (w < -(D * 3.1415927f / 180.0f)) w = -(...); else if (... < w) w = ...;`) gives the game's registers where a `lim` local puts the quotient in a fresh register (`$f3` against the game's `$f1`). Reading (Unconfirmed): the original used such a macro | func_00146598 (success branch; parked, below) |
+
+**Parked: func_00146598** (0x2EC, right size, 2 words): one load pair in each of two blocks. The game loads the pi
+literal before `D_0035BD28` in the `x6E == 0` block and after it in the clamp `else` block. In our build both orders
+come from sched2 and both follow `D_0035BD28`'s const-ness: `const` (needed for the first block, where the loads of
+`D_0035BD28` / `D_0035BD2C` must move above the `x10` store) gives pi first in both blocks; plain gives
+`D_0035BD28` first in both. The sched2 dump shows why: with a plain extern the load gets an anti-dependence on the
+later `x30` store, which raises its priority over the pi load (whose `$f1` is reused by the `D_0035BD24` load).
+Tried: const on either or both globals, struct-typed stores in the first block (recipes 2.22's fixed-scalar rule,
+with and without const), argument and statement orders, locals, 13 forms of the `else` block. C and the variant
+script: notes `ER-119_c/`.
+
+### 2.27 `text_001000C0` round 2: cross-jumped tails, ER-084's plain matches (ER-112 + ER-115 + ER-116, Sun 22 Nov 2026; Confirmed by `make regress`)
+
+ER-112's share in this file: the 17 plain MATCHes of ER-084's A/B run (notes `ER-084_c/`), each rechecked with
+`cmpfunc` on this branch and placed (944 bytes, commit `9527f54`). A fresh `m2c_bulk.py --plain --list` run on the 17
+names harvested no signatures (`0 harvested signatures`; the list form does not harvest the file's callees) and gave 9
+MATCHes, so the ER-084 drafts were used. Three needed the file's declarations aligned: `func_0012B5F8`'s third
+parameter widened from `u8` to `s32` (func_0012F808 passes its own `arg1` there; func_0012F838 / func_0012F870 still
+match), `func_00134070` declared with one parameter (its asm never reads `$a1`), `func_0012F8A0` declared `s32` with an
+`s32` second parameter (it returns `func_0012B6B0`'s value; `src/text_0013DBC0.c` still declares the old prototype,
+same code there). func_00113ED8 (ER-115, 760 bytes, commit `8196aa8`) by hand. ruling 3.13's `buf[16]` as in
+func_00113C30; nothing else compiler-steering.
+
+| Lesson | Proved by |
+|---|---|
+| **A call in tail position outside any loop keeps a `(use (const_int 0))` after it** when Cygnus' sibling-call pass refuses the sibcall (here for the 3.13 frame; 2.24), and that USE stops jump2's cross-jumping (`jump.c` `find_cross_jump` compares insn codes: USE against CALL_INSN fails). A call inside a loop statement is never a sibcall candidate and gets no USE, so two identical `call; jump epilogue` tails inside loops are merged (only the call and the `$a1` add must match). The game's func_00113ED8 keeps both `func_001C9F60` found tails: its first found path is `goto found;` to the call after its do-while (`found: func_001C9F60(...); return;`). The game's lone `nop` before the loop top was the compiler's own `.align 3` on the loop label, back in place once the 3 words of the tail returned | func_00113ED8 (func_00113C30's end call shows the same USE in `-dR` dumps) |
+| **Order of passes after reload**: sched2 runs before jump2's cross-jump (`toplev.c`), so cross-jump sees the final instruction order without delay slots; a jump2 merge cannot be undone by statement order alone | func_00113ED8 (`-dS -dg -dJ -dR` dumps) |
+| **Global allocation inherits preferences through deaths** (`global.c` `expand_preferences`): a pseudo set in the insn where another dies takes over its hard-register preferences if they do not conflict. In func_00113ED8 the part index (`$a1`, from `func_001C9B18(a2, id)`) passes `$a1` to the product, to the record pointer, then to whichever record field load carries the pointer's death after sched1, so the loop count took `$a1` (game `$a0`) or the loads came in the wrong order (sched1 prefers the load with the death, `INSN_REG_WEIGHT`). Holding the record pointer in `k` (the vertex count, `$v0` in the game too) makes it conflict with the count, so the preference stops: 2 words to MATCH. Recipes 2.23's variable reuse again | func_00113ED8 |
+| **ER-084's drafts and the file's declarations**: an address-taking extern (`void f(s8 *, s32)` for a callback) or a narrowed callee parameter blocks a plain MATCH; read the callee's asm for the real parameters and return | func_0012CAD8, func_00134070, func_0012F8A0, func_0012F808 |
+
+**Seen only in masked compares (Unconfirmed until a placement proves them), func_00120EF0:** call arguments read
+from a record before a store to the scratchpad must be read into locals first (`w1 = ...0x118; w0 = ...0x114;
+SPR->hit = 0; f(..., w0, w1, len)`): with `-fno-strict-aliasing` the store blocks the loads otherwise, and this also
+gives `obj` the game's `$a1`; `byte = &(g = &D_001FF390)->bits[i / 8];` gives the game's `g + 0x140` first; the
+`x219` read first in the compare gives the game's `bnel` operand order.
+
+**Parked (one-line cause; drafts and notes in the notes folder `ER-115_116_c/`):**
+
+| Function | Size | Cause |
+|---|---|---|
+| func_00120EF0 | 1,348 | right size, 72 words (the three fixes above in): `rec` / `bit` saved registers swap (global-alloc priority `bit` 2·6/19 = 0.632 against `rec` 5·47/358 = 0.656: the `w0` / `w1` copies lengthen `bit`'s range); the `&D_001FF890` `%hi` temp and the `lhu` / `lb` temps take `$v1` / `$v0` swapped; the store block after the struct copy, where the game re-materializes `%hi` of `D_002029D0` / `D_00202A50` / `D_001FF8B0` (reading: reload rematerializing unallocated HIGH pseudos, so register pressure; 1,500 statement orders plateau at 71-73 words, struct forms 115+) |
 
 ## 3. Rulings (LuciDin)
 
@@ -842,7 +901,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23); three by ER-100 (2.24); func_001668E0, func_001668A8 (ER-095, 2.25: `char buf[0x80]`) |
+| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23); three by ER-100 (2.24); func_001668E0, func_001668A8 (ER-095, 2.25: `char buf[0x80]`); func_00113ED8 (ER-115, 2.27) |
 
 ### 3.14 ER-100: an address-taken local that only stops a sibling call (Sun 22 Nov 2026, 16:40 Eastern, LuciDin in the ER-100 session)
 

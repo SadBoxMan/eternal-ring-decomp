@@ -121,7 +121,12 @@ INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014CD88);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014CF60);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D028);
+extern void func_0012C3E8(void *, s32, s32, s32, f32, f32);
+
+/* ER-112: drafted with m2c (tools/m2c_bulk.py --plain; the pass-through $a0 written out); names, types and offsets are Unconfirmed readings. */
+void func_0014D028(void **arg0) {
+    func_0012C3E8(arg0, 0xAC, 1, *(s32 *)((char *)*arg0 + 0xE0) + 0x8F0, 0.0f, 10.0f);
+}
 
 /* ER-085: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
 s32 func_0014D050(s32 arg0) {
