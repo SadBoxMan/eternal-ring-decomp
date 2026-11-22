@@ -754,6 +754,33 @@
       "model": "Opus, medium",
       "waits_on": "nothing (tools/ only)",
       "notes": ""
+    },
+    {
+      "code": "ER-051",
+      "title": "Cut the ready seams (S21, S22, five inside text_001343E8)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "with or after ER-031 (same file); one src/ writer per file",
+      "notes": ""
+    },
+    {
+      "code": "ER-052",
+      "title": "Cut the five Strong windows after S20 (needs ruling)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "LuciDin's ruling (cut at first candidate or wait)",
+      "notes": ""
+    },
+    {
+      "code": "ER-053",
+      "title": "Seam tool round 2 (far filter in --cuts, two verdicts)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, medium",
+      "waits_on": "nothing (tools/seams.py only)",
+      "notes": ""
     }
   ]
 }
