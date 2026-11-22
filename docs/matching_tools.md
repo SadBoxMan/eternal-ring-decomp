@@ -305,7 +305,7 @@ offsets are Unconfirmed readings.` Left as m2c wrote it: arithmetic on `void *` 
 Every file placed, then `make regress` (-j4): **78 functions placed, all green** (3,606 match, SHA-1 unchanged),
 5,460 bytes.
 
-| File | Asm functions tried | Masked MATCH | Plain MATCH | Placed (regress green) | Same size, 1-2 words differ | Place + regress |
+| File | Asm functions tried | Masked MATCH | Plain MATCH | Placed (regress green) | Same size, 1-2 words differ (all matched by ER-062, 6.3) | Place + regress |
 |---|---|---|---|---|---|---|
 | `text_00145120` | 96 | 27 | 25 | 25 | 4 (`func_00145238`, `func_00145248`, `func_00148B00`, `func_0014A8B0`) | 46 s + one fix + 43 s |
 | `text_0014A968` | 48 | 22 | 19 | 19 | 2 (`func_0014B420`, `func_0014C620`) | 45 s |
@@ -333,6 +333,45 @@ Not placed (masked MATCH, plain form failed; all still `INCLUDE_ASM`):
 All seven are declaration clashes, not code differences: the clone prototypes `(void)` of ER-049 and m2c's
 parameter count for a pass-through callee. Skipped by nature: 22 functions with `div.s` / `sqrt.s` (ER-034; none
 matched as drafts); no VU0 inline asm in these five files.
+
+### 6.3 The 11 near misses by hand (ER-062, Sun 22 Nov 2026)
+
+All 11 same-size near misses of 6.2 are placed (commit `a751ee2`), `make regress` (-j4) green after each placement:
+708 bytes, nothing parked, nothing compiler-steering. Drafts from `m2c_bulk.py --plain` run on the 11 names only
+(label `er062`, default `harvest` context, 8 s).
+
+| Function | File | What it took |
+|---|---|---|
+| `func_00148B00`, `func_0014A8B0` | `text_00145120` | nothing: plain MATCH in the small run (DIFF in ER-054's file-wide run) |
+| `func_0014FF38`, `func_0014FF58` | `text_0014E2E8` | nothing: plain MATCH in the small run (return-wrapper form) |
+| `func_00145238`, `func_00145248` | `text_00145120` | `func_00130FE0(arg0, func_X)`: m2c dropped the pass-through `$a0` |
+| `func_0014C620` | `text_0014A968` | `func_0012FD10(arg0, 0xA6, 2, 5)`: m2c dropped `$a0` and read the constant `5` as a parameter |
+| `func_001501D8` | `text_0014E2E8` | `func_0012FB48(arg0, 0)` (pass-through `$a0`) |
+| `func_0014D380` | `text_0014C840` | `func_0014D8F8(arg0, (s32) func_0014D3F0)` (pass-through `$a0`, written as `func_0014CC68` calls it) |
+| `func_0014B420` | `text_0014A968` | `x6C > x74` instead of `x74 < x6C`: the game loads `+0x6C` first (recipes 2.7) |
+| `func_0014DDD8` | `text_0014D930` | the plain draft as it stood; the one flagged word is a cmpfunc limit (below) |
+
+**Why the small run matched 4 more.** ER-054's run gave `func_00148B00`, `func_0014A8B0`, `func_0014FF38` and
+`func_0014FF58` as DIFF; the run on 11 names gave plain MATCHes with the same tool. The harvested signatures differ
+between the two runs (they come from the callees m2c reaches from the targets); which signature made the difference
+was not traced (Unconfirmed). Rerunning a file's remaining same-size DIFFs in small lists is cheap (8 s here).
+
+**The pass-through signature.** A same-size DIFF where every argument sits one register higher in the game
+(`lui $a1` / `addiu $a1` against our `$a0`) means the function passes its own `$a0` to the callee untouched, and
+m2c left it out. Give the function a parameter and pass it (recipes 2.8, 2.9).
+
+**Two tool limits met (not fixed; queued in `docs/handoff.md`):**
+
+- `place.py c` drops a scratch extern line that the target file already has, also when the file's copy is
+  **below** the insertion point. The placed function then uses a name not yet declared: a build error for a data
+  symbol (`D_001FFB06`) or a callee whose type conflicts (`func_00145760`), and **no message at all** for a `void`
+  callee taken as an implicit declaration (`func_0012FB48`; the code still matched). Fix by hand: move the file's
+  extern line above the new function (or add it there). Check after every placement that the scratch file's extern
+  lines are above it.
+- `cmpfunc` pairs an `R_MIPS_LO16` only with an `R_MIPS_HI16` that comes before it. When two branches share one
+  `lui` (`func_0014DDD8`: the `lui $v0, %hi(D_0035BEB0)` at +0x44 serves the `%lo` at +0x94 in another case), the
+  `%lo` is reported "no HI16 before it" and counted as a difference although the instruction's fixed part is equal.
+  `make regress` proved the function.
 
 ## 7. Not verified
 

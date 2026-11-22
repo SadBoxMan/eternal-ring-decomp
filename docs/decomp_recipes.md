@@ -252,6 +252,15 @@ add tails; 8 tries, close). `func_0012BDA8` (the twin of `func_0012BF08` with an
 Still blocked after ER-034 (from ER-035's list of 46): 12 functions call `sqrtf` (`func_001E42E0` needs that name)
 and 11 call the soft-double routines (libgcc names): both ER-041; 3 have VU0 code.
 
+### 2.9 Near misses by hand (ER-062, Sun 22 Nov 2026; Confirmed by `make regress`, commit `a751ee2`, 11 functions)
+
+| Lesson | Proved by |
+|---|---|
+| **Arguments one register higher in the game = a pass-through `$a0`.** When the game loads the callee's arguments into `$a1`, `$a2`, ... where ours use `$a0`, ..., the function hands its own `$a0` to the callee untouched and m2c dropped it. Give the function the parameter and pass it first: `void f(void *arg0) { g(arg0, func_X); }` gives the game's `lui $a1; j g; addiu $a1` (sibling call), with no move for `$a0`. A trailing constant m2c read as a parameter (`$a3` set in the game) goes back in as a literal | `func_00145238`, `func_00145248` (`func_00130FE0(arg0, func_X)`), `func_001501D8` (`func_0012FB48(arg0, 0)`), `func_0014C620` (`func_0012FD10(arg0, 0xA6, 2, 5)`), `func_0014D380` (inside an `if`, with `jal`) |
+| **Compare operand order picks the load order** (2.7) holds in m2c drafts too: m2c wrote `x74 < x6C`, the game loads `+0x6C` first, `x6C > x74` matches (same `slt`) | `func_0014B420` |
+| **A `%lo` sharing a `lui` with another branch** (one `lui $v0, %hi(D_X)` reaching two `lwc1 %lo(D_X)($v0)` in different cases) comes from plain C with `extern f32 D_X[];` read in both cases; gcc shares the `%hi` itself | `func_0014DDD8` (`D_0035BEB0`) |
+| **A taken address needs the same prototype as the definition.** A file that only takes a function's address may have declared it `(void)`; once the function is placed with a parameter, that extern must be changed to match (no code change) | `func_00145238`, `func_001501D8` |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
