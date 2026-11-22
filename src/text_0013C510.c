@@ -193,7 +193,30 @@ s32 func_0013D4D0(void **a0) {
     return v;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013D550);
+/* ER-072: jump table (13 entries, 0..12) by hand, same shape as func_0013D4D0: 0 for states 0, 11 and 12, 12 for
+   state 9, else 11, from func_0013D498, passed to func_0012B540. gcc needs five case labels for a table (four
+   give a compare tree), so state 10 is listed beside default (ruling 3.9); which value the original listed there
+   is Unconfirmed (any of 1..8 or 10 gives the same bytes). Names and types Unconfirmed. */
+s32 func_0013D550(void **a0) {
+    s32 v;
+
+    switch (func_0013D498(a0)) {
+    case 0:
+    case 11:
+    case 12:
+        v = 0;
+        break;
+    case 9:
+        v = 12;
+        break;
+    case 10:
+    default:
+        v = 11;
+        break;
+    }
+    func_0012B540(*a0, 1, v, 0);
+    return v;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013D5D0);
 
