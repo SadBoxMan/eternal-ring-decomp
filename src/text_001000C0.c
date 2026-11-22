@@ -751,7 +751,7 @@ end:
    offsets are Unconfirmed readings. id is the part index and, in the i == n scan, the vertex pointer (as
    func_00113C30); k holds the record pointer before it counts vertices (one variable reused, recipes 2.23). The
    first found path is a goto to a call after its loop: a call in tail position outside a loop keeps the sibling-call
-   pass's placeholder, which stops cross-jumping from merging it with the i == n path's call (recipes 2.25).
+   pass's placeholder, which stops cross-jumping from merging it with the i == n path's call (recipes 2.27).
    buf: ruling 3.13 (an unused local that only sizes the 0x90 stack frame; nothing reads sp+0..0x3F). */
 void func_00113ED8(char *a0, s32 a1, void *a2, s32 skip) {
     s32 n, id, i, k, cnt, c, j, w;
