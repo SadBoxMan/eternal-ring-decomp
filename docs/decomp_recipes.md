@@ -412,7 +412,7 @@ constant anonymously in the same place. Placed: `func_001371C0` (`D_00354718`, E
 
 ### 2.17 Reloads after joins: `-fno-edge-lcm` (ER-069, Sun 22 Nov 2026; ruling 3.11)
 
-The first toolchain difference of 2.11 ("GCSE removes a reload the game keeps") is solved: it is this ee-gcc's
+The first toolchain difference of 2.12 ("GCSE removes a reload the game keeps") is solved: it is this ee-gcc's
 **edge-based LCM** (`-fedge-lcm`, on by default; Cygnus, 27 Sep 1999), which deletes a partially redundant load
 after a join by copying the value on the other incoming edge. The game keeps those loads. `CFLAGS` now has
 `-fno-edge-lcm` (`docs/toolchain.md` 5.1); GCSE still runs, so func_0012F550 is unaffected. Evidence: notes folder
@@ -420,24 +420,25 @@ after a join by copying the value on the other incoming edge. The game keeps tho
 
 | Lesson | Proved by |
 |---|---|
-| **Write the reloads as plain C.** A field read again after an `if` that stored it on one path (`if (a[0] < lo) a[0] = lo; if (hi < a[0]) ...`), a flag word tested before and after an `if / else`, and an angle wrapped in place on an argument pointer (`while (pi < out[0]) out[0] -= 2pi;`, six loops in a row) now compile with the game's reloads. No `volatile`, no copies | func_0012EEB0 (`make regress` with it placed, scratch; control without the flag fails) |
+| **Write the reloads as plain C.** A field read again after an `if` that stored it on one path (`if (a[0] < lo) a[0] = lo; if (hi < a[0]) ...`), a flag word tested before and after an `if / else`, and an angle wrapped in place on an argument pointer (`while (pi < out[0]) out[0] -= 2pi;`, six loops in a row) now compile with the game's reloads. No `volatile`, no copies | func_0012EEB0 (`make regress` with it placed, scratch; control without the flag fails); func_00144488, func_0014F550, func_00150350 (placed) |
 | **`-fno-gcse` is no longer a diagnostic to reach for**: where it helped (2.11), `-fno-edge-lcm` gives the same code and keeps the whole ELF identical | func_00113C30, func_0012D600, func_0013FCF8 (masked compares: same words as `-fno-gcse`) |
 
 Parked functions this moves (all in files owned by other cards in wave 4; listed for their owners):
 
 | Function | File | With the flag (masked compare) |
 |---|---|---|
-| func_0012EEB0 | `text_001000C0.c` | **MATCH** with ER-063's C unchanged; placing it needs the `(void)` clone func_0012F158 and its extern changed to `(float *, float *)`, passing both on (2.12; same `j`) |
+| func_0012EEB0 | `text_001000C0.c` | **MATCH** with ER-063's C unchanged; placing it needs the `(void)` clone func_0012F158 and its extern changed to `(float *, float *)`, passing both on (2.13; same `j`) |
 | func_0012EBB0 | `text_001000C0.c` | not re-tried (same wrap loops as func_0012EEB0) |
 | func_0012D600 | `text_001000C0.c` | 7 words, right size: `&m[8]` goes to `$s0` before `sqrtf` in the game, and the order of the first call's `$a0` / `$a1` setup |
 | func_00113C30 | `text_001000C0.c` | 80 words, right size: the register numbering in both arms (ER-063's note: an unused `float buf[16]` gives the 0x80 frame, dead code needs a ruling) |
 | func_00113ED8, func_00131D40 | `text_001000C0.c` | not re-tried (same head as func_00113C30; the `u16` counter reload) |
-| func_0013FCF8 | `text_0013DBC0.c` | 10 words, right size: store order in case 0 |
-| func_00144488, func_0014F550, func_00150350 | `text_0013DBC0.c`, `text_0014E2E8.c` | m2c `--plain` drafts MATCH only with the flag (census); placed together in a scratch run the ELF moved 8 bytes (`.sdata` -0x80: a `.lit4` pool matter of those drafts, not checked further); place one at a time |
+| func_0013FCF8 | `text_0013DBC0.c` | 9-10 words, right size: case 0 (the game loads and negates `D_0035BB68` first and reuses `$f0` for `+0xE90` / `+0xE94`); all 120 orders of its five stores and 3 other forms tried |
+| func_0013AA28, func_0013BD90, func_0013DF90 (ER-077) | `text_0013A410.c`, `text_0013B748.c`, `text_0013DBC0.c` | ER-077's drafts give the same words as its `-fno-gcse` diagnostic: 16 / 155 / 86 words left, all C shape (2.14 notes; func_0013AA28 also waits on `tools/split.py`'s 16-byte takeover) |
+| func_00144488, func_0014F550, func_00150350 | `text_0013DBC0.c`, `text_0014E2E8.c` | **placed by ER-069** (m2c `--plain` drafts, census MATCHes only with the flag), `make regress` green on main 937b403 + the flag; control without the flag fails (`.text` 24 bytes longer). An 8-byte shift seen when all three were placed on the pre-merge tree did not come back |
 
 **Seen, not understood:** func_00145D08 (`text_0013DBC0.c`) wraps `+0x190` of a loaded pointer: the game reloads
 and stores the field on every loop pass and copies the pointer to `$v0` for the second loop. Neither setting gives
-it in 4 source forms (with the flag `loop.c` keeps the field in a register in the loop, as func_00149330's in 2.8).
+it in 4 source forms (with the flag `loop.c` keeps the field in a register in the loop, as func_00149330's in 2.9).
 
 ## 3. Rulings (LuciDin)
 
