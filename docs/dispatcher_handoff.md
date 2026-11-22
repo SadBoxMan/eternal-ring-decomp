@@ -66,7 +66,7 @@ Done looks like: ...
 Rules: accuracy first, no corners cut without asking; nothing made up (mark Unconfirmed / Unofficial and list it);
 no game data in git; before chasing a suspected crash or glitch ask LuciDin what he saw and what the game normally
 does; commit only your own files (temporary index or explicit paths, LF), ask first unless managerial rights cover
-it, never push; builds -j4; launches on the secondary monitor, muted; call cmd.exe, never bare cmd; below 95% ignore
+it, never push; builds -j4; launches on the secondary monitor, muted; port runs keep the exe's console window hidden (else on the secondary monitor; LuciDin, 22 Nov 2026); call cmd.exe, never bare cmd; below 95% ignore
 the 5-hour bar, at 95% stop at a clean point and tell the dispatcher; do NOT propose cards: put follow-ups (task,
 files, done-when, model / effort / Ultracode) in the completion message. Fan-out agents skip the model check (put that
 line in every agent prompt) and get a token budget per batch.
