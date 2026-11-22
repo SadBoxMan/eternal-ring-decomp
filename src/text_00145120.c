@@ -152,7 +152,24 @@ INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00145578);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00145760);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00145918);
+extern s32 func_0012DA18(f32, f32, f32, f32);
+extern const f32 D_0035BCF0;
+extern const f32 D_0035BCF4;
+
+/* ER-085: by hand from the m2c draft; the .sdata floats read as const (recipes 2.18); names, types and offsets are Unconfirmed readings. */
+void func_00145918(char *arg0) {
+    f32 n;
+    char *t;
+    char *e;
+
+    *(f32 *)(arg0 + 0xB0) = D_0035BCF0;
+    *(f32 *)(arg0 + 0x94) = -D_0035BCF4;
+    n = func_0012DA18(*(f32 *)(*(char **)arg0 + 0x94), *(f32 *)(arg0 + 0x54), *(f32 *)(arg0 + 0x94), *(f32 *)(arg0 + 0xB0)) - 4;
+    t = *(char **)(arg0 + 0x130);
+    e = *(char **)arg0;
+    *(f32 *)(arg0 + 0x90) = (*(f32 *)t - *(f32 *)(e + 0x90)) / n;
+    *(f32 *)(arg0 + 0x98) = (*(f32 *)(t + 8) - *(f32 *)(e + 0x98)) / n;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_001459A8);
 
@@ -430,7 +447,23 @@ void func_00147850(s8 *arg0, s32 arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147A28);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147CF8);
+extern const f32 D_0035BD58;
+extern const f32 D_0035BD54;
+
+/* ER-085: by hand from the m2c draft; the .sdata floats read as const (recipes 2.18); names, types and offsets are Unconfirmed readings. */
+void func_00147CF8(char *arg0) {
+    f32 n;
+    char *t;
+    char *e;
+
+    *(f32 *)(arg0 + 0xB0) = D_0035BD58;
+    *(f32 *)(arg0 + 0x94) = -D_0035BD54;
+    n = func_0012DA18(*(f32 *)(*(char **)arg0 + 0x94), *(f32 *)(arg0 + 0x54), *(f32 *)(arg0 + 0x94), *(f32 *)(arg0 + 0xB0)) - 4;
+    t = *(char **)(arg0 + 0x130);
+    e = *(char **)arg0;
+    *(f32 *)(arg0 + 0x90) = (*(f32 *)t - *(f32 *)(e + 0x90)) / n;
+    *(f32 *)(arg0 + 0x98) = (*(f32 *)(t + 8) - *(f32 *)(e + 0x98)) / n;
+}
 
 
 /* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed. */
