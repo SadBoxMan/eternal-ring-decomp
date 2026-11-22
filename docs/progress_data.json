@@ -11,21 +11,21 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 898,
+          "done": 916,
           "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
-          "notes": "Matched = C placed in src/ and proven by the byte-identical build (make regress: whole-ELF SHA-1 + func_check, nothing masked); goal: true 100% (every function in C, NON_MATCHING 0), LuciDin 17 Nov 2026. Done 262 = 20 by ER-049 (clone matches placed by tools/clones.py; 21 Nov 2026) + 127 empty functions splat wrote as C + 17 real game functions matched by ER-014 + 3 by ER-024 (18 Nov 2026) + 6 by ER-026 (func_001115E0, func_0012EA28, func_0012EAB8, func_0012E7B0, func_00131608, func_00148330; 19 Nov 2026) + 10 by ER-035 (func_00123BA8, func_00130F50, func_0012F550, func_0012CD08, func_0012E908, func_0011B9D0, func_0011BAB0, func_00133098, func_0013DBC0, func_0013B840; 19 Nov 2026) + 1 by ER-015 (func_0014D098, the matching tools' proof function; 19 Nov 2026). Total 3,609 = the 3,606 function symbols func_check counts (4 crt0, 3,475 INCLUDE_ASM, 127 C at ER-003) + 3 INCLUDE_ASM blocks splat labels as data (func_001D73D0, func_001D7658, func_001DECA0, COP2/VU0-style words), which func_check does not count but still need C. + 78 by ER-054 (m2c_bulk --plain drafts in text_00145120, text_0014A968, text_0014C840, text_0014D930, text_0014E2E8; 22 Nov 2026). + 11 by ER-062 (the ER-054 same-size near misses, by hand; 22 Nov 2026). + 1 by ER-031 (func_0013D4D0, the first C jump table in a file cut from S1's; 22 Nov 2026). + 88 by ER-072 (73 m2c_bulk --plain matches and 10 after aligning declarations in the five files cut by ER-051, func_0013D550 / func_00138A20 / func_00139EE0 by hand, ER-041's func_001399B8 / func_001411E8; 22 Nov 2026). + 230 by ER-060 part 1 (229 m2c_bulk --plain matches in text_00150878 after aligning 8 declarations, func_001BEF18 by hand; 22 Nov 2026). + 21 by ER-086 / ER-081 (text_001000C0, -fno-edge-lcm: func_0012EEB0, func_0012EBB0, func_0012D600; the 18 ER-060 part 2 same-size near misses by hand; 22 Nov 2026). + 51 by ER-080 (text_00150878: 47 of ER-060's 48 same-size near misses, 16 by a small-list m2c_bulk rerun and 31 by hand; func_00161568, func_0017D290, func_001BF5B0; ER-041's func_00189810, func_0015BE00 as plain double C; 22 Nov 2026). + 11 by ER-078 / ER-087 (ER-031's files: 3 m2c_bulk --plain rerun matches, 5 of the 9 near misses, func_0013C750, func_0013FCF8, func_0013DF90; 22 Nov 2026). + 3 by ER-089 / ER-094 / ER-092 (text_001000C0: func_00113C30, func_00126F00, func_0011BB90 by hand; 22 Nov 2026). + 31 by ER-100 (the five ER-054 files: 17 by hand, 14 by hand and two helper agents from the m2c drafts; ruling 3.14; 22 Nov 2026). + 71 by ER-095 / ER-096 / ER-098 (text_00150878: func_001C46C8 by ruling 3.4; func_00150A30, func_00160CE0; 17 m2c_bulk --plain matches of a whole-file rerun in lists of 8, func_001C4750, 50 by hand; 22 Nov 2026). + 6 by ER-112 / ER-119 (the five ER-054 files: 5 ER-084 plain m2c matches written into the files' declarations, func_00145578 by hand; 22 Nov 2026)."
+          "notes": "Matched = C placed in src/ and proven by the byte-identical build (make regress: whole-ELF SHA-1 + func_check, nothing masked); goal: true 100% (every function in C, NON_MATCHING 0), LuciDin 17 Nov 2026. Done 262 = 20 by ER-049 (clone matches placed by tools/clones.py; 21 Nov 2026) + 127 empty functions splat wrote as C + 17 real game functions matched by ER-014 + 3 by ER-024 (18 Nov 2026) + 6 by ER-026 (func_001115E0, func_0012EA28, func_0012EAB8, func_0012E7B0, func_00131608, func_00148330; 19 Nov 2026) + 10 by ER-035 (func_00123BA8, func_00130F50, func_0012F550, func_0012CD08, func_0012E908, func_0011B9D0, func_0011BAB0, func_00133098, func_0013DBC0, func_0013B840; 19 Nov 2026) + 1 by ER-015 (func_0014D098, the matching tools' proof function; 19 Nov 2026). Total 3,609 = the 3,606 function symbols func_check counts (4 crt0, 3,475 INCLUDE_ASM, 127 C at ER-003) + 3 INCLUDE_ASM blocks splat labels as data (func_001D73D0, func_001D7658, func_001DECA0, COP2/VU0-style words), which func_check does not count but still need C. + 78 by ER-054 (m2c_bulk --plain drafts in text_00145120, text_0014A968, text_0014C840, text_0014D930, text_0014E2E8; 22 Nov 2026). + 11 by ER-062 (the ER-054 same-size near misses, by hand; 22 Nov 2026). + 1 by ER-031 (func_0013D4D0, the first C jump table in a file cut from S1's; 22 Nov 2026). + 88 by ER-072 (73 m2c_bulk --plain matches and 10 after aligning declarations in the five files cut by ER-051, func_0013D550 / func_00138A20 / func_00139EE0 by hand, ER-041's func_001399B8 / func_001411E8; 22 Nov 2026). + 230 by ER-060 part 1 (229 m2c_bulk --plain matches in text_00150878 after aligning 8 declarations, func_001BEF18 by hand; 22 Nov 2026). + 21 by ER-086 / ER-081 (text_001000C0, -fno-edge-lcm: func_0012EEB0, func_0012EBB0, func_0012D600; the 18 ER-060 part 2 same-size near misses by hand; 22 Nov 2026). + 51 by ER-080 (text_00150878: 47 of ER-060's 48 same-size near misses, 16 by a small-list m2c_bulk rerun and 31 by hand; func_00161568, func_0017D290, func_001BF5B0; ER-041's func_00189810, func_0015BE00 as plain double C; 22 Nov 2026). + 11 by ER-078 / ER-087 (ER-031's files: 3 m2c_bulk --plain rerun matches, 5 of the 9 near misses, func_0013C750, func_0013FCF8, func_0013DF90; 22 Nov 2026). + 3 by ER-089 / ER-094 / ER-092 (text_001000C0: func_00113C30, func_00126F00, func_0011BB90 by hand; 22 Nov 2026). + 31 by ER-100 (the five ER-054 files: 17 by hand, 14 by hand and two helper agents from the m2c drafts; ruling 3.14; 22 Nov 2026). + 71 by ER-095 / ER-096 / ER-098 (text_00150878: func_001C46C8 by ruling 3.4; func_00150A30, func_00160CE0; 17 m2c_bulk --plain matches of a whole-file rerun in lists of 8, func_001C4750, 50 by hand; 22 Nov 2026). + 6 by ER-112 / ER-119 (the five ER-054 files: 5 ER-084 plain m2c matches written into the files' declarations, func_00145578 by hand; 22 Nov 2026). + 18 by ER-112 / ER-115 (text_001000C0: 17 ER-084 plain m2c matches, func_00113ED8 by hand; 22 Nov 2026)."
         },
         {
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 77176,
+          "done": 78880,
           "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
-          "notes": "ER-003: .text 0xF0354 bytes. Done = function-symbol sizes of the C functions: 127 empty ones (8 bytes each, 1,016) + ER-014's 17 (688 bytes) + ER-024's 3 (184 bytes: 28 + 100 + 56) + ER-026's 6 (464 bytes: 60 + 76 + 64 + 108 + 108 + 48). + ER-035's 10 (2,756 bytes: 128 + 140 + 164 + 272 + 284 + 220 + 220 + 500 + 304 + 524). + ER-015's 1 (156 bytes: func_0014D098). + ER-049's 20 (160 bytes: 20 x 8). + ER-054's 78 (5,460 bytes; m2c_bulk --plain drafts in five files). + ER-062's 11 (708 bytes: 12 + 12 + 92 + 72 + 164 + 16 + 76 + 200 + 28 + 28 + 8). + ER-031's 1 (128 bytes: func_0013D4D0). + ER-072's 88 (8,376 bytes: 6,928 bulk + func_0013D550, 448 func_00138A20, 364 func_00139EE0, 184 func_001399B8, 452 func_001411E8). + ER-060 part 1's 230 (13,260 bytes, text_00150878). + ER-086's 3 (1,888 bytes: 676 + 764 + 448) + ER-081's 18 (1,108 bytes). + ER-080's 51 (4,384 bytes, text_00150878). + ER-078 / ER-087's 11 (2,820 bytes: 208 + 80 + 132 bulk; 224 + 8 + 8 + 8 + 64 near misses; 596 func_0013C750, 628 func_0013FCF8, 864 func_0013DF90). + ER-089 / ER-094 / ER-092's 3 (3,220 bytes: 676 func_00113C30, 476 func_00126F00, 2,068 func_0011BB90). + ER-100's 31 (7,816 bytes, the five ER-054 files). + ER-095 / ER-096 / ER-098's 71 (8,284 bytes: 136 func_001C46C8, 800 func_00150A30 + func_00160CE0, 7,348 ER-098). + ER-112 / ER-119's 6 (656 bytes: 44 + 36 + 36 + 24 + 28 ER-112, 488 func_00145578)."
+          "notes": "ER-003: .text 0xF0354 bytes. Done = function-symbol sizes of the C functions: 127 empty ones (8 bytes each, 1,016) + ER-014's 17 (688 bytes) + ER-024's 3 (184 bytes: 28 + 100 + 56) + ER-026's 6 (464 bytes: 60 + 76 + 64 + 108 + 108 + 48). + ER-035's 10 (2,756 bytes: 128 + 140 + 164 + 272 + 284 + 220 + 220 + 500 + 304 + 524). + ER-015's 1 (156 bytes: func_0014D098). + ER-049's 20 (160 bytes: 20 x 8). + ER-054's 78 (5,460 bytes; m2c_bulk --plain drafts in five files). + ER-062's 11 (708 bytes: 12 + 12 + 92 + 72 + 164 + 16 + 76 + 200 + 28 + 28 + 8). + ER-031's 1 (128 bytes: func_0013D4D0). + ER-072's 88 (8,376 bytes: 6,928 bulk + func_0013D550, 448 func_00138A20, 364 func_00139EE0, 184 func_001399B8, 452 func_001411E8). + ER-060 part 1's 230 (13,260 bytes, text_00150878). + ER-086's 3 (1,888 bytes: 676 + 764 + 448) + ER-081's 18 (1,108 bytes). + ER-080's 51 (4,384 bytes, text_00150878). + ER-078 / ER-087's 11 (2,820 bytes: 208 + 80 + 132 bulk; 224 + 8 + 8 + 8 + 64 near misses; 596 func_0013C750, 628 func_0013FCF8, 864 func_0013DF90). + ER-089 / ER-094 / ER-092's 3 (3,220 bytes: 676 func_00113C30, 476 func_00126F00, 2,068 func_0011BB90). + ER-100's 31 (7,816 bytes, the five ER-054 files). + ER-095 / ER-096 / ER-098's 71 (8,284 bytes: 136 func_001C46C8, 800 func_00150A30 + func_00160CE0, 7,348 ER-098). + ER-112 / ER-119's 6 (656 bytes: 44 + 36 + 36 + 24 + 28 ER-112, 488 func_00145578). + ER-112 / ER-115's 18 (1,704 bytes: 944 for 17 ER-084 plain matches in text_001000C0, 760 func_00113ED8)."
         },
         {
           "id": "m-dec-sdk",
@@ -1307,11 +1307,11 @@
     {
       "code": "ER-112",
       "title": "Place ER-084's new plain MATCHes",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": "Five-file share done Sun 22 Nov 2026 by ER-119's card (commit 87fc92e): func_00148BB0, func_0014C630, func_0014D028, func_0014DEA0, func_0014F5F8 placed (168 bytes). text_001000C0 share still open"
+      "notes": "Done Sun 22 Nov 2026: text_001000C0 share by ER-115's card (branch er-115-text-001000c0, commit 9527f54): 17 functions, 944 bytes (func_0012B5F8 widened; func_0012CAD8 / func_00134070 / func_0012F8A0 externs aligned); five-file share by ER-119's card (87fc92e). Recipes 2.26, 2.27."
     },
     {
       "code": "ER-113",
@@ -1334,20 +1334,20 @@
     {
       "code": "ER-115",
       "title": "func_00113ED8: cross-jumped found tails",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Sun 22 Nov 2026 (17:28-18:30 ET, Opus high), branch er-115-text-001000c0, commit 8196aa8: func_00113ED8 placed (760 bytes). Cause: sibcall placeholder USE after a tail call outside a loop stops jump2 cross-jumping (goto found); record pointer in k stops the $a1 preference. Recipes 2.27."
     },
     {
       "code": "ER-116",
       "title": "func_00120EF0: store block CSE",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": ""
+      "notes": "Parked Sun 22 Nov 2026 (ER-115's card): func_00120EF0 right size, 72 words with three regions fixed (call args via locals, bits address, compare order); left: rec/bit global-alloc priority tie, two temps v0/v1, store-block %hi rematerialization (1,500 orders, plateau 71-73). Recipes 2.27; drafts notes ER-115_116_c/."
     },
     {
       "code": "ER-117",
