@@ -943,6 +943,15 @@
       "model": "Opus, medium",
       "waits_on": "ER-069, ER-070",
       "notes": ""
+    },
+    {
+      "code": "ER-072",
+      "title": "11 jump-table functions in ER-031's new files",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "switch-listing question for LuciDin",
+      "notes": ""
     }
   ]
 }
