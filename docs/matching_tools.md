@@ -675,6 +675,37 @@ func_0012CAD8, func_00134070, func_0012F8A0 (the file's own address-taking exter
 plain MATCH that needs `func_0012B5F8` widened in the file. The drafts and both `results.md` are in the dispatcher's
 notes folder `ER-084_c/` (game code: not in git); nothing was placed.
 
+### 6.11 The whole of `text_00150878` in lists of 8 (ER-098, Sun 22 Nov 2026)
+
+ER-060's run folder was gone, so the 71 + 116 same-size DIFFs of 6.5 had no list; the whole file went in instead:
+`m2c_bulk.py --file text_00150878 --chunk 8 --plain --tag ER-098 --gcc-timeout 30` (label `er098all`; 146 chunks,
+1,166 functions, 2,692 harvested signatures, **3,436 s** at par 4, worktree `C:\rs\wt\er095`). The tool was main's
+before ER-084 / ER-097 / ER-101 (6.10) landed; their tail-j slot and byte-offset changes would have saved some of
+the hand work below (byte strides came up 6 times). Results and every chunk's drafts (game code, not in git):
+`C:\rs\wt\er098_runs\er098all\` (copied out before each regress; 189 MB with the drafts).
+
+| Stage | Functions |
+|---|---|
+| m2c gave a draft | 1,165 (all but `func_00179B30`, every context `TIMEOUT`) |
+| draft compiles | 807 |
+| masked MATCH | 18 |
+| plain MATCH | 17 (+ func_001C4750: the file's extern aligned, 2.24) |
+| same size, 1-2 / 3-8 / 9+ words differ | 3 / 66 / 140 |
+| size differs | 580 |
+
+- **All 18 placed**, and 50 more by hand from the drafts (recipes 2.24): 68 functions, 7,348 bytes for ER-098.
+  The small lists turned only 18 of the file's 1,166 into MATCHes (ER-080's 48 near misses had given 16), but they
+  gave a near-miss list to work from: all of the 1-5 word ones and most of 6-8 are now placed.
+- **Field order is the biggest single cause** (20 of the 50): the drafts list stores in the game's schedule order;
+  sorting each run of consecutive stores by offset gives the game's schedule. A scratch script
+  (`asc_sort.py` in the dispatcher's notes folder `ER-095_096_098_c/`) does it on the drafts (three modes: offset
+  order, bytes last, bytes first; it skips runs where a store reads a field the run writes) and recompiles: over the
+  173 same-size DIFFs not matched by then, **6 new MATCHes** (5 of them 5-8 words, func_001898F0 9+), each confirmed
+  plain and placed. Worth adding to `m2c_bulk.py`'s store-order variant (follow-up): today's variant tries only
+  permutations of plain top-level runs up to 4 statements, not offset order of longer runs or runs inside blocks.
+- `--rerun-diffs` could not be used (no earlier `results.json`); `--file ... --chunk 8` cost about the same as
+  ER-060's file-wide run (1.2 s against 1.2 s per function) and needs no list.
+
 ## 7. Not verified
 
 - ER-084 / ER-097 / ER-101 (6.10): the slot move with a label on the delay-slot line (skipped by design, not met);

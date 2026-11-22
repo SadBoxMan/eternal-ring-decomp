@@ -556,12 +556,12 @@ seven (plain double C). Each lesson below is proved by the named functions place
 
 | Function | Cause |
 |---|---|
-| func_00150A30 | 2 words: the first `func_0012B890` call's delay slot takes `mov.s $f12, $f20` in ours, `daddu $t1, $0, $0` in the game (6 shapes: literal or local float, its place, `s32` return for func_00151330, early returns) |
-| func_001C46C8 | matches (masked) only if `func_001776D8` returns `s32` to it while its own code ends in the void tail call `j func_00177858`: an `s32` definition with no `return` (ruling 3.4's shape) or an implicit `int` declaration across the original's source files; **needs LuciDin's ruling** (and `func_00175DD0` / `func_001776D8` widened as above) |
-| func_00160CE0 | right size; `$f21` / `$f22` swapped between the wrapped angle and the hoisted `-3pi/4` loop constant (27 words; 9 shapes: loop forms, declaration order, `if` chain, the condition on either variable, the constant in a local) |
-| func_0015C0E0 | right size (268 instructions); about 46 words of scheduling in two blocks: the stores to `D_00248880` / `D_002488A0` around `func_001E9C70() % 45` and the setup before `func_0017D968` (vector copies of `D_00354D80` / `D_00354D70` as a 16-aligned struct, recipe 2.12's unconfirmed shape); store-order search over the six global stores (720 orders): no match, best 46 words (a regress ran during part of the search, so a few orders may not have compiled) |
-| func_001BB2C8, func_001BB750 | not attempted in depth (289 / 300 instructions, integer loops with `/ 100` and `sqrtf`); the m2c drafts do not compile (`M2C_BREAK` from the divide trap); need a dedicated round |
-| func_00178C60 | not attempted (0xE18 bytes, `sqrtf`; the card asks Opus, high) |
+| func_00150A30 | **Placed by ER-096** (2.24: `func_0012B890`'s float is its sixth parameter). Was: 2 words: the first `func_0012B890` call's delay slot takes `mov.s $f12, $f20` in ours, `daddu $t1, $0, $0` in the game (6 shapes: literal or local float, its place, `s32` return for func_00151330, early returns) |
+| func_001C46C8 | **Placed by ER-095** (ruling 3.4 applied, 2.24). Was: matches (masked) only if `func_001776D8` returns `s32` to it while its own code ends in the void tail call `j func_00177858`: an `s32` definition with no `return` (ruling 3.4's shape) or an implicit `int` declaration across the original's source files; **needs LuciDin's ruling** (and `func_00175DD0` / `func_001776D8` widened as above) |
+| func_00160CE0 | **Placed by ER-096** (2.24: two temporaries for the two `sin` products). Was: right size; `$f21` / `$f22` swapped between the wrapped angle and the hoisted `-3pi/4` loop constant (27 words; 9 shapes: loop forms, declaration order, `if` chain, the condition on either variable, the constant in a local) |
+| func_0015C0E0 | ER-096 (2.24): 36 words now, still parked. Was: right size (268 instructions); about 46 words of scheduling in two blocks: the stores to `D_00248880` / `D_002488A0` around `func_001E9C70() % 45` and the setup before `func_0017D968` (vector copies of `D_00354D80` / `D_00354D70` as a 16-aligned struct, recipe 2.12's unconfirmed shape); store-order search over the six global stores (720 orders): no match, best 46 words (a regress ran during part of the search, so a few orders may not have compiled) |
+| func_001BB2C8, func_001BB750 | ER-096 (2.24): func_001BB2C8 drafted by hand from the asm, 284 words; func_001BB750 not started. Was: not attempted in depth (289 / 300 instructions, integer loops with `/ 100` and `sqrtf`); the m2c drafts do not compile (`M2C_BREAK` from the divide trap); need a dedicated round |
+| func_00178C60 | not attempted by ER-096 either (time went to ER-098). Was: not attempted (0xE18 bytes, `sqrtf`; the card asks Opus, high) |
 
 func_0017D290 and func_001BF5B0, left by ER-060 for `s128`, no longer need it: with today's context their drafts call
 `func_001C9B18` with plain arguments (placed above); func_00161568's parse error is gone the same way. No typedef was
@@ -666,6 +666,52 @@ compiler-steering. Drafts of the parked two and the two helper scripts: notes fo
 |---|---|---|
 | func_00113ED8 | 760 | right instructions, 4 words short: our post-reload cross-jumping merges the two `func_001C9F60` found tails (both blocks end `set $a1; call` at jump2, `-dS -dJ` dumps), the game keeps both; plus one `nop` before the game's loop top. 8 found-path forms tried |
 | func_00120EF0 | 1,348 | right size, 71 words: the store block after the struct copy (the game re-materializes `&D_002029D0` / `&D_00202A50` / `&D_001FF8B0` more often than our CSE; about 700 statement orders searched, struct forms worse) and a `rec` / bit-index saved-register swap |
+
+### 2.24 `text_00150878` round: whole-file small-list rerun, field order, ruling 3.4 (ER-095 + ER-096 + ER-098, Sun 22 Nov 2026; Confirmed by `make regress`, 71 functions)
+
+71 functions placed in `text_00150878`, 8,284 bytes, `make regress` (-j4) green after each of three batches and
+after merging main. Branch `er-095-text-00150878` (worktree `C:\rs\wt\er095`), commits `6d882d1` (ER-095),
+`00617c8` (58), `db5bf40` (12). ER-095: func_001C46C8 (1). ER-096: func_00150A30, func_00160CE0 (2). ER-098: 68,
+from a rerun of the whole file in lists of 8 (`docs/matching_tools.md` 6.11): 17 plain MATCHes, func_001C4750, and
+50 by hand from the drafts (all same-size DIFFs of 1-5 words and most of 6-8; 6 from the 9+ band). Drafts of the
+ones left are in the dispatcher's notes folder `ER-095_096_098_c/`.
+
+| Lesson | Proved by |
+|---|---|
+| **Fields are stored in ascending offset order.** m2c drafts list the stores of a setter in the game's schedule order; the C that compiles to that schedule writes them in offset order (bytes and words alike), and the scheduler reorders them. Try ascending first, before any order search: a script that sorts each run of consecutive `M2C_FIELD(...) = ...;` stores of a draft by offset and recompiles found 6 matches outright (notes `asc_sort.py`; a tool follow-up). Where a store reads a field written in the run, keep that pair's order (func_00181210's `x58` first) | func_00153FD0, func_001522B8, func_0015A440, func_00187F78, func_0018F170, func_001882B8, func_0018D9C8, func_00190688, func_001918B8, func_001984E8, func_00181210, func_00199660, func_001535A8, func_001BFF20, func_001898F0, func_001AC938, func_001AD8F0, func_001B1198, func_001B3440, func_001B5298 |
+| **Stores of a function's float parameters go in parameter order** (`p+0x10 = a; +0x14 = b; +0x18 = c; +8 = d` for `(s32, f32 a, b, c, d)`), not offset order | func_001652E8 |
+| **A global's address kept in a register (`lui; addiu %lo`, then plain offsets) needs a base-pointer local**: `char *g = (char *)D_X; g[0x164] = 1;` or `s32 *p = D_X; p[0x68] = 0;`. With the symbol written in each expression gcc folds `%lo` plus the offset into each access | func_001663D0, func_00163790, func_001BE948, func_001BE218, func_001BFF20 |
+| **gcc turns each simple `if (c) x = k;` into a `movz` / `movn`**; a run of the game's `movz` that all target one register is a run of independent `if`s, not an `else if` chain (branches, with a `movz` only at the end) or a nested `?:`. func_001BB2C8's selector: `if (m < 2 \|\| m > 21) sel = 5; if (m >= 2 && m <= 5) sel = 3; ...` gives the game's chain (the function is not placed yet) | func_001BB2C8 (draft) |
+| **`func_0012B890`'s float is its sixth parameter** (2.21's lesson, now in this file too): `(void **, s32, s32, s32, s16, f32, s32)`; with the float last, the first call's delay slot differs. The file's four other callers compile to the same bytes with their last two arguments swapped | func_00150A30 (func_00150988, func_001512E8, func_00156F28, func_00156F80 unchanged) |
+| **One temporary per product**: `t = r * sin(b); ... t2 = r * sin(b);` gives the game's FPR allocation where reusing `t` swaps `$f21` / `$f22` between the wrapped angle and the hoisted loop constant (ER-080's 9 shapes all reused `t`). Same in func_001602A0 | func_00160CE0, func_001602A0 |
+| **A chained assignment `a = b = x;`** stores `b` before `a` with one load (`x30 = x34 = x38;`) | func_00159578 |
+| **One pointer local per branch** (`char *p` in the `if`, `char *q` in the `else`) gives the game's `$v1` / `$v0`; one shared local takes `$a1` | func_00154710 |
+| **A loop strength-reduced from the top**: the game's pointer starting at `base + 0x10E`, stepping `-2`, with a counter from 63, is `for (i = 63; i >= 0; i--) arr[i] = 0;` with `arr` at `+0x90` (a pointer local also matches) | func_001663D0 |
+| **A callee's parameter type narrows the caller's load**: `lhu` of an `s32` global as the first argument (`lw` of the same global later) means the parameter is `u16`: `func_0012F5F8(u16, ...)`; the `0xFFFF` store is `*(u16 *)p = 0xFFFF` (`ori`, not `addiu -1`) | func_00158130 |
+| **A parameter converted at the call** (`sll` / `sra` after the branch, not on entry) is declared wider than the callee's: func_001512A0's third parameter is `s32`, passed on to `func_0012B890`'s `s16`. Its extern in the file changed (`s32` return as well: the `void` form loses the frame) | func_001512A0 |
+| **`s16 *t = ...; t += i; return t[0xC8];`** gives `addu $v0, $v0, $a1` (the sum in the base register); every one-expression index form gives `addu $a1, $a1, $v0` | func_0017D788 |
+| **A 16-byte constant copied to the stack and passed by address** is a struct copy (`ld` / `sd`): `typedef struct { f32 v[4]; } __attribute__((aligned(16))) Vec4A; Vec4A v = D_00354D70; f(x, &v);` (a two-`s64` struct matches too; the float vector is the reading kept: Unconfirmed). First aligned type in the repository | func_00158DC0 |
+| **0x80 bytes of unused frame** with nothing stored there (`addiu $sp, -0x90`, `$ra` at `0x80`): ruling 3.13's frame-sizing local, `char buf[0x80];` with the ruling named in a comment | func_001668E0, func_001668A8 |
+| **A 0x80-byte sprintf buffer** where m2c declared `sp[64]` (0x100): size the buffer from the game's frame | func_00165388 |
+| **`if (f() == 0) { return ...; } return 0;`** gives the game's `bnel` with the zero in the likely slot (the `!= 0` early return gives `bnez`) | func_001C8758 (still 2 words, notes), func_001C8700 (notes) |
+| **A `switch` that `break`s** gives a tail `j` in each case; `return` in the second case gives `jal` | func_00176388 |
+| Recipes 2.10 / 2.20 again: byte strides (`char` bases, `p += 0xA0`), a pass-through `arg0` (func_00154050, with `func_00131140` made `s32` in the file), an unused first parameter (func_001C8C80's `(void *, char *)`), a field copied as `f32`, compare order (func_00176818: `arg0[7] <= arg0[6]`), twins (func_00199660 / func_00181210, func_001984E8 / func_001918B8), pointer returns written `char* func_X(` (2.13) | func_0017D0B8, func_0017CD20, func_001C2400, func_001C3030, func_001C3060, func_001602A0, func_001604C8 / func_0015DDB8, func_0017CA10, func_0017D3B8, func_0017D608, func_00150878 |
+
+**ER-095 (ruling 3.4 applied).** `s32 func_001776D8(s32, s32, char *)` falls off the end after `func_00177858(...)`
+(the sibling `j`), with the `PORT NOTE` 3.4 asks for; its third argument passes through to `func_001E9D08` in
+`$a2`. `func_00175DD0` widened to pass five arguments on to `func_00167B20` (same bytes). func_001C46C8 then
+matches: the `s32` callee makes it read `D_0035B828` into `$v1`.
+
+**File declarations changed** (each proven by `make regress`): `func_0012B890` (float sixth; five callers' last two
+arguments swapped), `func_00131140` `s32`, `func_001512A0` `s32 (void **, s8, s32, f32)`, `func_001C4750`
+`(char *, s32, s32)` (its five callers pass the message strings without the `(s32)` cast), `func_00154050 (char *)`.
+
+**Left (same size; drafts in notes `ER-095_096_098_c/`):** func_001C6F90 (3 words), func_001C8758 (2),
+func_001C4838 (4), func_001C8700 (5), func_0016E368, func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001540C0
+(7), func_001636A0 (8, and a 0x10-byte frame difference), func_001C56F0 (calls three functions the file defines
+`(void)` with an argument), func_001C6880 / func_001C6B18 / func_001C6BD8 (64-bit packing), func_001A7CA8,
+func_001B34F8, func_001BE9C0, func_001C20B0, func_001C8600 (not tried); about 130 of 9+ words (only the sorter
+tried them).
 
 ## 3. Rulings (LuciDin)
 
