@@ -218,7 +218,9 @@ symbols the same function takes over), so the constant lands where the symbol wa
 dropped line whose user is still INCLUDE_ASM, two lines swapped (both tested, with the error text as before), a
 symbol two functions share. Each split prints the symbols taken over ("anonymous C constants in place of (3.10)").
 With no `src/` change the rule changes nothing (`make regress` PASS, ELF identical); `make regress` still proves the
-bytes of every placement.
+bytes of every placement. Proven by three placements (`make regress` PASS after each): func_001371C0 (`D_00354718`),
+func_0014DF08 (`D_00354A28`), func_0014EEF0 (`D_00354A68`), none with a jump table (`docs/decomp_recipes.md` 2.13). Not
+covered: a symbol longer than 8 bytes (`D_00354800` is the double plus 8 zero bytes; func_0013AA28, parked, would need it).
 
 **Gotchas.** Run a clean split after changing the yaml (`rm -rf asm linker`, or `make regress`): stale
 `asm/data/*.s` files from an old cut would be linked twice. A C file that defines one of its data symbols itself
