@@ -920,11 +920,11 @@
     {
       "code": "ER-069",
       "title": "GCSE reloads across joins (toolchain; ruling)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "nothing; adoption needs LuciDin's ruling",
-      "notes": ""
+      "notes": "Ruling 3.11 (13:48 ET): -fno-edge-lcm in CFLAGS (edge-based LCM removed partially redundant loads at joins; the game keeps them). Whole ELF identical; func_0012EEB0 proven in scratch make regress (control fails); m2c census 693 funcs: +3 matches, 0 lost. No compiler patch; GCC_DIR stays r1. Parked functions listed for file owners (recipes 2.13)."
     },
     {
       "code": "ER-070",
