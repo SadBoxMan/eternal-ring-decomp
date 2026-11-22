@@ -11,7 +11,7 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 280,
+          "done": 282,
           "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
@@ -21,7 +21,7 @@
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 12716,
+          "done": 13280,
           "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
@@ -866,11 +866,11 @@
     {
       "code": "ER-063",
       "title": "div / sqrt batch 2 (11 untried, 4 parked, then 23 after ER-041)",
-      "status": "Queued",
+      "status": "In progress",
       "track": "decomp",
       "model": "Opus, medium (high for the parked four)",
       "waits_on": "nothing for the first 11; ER-041 for the 23",
-      "notes": ""
+      "notes": "Part 1 (text_001000C0.c) done Sun 22 Nov 2026: 2 matched (func_0012BF08, func_0012BDA8; +564 bytes); 5 parked (GCSE reload: func_00113C30, func_00113ED8, func_00131D40; gas mtc1 delay-slot swap: func_00126F00; func_00124BE8 not attempted in depth). Still open: the 10 untried in text_00150878 / text_001343E8 / text_00145120 and parked func_00142788, func_0019B6D0, func_00163158; 23 wait on ER-041. Recipes 2.10."
     },
     {
       "code": "ER-064",
