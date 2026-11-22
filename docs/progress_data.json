@@ -842,7 +842,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "one writer per file (ER-034 owns most of src/ now)",
+      "waits_on": "nothing now ER-034 is done (one writer per file; use gcc r1 / as r3)",
       "notes": ""
     },
     {
@@ -861,6 +861,24 @@
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "the five ER-054 files free",
+      "notes": ""
+    },
+    {
+      "code": "ER-063",
+      "title": "div / sqrt batch 2 (11 untried, 4 parked, then 23 after ER-041)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium (high for the parked four)",
+      "waits_on": "nothing for the first 11; ER-041 for the 23",
+      "notes": ""
+    },
+    {
+      "code": "ER-064",
+      "title": "Re-run m2c_bulk --plain on ER-054's files with gcc r1 / as r3",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-062 (same five files)",
       "notes": ""
     }
   ]
