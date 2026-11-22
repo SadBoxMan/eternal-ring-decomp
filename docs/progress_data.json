@@ -1006,6 +1006,24 @@
       "model": "Opus, medium (high for the two)",
       "waits_on": "nothing",
       "notes": ""
+    },
+    {
+      "code": "ER-079",
+      "title": "m2c_bulk.py: cc1 timeout, completion-order progress, --tag",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "folded into ER-066 (running)",
+      "notes": ""
+    },
+    {
+      "code": "ER-080",
+      "title": "Hand work in text_00150878 (48 near misses, 4 plain failures, ER-041's 7)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium (high for func_00178C60)",
+      "waits_on": "nothing (ER-069 ruling may help)",
+      "notes": ""
     }
   ]
 }
