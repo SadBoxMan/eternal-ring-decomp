@@ -36,7 +36,46 @@ void func_0014DAB8(void) {
 void func_0014DAC0(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014DAC8);
+extern double fabs(double);
+extern int func_0012EAB8(float *a0, float a1, float a2);
+extern void func_0014DEA0(void);
+void func_0014DDD8(void *arg0);
+void func_0014DEE8(void *arg0, s32 arg1);
+extern f32 D_0035BE90;
+extern f32 D_0035BE94;
+extern f32 D_0035BE98;
+extern f32 D_0035BEA4;
+
+void func_0014DAC8(char *a0, char *a1)
+{
+    float d, lim, v, w, r;
+
+    if (*(s8 *)(a0 + 9) == 0) {
+        *(u8 *)(a0 + 9) += 1;
+    }
+    d = *(float *)(a1 + 0x94) - *(float *)(a0 + 0x84);
+    if (fabs(d) > fabs(*(float *)(a1 + 0x124))) {
+        v = D_0035BE98 * 3.1415927f / 180.0f;
+        if (!(d < 0.0f)) {
+            v = -v;
+        }
+        func_0012EAB8((float *)(a0 + 0x44), v, D_0035BE94 * 3.1415927f / 180.0f);
+        func_0014DEE8(a0, (s32)func_0014DEA0);
+    } else {
+        lim = D_0035BE90 * 3.1415927f / 180.0f;
+        w = *(float *)(a0 + 0x44) * D_0035BEA4;
+        *(float *)(a0 + 0x44) = w;
+        if (lim <= w) {
+            r = w;
+        } else if (w <= -lim) {
+            r = w;
+        } else {
+            r = (w < 0.0f) ? -lim : lim;
+        }
+        *(float *)(a0 + 0x44) = r;
+        func_0014DEE8(a0, (s32)func_0014DDD8);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014DC98);
 
