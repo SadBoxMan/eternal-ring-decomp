@@ -1303,6 +1303,33 @@
       "model": "Sonnet, low",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-112",
+      "title": "Place ER-084's new plain MATCHes",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-113",
+      "title": "m2c_bulk --plain rerun over text_00150878",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-098",
+      "notes": ""
+    },
+    {
+      "code": "ER-114",
+      "title": "m2c_bulk --plain: named prototypes",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
