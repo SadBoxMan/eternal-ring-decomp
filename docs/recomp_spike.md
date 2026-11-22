@@ -806,7 +806,7 @@ of ER-059 (the attract order; the recomp now shows the same order, with the movi
 
 ## 13. ER-074: past NEWGAME (Sun 22 Nov 2026)
 
-Written by ER-074 (Opus 5.5, high), work 13:56 to about 15:10 Eastern. Question: why does the game thread stop after
+Written by ER-074 (Opus 5.5, high), work 13:56 to 14:58 Eastern. Question: why does the game thread stop after
 NEWGAME at `[guest-branch:missing-target] kind=DirectCall op=JAL source=0x123cac target=0x1d73d0` (12.5)? **Short
 answer: 0x001D73D0 (libvu0, `sceVu0Normalize` by the analyzer's name, Unconfirmed) is one of three functions our
 split writes as data blocks, and `syms_to_csv.py` passed only FUNC symbols to PS2Recomp, so it had no body. With the
