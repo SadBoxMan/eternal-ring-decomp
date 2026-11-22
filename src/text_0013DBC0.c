@@ -149,13 +149,95 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013DCF0);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013DEE8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013DF90);
+extern int func_0012E568(int, int);
+extern void func_00130848(s8 **, f32);
+extern s32 func_0012BF08(void *out, char *a1, float *pos);
+extern int func_00130780(char *);
+extern float func_001306E8(char *);
+extern void func_0013E410(void);
+extern s32 func_0012F8C8(s8 *, s32, s32, s32, s32, f32);
+extern u8 D_001FF451[];
+extern int func_001E9C70(void);
+extern void func_00130CE0(char *, float);
+extern void func_00130040(float *, char *, float);
+extern float func_0012E640(float, float);
+extern float func_0013E2F0(char *, char *, float);
+extern f32 D_0035BB1C;
+extern void func_00130A88(char *, float *, float);
+
+/* ER-077 / ER-087: by hand from the m2c draft (ER-077); matches with -fno-edge-lcm (the +8 reload), ee-as r4 (the
+   0.95 double's ld in a jal slot) and the init stores in game order. Its doubles 0.95 and 0.2 are gcc's anonymous
+   constants in place of D_00354928 / D_00354930 (ruling 3.10). A state handler (a reading); names, types and offsets
+   Unconfirmed. */
+void func_0013DF90(char *a0, char *a1)
+{
+    float v[4];
+    float w[4];
+    float r;
+    s8 s;
+
+    if (*(s16 *)(a0 + 0x6E) == 0) {
+        *(s8 *)(a0 + 0xE) = 1;
+        *(s8 *)(a0 + 0xF) = 1;
+        *(s8 *)(a0 + 8) = -1;
+        *(s32 *)(a0 + 0x10) = 0;
+        *(s32 *)(a0 + 0x14) = func_0012E568(0x78, 0xF0);
+        func_00130848((s8 **)a0, 0.0f);
+        *(s16 *)(a0 + 0x6E) += 1;
+    }
+    if (func_0012BF08(NULL, a0, *(float **)(a0 + 0x130)) == 0) {
+        *(s32 *)(a0 + 0x10) = 0;
+    } else {
+        *(s32 *)(a0 + 0x10) += 1;
+        if (*(s32 *)(a0 + 0x14) < *(s32 *)(a0 + 0x10)) {
+            func_00131000(a0, func_0013DCF0);
+            return;
+        }
+    }
+    switch (func_00130780(a0)) {
+    case 0:
+        if (*(f32 *)(a1 + 0x94) < (*(float **)(a0 + 0x130))[1] + 150.0f) {
+            if (func_001306E8(a0) <= 150.0f) {
+                func_00131000(a0, func_0013E410);
+            }
+        }
+    case 1:
+    case 2:
+        s = 1;
+        break;
+    case 3:
+    case 4:
+        s = 0;
+        break;
+    }
+    if (s != *(s8 *)(a0 + 8)) {
+        *(s8 *)(a0 + 8) = s;
+        *(s16 *)(a0 + 0x6C) = 0;
+    }
+    if (func_0012F8C8((s8 *)a0, *(s8 *)(a0 + 8), *(s16 *)(a0 + 0x6C), 0x14, 0, 0.1f) != 0) {
+        *(u8 *)(a1 + 0x147) &= 0xFE;
+    }
+    if (func_00130780(a0) == 0 && D_001FF451[0] != 0 && func_001E9C70() % 100 < 6) {
+        *(f32 *)(a0 + 0x94) -= 4.0f;
+    }
+    func_00130CE0(a0, 10.0f);
+    func_00130040(v, a1, 1.0f);
+    if (v[0] * *(f32 *)(a0 + 0x90) + v[2] * *(f32 *)(a0 + 0x98) < 0.0f) {
+        *(f32 *)(a0 + 0x90) *= 0.95;
+        *(f32 *)(a0 + 0x98) *= 0.95;
+    }
+    r = func_0012E640(0.1f, 0.35f);
+    w[0] = func_0013E2F0(a0, a1, r);
+    w[1] = D_0035BB1C;
+    w[1] += ((*(float **)(a0 + 0x130))[1] - 20.0f <= *(f32 *)(a1 + 0x94)) ? -r * 3.0f : r * 0.2;
+    w[2] = (*(s32 *)(a0 + 0x10) == 0) ? r : 0.0f;
+    func_00130A88(a0, w, 8.0f);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E2F0);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E410);
 
-extern int func_0012E568(int, int);
 extern f32 func_0012E320(s32 *, s32 *, s32, s32, s32);
 void func_0013E818(void *);
 extern void func_0012FB48(void *, s32);
@@ -323,8 +405,6 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013FBB8);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013FBF8);
 
-INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354928);
-INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354930);
 INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354938);
 INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354940);
 extern void func_0012FAA8(void *);
@@ -457,7 +537,6 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140AA8);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140AC0);
 
-extern s32 func_0012F8C8(s8 *, s32, s32, s32, s32, f32);
 extern void func_00131140(char *, void *, void *, void *, void *, void *);
 extern void func_00140C18(s8 **, void *);
 
@@ -580,7 +659,6 @@ void func_001416B0(void) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_001416B8);
 
-extern int func_00130780(char *);
 extern void func_001417E8(void **);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
@@ -705,7 +783,6 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00142CE0);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00142DF0);
 
-extern void func_00130CE0(char *, float);
 extern void func_00142A68(s8 *, s32);
 extern void func_001429F0(s8 *);
 
