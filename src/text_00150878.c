@@ -5234,7 +5234,7 @@ extern int abs(int);
 /* ER-123: the table behind *(D_002029D0 + 0): eight s16 values, then eight (chance, value) pairs; Unofficial names, Unconfirmed reading. */
 typedef struct { s16 chance; s16 value; } ChancePair;
 typedef struct { s16 v[8]; ChancePair p[8]; } ChanceTbl;
-/* ER-123: by hand from the asm (recipes 2.26). Names, types and offsets are Unconfirmed readings. The base pointers are
+/* ER-123: by hand from the asm (recipes 2.28). Names, types and offsets are Unconfirmed readings. The base pointers are
    assigned inside each loop body (gcc hoists them); that is the only shape found that gives the game's %hi registers. */
 void func_001BB750(void) {
     s32 a[8];
