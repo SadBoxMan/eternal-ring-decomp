@@ -1193,7 +1193,7 @@
       "status": "Queued",
       "track": "port",
       "model": "Opus, high",
-      "waits_on": "ER-074 (one recomp card at a time)",
+      "waits_on": "nothing (ER-074 done)",
       "notes": ""
     },
     {
@@ -1212,6 +1212,42 @@
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "nothing",
+      "notes": ""
+    },
+    {
+      "code": "ER-102",
+      "title": "Recomp: 3D models missing after NEWGAME (VU1 / VIF1 / PATH1 or libvu0)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "one recomp card at a time",
+      "notes": ""
+    },
+    {
+      "code": "ER-103",
+      "title": "Recomp: libvu0 HLE audit (~40 bindings vs shipped asm)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "rebuild one recomp card at a time",
+      "notes": ""
+    },
+    {
+      "code": "ER-104",
+      "title": "Recomp: speed after NEWGAME (profile)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "ER-102",
+      "notes": ""
+    },
+    {
+      "code": "ER-105",
+      "title": "Recomp: no sound (SPU2 options)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "low priority",
       "notes": ""
     }
   ]
