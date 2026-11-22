@@ -506,11 +506,11 @@
     {
       "code": "ER-023",
       "title": "Sharpen the seam method (hit rate on SDK seams)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Sat 21 Nov 2026: SDK hit rate 15/17 census seams (ER-017 settings 13/17); new control-flow tracker agrees 97% with spimdisasm (old 59%); game windows 44 Strong / 17 Medium / 27 Weak (was 22/10/24); S21 stays Strong (misread), S22 starts 0x001CA8D8 (.bss, not COMMON); ranked cut list in docs/game_seams.md 9.7; nothing cut"
     },
     {
       "code": "ER-024",
