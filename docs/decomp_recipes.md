@@ -11,19 +11,19 @@ Started Tue 17 Nov 2026 by ER-011.
 ### 1.1 The working pipeline (ER-011, confirmed on 3 functions, 33 words)
 
 ```
-C:\rs\toolchain\ee-gcc-2.9-991111-r1\gcc.exe -BC:\rs\toolchain\ee-gcc-2.9-991111-r1\ -O2 -G8 -fno-strict-aliasing -S file.c -o file.s
-C:\rs\toolchain\ee-binutils-2.9-991111-r3\ee-as.exe -G8 -O2 -mabi=eabi file.s -o file.o
+C:\rs\toolchain\ee-gcc-2.9-991111-r1\gcc.exe -BC:\rs\toolchain\ee-gcc-2.9-991111-r1\ -O2 -G8 -fno-strict-aliasing -fno-edge-lcm -S file.c -o file.s
+C:\rs\toolchain\ee-binutils-2.9-991111-r4\ee-as.exe -G8 -O2 -mabi=eabi file.s -o file.o
 ```
 
 (`ee-gcc-...-r1` = with our compiler patch since ER-034 (2.9, ruling 3.7: `nop; nop; div.s`); the unpatched
-`ee-gcc-2.9-991111` stays as a fallback. `ee-binutils-...-r3` = with all three gas patches since ER-034 (2.3, 2.7,
-2.9; rulings 3.4, 3.5, 3.8); `-r2` has the first two, `-r1` the first only; the unpatched `ee-binutils-2.9-991111`
-gives an extra `nop` after FP compares. `-fno-strict-aliasing` since ER-035, ruling 3.6.)
+`ee-gcc-2.9-991111` stays as a fallback. `ee-binutils-...-r4` = with all four gas patches since ER-070 (2.3, 2.7,
+2.9, 2.19; rulings 3.4, 3.5, 3.8, 3.12); `-r3` has the first three, `-r2` the first two, `-r1` the first only; the
+unpatched `ee-binutils-2.9-991111` gives an extra `nop` after FP compares. `-fno-strict-aliasing` since ER-035, ruling 3.6.)
 
 or in one step, with a folder that holds a copy of `ee-as.exe` named `as.exe`:
 
 ```
-gcc.exe -B<gcc dir>\ -B<as dir>\ -O2 -G8 -fno-strict-aliasing -c file.c -o file.o
+gcc.exe -B<gcc dir>\ -B<as dir>\ -O2 -G8 -fno-strict-aliasing -fno-edge-lcm -c file.c -o file.o
 ```
 
 - Compiler: ee-gcc **2.9-ee-991111**, built from SSXModding/ps2-ee-toolchain `b595ded` under MSYS2
@@ -313,7 +313,7 @@ that check, or the file cut (ER-031) first. Same blocker, not tried: `func_0014D
 **Two toolchain differences found (the effects are measured; the causes in the original toolchain are readings; neither adopted, each needs a ruling and a card):**
 
 - **GCSE removes a reload the game keeps.** At a join after `if (*(u16 *)(a0 + 0xE8) & 1) {...} else {...}` the game reads `a0+0xE8` again (`lhu` in both arms, `b; lhu` in the delay slot); our ee-gcc reuses the first load. With `--cflags=-fno-gcse` (diagnostic only) the head of `func_00113C30` matches and its size is right, and the reload of the counter in `func_00131D40` matches too. But the whole ELF built with `-fno-gcse` is not identical: `func_0012F550` (ER-035) needs GCSE's copy propagation. So the original compiler ran GCSE but did not remove redundant loads across joins (reading: an older or differently configured `gcse.c`; not checked in the source). **Solved by ER-069: the edge-based LCM, `-fno-edge-lcm` in `CFLAGS` since ruling 3.11 (2.17).** Parks `func_00113C30`, `func_00113ED8` (same head), `func_00131D40`, and after ER-041's merge `func_0012D600` (with `-fno-gcse` all but 7 words match), `func_0012EBB0` and `func_0012EEB0` (both match up to their six angle-wrap loops; the loops differ with and without GCSE, and a `static inline` wrap helper did not help).
-- **ee-as does not swap a use of an `mtc1`-written FPR into a delay slot.** Where gcc leaves a `jal` in `.set reorder` (after a divide trap block, for example), gas fills the slot itself; ours refuses to swap `cvt.s.w $f12, $f12` after `mtc1 $a2, $f12` and emits `nop` (the swap check still applies the coprocessor-move delay that ruling 3.5 removed for `nop` insertion). Census of the game's asm: **288** sites with such a use in the slot after `mtc1; jal/j/branch` (265 `cvt.s.w`, 7 `mul.s`, 5 `mov.s`, 4 `add.s`, 3 `sub.s`, 4 `swc1`), **0** in the unswapped form (2 hits were `c.cond` before `bc1`, which cannot move). Script: notes folder `ER-063_drafts/census_mtc1_slot.py`. Parks `func_00126F00` (one word; 5 more words of `ld` order in its struct copies are still open after 7 shapes).
+- **ee-as does not swap a use of an `mtc1`-written FPR into a delay slot.** Where gcc leaves a `jal` in `.set reorder` (after a divide trap block, for example), gas fills the slot itself; ours refuses to swap `cvt.s.w $f12, $f12` after `mtc1 $a2, $f12` and emits `nop` (the swap check still applies the coprocessor-move delay that ruling 3.5 removed for `nop` insertion). Census of the game's asm: **288** sites with such a use in the slot after `mtc1; jal/j/branch` (265 `cvt.s.w`, 7 `mul.s`, 5 `mov.s`, 4 `add.s`, 3 `sub.s`, 4 `swc1`), **0** in the unswapped form (2 hits were `c.cond` before `bc1`, which cannot move). Script: notes folder `ER-063_drafts/census_mtc1_slot.py`. Parks `func_00126F00` (one word; 5 more words of `ld` order in its struct copies are still open after 7 shapes). **Solved by ER-070 (2.19, ruling 3.12): the cause was a typo in gas's swap test; ee-as r4 swaps.**
 
 Parked by ER-063 (one-line causes; drafts in the notes folder `ER-063_drafts/`):
 
@@ -321,7 +321,7 @@ Parked by ER-063 (one-line causes; drafts in the notes folder `ER-063_drafts/`):
 |---|---|---|
 | `func_00113C30` | 676 | the GCSE reload of `a0+0xE8` (above); with it left aside: register numbering in both arms (an unused `float buf[16]` local gives the game's 0x80 frame and its `jal` instead of a sibling call: dead code, would need a ruling) |
 | `func_00113ED8` | 760 | same head as `func_00113C30` (GCSE reload); not drafted further |
-| `func_00126F00` | 476 | gas delay-slot swap (above) + 5 words of struct-copy load order |
+| `func_00126F00` | 476 | ~~gas delay-slot swap~~ (fixed by ee-as r4, 2.19) + struct-copy load order: 4 words with `-fno-edge-lcm` and r4 (ER-070) |
 | `func_00131D40` | 732 | GCSE reload of the `u16` counter at +0x7A; the six angle-wrap loops' pointer reloads not yet matched (2 shapes) |
 | `func_00124BE8` | 1860 | not attempted in depth: m2c lost arguments and a stack variable; needs a dedicated round (also reads a `.rodata` vector like `func_00126F00`) |
 | `func_0012D600` | 448 | GCSE reload of `a[0]` / `a[1]` after each clamp; 7 words around the last call (`&m[8]` set before `sqrtf` in the game) also open |
@@ -501,7 +501,23 @@ rerun, 17 by hand). Nothing compiler-steering.
 | func_0011BB90 | 2,068 | the m2c draft (one call fixed: m2c read the store `sp[0] = -x` as a fourth argument) is 27 instructions short; needs a hand rewrite (17 calls, a jump table, 16 `.lit4` literals) |
 | func_00119FE0 | 6,636 | surveyed only: 925 m2c lines, 53 calls, a jump table, 36 literals; m2c's draft does not compile (`M2C_BREAK`) |
 
-### 2.19 Near misses and doubles in `text_00150878` (ER-080, Sun 22 Nov 2026; Confirmed by `make regress`, 51 functions)
+### 2.19 Delay slots filled by the assembler: ee-as r4 (ER-070, Sun 22 Nov 2026; ruling 3.12)
+
+The second toolchain difference of 2.12 ("ee-as does not swap a use of an `mtc1`-written FPR into a delay slot") is
+solved, and it was wider than `mtc1`: **our 1999 gas never swapped anything into a reorder-mode delay slot**, because
+its "previous instruction is a sync" test reads `prev_pinfo && INSN_SYNC` (true for any instruction). ee-as r4
+(`docs/toolchain.md` 4.2) tests the flag properly for the r5900 and never moves a `div.s` / `sqrt.s`. Evidence: notes
+folder `ER-070_drafts/` (`ER-070_evidence.md`, `census_slots.py`).
+
+| Lesson | Proved by |
+|---|---|
+| **A branch gcc leaves in `.set reorder` now gets the game's slot**: gas moves the instruction before it into the slot (`mtc1 $a2,$f12; jal; cvt.s.w $f12,$f12`), unless that instruction feeds the branch, sits after a gcc noreorder block (a filled slot, a divide trap), has a label on the branch, is an `mtc1` / `mfc1` / `c.cond` itself, or is a `div.s` / `sqrt.s`. Write plain C | func_00126F00 (masked compare: the slot after the first divide block matches; r3 gives a `nop` there and the rest one word late); whole ELF identical with all 685 placed functions |
+| **Short loops are gcc's business, not gas's**: gcc pads loops of 6 instructions or fewer (`mips_r5900_lengthen_loops`) and the pad lands in the slot as a noreorder `nop`; a word-copy loop written `while (n-- != 0) *dst++ = *src++;` with `u32 n` gives the game's `bne; nop` with any assembler | func_00101238 (masked MATCH with r3 and r4; `s32 n` gives a different loop counter; not placed: `text_001000C0.c` is ER-060 part 2's this wave) |
+
+Unconfirmed: which original tool kept `div.s` / `sqrt.s` out of slots (gas, as r4 does, or gcc wrapping its
+`nop; nop; div.s` in `.set noreorder`); a later `div.s; Y; branch` site would tell.
+
+### 2.20 Near misses and doubles in `text_00150878` (ER-080, Sun 22 Nov 2026; Confirmed by `make regress`, 51 functions)
 
 ER-060's 48 same-size near misses: 16 matched as `m2c_bulk.py --plain` drafts when rerun in lists of 8
 (`docs/matching_tools.md` 6.8), 31 more by hand; 1 parked. Also 3 of the 4 plain-form failures and 2 of ER-041's
@@ -536,7 +552,7 @@ seven (plain double C). Each lesson below is proved by the named functions place
   `func_001776D8` to `(s32, s32, char *)`, the `sprintf`-like `func_001E9D08` taking `$a2` untouched) keeps its own
   bytes (masked MATCH) (func_001C46C8's draft).
 
-**Parked (one-line causes; drafts in the dispatcher's notes folder `ER-080_c/`):**
+**Parked (one-line causes; drafts in the dispatcher's notes folder `ER-080_c/`; all four rechecked after main gained ee-as r4 (ruling 3.12): the same words differ):**
 
 | Function | Cause |
 |---|---|
@@ -550,6 +566,7 @@ seven (plain double C). Each lesson below is proved by the named functions place
 func_0017D290 and func_001BF5B0, left by ER-060 for `s128`, no longer need it: with today's context their drafts call
 `func_001C9B18` with plain arguments (placed above); func_00161568's parse error is gone the same way. No typedef was
 added.
+
 
 ## 3. Rulings (LuciDin)
 
@@ -628,6 +645,12 @@ Standing rulings; each applies until LuciDin changes it.
 | Ruling | Item |
 |---|---|
 | **Accepted** (option A of three: flag; r2 compiler with the default changed; not adopted) | `CFLAGS` = `-O2 -G8 -fno-strict-aliasing -fno-edge-lcm` for every file: GCSE without the edge-based LCM, which removes loads after joins that the game keeps (func_0012EEB0; 4 more parked functions move; m2c census +3 matches, 0 lost); the whole ELF stays byte-identical. A stock flag of the same compiler (also in SSX Tricky's SDK-era makefile), not a patch; `GCC_DIR` stays r1 |
+
+### 3.12 ER-070: ee-as, delay-slot swap (Sun 22 Nov 2026, 14:30 Eastern, LuciDin in the ER-070 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** | Fourth ee-as patch (`tools/toolchain/patches/ee-as_r5900_delay_swap.patch`): for the r5900, gas's "previous instruction is a sync" swap test checks the flag (`&` for the 1999 text's `&&`, which blocked every delay-slot swap), and a `div.s` / `sqrt.s` is never moved into a slot. The game's slots: 285 `mtc1` uses swapped, 0 not; every nop slot of 28,567 game branches explained. Same standing as 3.4 / 3.5 / 3.8: a documented reconstruction of the original assembler's behaviour, not Sony's code; built into `ee-binutils-2.9-991111-r4` |
 
 No ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, dead code): park such functions with a
 one-line cause and ask.

@@ -929,11 +929,11 @@
     {
       "code": "ER-070",
       "title": "ee-as r4: delay-slot swap after mtc1 (toolchain; ruling)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high",
-      "waits_on": "nothing; adoption needs LuciDin's ruling",
-      "notes": ""
+      "waits_on": "nothing",
+      "notes": "Ruling 3.12 (14:30 ET): ee-as r4 adopted. Cause: gas append_insn's sync test 'prev_pinfo && INSN_SYNC' (typo for &) blocked every reorder-mode delay-slot swap. Patch ee-as_r5900_delay_swap.patch: r5900 tests the flag, never moves div.s / sqrt.s. Built ee-binutils-2.9-991111-r4 (r3 kept), Makefile BIN_DIR r4; make regress green on main 9807646 (685 placed). Census: 285 mtc1 uses swapped / 0 not; all nop slots of 28,567 game branches explained but one gp macro store. func_00126F00 slot matches, 4 ld words left (not placed: file owned by ER-060 part 2); func_00101238 masked MATCH found. No metric change."
     },
     {
       "code": "ER-071",
@@ -1139,6 +1139,15 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, high (xhigh if it resists)",
+      "waits_on": "text_001000C0 writer one at a time",
+      "notes": ""
+    },
+    {
+      "code": "ER-094",
+      "title": "func_00126F00 with ee-as r4 (4 ld words left)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
       "waits_on": "text_001000C0 writer one at a time",
       "notes": ""
     }

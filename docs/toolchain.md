@@ -288,6 +288,22 @@ our one-line gas patch (ruling `docs/decomp_recipes.md` 3.4; why: 4.4).
 | Fallbacks | `-r2`, `-r1` and the unpatched ER-011 build stay; `src-lf` now carries all three patches |
 | Proof | `make regress` green with r3; control with every ER-034 function placed: r2 gives SHA-1 `949181d4...` (FAIL: func_001B8BC0 and its copies), r3 `6087a8ca...` (OK) |
 
+**Fourth patch, build r4 (ER-070, Sun 22 Nov 2026; ruling `docs/decomp_recipes.md` 3.12).** The build now uses
+`ee-binutils-2.9-991111-r4`: all four `ee-as_*.patch` files in `tools/toolchain/patches/`. Evidence and scripts:
+notes folder `ER-070_drafts/` (dispatcher's folder; `ER-070_evidence.md`, `census_slots.py`).
+
+| Item | Value |
+|---|---|
+| Cause | **This 1999 gas never filled a delay slot by swapping.** In `append_insn` the long "can not swap" test ends with `\|\| (prev_pinfo && INSN_SYNC)` (comment: "If the previous instruction is a sync ... we can not swap"): a logical `&&`, so it is true for every instruction that has any pinfo flag. Every branch gcc leaves in reorder mode (its own delay-slot filler found nothing, mips.c `%*` / `%/`) therefore got a `nop`, even after a plain `addu`. ER-063's reading (the swap test still applying the `mtc1` coprocessor-move delay) was not the cause: `cvt.s.w` has no `COD` flag |
+| Patch | `ee-as_r5900_delay_swap.patch`: for the r5900 the test becomes `(prev_pinfo & INSN_SYNC) != 0` (only `sync`, `sync.l`, `sync.p` refuse, as the comment says), and a previous `div.s` / `sqrt.s` (opcode match `0x46000003` / `0x46000004`) is never moved into a slot. Other CPUs keep the old text. Swapping only happens in reorder mode, so `.set noreorder` code (all of `asm/`) is untouched |
+| Why the `div.s` / `sqrt.s` exception | ee-gcc r1 emits them as `nop; nop; div.s` (ruling 3.7) and gcc leaves the following branch in reorder mode, so the bare typo fix moves the `div.s` into the slot: control build 12 bytes short (2 sites in `text_001000C0`, 1 in `text_00150878`). The game has none of its 832 `div.s` / `sqrt.s` in a slot. **Unconfirmed which tool did this originally**: the gas rule here, or the original gcc wrapping `nop; nop; div.s` in `.set noreorder` (then a later `div.s; Y; branch` would also keep Y out of the slot). No game site tells them apart (the one `div.s; Y; jal; nop`, 0x0012E708, has a label on the `jal`) |
+| Census | Whole original `.text`: 28,567 game branches (27,655 slots filled); every nop slot is explained by gas's other refusal rules, gcc's noreorder blocks (a nop pad before the branch, a filled slot or divide trap just before the instruction), gcc's short-loop pads (`mips_r5900_lengthen_loops`: loops of 6 or fewer instructions; the pad becomes the slot `nop`, so these never reach gas) or `div.s` / `sqrt.s`, **except one**: `sw $v0, -0x4788($gp)` at 0x001C6E7C, a small-data store, which gcc writes as a `sw $2,sym` macro and gas keeps in a relaxable frag (never swapped). SDK: 11 left, 7 of them `ctc2.ni` (COD in gas; the census script missed the name), 4 not looked at. `mtc1` sites (ER-063's script): 285 with the use in the slot, 0 with a `nop` |
+| Script | `tools/toolchain/build_ee_binutils.sh` checks the four markers, builds into `b-binutils-r4` / `ee-binutils-2.9-991111-r4`, log `build_ee_binutils-r4.log` |
+| Output | SHA-1 `ee-as.exe` `BEF1A5A61EB44DEB6DD66278B1CAC54ABBC07D8A`, `ee-ld.exe` `682ECADBE657FB249F1FBEE16283B05ACF445913` (local builds; `ee-ld` has no source change) |
+| Fallbacks | `-r3` (first three patches), `-r2`, `-r1` and the unpatched ER-011 build stay; `src-lf` now carries all four patches |
+| Proof | `make regress` green with r4 on main at `9807646` (685 placed functions, `-fno-edge-lcm`): whole-ELF SHA-1 `6087a8ca...`, 3,606 of 3,606. Controls: the typo fix alone FAILS (above); r3 also passes (no placed function needs a swap yet); ER-063's draft of func_00126F00 is 4 bytes long with r3 (the `nop` after `cvt.s.w; jal`, 50 words shifted) and 4 words off with r4 (all struct-copy `ld` order; the slot matches) |
+| Not adopted | An r5900 short-loop no-swap rule in gas (tried: harmless, but gcc already keeps such loops out of gas's hands, so nothing supports it) |
+
 ### 4.3 First byte check (ER-011)
 
 Files (ours, outside the repo): `C:\rs\toolchain\tests\er011\` = `er002_shapes.c` (copy of ER-002's test),
@@ -491,6 +507,8 @@ Not verified:
 - `ee-dvp-as` (VU assembler) is not built.
 - That ER-026's gas patch is how SCE's assembler worked (it reproduces the output only, 4.4); other hazard rules that
   might differ (`mtc1` / `ctc1` then use, HI / LO) have not been met in C yet.
+- That ER-070's swap fix (4.2, r4) is how SCE's assembler worked: it reproduces the game's slots only; whether the
+  `div.s` / `sqrt.s` rule was gas's or gcc's is open (4.2).
 - That the linker script is SCE's own `app.cmd` file, and that crt0 is byte-identical to an SDK `crt0.s`.
 - What `func_001D03E0` and `func_001CFD80` are (`_InitSys` and `Exit` are guesses).
 - ~~Why `.reginfo` `ri_gprmask` holds only crt0's registers~~: link-once `.reginfo`, crt0 linked first (ER-003, 6.1).
