@@ -1429,6 +1429,15 @@
       "model": "Opus, medium",
       "waits_on": "ER-124",
       "notes": ""
+    },
+    {
+      "code": "ER-126",
+      "title": "Capture tool: input record / playback (after port playable)",
+      "status": "Waiting",
+      "track": "port",
+      "model": "Opus, high",
+      "waits_on": "port playable",
+      "notes": ""
     }
   ]
 }
