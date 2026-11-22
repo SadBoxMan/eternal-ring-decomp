@@ -1154,10 +1154,10 @@
     {
       "code": "ER-095",
       "title": "Ruling: func_001776D8 as s32 with no return (3.4 shape) for func_001C46C8",
-      "status": "Waiting",
+      "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "LuciDin's ruling",
+      "waits_on": "nothing (ruling 3.4 applies)",
       "notes": ""
     },
     {

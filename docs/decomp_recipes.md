@@ -636,6 +636,7 @@ Standing rulings; each applies until LuciDin changes it.
 |---|---|
 | **Accepted** | The patched GNU as (ER-014): no nop between `c.cond.s` and `bc1t` / `bc1f` in reorder mode, as Sony's assembler evidently did (129 game sites; in noreorder both assemblers agree). A documented reconstruction of the original assembler's behaviour for every file, not a per-function trick; added to the toolchain by ER-026. If the exact Sony binutils build is found (ER-028), it replaces the patch |
 | **Accepted** | A non-void function that ends in a plain call with no return statement (falls off the end), when that is the only C shape that gives the original's tail jump and its semantics match the original (the caller gets what the callee left in `$v0`): func_00194D08. Natural old-style C, nothing added; marked with a `PORT NOTE` because a PC compiler treats the missing return as undefined, so the port supplies an as-shipped-equivalent return on its side only |
+| **Accepted** (applies 3.4, Sun 22 Nov 2026, about 14:50 Eastern, LuciDin via DISP-02) | The same fall-off-the-end shape for func_001776D8 (`s32`, ends in a plain call with no `return`), so that its caller func_001C46C8 matches (ER-080, ER-095); same conditions and the same `PORT NOTE` as func_00194D08 |
 
 ### 3.5 ER-035: ee-as, no nop after mtc1 (Thu 19 Nov 2026, 15:33 Eastern, LuciDin in the ER-035 session)
 
