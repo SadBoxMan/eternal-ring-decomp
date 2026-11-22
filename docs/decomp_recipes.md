@@ -517,6 +517,56 @@ folder `ER-070_drafts/` (`ER-070_evidence.md`, `census_slots.py`).
 Unconfirmed: which original tool kept `div.s` / `sqrt.s` out of slots (gas, as r4 does, or gcc wrapping its
 `nop; nop; div.s` in `.set noreorder`); a later `div.s; Y; branch` site would tell.
 
+### 2.20 Near misses and doubles in `text_00150878` (ER-080, Sun 22 Nov 2026; Confirmed by `make regress`, 51 functions)
+
+ER-060's 48 same-size near misses: 16 matched as `m2c_bulk.py --plain` drafts when rerun in lists of 8
+(`docs/matching_tools.md` 6.8), 31 more by hand; 1 parked. Also 3 of the 4 plain-form failures and 2 of ER-041's
+seven (plain double C). Each lesson below is proved by the named functions placed and `make regress` green.
+
+| Lesson | Proved by |
+|---|---|
+| **m2c's typed data base scales an index by the element size.** `(arg0 * 0x2C8) + &D_X` with `D_X` declared `s32` adds `arg0 * 0xB20` (the game's `addiu 0x2C8` became `0xB20`); likewise `&D_X + 0x252` and a loop pointer stepping `+= 4` on an `s32 *` (0x10 bytes). Declare the base `extern char D_X[];` and index bytes, or step an `s32 *` by 1 | func_00168358, func_0017CC28, func_001BFEB8, func_001BCF48, func_0017D6F0, func_001BBD40, func_001BCD68, func_001C1310 (`arg0 + 1` on an `s32 *`, and the `double` parameter of 2.15) |
+| **A field copied as a float is `lwc1` / `swc1`**: m2c's `M2C_UNK32` copy compiled to `lw` / `sw`; `*(f32 *)(a0 + 0x84) = *(f32 *)(a0 + 0x4C);` gives the game's FPU copy | func_0015D3E8 |
+| **An argument set in a tail `j`'s delay slot is one m2c leaves out** (6.1, 6.7): the wrapper passes a field, a constant or an offset pointer. Write it: `g(arg0, *(s32 *)(arg0 + 4))`, `g(0)`, `g((char *)arg0 + 0x48, arg1)` | func_0019C078, func_001C53D0, func_001C8920, func_001C8928 |
+| **A callee's return type picks `$v0` or `$v1` for the caller's next value** (2.15, both ways): a `void` callee lets the caller reuse `$v0` right after the call; an `s32` callee makes it take `$v1`. Read the game's register and set the file's extern to match; the other callers in the file stay byte-identical (`make regress`) | `void func_00162CB8`: func_001AF2E8, func_0018C730, func_001B5E68, func_001B4BE8 (func_00183E90, func_001B8258 unchanged); `void func_001C9B18`: func_0017D290, func_001BF5B0, func_00161568; `s32 func_0012F9C0` in this file: func_00154BD0 (other files declare it `void`); `void func_00164220`: its caller's `extern s32 func_00164220();` was aligned to the definition |
+| **Store order: try every order of the plain top-level stores.** Where the game loads constants in an order no source order up to 4 statements gives, a search over all orders (5 statements: 120 compiles, 6: 720, about 1 s each) found it; the pattern here was floats first, then words, then the byte | func_00189198 / func_001AED88, func_001835E0, func_001AEF90 / func_001B77B8 / func_001B42B0, func_001B4BE8, func_0015E628 / func_0015E988 (the `x34` / `x38` stores), func_001AB480 (`x4` before `x10`) |
+| **A store moved before a computed value**: `*(s8 *)(a0 + 2) = 0;` first, the copy `x0C = x50` read straight off the struct, then the divisor `(f32)(x50 - x54)` gives the game's `sb` before `sw` (no order of the m2c draft's statements did) | func_00159830 |
+| **Compare operand order picks the load order** (2.7, 2.10) again: `x6C > x74` | func_00153DA0 (also a pass-through `$a0`: `func_00131000(a0, func_001539A8)`) |
+| **A three-way result as a nested `?:`** (`return (a > 0) ? 0 : ((a == 0) ? 1 : 2);`) gives the game's `bgtzl` with `li 0` in the likely slot and `movz` for the rest; `if / else if` chains give `bgtz` | func_00169480 |
+| **A byte widened into a `u64` local, then shifted** (`u64 v = *(u8 *)(p + 0x87); return v >> 7;`) gives `lbu; dsrl`; the same as one cast expression gives `srl` (gcc narrows it) | func_0017D3E8 |
+| **A negation before a call goes in its delay slot**: `r = -*(f32 *)(a0 + 0x30); *(f32 *)(a0 + 0x34) = r * f(ang);` gives the game's `jal f; neg.s`; `-x * f(ang)` negates after the call | func_00189810 |
+| **A float scaled by a double constant**: `(float)(f(x) * 0.75)` gives `jal fptodp`, 0.75 built with `ori 0xFFA0; dsll32 14`, `jal dpmul`, `jal dptofp` (2.11); `fabs()` of a float difference compared with two float fields gives `fptodp`, `dpcmp`, `dpsub`, `dptofp` | func_00189810, func_0015BE00 (three shapes of the wrap and `fabs` match: a local, the field itself, or the field assigned first) |
+| **An angle wrap as one expression**: `v -= (pi < v) ? 2pi : ((v < -pi) ? -2pi : 0.0f);` gives the game's `bc1t` / `bc1fl` pair with `sub.s` in the likely slot and `mtc1 $0` for the zero arm | func_0015BE00 |
+| **Twins** (2.7): functions that differ only in one stored constant; once one matches, change the constant and compare the other | func_0015E628 / func_0015E988, func_00189198 / func_001AED88, func_001AEF90 / func_001B77B8 / func_001B42B0 |
+
+**Seen in masked compares only (Unconfirmed until a placement proves them):**
+
+- **A product kept for the next call**: `t = r * cos(b); a1[1] = a0[4] - t * sin(e);` (a temporary, as m2c wrote it) gives
+  the game's `mul.s` right after the first call; the one-line product schedules it later (func_00160CE0's tail; the
+  function is parked, below).
+- **`d[1] = d[2] = 0.0f;`** (a chained assignment) gives `mtc1 $0` and two `swc1`, where two plain statements give
+  `sw $0` twice (func_0015C0E0, parked).
+- **A constant used twice in one expression** (`r * k + k` with `k = -0.7853982f`) is one `.lit4` load when `k` is a
+  local assigned after the last call; assigned before a call it goes to a saved FPR (func_0015C0E0).
+- **A function widened to pass its arguments through** (`func_00175DD0` to 5 arguments for `func_00167B20`;
+  `func_001776D8` to `(s32, s32, char *)`, the `sprintf`-like `func_001E9D08` taking `$a2` untouched) keeps its own
+  bytes (masked MATCH) (func_001C46C8's draft).
+
+**Parked (one-line causes; drafts in the dispatcher's notes folder `ER-080_c/`):**
+
+| Function | Cause |
+|---|---|
+| func_00150A30 | 2 words: the first `func_0012B890` call's delay slot takes `mov.s $f12, $f20` in ours, `daddu $t1, $0, $0` in the game (6 shapes: literal or local float, its place, `s32` return for func_00151330, early returns) |
+| func_001C46C8 | matches (masked) only if `func_001776D8` returns `s32` to it while its own code ends in the void tail call `j func_00177858`: an `s32` definition with no `return` (ruling 3.4's shape) or an implicit `int` declaration across the original's source files; **needs LuciDin's ruling** (and `func_00175DD0` / `func_001776D8` widened as above) |
+| func_00160CE0 | right size; `$f21` / `$f22` swapped between the wrapped angle and the hoisted `-3pi/4` loop constant (27 words; 9 shapes: loop forms, declaration order, `if` chain, the condition on either variable, the constant in a local) |
+| func_0015C0E0 | right size (268 instructions); about 46 words of scheduling in two blocks: the stores to `D_00248880` / `D_002488A0` around `func_001E9C70() % 45` and the setup before `func_0017D968` (vector copies of `D_00354D80` / `D_00354D70` as a 16-aligned struct, recipe 2.12's unconfirmed shape); store-order search over the six global stores (720 orders): no match, best 46 words (a regress ran during part of the search, so a few orders may not have compiled) |
+| func_001BB2C8, func_001BB750 | not attempted in depth (289 / 300 instructions, integer loops with `/ 100` and `sqrtf`); the m2c drafts do not compile (`M2C_BREAK` from the divide trap); need a dedicated round |
+| func_00178C60 | not attempted (0xE18 bytes, `sqrtf`; the card asks Opus, high) |
+
+func_0017D290 and func_001BF5B0, left by ER-060 for `s128`, no longer need it: with today's context their drafts call
+`func_001C9B18` with plain arguments (placed above); func_00161568's parse error is gone the same way. No typedef was
+added.
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.

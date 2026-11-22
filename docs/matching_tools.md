@@ -560,6 +560,22 @@ toolchain and ER-041 names; 107 asm functions, 125 harvested signatures, 117 s a
   `func_0014D890` in `text_0014C840`): each extern line moved above the new function before the build (a scratch
   check listed every name a placed body uses that is declared only below it).
 
+### 6.8 The near misses of `text_00150878` in small lists (ER-080, Sun 22 Nov 2026)
+
+ER-060's run folder was gone (`build/` is wiped by every regress), so `--rerun-diffs` had nothing to read: the 48 names
+of 6.5 went in as a list instead, `--list near48.txt --chunk 8 --plain --tag ER-080` (6 chunks, 70 s at par 4, today's
+toolchain with `-fno-edge-lcm`). **16 masked / 15 plain MATCH** (func_00164220 needed its caller's extern aligned):
+all placed, `make regress` green. The other 31 came out as 1-2 word DIFFs again and were matched by hand (recipes
+2.19). So the small-list effect of 6.3 held here (16 of 48 that the file-wide run had as DIFF), where ER-060 part 2's
+list of 18 gave none (6.6).
+
+Kinds among the 31 hand matches (recipes 2.20): byte strides m2c scaled by a typed base or pointer (8), tail-call
+delay-slot arguments m2c dropped (4), callee return types (4), store order (11, most found by a search over all
+orders), compare order (1), `?:` / `u64` shapes (2), a field copied as `f32` not `s32` (1). The first two look
+mechanical enough for the tool (follow-up).
+
+Rerunning a file's 3-8 word DIFFs the same way was not tried (71 in this file, 6.5).
+
 ## 7. Not verified
 
 - The tools were checked on the functions named above only; relocation types other than the five handled
