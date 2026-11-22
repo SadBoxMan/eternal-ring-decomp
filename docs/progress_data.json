@@ -11,7 +11,7 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 682,
+          "done": 685,
           "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
@@ -21,7 +21,7 @@
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 44292,
+          "done": 44720,
           "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
@@ -924,7 +924,7 @@
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "nothing; adoption needs LuciDin's ruling",
-      "notes": "Ruling 3.11 (13:48 ET): -fno-edge-lcm in CFLAGS (edge-based LCM removed partially redundant loads at joins; the game keeps them). Whole ELF identical; func_0012EEB0 proven in scratch make regress (control fails); m2c census 693 funcs: +3 matches, 0 lost. No compiler patch; GCC_DIR stays r1. Parked functions listed for file owners (recipes 2.13)."
+      "notes": "Ruling 3.11 (13:48 ET): -fno-edge-lcm in CFLAGS (edge-based LCM removed partially redundant loads at joins; the game keeps them). Whole ELF identical; func_0012EEB0 proven in scratch make regress; m2c census 693 funcs: +3 matches, 0 lost. No compiler patch; GCC_DIR stays r1. Part 2 after main 937b403 merged: 3 placed (func_00144488, func_0014F550, func_00150350; control without the flag fails). Others listed for file owners (recipes 2.17)."
     },
     {
       "code": "ER-070",
