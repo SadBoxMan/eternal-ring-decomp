@@ -89,7 +89,7 @@ all objects, crt0 first --ee-ld -s--> build/SLUS_200.15.elf  --sha1--> OK
 
 | Piece | Why |
 |---|---|
-| `slus_200.15.yaml` | one segment `main` (vram `0x00100000`, rom = PT_LOAD bytes): crt0 kept as `asm`, the rest of `.text` as 25 `c` files of INCLUDE_ASM (census regions, the game region cut further at 7 seams by ER-022; 3.1), `.data`, `.vudata` (kept as data words), `.rodata`, `.lit4`, `.sdata`, `.sbss`, `.bss`; the game files' own `.rodata` / `.lit4` (and for five files `.sdata` / `.data`) as dotted subsegments named after the C file (ER-024, 3.2), the rest of each data section as shared asm; `pad` subsegments for the alignment gaps between sections |
+| `slus_200.15.yaml` | one segment `main` (vram `0x00100000`, rom = PT_LOAD bytes): crt0 kept as `asm`, the rest of `.text` as 32 `c` files of INCLUDE_ASM (census regions, the game region cut further at 7 seams by ER-022 and 7 by ER-051; 3.1), `.data`, `.vudata` (kept as data words), `.rodata`, `.lit4`, `.sdata`, `.sbss`, `.bss`; the game files' own `.rodata` / `.lit4` (and for ten files `.sdata` / `.data`) as dotted subsegments named after the C file (ER-024, 3.2), the rest of each data section as shared asm; `pad` subsegments for the alignment gaps between sections |
 | `tools/split.py` | runs splat, writing denormal floats as `.word` (ee-as 2.9 misreads them; `docs/decomp_recipes.md` 1.3), plus the per-file data steps of 3.2 (rodata order check and INCLUDE_RODATA files, `.lit4` loads as `li.s`, `.align 4` items, INCLUDE_SDATA / INCLUDE_DATA files) |
 | `include/macro.inc`, `labels.inc`, `include_asm.h`, `common.h` | splat's macros rewritten for ee-as 2.9 syntax; `macro.inc` also includes the generated `gp_externs.inc` |
 | `tools/gen_gp_externs.py` | `build/include/gp_externs.inc`: `.extern sym, 4` for every symbol reached through `$gp`, so ee-as's `lw $2, sym` macros come out gp-relative (ee-as has no `%gp_rel`) |
@@ -99,18 +99,24 @@ all objects, crt0 first --ee-ld -s--> build/SLUS_200.15.elf  --sha1--> OK
 | link order | crt0's object first and all objects before `-T`: ld keeps only the first `.reginfo` (link-once), which must be crt0's |
 | `tools/func_check.py` | every function symbol of the unstripped link compared with the original bytes, and every `func_` / `D_` name checked against its address |
 
-### 3.1 Source file layout (ER-013, ER-022, Wed 18 Nov 2026)
+### 3.1 Source file layout (ER-013, ER-022, Wed 18 Nov 2026; ER-051, Sun 22 Nov 2026)
 
 `.text` after crt0 is cut into one `c` subsegment per region of `docs/census.md` 4.1, seams on function starts
 (census 4.3 has each seam's evidence and grade); ER-022 cut the game region further at the 7 Strong seams of
-`docs/game_seams.md` whose data cuts line up (section 8 there). Each file's INCLUDE_ASM points at its own folder
+`docs/game_seams.md` whose data cuts line up (section 8 there), and ER-051 at seven more (the five exact seams inside
+S1's file, S22 and `0x001CB528` in game-unk; section 9.10 there). Each file's INCLUDE_ASM points at its own folder
 `asm/nonmatchings/<file>/`. ER-022 left the data as one subsegment per section (`docs/game_seams.md` 8.4); since
 ER-024 the game files own their data where the references pin it (3.2).
 
 | File | Starts | Units (C) | Region |
 |---|---|---|---|
 | `src/text_001000C0.c` | 0x001000C0 | 576 (22) | game: main, boot and everything up to the first Strong seam |
-| `src/text_001343E8.c` | 0x001343E8 | 338 (8) | game, seam S1 (`docs/game_seams.md` 8.2) |
+| `src/text_001343E8.c` | 0x001343E8 | 83 (3) | game, seam S1 (`docs/game_seams.md` 8.2); S3 inside, uncut (waits for matching) |
+| `src/text_001388E8.c` | 0x001388E8 | 41 (2) | game, exact seam (ER-051, `docs/game_seams.md` 9.10) |
+| `src/text_0013A410.c` | 0x0013A410 | 19 (1) | game, exact seam (ER-051) |
+| `src/text_0013B748.c` | 0x0013B748 | 16 (2) | game, exact seam (ER-051) |
+| `src/text_0013C510.c` | 0x0013C510 | 33 (2) | game, exact seam (ER-051); func_0013D4D0 is the first C jump table here |
+| `src/text_0013DBC0.c` | 0x0013DBC0 | 146 (11) | game, exact seam (ER-051), up to S9 |
 | `src/text_00145120.c` | 0x00145120 | 105 (2) | game, seam S9 |
 | `src/text_0014A968.c` | 0x0014A968 | 52 (2) | game, seam S12 |
 | `src/text_0014C840.c` | 0x0014C840 | 30 (2) | game, seam S15 |
@@ -118,7 +124,9 @@ ER-024 the game files own their data where the references pin it (3.2).
 | `src/text_0014E2E8.c` | 0x0014E2E8 | 59 (0) | game, seam S17 |
 | `src/text_00150878.c` | 0x00150878 | 1,542 (83) | game, seam S20, up to the VU0 helpers |
 | `src/text_001C9B18.c` | 0x001C9B18 | 28 | game VU0 helpers (Unconfirmed) |
-| `src/text_001CA0F0.c` | 0x001CA0F0 | 77 | game-unk (Unconfirmed) |
+| `src/text_001CA0F0.c` | 0x001CA0F0 | 9 | game-unk (Unconfirmed) |
+| `src/text_001CA8D8.c` | 0x001CA8D8 | 19 | game-unk, seam S22 (ER-051; `.bss` decides) |
+| `src/text_001CB528.c` | 0x001CB528 | 49 | game-unk, seam `0x001CB528` (ER-051; `.bss` decides) |
 | `src/sdk/libgraph.c`, `libkernl.c`, `libdma.c`, `vudev.c`, `libpad.c`, `libvu0.c`, `libcdvd.c`, `libmpeg.c`, `libipu.c`, `libsdr.c`, `libmc.c`, `libm.c`, `libgcc.c`, `libc.c` (2 C), `libkernl_tail.c` | 0x001CE130 on | 775 | SDK libraries in link order |
 
 A new game file is cut by adding a `c` line to the yaml and moving its INCLUDE_ASM lines (with the folder renamed)
@@ -140,14 +148,16 @@ the linker places `build/src/<file>.o(<section>)` where that run lies, and the d
 
 | Section | Owners | Still shared asm |
 |---|---|---|
-| `.lit4` | all 8 game files: `text_001000C0` 0x00358B80, `text_001343E8` 0x003592C4, `text_00145120` 0x003597CC, `text_0014A968` 0x00359970, `text_0014C840` 0x003599D4, `text_0014D930` 0x00359A1C, `text_0014E2E8` 0x00359A4C, `text_00150878` 0x00359ACC to 0x0035B784 | nothing (no SDK file uses `.lit4`) |
-| `.rodata` | `text_001000C0` 0x00353E00, `text_001343E8` 0x003546D8, `text_00145120` 0x00354990, `text_0014D930` 0x00354A28, `text_0014E2E8` 0x00354A30, `text_00150878` 0x00354A90 to 0x00356AF0 (`text_0014A968`, `text_0014C840` have none) | `rodata_00356AF0` (the SDK, libgraph on) |
-| `.sdata` | `text_00145120` 0x0035BC94, `text_0014A968` 0x0035BDD8, `text_0014C840` 0x0035BE3C, `text_0014D930` 0x0035BE90, `text_0014E2E8` 0x0035BEC8 to 0x0035BF2C | `sdata_0035B800` (files before S9), `sdata_0035BF2C` (`text_00150878` on) |
-| `.data` | `text_00145120` 0x0032FF20, `text_0014A968` 0x0032FF90, `text_0014C840` 0x0032FFB0, `text_0014E2E8` 0x0032FFE0 to 0x00330208 (`text_0014D930` has none) | `data_001F0380` (files before S9), `data_00330208` (`text_00150878` on) |
+| `.lit4` | all 13 game files that use it: `text_001000C0` 0x00358B80, `text_001343E8` 0x003592C4, `text_001388E8` 0x003593F8, `text_0013A410` 0x00359460, `text_0013B748` 0x003594D0, `text_0013C510` 0x00359504, `text_0013DBC0` 0x0035957C, `text_00145120` 0x003597CC, `text_0014A968` 0x00359970, `text_0014C840` 0x003599D4, `text_0014D930` 0x00359A1C, `text_0014E2E8` 0x00359A4C, `text_00150878` 0x00359ACC to 0x0035B784 | nothing (no SDK file uses `.lit4`) |
+| `.rodata` | `text_001000C0` 0x00353E00, `text_001343E8` 0x003546D8, `text_001388E8` 0x00354750, `text_0013A410` 0x003547D0, `text_0013B748` 0x00354830, `text_0013C510` 0x00354850, `text_0013DBC0` 0x00354910, `text_00145120` 0x00354990, `text_0014D930` 0x00354A28, `text_0014E2E8` 0x00354A30, `text_00150878` 0x00354A90 to 0x00356AF0 (`text_0014A968`, `text_0014C840` have none) | `rodata_00356AF0` (the SDK, libgraph on) |
+| `.sdata` | `text_001388E8` 0x0035BA08, `text_0013A410` 0x0035BA68, `text_0013B748` 0x0035BAB0, `text_0013C510` 0x0035BAC8, `text_0013DBC0` 0x0035BB08, `text_00145120` 0x0035BC94, `text_0014A968` 0x0035BDD8, `text_0014C840` 0x0035BE3C, `text_0014D930` 0x0035BE90, `text_0014E2E8` 0x0035BEC8 to 0x0035BF2C | `sdata_0035B800` (`text_001000C0`, `text_001343E8`), `sdata_0035BF2C` (`text_00150878` on) |
+| `.data` | `text_001388E8` 0x0032FE68, `text_0013DBC0` 0x0032FEA0, `text_00145120` 0x0032FF20, `text_0014A968` 0x0032FF90, `text_0014C840` 0x0032FFB0, `text_0014E2E8` 0x0032FFE0 to 0x00330208 (`text_0013A410`, `text_0013B748`, `text_0013C510`, `text_0014D930` have none) | `data_001F0380` (`text_001000C0`, `text_001343E8`), `data_00330208` (`text_00150878` on) |
 
 `.sdata` / `.data` of `text_001000C0`, `text_001343E8` and `text_00150878` are not owned yet: those files are each
 several real files (uncut seams), their runs mix globals used across files, and the ends are not checked symbol by
-symbol. `.sbss` / `.bss` are not owned (NOBITS; `.bss` mixes COMMON).
+symbol (ER-051: `text_001343E8`'s runs are now pinned at both ends, `.sdata` 0x0035B9F0-0x0035BA08 and `.data`
+0x0032FD20-0x0032FE68, `docs/game_seams.md` 9.10; left for ER-032). The new game-unk files (`text_001CA0F0`,
+`text_001CA8D8`, `text_001CB528`) use no data of the owned sections. `.sbss` / `.bss` are not owned (NOBITS; `.bss` mixes COMMON).
 
 **How a file gets its own data** (the recipe):
 
@@ -181,7 +191,8 @@ it in the file's run (8-byte alignment cannot explain such a gap), so when the i
 the zeros), the padding still comes out. While everything is asm the directive changes nothing. Not in
 `text_001343E8` (its `.rodata` starts at 0x003546D8, not 16-aligned): there a 16-aligned item would move the whole
 object, so **a C jump table cannot be placed in `text_001343E8`** until the file is cut where its real files meet
-(`docs/game_seams.md` 8.6). `text_0014D930`'s run is one 8-byte item, so nothing to do.
+(`docs/game_seams.md` 8.6; seam S3 waits for matching, LuciDin 22 Nov 2026). The five files ER-051 cut from it
+start 16-aligned and take C jump tables (func_0013D4D0, `docs/game_seams.md` 9.10). `text_0014D930`'s run is one 8-byte item, so nothing to do.
 
 **Gotchas.** Run a clean split after changing the yaml (`rm -rf asm linker`, or `make regress`): stale
 `asm/data/*.s` files from an old cut would be linked twice. A C file that defines one of its data symbols itself

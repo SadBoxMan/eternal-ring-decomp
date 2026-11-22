@@ -598,6 +598,9 @@ one splat label in the cut range):
 | 7 | `0x0017C0C8`, `0x0017C500` | `text_00150878` | new Strong, exact, 5/5 | the 0x0017C0C8-0x0017C500 file uses no data | open by the scan, but data says nothing; with the far filter the `.rodata` / `.sdata` / `.sbss` still pass, `.data` fails in the whole-file view (9.9) |
 | 8 | `0x001CB528` | `text_001CA0F0` (game-unk), after S22 | Strong, exact, 5/5, `.bss` only (+ 1 `.sbss` label) (9.9) | none / none / none / 0x01B73440 (`.bss`, pinned), in order with S22's 0x01B72600 | **keep (9.9)**; cut together with S22; same caveat as S22 (`.bss` is the only evidence) |
 
+**ER-051 (Sun 22 Nov 2026, 9.10): cut ranks 3, 4 and 8** (S22, the five exact seams, `0x001CB528`). S3 (rank 1) waits
+for matching (LuciDin); S21 and `0x001C4F68` (ranks 2, 6) lie in `text_00150878`, which ER-060 owned this wave.
+
 Not ready: `0x00112E18` (the whole-file view binds through first-file globals `D_0035B838` / `D_0035B83C`,
 `D_001FF240` / `D_001FF280`; 4 local `.data` inversions); `0x001583F0` (whole-file view fails in every section);
 ER-017's multi-function windows S2,
@@ -675,3 +678,71 @@ caveat as S22: `.bss` is its only data evidence, and `D_01B73440` could be a glo
 **Not verified:** nothing was cut or built, so no data split was tested; the COMMON-tail reading; the five windows after
 S20 stay uncut by LuciDin's ruling (ER-052: wait for matching), and the filter changes nothing about which candidate opens
 each. The scan's own K = 40 grades were not re-run (they did not change: `final.csv` still 44 / 17 / 27).
+
+### 9.10 The cuts of ER-051 (ER-031 + ER-051, Sun 22 Nov 2026)
+
+ER-031 + ER-051 (Opus 5.5, medium) cut seven of the ranked seams of 9.7 and gave each new file its data runs where
+both ends are pinned (ER-024 method, `docs/build.md` 3.2). `make regress` was green after every cut (whole-ELF SHA-1
+`6087a8ca...`, all 3,606 functions), and again with func_0013D4D0 in C. The already-matched C moved with its
+functions, unchanged (four `extern` lines the moved C needed were copied from the earlier file; gcc `-Wimplicit`
+is clean on all the new files).
+
+**S3 not cut (LuciDin, Sun 22 Nov 2026, about 03:30 Eastern: wait for matching).** The data cut is pinned
+(`.rodata` 0x003546E0, right before `jtbl_003546E0`), but nothing chooses the file's first function between
+`func_00134BB0` and `func_00134DB0`: neither uses data of any section, both are called from both sides
+(`func_00134958` on the left, `func_001352B8` / `func_00135378` on the right), and `func_00134DB0` is the only caller
+of `func_00134F70`. As with the windows after S20 (ER-052), the cut waits until matching shows the start. Until then
+`text_001343E8` (S1 to `0x001388E8`, 83 functions) still cannot take a C jump table.
+
+**References.** Every run below was listed from spimdisasm's references in the asm (`%hi` / `%lo` pairs, `$gp`
+loads, jump-table bases) plus gcc's output for the C functions (scratch script, not in the repo), and agrees with
+`tools/seams.py --cuts --cut-set list` (cfb tracker): no binding, no inversion, link order in order, every cut
+pinned to one label (adjacent labels on both sides). `.lit4` from the original ELF: every `$gp`-relative `lwc1` of
+each new file, one word per use, strictly increasing (427 words from S1 to S12; the same scan reproduces the
+existing `.lit4` cuts of all 8 old files exactly).
+
+| File (first function) | Funcs (C) | `.rodata` | `.lit4` | `.sdata` | `.data` |
+|---|---|---|---|---|---|
+| `text_001343E8` (S1, now to `0x001388E8`) | 83 (3) | 0x003546D8 | 0x003592C4 | shared (`sdata_0035B800`) | shared (`data_001F0380`) |
+| `text_001388E8` | 41 (2) | 0x00354750 | 0x003593F8 | 0x0035BA08 | 0x0032FE68 |
+| `text_0013A410` | 19 (1) | 0x003547D0 | 0x00359460 | 0x0035BA68 | none used |
+| `text_0013B748` | 16 (2) | 0x00354830 | 0x003594D0 | 0x0035BAB0 | none used |
+| `text_0013C510` | 33 (2) | 0x00354850 | 0x00359504 | 0x0035BAC8 | none used |
+| `text_0013DBC0` (to S9) | 146 (11) | 0x00354910 | 0x0035957C | 0x0035BB08 | 0x0032FEA0 |
+| `text_001CA0F0` (game-unk, now to S22) | 9 | none | none | none | none |
+| `text_001CA8D8` (S22) | 19 | none | none | none | none |
+| `text_001CB528` | 49 | none | none | none | none |
+
+Run ends: each run ends where the next one starts; `text_0013DBC0`'s end at S9's (`.rodata` 0x00354990, `.lit4`
+0x003597CC, `.sdata` 0x0035BC94, `.data` 0x0032FF20). `.data` 0x0032FE68 to 0x0032FEA0 holds `D_0032FE68`
+(`func_00139A70`) and `D_0032FE78` (`func_00139AD0`); `text_0013DBC0`'s starts with `D_0032FEA0` (`func_0013F580`,
+`func_0013F748`, `func_0013FBF8`). The three files between use no `.data`, so they own none (no subsegment). The
+`.sdata` / `.data` before `0x0035BA08` / `0x0032FE68` (the first file's and `text_001343E8`'s) stay shared:
+`text_001343E8`'s own run is pinned at both ends now (`.sdata` 0x0035B9F0, `.data` 0x0032FD20; `D_0032FD80` is also used
+by `func_001501E0` in `text_0014E2E8`, a global defined here: Unconfirmed reading), left for ER-032.
+
+**S22 and `0x001CB528`: text only.** Their only data evidence is `.bss` (9.5, 9.9), which is NOBITS and not owned
+by files, so the cut moves no data. spimdisasm's references agree with the tool: `D_01B31D80` is used by
+`func_001CA170` to `func_001CA8B0` and `D_01B325D0` by `func_001CA370` / `func_001CA6E8` (all before S22);
+`D_01B72600` by `func_001CAA58` to `func_001CB500` and `D_01B72700` by `func_001CB268` (S22's file); `D_01B73440` on
+by `func_001CB528` onward; `.sbss` `D_0035C554` only by `0x001CB528`'s file.
+
+**Jump-table proof (ER-031's question).** The five new files' `.rodata` all start 16-aligned, and they own 13 jump
+tables in 12 functions (`func_00138A20` (2), `func_00139B38`, `func_00139EE0`, `func_0013AA28`, `func_0013AD40`,
+`func_0013BD90`, `func_0013C750`, `func_0013D088`, `func_0013D4D0`, `func_0013D550`, `func_0013DF90`,
+`func_0013FCF8`). **func_0013D4D0 matched in C** (`src/text_0013C510.c`, 128 bytes; regress green): a `switch` on
+`func_0013D498`'s result with a 13-entry table (0..12; cases 8 and 10 give 9, case 9 gives 10, the rest and the
+default 8). The C table's object lands at `jtbl_00354890` and the next table's `.align 4` makes the 12 bytes of
+padding after it, so a C jump table works in a file cut from S1's. To get the 0-based range the C lists cases 0 and
+12 beside `default` (gcc indexes the table from the lowest case and sizes it to the highest), presumably as the
+original listed those values (Unconfirmed).
+
+**Grades.** Unchanged (8.5): the byte-identical build shows only that the cuts are consistent with the alignments,
+and the C jump table adds nothing to that (it would link the same in any file whose `.rodata` starts on a 16-byte
+boundary at or before it). The seven new seams stay Strong (now "cut"); not Confirmed.
+
+**Still to cut (for later):** S3 (matching decides); S21 `0x001C8EE0` and `0x001C4F68` inside `text_00150878`
+(cut-ready, 9.5 / 9.9; left for when ER-060 has merged); the five windows after S20 (ER-052, wait for matching).
+
+**Not verified:** that the reading of `func_0013D4D0` (states, names, types) is right; that cases 0 and 12 were in
+the original source; whether game-unk is one or three real files (the `.bss` caveat of 9.5 / 9.9 stands).
