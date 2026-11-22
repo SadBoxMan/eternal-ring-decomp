@@ -502,7 +502,7 @@ MATCH anyway), and the 29 VU0-flagged functions (none matched; they need inline 
 
 | Kind | Functions |
 |---|---|
-| same size, 1-2 words differ (rerun as a list of 18, label `er060c`: none matched, unlike ER-062's run) | `func_00101238`, `func_00103E30`, `func_0010CAF0` (div), `func_00111660`, `func_00129ED8`, `func_0012A140`, `func_0012B238`, `func_0012C778`, `func_0012F838`, `func_0012F870`, `func_00130A88`, `func_00130AD0`, `func_00130CE0`, `func_00130FE0`, `func_00131000`, `func_001320B8`, `func_001321D8`, `func_001328D8` |
+| same size, 1-2 words differ (rerun as a list of 18, label `er060c`: none matched, unlike ER-062's run; **all 18 placed by ER-081**, Sun 22 Nov 2026: a rerun with `-fno-edge-lcm` in small lists gave `func_00130CE0` by the pass-through retry, the other 17 by hand, recipes 2.18) | `func_00101238`, `func_00103E30`, `func_0010CAF0` (div), `func_00111660`, `func_00129ED8`, `func_0012A140`, `func_0012B238`, `func_0012C778`, `func_0012F838`, `func_0012F870`, `func_00130A88`, `func_00130AD0`, `func_00130CE0`, `func_00130FE0`, `func_00131000`, `func_001320B8`, `func_001321D8`, `func_001328D8` |
 | same size, 3-8 words differ | 33 |
 | same size, 9+ words differ | 53 |
 | size differs | 238 |
@@ -559,6 +559,39 @@ toolchain and ER-041 names; 107 asm functions, 125 harvested signatures, 117 s a
   in `text_00145120`; `func_0014BC88`, `func_0014B7C0` in `text_0014A968`; `func_0014D8F8`, `func_0014D068`,
   `func_0014D890` in `text_0014C840`): each extern line moved above the new function before the build (a scratch
   check listed every name a placed body uses that is declared only below it).
+
+### 6.8 The near misses of `text_00150878` in small lists (ER-080, Sun 22 Nov 2026)
+
+ER-060's run folder was gone (`build/` is wiped by every regress), so `--rerun-diffs` had nothing to read: the 48 names
+of 6.5 went in as a list instead, `--list near48.txt --chunk 8 --plain --tag ER-080` (6 chunks, 70 s at par 4, today's
+toolchain with `-fno-edge-lcm`). **16 masked / 15 plain MATCH** (func_00164220 needed its caller's extern aligned):
+all placed, `make regress` green. The other 31 came out as 1-2 word DIFFs again and were matched by hand (recipes
+2.20). So the small-list effect of 6.3 held here (16 of 48 that the file-wide run had as DIFF), where ER-060 part 2's
+list of 18 gave none (6.6).
+
+Kinds among the 31 hand matches (recipes 2.20): byte strides m2c scaled by a typed base or pointer (8), tail-call
+delay-slot arguments m2c dropped (4), callee return types (4), store order (11, most found by a search over all
+orders), compare order (1), `?:` / `u64` shapes (2), a field copied as `f32` not `s32` (1). The first two look
+mechanical enough for the tool (follow-up).
+
+Rerunning a file's 3-8 word DIFFs the same way was not tried (71 in this file, 6.5).
+
+### 6.9 The five ER-054 files with the current toolchain (ER-083 + ER-085, Sun 22 Nov 2026)
+
+`--plain` runs with ee-gcc r1, `-fno-edge-lcm` (ruling 3.11) and ee-as r3 (r4 merged afterwards, regress still
+green), default context, `--par 4`. Lessons in `docs/decomp_recipes.md` 2.20.
+
+| Run | Files | Asm functions | Masked MATCH | Plain MATCH | Placed |
+|---|---|---|---|---|---|
+| `er083` (43 s) | `text_0014D930`, `text_0014E2E8` | 38 | 7 | 5 (+2 needing a declaration fix) | func_0014E120, func_0014E160, func_0014E740, func_0014E960 (`func_0014F298` returns `s32`), func_0014FE10 (clone prototype); func_0014F550 / func_00150350 were placed on main by ER-069 part 2 the same hour |
+| `er083` rerun (`--rerun-diffs --chunk 8`, 13 s) | same | 8 same-size DIFFs | 0 | 0 | func_0014FBA0 by hand afterwards (store order) |
+| `er085` (106 s) | `text_00145120`, `text_0014A968`, `text_0014C840` | 94 | 1 | 0 (+1 needing a declaration fix) | func_001492D0 (`func_0012B238` given its two parameters) |
+
+By hand from the `er085` drafts (same-size DIFFs of 3-8 words, then div / sqrt): func_00146EF0, func_0014C748,
+func_0014D050, func_00148360 (store order, `perm` script: 97 orders), func_00149DD8, func_0014C4D8, func_0014D3D0,
+func_00146350, func_00149978, func_00145918, func_00147CF8, func_0014CCD0: 12, plus the 3 above and 4 from `er083`,
+19 in all. A small store-order script (every order of N statements, cmpfunc per try; notes folder
+`ER-085_c/perm.py`) found func_00148360 and func_0014FBA0 in under 100 compiles each.
 
 ## 7. Not verified
 
