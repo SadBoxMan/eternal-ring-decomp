@@ -1294,6 +1294,15 @@
       "model": "Opus, high",
       "waits_on": "",
       "notes": "Two repos (LuciDin 22 Nov): Decomp (full history, all docs; origin eternal-ring-decomp) and Recomp (port, GPL-3.0; origin ringsmith, fast-forward of aaae66f) under Project Ringsmith. Port files moved with their paths; 9 PS2Recomp patches in Recomp patches/ (reproduce game_build's runtime files); regress PASS in Decomp; backup.py also bundles Recomp; stale worktrees removed, dispverify repaired."
+    },
+    {
+      "code": "ER-111",
+      "title": "Port docs path sweep (Recomp repo)",
+      "status": "Queued",
+      "track": "port",
+      "model": "Sonnet, low",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
