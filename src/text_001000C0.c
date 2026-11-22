@@ -747,7 +747,108 @@ end:
     func_001C9F60(a2, *(char **)(a0 + 0xE0) + n * 0xA0, a2);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00113ED8);
+/* ER-115: by hand from the asm (ER-089's draft; as func_00113C30, with a count of matches to skip); names, types and
+   offsets are Unconfirmed readings. id is the part index and, in the i == n scan, the vertex pointer (as
+   func_00113C30); k holds the record pointer before it counts vertices (one variable reused, recipes 2.23). The
+   first found path is a goto to a call after its loop: a call in tail position outside a loop keeps the sibling-call
+   pass's placeholder, which stops cross-jumping from merging it with the i == n path's call (recipes 2.25).
+   buf: ruling 3.13 (an unused local that only sizes the 0x90 stack frame; nothing reads sp+0..0x3F). */
+void func_00113ED8(char *a0, s32 a1, void *a2, s32 skip) {
+    s32 n, id, i, k, cnt, c, j, w;
+    Anm *t;
+    char *q, *p, *m;
+    float buf[16]; /* ruling 3.13: sizes the frame only */
+
+    n = func_00114450(a0, a1);
+    if (*(u16 *)(a0 + 0xE8) & 1) {
+        Anm *t0 = *(Anm **)(a0 + 0xE4);
+        id = *(u16 *)(t0->tab[t0->sel] + n * 64 + 4);
+        if (id == 0xFFFF) {
+            return;
+        }
+    } else {
+        id = n;
+    }
+    if (!(*(u16 *)(a0 + 0xE8) & 0x8000)) {
+        k = id * 0x50 + *(s32 *)(a0 + 8);
+        m = *(char **)(k + 0x3C);
+        cnt = *(u16 *)(k + 0x30);
+        p = *(char **)(k + 0x34);
+        do {
+            k = *(u16 *)p;
+            p += 0x20;
+            do {
+                if (254.9f < *(float *)(p + 0x10) && *(float *)(p + 0x14) < 0.1f && *(float *)(p + 0x18) < 0.1f) {
+                    break;
+                }
+                k--;
+                p += 0x20;
+            } while (k != 0);
+            if (k != 0) {
+                if (skip == 0) {
+                    goto found;
+                }
+                skip--;
+                p += k * 0x20;
+            }
+        } while (--cnt != 0);
+        return;
+found:
+        func_001C9F60(a2, *(char **)(a0 + 0xE0) + n * 0xA0, m + *(u16 *)p * 16);
+        return;
+    }
+    q = *(char **)(a0 + 0xEC);
+    for (i = 0; i < *(u16 *)(a0 + 4); i++) {
+        if (*(u16 *)(a0 + 0xE8) & 1) {
+            t = *(Anm **)(a0 + 0xE4);
+            w = *(u16 *)(t->tab[t->sel] + i * 64 + 4);
+            if (w == 0xFFFF) {
+                continue;
+            }
+            id = w;
+        } else {
+            id = i;
+        }
+        if (i != n) {
+            q += 0x30;
+            c = *(u16 *)(*(char **)(a0 + 0xF0) + id * 16 + 0xA);
+            do {
+                w = *(s32 *)q & 0xEFFFFFFF;
+                c--;
+                j = (w - 5) / 4;
+                q += 0x80;
+                q += j * 0x40;
+                q += 0x10;
+            } while (c != 0);
+        } else {
+            q += 0x30;
+            c = *(u16 *)(*(char **)(a0 + 0xF0) + id * 16 + 0xA);
+            do {
+                w = *(s32 *)q & 0xEFFFFFFF;
+                id = (s32)(q + 0x80);
+                j = (w - 5) / 4;
+                do {
+                    if (*(float *)(id + 0x34) < 0.1f && 254.9f < *(float *)(id + 0x30)) {
+                        break;
+                    }
+                    j--;
+                    id += 0x40;
+                } while (j != 0);
+                if (j != 0) {
+                    if (skip == 0) {
+                        func_001C9B18(a2, (void *)id);
+                        func_001C9F60(a2, *(char **)(a0 + 0xE0) + n * 0xA0, a2);
+                        return;
+                    }
+                    skip--;
+                    id += j * 0x40;
+                }
+                c--;
+                q = (char *)id + 0x10;
+            } while (c != 0);
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001141D0);
 
