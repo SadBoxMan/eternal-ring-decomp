@@ -48,7 +48,12 @@ Written Tue 17 Nov 2026, 11:52 Eastern, by the setup session.
   left as it is, no force-push; the port goes on top as a fast-forward: the shared history plus one split commit that
   keeps only the port files). Local folders `Project Ringsmith\Decomp` and `Project Ringsmith\Recomp` (names confirmed
   by LuciDin in ER-110). The port repository gets the full history, all 9 local PS2Recomp patches (6 fixes + 3 run
-  conveniences) and `tools/backup.py` also bundles it (LuciDin's choices in ER-110, 22 Nov 2026).
+  conveniences) and `tools/backup.py` also bundles it (LuciDin's choices in ER-110, 22 Nov 2026). **Pushed Sun 22 Nov
+  2026, 15:49 Eastern** (ER-110, LuciDin's yes in that session; history checked first: 267 commits, 746 blobs, no game
+  data, ELF, binary blob or secret; the one NUL is the 17 Nov control-character slip in an old
+  `docs/dispatcher_handoff.md`, already public): eternal-ring-decomp `main` = c41acec (first push, only `main`; the
+  `claude/*` branches stay local), ringsmith `main` aaae66f..cffeaf4 (fast-forward). Later pushes: LuciDin's yes in
+  that session and the same check, as before.
 - **The port repository is GPL-3.0 and holds the local PS2Recomp patches** (LuciDin, Sun 22 Nov 2026; settles ER-019's
   licence question). Whether "GPL-3.0-only" or "-or-later" is not decided (open; `LICENSE` is the plain GPL-3.0 text).
 
