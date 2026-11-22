@@ -592,7 +592,7 @@ diagnostic was removed.
 
 ## 11. ER-046: boot to the title screen (Thu 19 and Sun 22 Nov 2026)
 
-Written by ER-046 (Opus 5.5, high), work Thu 19 Nov 22:00 to 22:35 and Sun 22 Nov 01:56 to about 02:30 Eastern.
+Written by ER-046 (Opus 5.5, high), work Thu 19 Nov 22:00 to 22:35 and Sun 22 Nov 01:56 to 02:15 Eastern.
 Question: does the opening FMV end and the boot reach the title screen (reference boot sequence (4))? **Short answer:
 the FMV did not end, for a reason that only this file has: its last 4 bytes, the program end code, are never fed to
 the demuxer. Fixed in a fourth local patch (`C:\rs\recomp\patches\er046_mpeg_seqend.patch`, described in
