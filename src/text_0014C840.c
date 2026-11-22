@@ -149,7 +149,10 @@ void func_0014D380(void *arg0, s32 arg1) {
     func_0014FE10(arg0, arg1);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D3D0);
+/* ER-085: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+void func_0014D3D0(void **arg0) {
+    func_0012B890(arg0, 1, 0, *(s32 *)((char *)arg0 + 0x28), 0x14, 1, 0.2f);
+}
 
 void func_0014D3F0(void) {
 }
