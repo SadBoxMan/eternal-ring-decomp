@@ -12,7 +12,9 @@
    C file already names them in INCLUDE_RODATA lines. This wrapper writes all of them, and checks that the C file's
    INCLUDE_ASM / INCLUDE_RODATA lines and C function definitions come in splat's order (the order the bytes must
    have in the object). `--fix-includes` inserts missing INCLUDE_RODATA lines into the C files (run once when a
-   file first owns its .rodata, then commit the C files); a wrong order is always an error.
+   file first owns its .rodata, then commit the C files); a wrong order is always an error. One exception
+   (ER-077, ruling 3.10): a standalone float / double that a single C function of the file uses is gcc's anonymous
+   constant in that C, so its INCLUDE_RODATA line may go (`_anon_takeovers` has the conditions).
 
 3. Per-file .lit4 (ER-024). gas, not gcc, makes .lit4: `li.s $f, c` (c with non-zero low 16 bits) becomes `lwc1
    $f, off($gp)` plus a word in the object's own .lit4, in source order and never merged (docs/decomp_recipes.md 2.2).
@@ -72,7 +74,7 @@ MipsSymbolBase.SymbolBase.isDouble = is_double
 FIX_INCLUDES = False
 ERRORS: list[str] = []
 SUMMARY = {"lit4_files": 0, "lit4_asm": 0, "lit4_c": 0, "ro_files": 0, "ro_standalone": 0, "ro_inserted": 0,
-           "align4": 0, "align3": 0, "align_skipped": [], "data_files": [], "data_syms": 0}
+           "align4": 0, "align3": 0, "align_skipped": [], "data_files": [], "data_syms": 0, "ro_anon": []}
 
 INC_RE = re.compile(r"\b(INCLUDE_ASM|INCLUDE_RODATA)\s*\(\s*\"([^\"]*)\"\s*,\s*(\w+)\s*\)\s*;")
 LWC1_RE = re.compile(r"^(\s*/\*[^*]*\*/\s*)lwc1(\s+)(\$f\d+), \((\w+)\)(?:\s*/\* gp_rel: \(\w+\) \*/)?\s*$")
@@ -105,19 +107,65 @@ def _defined_in_c(c_path: Path) -> set:
                                       r"\s*(?:\[[^\]]*\]\s*)*=", text)}
 
 
+def _anon_takeovers(entries, c_funcs: set) -> dict:
+    """ER-077, ruling 3.10: standalone .rodata symbols that a C function's own literal may replace.
+
+    gcc writes a function's float / double literal (`x < 0.17453293f` promoted to double, `fabs(d) <= c`) as an
+    anonymous `.rodata` constant ($LCn), in the function's own place in the object's .rodata, after the function's
+    jump tables (the game has jtbl_003547E0 then D_00354800 for func_0013AA28, likewise func_0013BD90 and
+    func_0013DF90). So such a symbol has no C name and its INCLUDE_RODATA line goes. Allowed only when all of these
+    hold (else the line stays required and the order check fails as before):
+      - the symbol is standalone (splat did not migrate it) and 4 or 8 bytes long (one float or one double);
+      - exactly one function references it, from code, and that function is defined in C in this file (not
+        INCLUDE_ASM); no data refers to it;
+      - between that function and the symbol, splat's order has only functions without .rodata of their own, or
+        other symbols taken over by the same function: so the anonymous constant lands where the symbol was.
+    Where the bytes land is still proven by make regress (whole ELF and per function)."""
+    order = []  # ("func", name, has_rodata) or ("rodata", name, sym)
+    for e in entries:
+        if e.function is not None:
+            order.append(("func", e.function.getNameUnquoted(), bool(e.rodataSyms) or bool(e.lateRodataSyms)))
+        else:
+            for s in e.rodataSyms:
+                order.append(("rodata", s.getNameUnquoted(), s))
+    cand = {}  # rodata name -> owning C function
+    for k, n, s in order:
+        if k != "rodata":
+            continue
+        cs = s.contextSym
+        refs = {f.getName() for f in cs.referenceFunctions}
+        if s.sizew * 4 in (4, 8) and len(refs) == 1 and not cs.referenceSymbols and refs <= c_funcs:
+            cand[n] = next(iter(refs))
+    out = {}
+    pos = {(k, n): i for i, (k, n, _) in enumerate(order)}
+    for n, owner in cand.items():
+        i, j = sorted((pos[("rodata", n)], pos.get(("func", owner), -1)))
+        if i < 0:
+            continue  # the function is not in this text range
+        between = order[i + 1:j]
+        if all((k == "func" and not x) or (k == "rodata" and cand.get(m) == owner) for k, m, x in between):
+            out[n] = owner
+    return out
+
+
 def _check_rodata_order(seg, entries, c_path: Path):
     from splat.segtypes.common.c import CommonSegC, C_FUNC_RE
 
     in_c = _defined_in_c(c_path)
+    actual = _c_sequence(c_path, CommonSegC.strip_c_comments, C_FUNC_RE)
+    c_funcs = {n for k, n, _ in actual if k == "c"}
+    included = {n for k, n, _ in actual if k == "rodata"}
+    takeovers = {n: f for n, f in _anon_takeovers(entries, c_funcs).items() if n not in included}
+    for n, f in sorted(takeovers.items()):
+        SUMMARY["ro_anon"].append(f"{n} ({f})")
     expected = []  # (kind, name) with kind "func" or "rodata"
     for e in entries:
         if e.function is not None:
             expected.append(("func", e.function.getNameUnquoted()))
         else:
             for s in e.rodataSyms:
-                if s.getNameUnquoted() not in in_c:
+                if s.getNameUnquoted() not in in_c and s.getNameUnquoted() not in takeovers:
                     expected.append(("rodata", s.getNameUnquoted()))
-    actual = _c_sequence(c_path, CommonSegC.strip_c_comments, C_FUNC_RE)
     exp_funcs = {n for k, n in expected if k == "func"}
     # C definitions of names that are not functions of this text range (none expected) are left out of the check
     act = [(("func" if k in ("asm", "c") else "rodata"), n, line) for k, n, line in actual
@@ -405,7 +453,8 @@ if __name__ == "__main__":
           f" C files ({s['lit4_asm']} asm loads written as li.s, {s['lit4_c']} literals from C); .align 4 on"
           f" {s['align4']} .rodata items, .align 3 on {s['align3']} (not in {', '.join(s['align_skipped']) or '-'}: range not 16-aligned);"
           f" owned .data / .sdata: {len(s['data_files'])} ranges, {s['data_syms']} symbols"
-          f"{'; %d INCLUDE lines inserted in C files' % s['ro_inserted'] if s['ro_inserted'] else ''}")
+          f"{'; %d INCLUDE lines inserted in C files' % s['ro_inserted'] if s['ro_inserted'] else ''}"
+          f"{'; anonymous C constants in place of (3.10): ' + ', '.join(s['ro_anon']) if s['ro_anon'] else ''}")
     if ERRORS:
         for e in ERRORS:
             print("split.py: ERROR:", e, file=sys.stderr)

@@ -206,6 +206,20 @@ identical (`make regress` PASS); the split adds the directive to 19 generated fi
 rule this is evidence from zero bytes, not proof that the original was aligned: a real zero word before an 8-aligned
 item looks the same (Unconfirmed per item until a C neighbour proves it).
 
+**Anonymous constants from C (ER-077, Sun 22 Nov 2026; ruling 3.10).** When a C function's float or double
+literal (a `float` compared with a double constant, `fabs(x) <= 0.17453293f`) was a standalone `D_` symbol in the
+split, gcc writes it as an anonymous `.rodata` constant (`$LCn`) in the function's own place (the game has such a
+double right after the function's jump table: `jtbl_003547E0` then `D_00354800` for func_0013AA28, likewise
+func_0013BD90 and func_0013DF90). There is no C name to define, so the order check lets that `INCLUDE_RODATA` line go, but only if
+all of these hold (`_anon_takeovers` in `tools/split.py`): the symbol is standalone and 4 or 8 bytes long; exactly
+one function references it, from code, and that function is a C definition in this file; no data refers to it; and
+between that function and the symbol splat's order has only functions without `.rodata` of their own (or other
+symbols the same function takes over), so the constant lands where the symbol was. Anything else stays an error: a
+dropped line whose user is still INCLUDE_ASM, two lines swapped (both tested, with the error text as before), a
+symbol two functions share. Each split prints the symbols taken over ("anonymous C constants in place of (3.10)").
+With no `src/` change the rule changes nothing (`make regress` PASS, ELF identical); `make regress` still proves the
+bytes of every placement.
+
 **Gotchas.** Run a clean split after changing the yaml (`rm -rf asm linker`, or `make regress`): stale
 `asm/data/*.s` files from an old cut would be linked twice. A C file that defines one of its data symbols itself
 (`static const float D_x[4] = ...`) drops that INCLUDE line; the check accepts the gap and the byte check judges the
