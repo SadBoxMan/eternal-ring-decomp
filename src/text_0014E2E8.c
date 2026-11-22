@@ -123,7 +123,12 @@ INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014FDF8);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014FE00);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014FE08);
+extern void func_0014FE10(void);
+
+/* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed. */
+void func_0014FE08(void) {
+    func_0014FE10();
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014FE10);
 

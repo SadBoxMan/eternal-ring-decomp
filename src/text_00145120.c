@@ -185,13 +185,21 @@ INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147A28);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147CF8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147D88);
+extern void func_0012B238(void);
+
+/* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed. */
+void func_00147D88(void) {
+    func_0012B238();
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147D90);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147DE0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147EB8);
+/* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed. */
+void func_00147EB8(void) {
+    func_0014FE10();
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147EC0);
 
@@ -254,7 +262,12 @@ INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149330);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_001493F8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149498);
+extern void func_0012FA68(void);
+
+/* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed. */
+void func_00149498(void) {
+    func_0012FA68();
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_001494A0);
 
@@ -274,7 +287,10 @@ INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149978);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149AB8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149C10);
+/* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed. */
+void func_00149C10(void) {
+    func_0012B238();
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149C18);
 
