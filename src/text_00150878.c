@@ -354,7 +354,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00153CD0);
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00153D10);
 
 extern void func_00131000(char *, void *); extern void func_001539A8();
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_00153DA0(char *a0) {
     if (*(s16 *)(a0 + 0x6E) == 0) { *(s16 *)(a0 + 0x74) = 0x1E; *(s16 *)(a0 + 0x6E) += 1; }
     *(f32 *)(a0 + 0x94) += 0.5f;
@@ -472,7 +472,7 @@ extern s32 func_0012F9C0(void **, s32);
 extern s32 func_0012F938(void *, s32);
 extern void func_00130CE0(char *, float);
 extern void func_00155820(); extern void func_00154DD8(); extern void func_00154CA8();
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_00154BD0(void **arg0, void *arg1) {
     if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
         func_0012F9C0(arg0, 3);
@@ -908,7 +908,7 @@ void func_00159808(void *arg0) {
 void func_00159828(void) {
 }
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_00159830(char *a0) {
     f32 d;
     *(s8 *)(a0 + 2) = 0;
@@ -1150,7 +1150,7 @@ void func_0015D3E0(void) {
 }
 
 extern f32 func_001E3EC8(f32); extern f32 func_001E3DE0(f32);
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_0015D3E8(char *a0) {
     f32 t, t2, t3;
     *(s32 *)(a0 + 0xC) = *(s32 *)(a0 + 0x50);
@@ -1213,7 +1213,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015E2C0);
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015E4B8);
 
 extern void func_0015E968(void *);
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_0015E628(char *a0) {
     f32 d; f32 h; s32 t;
     t = *(s32 *)(a0 + 0x50);
@@ -1239,7 +1239,7 @@ void func_0015E968(void *arg0) {
     *(f32 *)((char *)arg0 + 0x14) = (f32) ((f32) *(s32 *)((char *)arg0 + 0x58) - (*(f32 *)((char *)arg0 + 0x80) * *(f32 *)((char *)arg0 + 0x34)));
 }
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_0015E988(char *a0) {
     f32 d; f32 h; s32 t;
     t = *(s32 *)(a0 + 0x50);
@@ -1796,7 +1796,7 @@ void func_00168328(s32 arg0, s32 arg1, s32 arg2) {
 }
 
 extern s32 D_01ADE948[]; extern s32 D_0035C504; extern s32 D_0035C508; extern char D_00342E80[];
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_00168358(s32 arg0, s32 arg1, s32 arg2) {
     char *t;
     *(s32 *)D_01ADE948 = D_0035C504;
@@ -1820,7 +1820,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00168E28);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00169020);
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 s32 func_00169480(s32 arg0) {
     return (arg0 > 0) ? 0 : ((arg0 == 0) ? 1 : 2);
 }
@@ -2292,7 +2292,7 @@ s32 func_0017CC20(void) {
 }
 
 extern char D_0034BFB0[];
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_0017CC28(f32 *arg0, s32 arg1, f32 s) {
     f32 *p; f32 v;
     p = (f32 *)(D_0034BFB0 + arg1 * 0x10);
@@ -2346,7 +2346,7 @@ s32 func_0017D398(s32 arg0, void *arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D3B8);
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 u64 func_0017D3E8(char *arg0) {
     u64 v = *(u8 *)(arg0 + 0x87);
     return v >> 7;
@@ -2370,7 +2370,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D670);
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D6B8);
 
 extern char D_001FF8B0[];
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_0017D6F0(s32 arg0, void *arg1) {
     *(s32 *)arg1 = arg0;
     *(s16 *)((char *)arg1 + 8) = 0;
@@ -2593,7 +2593,7 @@ void func_001833D0(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001833F0);
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001835E0(char *a0) {
     *(f32 *)(a0 + 0x30) = 25.0f;
     *(f32 *)(a0 + 0x38) = 1.0f;
@@ -2753,7 +2753,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001883E8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00188AA8);
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_00189198(char *a0) {
     *(f32 *)(a0 + 0x30) = 25.0f;
     *(f32 *)(a0 + 0x38) = 1.0f;
@@ -2903,7 +2903,7 @@ void func_0018C540(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018C550);
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_0018C730(void *arg0) {
     *(s32 *)((char *)arg0 + 4) = 2;
     func_00162CB8(D_00248880, (s32)(arg0 + 0x10));
@@ -3482,7 +3482,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0019BEC8);
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0019BFA0);
 
 extern void func_001AB1C8(void *, s32);
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_0019C078(void *arg0) {
     func_001AB1C8(arg0, *(s32 *)((char *)arg0 + 4));
 }
@@ -3766,7 +3766,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AB1C8);
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AB410);
 
 extern void func_0017CF10(void *, f32); extern void func_0017D328(void *); extern s32 func_001E9C70();
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001AB480(char *a0) {
     f32 t;
     func_0017CF10(a0, 96.0f);
@@ -3874,7 +3874,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AEC58);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AEC70);
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001AED88(char *a0) {
     *(f32 *)(a0 + 0x30) = 25.0f;
     *(f32 *)(a0 + 0x38) = 1.0f;
@@ -3887,7 +3887,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AEDB8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AEF18);
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001AEF90(char *a0) {
     *(f32 *)(a0 + 0x38) = 0.16f;
     *(f32 *)(a0 + 0x3C) = 1.0f;
@@ -3898,7 +3898,7 @@ void func_001AEF90(char *a0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AEFC0);
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001AF2E8(void *arg0) {
     func_00162CB8(D_00248880, arg0 + 0x10);
     *(s32 *)((char *)arg0 + 4) = *(s32 *)((char *)arg0 + 0x10);
@@ -4025,7 +4025,7 @@ void func_001B3E70(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B3E80);
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001B42B0(char *a0) {
     *(f32 *)(a0 + 0x38) = 0.16f;
     *(f32 *)(a0 + 0x3C) = 1.0f;
@@ -4051,7 +4051,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B4730);
 
 extern void func_0017D900(void *, s32);
 extern void func_001B99B0(void *);
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001B4BE8(char *arg0) {
     func_00162CB8(D_00248880, (s32)(arg0 + 0x10));
     *(s32 *)(arg0 + 4) = 2;
@@ -4094,7 +4094,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B55E8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B5C68);
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001B5E68(void *arg0) {
     func_00162CB8(D_00248880, arg0 + 0x10);
     *(s32 *)((char *)arg0 + 0x10) = 0;
@@ -4136,7 +4136,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B75E0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B75F8);
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001B77B8(char *a0) {
     *(f32 *)(a0 + 0x38) = 0.16f;
     *(f32 *)(a0 + 0x3C) = 1.0f;
@@ -4439,7 +4439,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BB750);
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BBC00);
 
 extern s32 D_00202AD0[];
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001BBD40(void) {
     u32 i;
 
@@ -4561,7 +4561,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCCF8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCD30);
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001BCD68(s32 *arg0, s32 arg1, s32 arg2) {
     s32 i = arg1 - 1;
 
@@ -4579,7 +4579,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCDA0);
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCE20);
 
 extern char D_01B1F2B0[];
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 s32 func_001BCF48(s32 arg0) {
     return *(u16 *)(D_01B1F2B0 + arg0 * 0xC4C) != 0;
 }
@@ -4953,7 +4953,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BFA90);
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BFAC8);
 
 extern char D_002488C0[]; extern void func_00165080(s32, s32);
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001BFEB8(char *arg0) {
     char *t;
     t = D_002488C0 + *(s32 *)(arg0 + 8) * 0x180;
@@ -5037,7 +5037,7 @@ float func_001C12D0(float a) {
     return (a * 3.14159274101257324219f) / 180.0f;
 }
 
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001C1310(s32 *arg0) {
     func_001BE0B0(arg0 + 1, (f32)(func_001E9C70() & 0xFFFF) / 65535.0f);
     *arg0 = 0;
@@ -5354,7 +5354,7 @@ s32 func_001C5120(s32 arg0, s32 arg1) {
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C5188);
 
 extern void func_001D0010(s32);
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001C53D0(void) {
     func_001D0010(0);
 }
@@ -5699,13 +5699,13 @@ s32 func_001C8900(void) {
 }
 
 extern void func_001C78A0(void *, s32 *, s32 *, s32 *, s32 *);
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001C8920(void *arg0, s32 *arg1, s32 *arg2, s32 *arg3, s32 *arg4) {
     func_001C78A0((char *)arg0 + 0x48, arg1, arg2, arg3, arg4);
 }
 
 extern void func_001C7988(void *arg0, s32 arg1);
-/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.19); names, types and offsets are Unconfirmed readings. */
 void func_001C8928(void *arg0, s32 arg1) {
     func_001C7988((char *)arg0 + 0x48, arg1);
 }
