@@ -914,7 +914,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "no other card editing tools/split.py",
+      "waits_on": "split.py part folds into ER-077; census.py part free",
       "notes": ""
     },
     {
@@ -978,6 +978,33 @@
       "track": "recomp",
       "model": "Opus, medium",
       "waits_on": "ER-030 (same file)",
+      "notes": ""
+    },
+    {
+      "code": "ER-076",
+      "title": "split.py .align 3 for 8-aligned rodata; place func_00138A20 / func_00139EE0",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "nothing (ER-072 may already be doing it)",
+      "notes": ""
+    },
+    {
+      "code": "ER-077",
+      "title": "Anonymous double constants vs the INCLUDE_RODATA order check (with ER-068's split.py part)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "LuciDin's ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-078",
+      "title": "Hand work in ER-051's files (9 near misses, func_0013C750, func_0013D088)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium (high for the two)",
+      "waits_on": "nothing",
       "notes": ""
     }
   ]
