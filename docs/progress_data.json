@@ -1150,6 +1150,51 @@
       "model": "Opus, medium",
       "waits_on": "text_001000C0 writer one at a time",
       "notes": ""
+    },
+    {
+      "code": "ER-095",
+      "title": "Ruling: func_001776D8 as s32 with no return (3.4 shape) for func_001C46C8",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "LuciDin's ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-096",
+      "title": "Hard ones of text_00150878 (func_00178C60, 001BB2C8, 001BB750, parked three)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "nothing",
+      "notes": ""
+    },
+    {
+      "code": "ER-097",
+      "title": "m2c_bulk --plain: byte strides for data bases (with ER-084)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "nothing",
+      "notes": ""
+    },
+    {
+      "code": "ER-098",
+      "title": "Small-list rerun of text_00150878's 187 DIFFs, then hand work",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "nothing",
+      "notes": ""
+    },
+    {
+      "code": "ER-099",
+      "title": "Port: import PCSX2 memory cards (.ps2) into the recomp",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, high",
+      "waits_on": "ER-074 (one recomp card at a time)",
+      "notes": ""
     }
   ]
 }
