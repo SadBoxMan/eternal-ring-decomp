@@ -13,6 +13,7 @@ completion message (what changed, commits, what was not verified, follow-ups wit
 to return to the dispatcher. (7) PORT RUNS (LuciDin, Sun 22 Nov 2026): keep the recompiled exe's console window
 hidden; if it cannot be hidden, put it on the secondary monitor with the game window. Game windows: secondary monitor,
 muted.
+PCSX2 (2.5.185, the reference emulator) is installed in `C:\Users\lukea\Games\Emulated\Playstation 2` (LuciDin, 22 Nov 2026); ask LuciDin before opening it, muted, secondary monitor.
 
 Written Tue 17 Nov 2026, 11:52 Eastern, by the setup session.
 
