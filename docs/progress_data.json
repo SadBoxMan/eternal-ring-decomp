@@ -808,6 +808,15 @@
       "model": "Sonnet, low",
       "waits_on": "nothing",
       "notes": "Backup default now E:\\Claude\\Project Ringsmith\\backups (backup.py, docstring, build.md 5); test run wrote ringsmith_20261122_0153_main.zip, bundle verify okay."
+    },
+    {
+      "code": "ER-057",
+      "title": "Assets: rip the music first",
+      "status": "Queued",
+      "track": "assets",
+      "model": "Opus, high",
+      "waits_on": "Assets track start (after the recomp is complete)",
+      "notes": "LuciDin Sun 22 Nov 2026, 01:58 Eastern: music is the first asset to rip"
     }
   ]
 }
