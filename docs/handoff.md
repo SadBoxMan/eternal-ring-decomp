@@ -53,7 +53,9 @@ Written Tue 17 Nov 2026, 11:52 Eastern, by the setup session.
   data, ELF, binary blob or secret; the one NUL is the 17 Nov control-character slip in an old
   `docs/dispatcher_handoff.md`, already public): eternal-ring-decomp `main` = c41acec (first push, only `main`; the
   `claude/*` branches stay local), ringsmith `main` aaae66f..cffeaf4 (fast-forward). Later pushes: LuciDin's yes in
-  that session and the same check, as before.
+  that session and the same check, as before. Push 2, Sun 22 Nov 2026, 17:50 Eastern (DISP-03, LuciDin's yes in the DISP-03
+  session): eternal-ring-decomp `main` 1361528..a375f83 (33 commits, 15 source / doc files, no binary or game data);
+  ringsmith unchanged at cffeaf4 (nothing new committed; ER-102 + ER-103's work in progress stays local).
 - **The port repository is GPL-3.0 and holds the local PS2Recomp patches** (LuciDin, Sun 22 Nov 2026; settles ER-019's
   licence question). Whether "GPL-3.0-only" or "-or-later" is not decided (open; `LICENSE` is the plain GPL-3.0 text).
 
