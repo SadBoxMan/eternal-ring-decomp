@@ -83,6 +83,12 @@ segments:
       - [0x0000C0, c, text_001000C0]     # game (main = func_001000C0)
       # ER-022: game files cut at the Strong seams whose data cuts line up (docs/game_seams.md 8; seam S#)
       - [0x0343E8, c, text_001343E8]     # S1
+      # ER-051: the exact seams inside S1's file (docs/game_seams.md 9.7, 9.10); S3 waits for matching (LuciDin)
+      - [0x0388E8, c, text_001388E8]
+      - [0x03A410, c, text_0013A410]
+      - [0x03B748, c, text_0013B748]
+      - [0x03C510, c, text_0013C510]
+      - [0x03DBC0, c, text_0013DBC0]
       - [0x045120, c, text_00145120]     # S9
       - [0x04A968, c, text_0014A968]     # S12
       - [0x04C840, c, text_0014C840]     # S15
@@ -91,6 +97,8 @@ segments:
       - [0x050878, c, text_00150878]     # S20
       - [0x0C9B18, c, text_001C9B18]     # game VU0 helpers (Unconfirmed)
       - [0x0CA0F0, c, text_001CA0F0]     # game-unk block (Unconfirmed)
+      - [0x0CA8D8, c, text_001CA8D8]     # S22 (ER-051; .bss decides, docs/game_seams.md 9.5, 9.10)
+      - [0x0CB528, c, text_001CB528]     # ER-051; .bss decides (docs/game_seams.md 9.9, 9.10)
       - [0x0CE130, c, sdk/libgraph]      # SCE libraries from here, in link order
       - [0x0CFD40, c, sdk/libkernl]      # syscall stub table; 20-byte pad to a 64-byte boundary before it
       - [0x0D46E0, c, sdk/libdma]
@@ -110,6 +118,8 @@ segments:
       - [0x0F0380, data, data_001F0380]  # .data
       # ER-024: the files between the seams S9 and S20 own their .data / .sdata (pinned at both ends by the
       # references; docs/game_seams.md 8.6); text_0014D930 has no .data. tools/split.py writes INCLUDE_(S)DATA files.
+      - [0x22FE68, .data, text_001388E8]   # ER-051
+      - [0x22FEA0, .data, text_0013DBC0]   # ER-051
       - [0x22FF20, .data, text_00145120]
       - [0x22FF90, .data, text_0014A968]
       - [0x22FFB0, .data, text_0014C840]
@@ -124,6 +134,11 @@ segments:
       # INCLUDE_ASM file; the rest is INCLUDE_RODATA in the C file. .lit4 comes from `li.s` (tools/split.py).
       - [0x253E00, .rodata, text_001000C0]
       - [0x2546D8, .rodata, text_001343E8]
+      - [0x254750, .rodata, text_001388E8]   # ER-051
+      - [0x2547D0, .rodata, text_0013A410]   # ER-051
+      - [0x254830, .rodata, text_0013B748]   # ER-051
+      - [0x254850, .rodata, text_0013C510]   # ER-051
+      - [0x254910, .rodata, text_0013DBC0]   # ER-051
       - [0x254990, .rodata, text_00145120]
       - [0x254A28, .rodata, text_0014D930]
       - [0x254A30, .rodata, text_0014E2E8]
@@ -132,6 +147,11 @@ segments:
       - [0x258B18, pad]
       - [0x258B80, .lit4, text_001000C0]      # .lit4 is all game code; no SDK file uses it
       - [0x2592C4, .lit4, text_001343E8]
+      - [0x2593F8, .lit4, text_001388E8]
+      - [0x259460, .lit4, text_0013A410]
+      - [0x2594D0, .lit4, text_0013B748]
+      - [0x259504, .lit4, text_0013C510]
+      - [0x25957C, .lit4, text_0013DBC0]
       - [0x2597CC, .lit4, text_00145120]
       - [0x259970, .lit4, text_0014A968]
       - [0x2599D4, .lit4, text_0014C840]
@@ -140,6 +160,11 @@ segments:
       - [0x259ACC, .lit4, text_00150878]
       - [0x25B784, pad]
       - [0x25B800, sdata, sdata_0035B800]
+      - [0x25BA08, .sdata, text_001388E8]   # ER-051
+      - [0x25BA68, .sdata, text_0013A410]   # ER-051
+      - [0x25BAB0, .sdata, text_0013B748]   # ER-051
+      - [0x25BAC8, .sdata, text_0013C510]   # ER-051
+      - [0x25BB08, .sdata, text_0013DBC0]   # ER-051
       - [0x25BC94, .sdata, text_00145120]
       - [0x25BDD8, .sdata, text_0014A968]
       - [0x25BE3C, .sdata, text_0014C840]
