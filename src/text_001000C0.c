@@ -1304,7 +1304,7 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D3B8);
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D3E8);
 
 extern float sqrtf(float);
-extern void func_001CA048(float, float *, float *);
+extern void func_001CA048(float *, float *, float);
 extern void func_0012C778(char *);
 extern void func_001C9FE8(void *, void *, void *);
 
@@ -1329,7 +1329,7 @@ float func_0012D470(char *a0, float *d, float max) {
     len = sqrtf(*(float *)(a0 + 0x90) * *(float *)(a0 + 0x90) + *(float *)(a0 + 0x94) * *(float *)(a0 + 0x94)
                 + *(float *)(a0 + 0x98) * *(float *)(a0 + 0x98));
     if (max < len) {
-        func_001CA048(max / len, v, v);
+        func_001CA048(v, v, max / len);
         len = max;
     }
     return len;
@@ -1340,13 +1340,53 @@ float func_0012D568(float *v, float max) {
     float len = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 
     if (max < len) {
-        func_001CA048(max / len, v, v);
+        func_001CA048(v, v, max / len);
         len = max;
     }
     return len;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D600);
+extern void func_001D7778(float *, float *, float);
+extern void func_001D7820(float *, float *, float);
+extern float D_001F5780[];
+
+/* ER-063 / ER-086: matched with -fno-edge-lcm (ruling 3.11); func_001CA048 takes its float last (only the order of
+   the argument moves shows it). Names, types and offsets are Unconfirmed readings. */
+s32 func_0012D600(float *out, float *v, float lo0, float hi0, float lo1, float hi1) {
+    float a[2];
+    float m[16];
+    s32 r;
+    float len;
+    float *p;
+
+    r = 0;
+    a[0] = func_001E41B8(-v[1], sqrtf(v[0] * v[0] + v[2] * v[2]));
+    a[1] = func_001E41B8(v[0], v[2]);
+    if (a[0] < lo0) {
+        a[0] = lo0;
+        r = 1;
+    }
+    if (hi0 < a[0]) {
+        a[0] = hi0;
+        r = 1;
+    }
+    if (a[1] < lo1) {
+        a[1] = lo1;
+        r = 1;
+    }
+    if (hi1 < a[1]) {
+        a[1] = hi1;
+        r = 1;
+    }
+    if (r != 0) {
+        func_001D7778(m, D_001F5780, a[0]);
+        func_001D7820(m, m, a[1]);
+        p = &m[8];
+        len = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+        func_001CA048(out, p, len);
+    }
+    return r;
+}
 
 /* ER-063. As func_0012D470 with d = {0, 0, a, 0} and the length taken in x / z only. Names and types Unconfirmed. */
 float func_0012D7C0(char *a0, float a, float max) {
@@ -1372,7 +1412,7 @@ float func_0012D7C0(char *a0, float a, float max) {
     func_001C9FE8(v, v, m);
     len = sqrtf(*(float *)(a0 + 0x90) * *(float *)(a0 + 0x90) + *(float *)(a0 + 0x98) * *(float *)(a0 + 0x98));
     if (max < len) {
-        func_001CA048(max / len, v, v);
+        func_001CA048(v, v, max / len);
         len = max;
     }
     return len;
@@ -1575,7 +1615,6 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012EAF8);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012EB60);
 
-extern void func_001D7820(float *, float *, float);
 extern void func_001D76D0(float *, float *, float);
 
 /* ER-086: by hand after func_0012EEB0 (-fno-edge-lcm, ruling 3.11); names, types and offsets are Unconfirmed readings. */
@@ -1939,7 +1978,7 @@ f32 func_00130B60(void *arg0, f32 fparg0) {
     void *temp_4;
 
     temp_17 = arg0 + 0x90;
-    func_001CA048(fparg0, temp_17, temp_17);
+    func_001CA048(temp_17, temp_17, fparg0);
     temp_f1 = *(f32 *)((char *)arg0 + 0x90);
     temp_f0 = *(f32 *)((char *)arg0 + 0x98);
     temp_f20 = sqrtf((temp_f1 * temp_f1) + (temp_f0 * temp_f0));
