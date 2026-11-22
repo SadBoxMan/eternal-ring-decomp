@@ -686,5 +686,11 @@ Standing rulings; each applies until LuciDin changes it.
 |---|---|
 | **Accepted** | Fourth ee-as patch (`tools/toolchain/patches/ee-as_r5900_delay_swap.patch`): for the r5900, gas's "previous instruction is a sync" swap test checks the flag (`&` for the 1999 text's `&&`, which blocked every delay-slot swap), and a `div.s` / `sqrt.s` is never moved into a slot. The game's slots: 285 `mtc1` uses swapped, 0 not; every nop slot of 28,567 game branches explained. Same standing as 3.4 / 3.5 / 3.8: a documented reconstruction of the original assembler's behaviour, not Sony's code; built into `ee-binutils-2.9-991111-r4` |
 
-No ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, dead code): park such functions with a
+### 3.13 ER-086: an unused local that only sizes the stack frame (Sun 22 Nov 2026, 14:46 Eastern, via DISP-02)
+
+| Ruling | Item |
+|---|---|
+| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling |
+
+No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals): park such functions with a
 one-line cause and ask.

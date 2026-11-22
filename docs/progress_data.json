@@ -1100,10 +1100,10 @@
     {
       "code": "ER-089",
       "title": "Ruling: unused stack buffer (func_00113C30 / func_00113ED8), then finish both",
-      "status": "Waiting",
+      "status": "Queued",
       "track": "decomp",
       "model": "Opus, high",
-      "waits_on": "LuciDin's ruling",
+      "waits_on": "text_001000C0 writer one at a time (ruling 3.13 accepted)",
       "notes": ""
     },
     {
