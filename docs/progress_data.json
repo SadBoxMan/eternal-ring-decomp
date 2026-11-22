@@ -1042,6 +1042,33 @@
       "model": "Opus, medium",
       "waits_on": "ER-066",
       "notes": ""
+    },
+    {
+      "code": "ER-083",
+      "title": "ER-064 part 2: rerun --plain on text_0014D930 / text_0014E2E8",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "nothing",
+      "notes": ""
+    },
+    {
+      "code": "ER-084",
+      "title": "m2c_bulk: tail-j delay-slot rewrite",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "nothing",
+      "notes": ""
+    },
+    {
+      "code": "ER-085",
+      "title": "Hand work in the three ER-064 files (10 DIFFs, 15 div/sqrt drafts)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium (high for stack-buffer ones)",
+      "waits_on": "nothing",
+      "notes": ""
     }
   ]
 }
