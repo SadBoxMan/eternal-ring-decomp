@@ -757,7 +757,7 @@
     },
     {
       "code": "ER-051",
-      "title": "Cut the ready seams (S21, S22, five inside text_001343E8)",
+      "title": "Cut the ready seams (S21, S22 + 0x001CB528, 0x001C4F68, five inside text_001343E8)",
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
