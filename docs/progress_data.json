@@ -835,6 +835,33 @@
       "model": "Opus, medium",
       "waits_on": "LuciDin's yes for PCSX2",
       "notes": ""
+    },
+    {
+      "code": "ER-060",
+      "title": "Bulk-place --plain matches in the big files (00150878, 001000C0, 001343E8)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "one writer per file (ER-034 owns most of src/ now)",
+      "notes": ""
+    },
+    {
+      "code": "ER-061",
+      "title": "Fix the 7 declaration clashes, place 6 drafts",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-054 / ER-049 files free; s128 typedef ruling for func_001462D8",
+      "notes": ""
+    },
+    {
+      "code": "ER-062",
+      "title": "11 same-size near misses (hand work, plain C)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "the five ER-054 files free",
+      "notes": ""
     }
   ]
 }

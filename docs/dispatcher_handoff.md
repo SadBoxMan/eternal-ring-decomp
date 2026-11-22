@@ -127,7 +127,7 @@ message); when `start_session` is refused, propose own_initiative cards; detach 
 (4) `start_session` after another session's message is refused: propose instead. (5) Archive calls may need a second
 call with the `session` label the hook adds. (6) Re-run `tools/regress.py` (clean) yourself before approving any card
 that touched the build. (7) Weekly usage readings jumped 85% -> 0-2% on the night of 18 Nov (early reset); record what
-cards report. (8) Cards' "follow-ups" become ER rows in `docs/handoff.md` plus tracker tasks in the same closing commit.
+cards report. (8) Cards' "follow-ups" become ER rows in `docs/handoff.md` plus tracker tasks in the same closing commit. (9) Merging a card's branch while another card builds in the main checkout: a cherry-pick or merge that touches `src/` runs the pre-commit hook, which wipes and rebuilds the shared `build/` with that card's uncommitted changes (happened 22 Nov 02:21 with ER-034). Merge such branches with `RINGSMITH_SKIP_REGRESS=1` (say so in the message) and prove `main` in the dispatcher's own worktree `C:\rs\wt\dispverify` (detached; junctions to `disc` and `.venv`; `git -C C:\rs\wt\dispverify checkout --detach main`, then `.venv\Scripts\python.exe -I tools/regress.py` there).
 
 ## Hand-over log
 
