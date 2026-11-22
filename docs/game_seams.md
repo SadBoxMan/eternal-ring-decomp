@@ -6,6 +6,11 @@ from game code). Section 7 lists what is Unconfirmed. **No seam here is Confirme
 evidence agree and the result survives changed parameters, not that a split has been built on it.
 **ER-022 (section 8) cut `.text` at 7 Strong seams** (S1, S9, S12, S15, S16, S17, S20) after checking their data
 cuts; they stay Strong (a byte-identical build is no evidence for a seam).
+**ER-023 (section 9, Sat 21 Nov 2026) replaced the reference tracker and remeasured; section 9 is current where it
+differs from sections 1-8.** On the 17 census SDK seams the scan now finds 15 (ER-017's settings: 13); its old
+tracker's references were 41% wrong against spimdisasm's (new: 97% agree). Game: **44 Strong, 17 Medium, 27 Weak**
+windows; S21 keeps Strong (the binding was a misread), S22 is decided by `.bss` at `0x001CA8D8` (not COMMON); ranked
+cut list in 9.7.
 
 ## 1. Summary
 
@@ -94,7 +99,8 @@ table follows, so the padding alone is explained inside one file; R3 = the item 
 ### 4.1 Strong (22)
 
 Cut by ER-022 (section 8): S1, S9, S12, S15, S16, S17, S20. Not cut: the 13 multi-function windows (data does not
-decide the start), S21 (a `.data` binding seen in the whole-file view), S22 (only `.bss` decides).
+decide the start), S21 (a `.data` binding seen in the whole-file view), S22 (only `.bss` decides). ER-023 (9.5):
+S21's binding was a tracker misread (stays Strong, cut-ready); S22 starts at `0x001CA8D8` (`.bss` is not COMMON).
 
 | # | Window | Funcs | Labels L / R | Stab. | Also |
 |---|---|---|---|---|---|
@@ -225,7 +231,8 @@ number of Strong / Medium windows there; Weak windows inside it are not counted 
   them; `LOCAL_SPAN` 40 opens more windows (99), 240 fewer (43). Seams that appear only at small spans are
   candidates, not findings.
 - **SDK check.** Running the same scan over the SDK libraries, whose object boundaries are partly known
-  (`docs/census.md` 4.1), would measure how often the method finds a known seam; not done in this card.
+  (`docs/census.md` 4.1), would measure how often the method finds a known seam; not done in this card. Done by
+  ER-023 (9.3), with the control-flow-aware tracker this item asked for (9.1, 9.2).
 
 ## 7. Not verified, Unconfirmed and Unofficial items
 
@@ -402,3 +409,211 @@ must start on a 16-byte boundary at or before 0x003546E0; starting before would 
 independent of the label scan. It also means `text_001343E8` cannot take a C jump table until it is cut there
 (`docs/decomp_recipes.md` 2.5). Not checked: the same test at the other uncut windows inside `text_001000C0`,
 `text_001343E8` and `text_00150878` (follow-up).
+
+## 9. Sharpening the method (ER-023, Sat 21 Nov 2026)
+
+ER-023 (Opus 5.5, medium) measured the scan on the SDK, where library seams are known, replaced its reference
+tracker, and reran it on the game. Read-only on the build: only `tools/seams.py` and this doc changed; nothing was
+cut. Inputs: the original ELF; symbols from `build/SLUS_200.15.syms.elf` as built at 21:02 Eastern on Sat 21 Nov 2026
+(copied aside before the runs; 3,606 functions incl. the 3 data blocks; current splat labels, so the game scan sees
+680 `.rodata` labels instead of ER-017's 708); spimdisasm's asm in `asm/nonmatchings` (3,421 functions) for the
+reference check. The legacy settings reproduce ER-017's final grades exactly (22 / 10 / 24) on these inputs.
+
+```
+.venv\Scripts\python.exe tools/seams.py --stability --jt                         # new defaults (cfb, far filter, .bss primary)
+.venv\Scripts\python.exe tools/seams.py --region all --measure --validate-asm    # SDK hit rate, tracker check
+.venv\Scripts\python.exe tools/seams.py --legacy --stability                     # ER-017 / ER-022 settings
+.venv\Scripts\python.exe tools/seams.py --cuts --cut-set list --cut-starts 001388E8 0013A410   # data cuts of any starts
+```
+
+### 9.1 What changed in the tool
+
+| Change | What it does | Option (default) |
+|---|---|---|
+| Control-flow-aware tracker | basic blocks (branch / jump targets, after delay slots, jump-table targets), register state carried forward with a meet that keeps only values equal on every incoming edge, caller-saved registers cleared after each call (EABI: all but `$s0`-`$s7`, `$gp`, `$sp`, `$fp`), branch-likely delay slots only on the taken edge; a reference is recorded only from the converged state. Jump tables: a `.rodata` label the function addresses whose words are all code addresses inside the function (93 tables in 75 functions over all of `.text`) | `--tracker cf` |
+| Base attribution | a load / store at base + offset counts as a reference to the base's symbol (the `%hi` / `%lo` pair names the object, the offset is a field or element), as spimdisasm reads it; addresses inside no splat label are dropped (constants such as `0x00FFFFFF` that fall in the 25 MB `.bss` range) | `--tracker cfb` (default) |
+| Far-label filter | per boundary and section, only the labels in the address cluster around the median count (consecutive gaps up to 0x1000 `.rodata`, 0x400 `.sdata` / `.sbss`, 0x10000 `.data`, 0x100000 `.bss`); a label far from both sides' data is a global defined in another file (an extern use) | `--far 1` (default; `--far 0` off) |
+| `.sbss` / `.bss` as primary evidence | from 9.5: the game's uninitialized data follows link order and is almost never COMMON | `--bss primary` (default) |
+| Indirect call edges | function addresses taken in code and function pointers in data labels added to the static-call evidence | `--icalls` (off: 9.3) |
+| Measurement | hit rate on the 17 census seams; reference check against spimdisasm; final grades with the 5 stability variants (`final.csv`); jump-table constraints (9.6); data-cut check for any list of starts | `--measure`, `--validate-asm`, `--stability`, `--jt`, `--cut-set list` |
+| Legacy | `--tracker linear --far 0 --bss secondary` (ER-017 / ER-022 results) | `--legacy` |
+
+### 9.2 The tracker against spimdisasm's references
+
+Per function with an asm file, the data labels each tracker finds compared with the labels named by the `%hi` /
+`%lo` / `$gp` operands in the asm the build assembles (sections `.rodata`, `.data`, `.sdata`, `.sbss`, `.bss`):
+
+| Tracker | Both | Tracker only | Asm only |
+|---|---|---|---|
+| linear (census, ER-017) | 5,628 | 3,971 | 23 |
+| cf | 5,651 | 2,561 | 0 |
+| cfb (default) | 5,647 | 190 | 4 |
+
+**The linear tracker's references were 41% wrong by this measure** (3,971 of 9,599 labels not in the asm): mostly
+base + offset accesses mapped to whatever label holds base + offset, and stale registers carried across branches. The
+cfb tracker agrees on 97% (190 extra, mostly `0x00FFFFFF`-style masks that land inside a large `.bss` buffer; the 4
+missed are `.sbss` words in 3 functions). spimdisasm is itself a reading, not ground truth, but it is the reference
+set the build assembles, and ER-024 pinned the data split with it. The cleaner references also shrink the
+shared-string clusters of 4.5: the 134-function cluster 0x00163840-0x001746C0 becomes 0x00169020-0x001746C0 (55
+functions, 25 strings) plus 0x00163840-0x00164398 (15); the save / load cluster 0x001C2448-0x001C7418 (97) becomes
+0x001C2448-0x001C3EE8 (13) plus 0x001C4240-0x001C4390 (2); 9 clusters cover 123 functions instead of 526. No window
+lies inside a cluster.
+
+### 9.3 Hit rate on the SDK seams (before / after)
+
+`--region all` scans every function after crt0 (game and SDK in one list, so labels shared across the game / SDK
+line count as in the game scan). Known seams: the 17 census cuts after the game proper (`docs/census.md` 4.3: 3
+Confirmed seams by padding or call graph, 9 fixed by ER-004's evidence, 5 chosen by judgement inside a window). A hit
+is an open boundary at the cut (the same count as anywhere in ER-004's window, for every setting); "exact" = the
+scan's window is that one function.
+
+| Setting | Open at the cut | Strong / Medium window | Exact (1 function) | Shut, and by what |
+|---|---|---|---|---|
+| ER-017 (`--legacy`) | 13 / 17 | 7 | 5 | libkernl (1 static call), libpad (3 inversions), libgcc (1 binding), libc (1 static call) |
+| cf | 13 / 17 | 8 | 5 | the same 4 |
+| cfb | 15 / 17 | 9 | 6 | libkernl, libc (1 static call each) |
+| cfb + `--icalls` | 15 / 17 | 9 | 6 | the same 2 (and it closes S1 in the game, below) |
+| **default (cfb, far, `.bss` primary)** | **15 / 17** | **9** | **6** | libkernl, libc (1 static call each) |
+| default without static calls (`--no-calls`) | 17 / 17 | 6 | 2 | none, but windows of 50-263 functions |
+
+Per seam, default (ER-017 in brackets): libgraph 0x001CE130 Strong, exact (Medium, exact); libdma 0x001D46E0 Strong,
+3 wide (Medium, 4); sdk-vudev 0x001D5200 Medium, 6 (Weak, 16); libpad Weak 0x001D61C0-0x001D6280, with ER-013's
+choice at its end (shut); libvu0 Weak, 3 (same); libcdvd Weak, 11 (Weak, 12); libmpeg, libipu Strong, exact (same);
+libsdr Medium, 6 (same); libmc Strong, exact (Medium, 2); libm Strong, exact (Medium, exact); libgcc Strong
+0x001E6508-0x001E6560, exactly ER-004's open question (shut); libkernl-tail Weak, exact (no data on its right);
+game-vu0 and game-unk in one 30-function Weak window (the VU0 helpers use no data; ER-017: 32).
+
+- **Misses.** Both remaining misses come from the static-call evidence: a library helper called only by the
+  neighbouring library (the libgraph-side `func_001CFB60` / `func_001CFC28` at libkernl; the `__errno`-shaped
+  `func_001E9A50` called from libm and libgcc) looks file-static. Dropping that evidence finds all 17 but leaves
+  windows too wide to use, so it stays; at a game seam, a lone static call is weak negative evidence.
+- **False positives cannot be counted here**: the SDK libraries are archives of many objects whose lists are not
+  known, so an open boundary inside a library may be a real object seam. Upper bound: 42 informative open boundaries
+  (labels on both sides) inside the libraries, out of 760 SDK boundaries (5.5%), against 534 of 2,827 in the game
+  (18.9%). Most other open SDK boundaries are in data-less code (libkernl's syscall stubs, the VU0 helpers).
+- **Indirect calls ("call clusters") hurt.** `--icalls` adds about 2,000 edges and closes **S1** (ER-022's cut, with
+  ER-024's pinned data on both sides): `func_00134618` takes the addresses of `func_00134070` / `func_00134090`
+  (callbacks handed across files). Function pointers say nothing about `static`, so the option stays off.
+- **Window width at the hits** (functions): ER-017 32, 32, 1, 4, 16, 3, 12, 1, 1, 6, 2, 1, 1 (13 hits); default 30,
+  30, 1, 3, 6, 3, 3, 11, 1, 1, 6, 1, 1, 2, 1 (15 hits).
+
+### 9.4 The game, rerun (updated window list)
+
+Final grades (stability over the 5 variants of section 2, same rules) on the game region: **44 Strong, 17 Medium,
+27 Weak (88 windows)**, against ER-017's 22 / 10 / 24 (56). All 22 Strong windows of 4.1 stay open (S22 narrows to
+`0x001CA8D8`, 9.5); the 7 cut seams stay Strong and exact. Changes to the lists of 4.1-4.3:
+
+- **Up**: M3 0x0013F4C0-0x0013F580 Medium -> Strong (5/5); Weak 0x001CB218-0x001CB750 -> Strong at `0x001CB528` (but
+  see 9.7: its `.bss` cut is out of order with S22's).
+- **Lost** (now shut): **M9 0x0019B9B0-0x0019BA90** (a real inversion: `func_0019E590`, right of the window, uses
+  `.rodata` `D_00355CE0`, which lies below 15 labels used by the functions before it; spimdisasm shows the
+  reference); Weak `0x00187BD8-0x00189200` and `0x001CBBC0-0x001CBE90` (the latter already downgraded by `.bss` in
+  ER-017).
+- **Merged / moved**: Weak `0x0018AAB8-0x001902C8` and `0x00190688-0x00191440` -> one Weak window
+  `0x0018AAB8-0x00191440` (64); `0x001C1580-0x001C1630` and `0x001C17D0` -> `0x001C1580-0x001C17D0` (6); `0x001B99B0`
+  -> `0x001B99B0-0x001BA038` (8); M10 -> `0x001AEC58-0x001AEDB8` (4); `0x001C9B18-0x001CA408` -> `0x001C9B18-0x001CA170`.
+- **New: 37 windows** (funcs, stability, one-sided labels left / right):
+  - Strong (20): `0x001124E8-0x00112638` (2, 4/5, 20/6), `0x00112E18` (1, 4/5, 17/7), `0x001373E0-0x001374C8` (3,
+    5/5, 15/12), `0x001379A0-0x00137A10` (2, 5/5, 15/26), `0x001388E8` (1, 5/5, 11/30), `0x0013A410` (1, 5/5, 30/31),
+    `0x0013B748` (1, 5/5, 39/18), `0x0013C510` (1, 5/5, 30/30), `0x0013DBC0` (1, 5/5, 18/29), `0x00151800-0x00151810`
+    (2, 5/5, 21/63), `0x00152970-0x00152980` (2, 5/5, 52/53), `0x00153FD0-0x001540C0` (3, 5/5, 54/47),
+    `0x00154A70-0x00154B38` (2, 5/5, 48/34), `0x00155C98-0x00155CA8` (2, 4/5, 34/45), `0x001583F0-0x001583F8` (2,
+    5/5, 41/5), `0x001635E0-0x001636A0` (3, 4/5, 5/14), `0x0017C0C8` (1, 5/5, 23/5), `0x0017C500` (1, 5/5, 22/5),
+    `0x001C4DF8-0x001C4E00` (2, 5/5, 52/26), `0x001C4F68` (1, 5/5, 50/26).
+  - Medium (9): `0x00111700` (1, 3/5), `0x0012A450-0x0012AA70` (4, 4/5), `0x00139CA8-0x0013A050` (6, 5/5),
+    `0x001A8A00` (1, 3/5), `0x001A8DC8-0x001A8F58` (2, 3/5), `0x001AEF90-0x001AF6A0` (7, 4/5), `0x001AFB30-0x001B0398`
+    (4, 4/5), `0x001B0600-0x001B0728` (4, 4/5), `0x001B2E28-0x001B2EC0` (3, 3/5).
+  - Weak (8): `0x00158590-0x00158AD8` (11), `0x00182ED8-0x00184338` (16), `0x00193AA0-0x00194E40` (20),
+    `0x001984E8-0x001989A8` (6), `0x00198EA8-0x00199E40` (9), `0x0019A408-0x0019B6D0` (9), `0x001A2000-0x001A2820`
+    (7), `0x001AA0F8-0x001ABC48` (16).
+
+**The seam-less stretches of section 1:**
+
+| Stretch | ER-017 | Now |
+|---|---|---|
+| `0x001000C0`-`0x0012B0D0` (main, boot, memory card, voice) | none | Strong `0x001124E8-0x00112638`, `0x00112E18`; Medium `0x00111700`, `0x0012A450-0x0012AA70`. They appear only with `.bss` as primary evidence (with the cfb tracker and far filter alone the stretch stays seam-less), and `0x00112E18`'s data check binds in the whole-file view (9.7): candidates only |
+| `0x00151000`-`0x00187BD8` | one Weak (`0x00158C70-0x0015B250`) | 9 Strong (`0x00151800` ... `0x00155C98` right after S20, `0x001583F0`, `0x001635E0`, `0x0017C0C8`, `0x0017C500`) and 3 Weak; the five after S20 pass the data check with pinned cuts (9.7) |
+| `0x0019BA90`-`0x001B7230` | one Medium (M10) | 6 Medium, 3 Weak (stability 3-4 of 5: less firm) |
+
+Why so many more: the linear tracker's misreads bound and inverted real seams away (as section 6 suspected), and the
+far filter stops real extern uses of far globals (e.g. `func_001361B0` loading `D_001FF46C` in the first file's
+`.data`) from closing seams. Every new window rests on the same kind of evidence as ER-017's; none is Confirmed.
+
+### 9.5 S21 and S22 settled
+
+- **S21 (0x001C8EE0): keep Strong; the binding was a tracker misread.** Both the cfb tracker and spimdisasm show
+  `D_0034D1B0` used only by the save / load code (`func_001C5120`, `func_001C56F0`); `func_001C92D0` /
+  `func_001C9680` use `D_0034D1B8` and `D_0034D1C4`, the next two labels. The linear tracker had added
+  `func_001C4FF0`, `func_001C53D8`, `func_001C92D0` and `func_001C9680`. The `.data` run is in link order: save / load
+  ends with `D_0034D1B0` (after `D_0034D120`, `D_0034D178`, `D_0034D188`), the S21 file holds `D_0034D1B8`-`D_0034D1C4`,
+  game-unk starts at `D_0034D1D0`. Data cuts (local view, one label each): `.rodata` 0x00356AD0, `.sdata`
+  0x0035C40C, `.data` 0x0034D1B8. The only remaining whole-file inversions come from `func_001C8EE0` loading
+  `D_001F666C` (a global in the first file's `.data`: an extern use). Cut-ready.
+- **S22 (0x001CA8B0-0x001CA8D8): `.bss` decides; it is not COMMON.** The `.bss` labels the code uses lie in link
+  order: the game's run (0x0185C700-0x01B31B40), game-unk's (0x01B31D00-0x01B73E78), then the SDK libraries' in
+  library order (libkernl from 0x01B73EC0 ... libgcc to 0x01B7B8E0), and only two labels after them, where GNU ld's
+  default script puts `*(COMMON)` (0x01B7B900, used by game-unk; 0x01B7BA00, by game code). `.sbss` is likewise game,
+  game-unk, libgcc, libc in order. So S22's labels are game-unk objects' own `.bss`: `D_01B31D80` is used by
+  `func_001CA170` to `func_001CA8B0` (all left), `D_01B325D0` by `func_001CA370` / `func_001CA6E8`, and the next label,
+  `D_01B72600`, by `func_001CAA58` onward. **The file starts at `0x001CA8D8`**; `.bss` cut pinned at 0x01B72600 (one
+  label in the range); no other section has data there. ER-022's extra `.bss` bindings (`0x01B31DB0`, `0x01B31DB4`)
+  were base + offset misreads. Caveat as for any binding: `D_01B31D80` could be a global defined before and used by
+  `func_001CA8B0` as an extern. That most game uninitialized data is object-own rather than COMMON differs from what
+  our test compile (section 3) gives for plain uninitialized globals; perhaps the source made them `static` or used
+  `-fno-common` (Unconfirmed).
+
+### 9.6 Jump-table alignment test (ER-024's, generalised; `--jt`)
+
+A jump table makes its object's `.rodata` 16-aligned (gcc `.align 4`, section 3), so that object's `.rodata` starts
+at the table itself or at the nearest 16-aligned item start Y1 below it, with every item in [Y1, table) inside it.
+Either (a) a file starts after the users of the items before the table, or (b) those users and the table's function
+share a file. Of 68 game jump tables with one user (cfb references):
+
+- **3 decided "boundary"** (a cut lies between the first user before the table and the table's user, so (b) is
+  impossible): `jtbl_003546E0` (user `func_00134F70`; items from 0x003546C0 used by `func_00133458` and
+  `func_00134958`): **a seam in 0x00134B60-0x00134F70**, which holds exactly S3's two open boundaries (`0x00134BB0`,
+  `0x00134DB0`): ER-024's finding, now from the tool; `0x00354990` (user `func_001459A8`): a seam in
+  0x001423E0-0x001459A8, satisfied by S9; `0x00354A30` (user `func_0014E450`): a seam in 0x0014E0A8-0x0014E450,
+  satisfied by S17.
+- **11 "together"** (an item before the table is used by the table's own function, so (b)): no seam allowed in each
+  range; **no window of any grade lies in one** (consistent).
+- **54 "either"**: undecided alone; none has a Strong window or cut between its users that would force (a).
+
+So the test confirms S3's position independently of the label scan but finds no new boundary at the other uncut
+windows (ER-031's second question). It costs nothing to run and stays in the tool.
+
+### 9.7 Seams worth cutting next (ranked, for the dispatcher)
+
+Data-cut check (`--cuts --cut-set list`, cfb references, the 7 cut seams and the census seams in place; "pinned" =
+one splat label in the cut range):
+
+| Rank | Seam (first function) | Inside | Evidence | Data cuts `.rodata` / `.sdata` / `.data` / `.bss` | Note |
+|---|---|---|---|---|---|
+| 1 | S3 `0x00134BB0` or `0x00134DB0` | `text_001343E8` | Strong 4/5 + jump-table "boundary" (9.6) | 0x003546E0 / none / none / none | ER-031 (queued); data does not choose between the two starts; unlocks C jump tables in `text_001343E8` |
+| 2 | S21 `0x001C8EE0` | `text_00150878` | Strong 5/5, binding gone (9.5) | 0x00356AD0 / 0x0035C40C / 0x0034D1B8 / none | cut-ready; the 3-function file before game-vu0 |
+| 3 | S22 `0x001CA8D8` | `text_001CA0F0` (game-unk) | Strong 5/5, `.bss` decides (9.5) | none / none / none / 0x01B72600 | cut-ready |
+| 4 | `0x001388E8`, `0x0013A410`, `0x0013B748`, `0x0013C510`, `0x0013DBC0` | `text_001343E8` (338 functions, S1 to S9) | new Strong, exact, 5/5 | every section passes in both views; `.rodata` 0x00354750 / 0x003547D0 / 0x00354830 / 0x00354850 / 0x00354910 and `.sdata` 0x0035BA08 / 0x0035BA68 / 0x0035BAB0 / 0x0035BAC8 / 0x0035BB08, all pinned; `.data` 0x0032FE68 at `0x001388E8` | cut together; the best next batch |
+| 5 | `0x00151800`, `0x00152970`, `0x00153FD0`, `0x00154A70`, `0x00155C98` (windows of 2-3) | `text_00150878` (1,542 functions) | new Strong 4-5/5 | pinned in `.sdata` (0x0035BF64, 0x0035BFDC, 0x0035C070, 0x0035C0CC, 0x0035C0E8) and mostly in `.rodata` / `.data`; the first and the last candidates of every window both pass | data does not choose the start inside each window: cut at a first candidate only with a ruling, or wait for matching |
+| 6 | `0x001C4F68` | `text_00150878` (save / load) | new Strong, exact, 5/5 | 0x00356940 / 0x0035C3C8 / 0x0034D008, pinned | `.bss` fails in the whole-file view: check before cutting |
+| 7 | `0x0017C0C8`, `0x0017C500` | `text_00150878` | new Strong, exact, 5/5 | the 0x0017C0C8-0x0017C500 file uses no data | open by the scan, but data says nothing |
+
+Not ready: `0x00112E18` (the whole-file view binds through first-file globals `D_0035B838` / `D_0035B83C`,
+`D_001FF240` / `D_001FF280`; 4 local `.data` inversions); `0x001583F0` (whole-file view fails in every section);
+`0x001CB528` (its `.bss` cut lies below S22's: out of link order if both are cut); ER-017's multi-function windows S2,
+S4-S8, S10, S11, S13, S14, S18, S19 (data still does not decide the start).
+
+### 9.8 Not verified, Unconfirmed and Unofficial (ER-023)
+
+- No seam is Confirmed; no cut was built. The data cuts above are where the cfb references put them, not checked by
+  a data split.
+- spimdisasm's references are the yardstick for the tracker; they are a reading, not ground truth.
+- False positives of the scan in the SDK cannot be counted (object lists unknown); 9.3 gives only an upper bound.
+- Unconfirmed: that the far labels are extern uses of globals (`D_001FF46C`, `D_001F666C`, ...); why most game
+  uninitialized data is object-own `.bss` rather than COMMON (`static` or `-fno-common`); that the two labels after
+  the libraries' `.bss` are COMMON; the four new windows in the first stretch (they need `.bss` as primary evidence).
+- The far-filter gaps and the grade thresholds are our choices; the result hardly moves for gap scales 0.5x to 4x
+  (game open boundaries 618-638 with `.bss` secondary, SDK unchanged; measured before `.bss` became primary).
+- The `--cuts` check does not apply the far filter, so its whole-file views still show far-label inversions (S21's
+  157 `.data` pairs all come from `D_001F666C`).
+- Sections 1-8 above describe ER-017 / ER-022 and are not rewritten; where they differ, section 9 is current.
+- Unofficial: "cfb", "far filter", "together / boundary / either", and the evidence names of section 2.
