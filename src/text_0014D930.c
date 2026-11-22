@@ -40,7 +40,38 @@ INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014DAC8);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014DC98);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014DDD8);
+extern f32 D_0035BEA8;
+extern f32 D_0035BEAC;
+extern f32 D_0035BEB0[];
+extern int func_0012E568(int, int);
+extern void func_0012EA28(void *, f32, f32, f32);
+
+/* ER-062: by hand from the m2c draft (plain form; %hi / %lo data as recipe 2.6); names, types and offsets are Unconfirmed readings. */
+void func_0014DDD8(void *arg0) {
+    s32 temp_2;
+    s8 temp_3;
+
+    temp_3 = *(s8 *)((char *)arg0 + 0xA);
+    switch (temp_3) {
+    case 1:
+        break;
+    case 0:
+        *(s32 *)((char *)arg0 + 0x24) = func_0012E568(0x1E, 0xB4);
+        *(s8 *)((char *)arg0 + 0xA) = func_0012E568(1, 3);
+        break;
+    case 2:
+        func_0012EA28(arg0 + 0x4C, D_0035BEA8, 0.01f, D_0035BEB0[0]);
+        break;
+    case 3:
+        func_0012EA28(arg0 + 0x4C, D_0035BEAC, 0.01f, D_0035BEB0[0]);
+        break;
+    }
+    temp_2 = *(s32 *)((char *)arg0 + 0x24) - 1;
+    *(s32 *)((char *)arg0 + 0x24) = temp_2;
+    if (temp_2 < 0) {
+        *(s8 *)((char *)arg0 + 0xA) = 0;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014DEA0);
 

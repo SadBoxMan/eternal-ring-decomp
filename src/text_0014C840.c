@@ -118,7 +118,17 @@ INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D338);
 void func_0014D378(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D380);
+extern void func_0014D3F0(void);
+extern void func_0014FE10(void *, s32);
+
+/* ER-062: by hand from the m2c draft (the pass-through $a0 to func_0014D8F8 written out); names, types and offsets are Unconfirmed readings. */
+void func_0014D380(void *arg0, s32 arg1) {
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        *(s8 *)((char *)arg0 + 0xF) = 0;
+        func_0014D8F8(arg0, (s32) func_0014D3F0);
+    }
+    func_0014FE10(arg0, arg1);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D3D0);
 

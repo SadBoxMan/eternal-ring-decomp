@@ -238,9 +238,17 @@ INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014FE10);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014FE30);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014FF38);
+extern s32 func_0014FF98(void *arg0, s32 arg1, s32 arg2);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014FF58);
+/* ER-062: drafted with m2c (tools/m2c_bulk.py --plain, own run); names, types and offsets are Unconfirmed readings. */
+s32 func_0014FF38(void *arg0, s32 arg1) {
+    return func_0014FF98(arg0, arg1, 1);
+}
+
+/* ER-062: drafted with m2c (tools/m2c_bulk.py --plain, own run); names, types and offsets are Unconfirmed readings. */
+s32 func_0014FF58(void **arg0, s32 arg1) {
+    return func_00150070(arg0, arg1, 1);
+}
 
 extern s32 func_001500C8(void **, s32, s32);
 
@@ -284,7 +292,12 @@ s32 func_00150070(void **arg0, s32 arg1, s32 arg2) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_001500C8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_001501D8);
+extern void func_0012FB48(void *, int);
+
+/* ER-062: by hand from the m2c draft (the pass-through $a0 written out); names and types are Unconfirmed readings. */
+void func_001501D8(void *arg0) {
+    func_0012FB48(arg0, 0);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_001501E0);
 
@@ -302,7 +315,7 @@ INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_00150280);
 extern void func_00150658(void *, void *);
 extern s32 func_001503C0(s8 *arg0);
 extern s32 func_001503E0(s8 *arg0);
-extern void func_001501D8(void);
+extern void func_001501D8(void *);
 extern void func_0012B1B8(void *, s32, s32, s8);
 extern void func_00150350(s32 **);
 

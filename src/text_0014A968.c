@@ -115,7 +115,26 @@ INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014B3A0);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014B3E0);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014B420);
+extern s32 func_0014BC88(void *arg0);
+extern s32 func_0014BD10(s8 *arg0);
+extern void func_0014BCC8(s8 *arg0);
+extern int func_0012E568(int, int);
+extern s16 D_001FFB06[];
+extern void func_0014B7C0();
+
+/* ER-062: by hand from the m2c draft (the 0x6C / 0x74 compare written with 0x6C first, recipe 2.7); names, types and offsets are Unconfirmed readings. */
+void func_0014B420(s8 *arg0) {
+    if ((func_0014BC88(arg0) == 0) && (func_0014BD10(arg0) == 0)) {
+        if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+            *(s16 *)((char *)arg0 + 0x74) = func_0012E568(0xB4, 0xF0);
+            *(s16 *)((char *)arg0 + 0x6E) = (s16) ((u16) *(s16 *)((char *)arg0 + 0x6E) + 1);
+        }
+        if ((D_001FFB06[0] != 0) || (*(s16 *)((char *)arg0 + 0x6C) > *(s16 *)((char *)arg0 + 0x74))) {
+            func_00131000(arg0, func_0014B7C0);
+        }
+        func_0014BCC8(arg0);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014B4C8);
 
@@ -154,7 +173,6 @@ void func_0014BCC8(s8 *arg0) {
     func_0012B7C0((void **) arg0, 3U, 0xE, (s32) *(s16 *)((char *)arg0 + 0x6C), 0x14, 1, 0.2f);
 }
 
-extern s16 D_001FFB06[];
 extern void func_0014B688(s8 *, void *);
 
 /* ER-054: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
@@ -260,7 +278,12 @@ s32 func_0014C5E8(void *arg0) {
     return func_001312D0(arg0, (s32) func_0014BFE0, (s32) func_0014BFE0, (s32) func_0014C110, (s32) func_0014C220, (s32) func_0014C220);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014C620);
+extern void func_0012FD10(void *, s32, s32, s32);
+
+/* ER-062: by hand from the m2c draft (the pass-through $a0 written out); names and types are Unconfirmed readings. */
+void func_0014C620(void *arg0) {
+    func_0012FD10(arg0, 0xA6, 2, 5);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014C630);
 
