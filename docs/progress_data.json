@@ -1024,6 +1024,24 @@
       "model": "Opus, medium (high for func_00178C60)",
       "waits_on": "nothing (ER-069 ruling may help)",
       "notes": ""
+    },
+    {
+      "code": "ER-081",
+      "title": "Hand work: text_001000C0's 18 near misses",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "nothing",
+      "notes": ""
+    },
+    {
+      "code": "ER-082",
+      "title": "text_001000C0's 125 non-compiling drafts + 33 three-to-eight-word DIFFs",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-066",
+      "notes": ""
     }
   ]
 }
