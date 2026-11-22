@@ -49,7 +49,35 @@ void func_0013CAE8(s8 *arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013CB60);
+extern s32 func_0013CF78(void *, s32);
+extern void func_0013D068(void *arg0, s32 arg1);
+extern s32 func_0013D088(void *, s32);
+extern s32 func_0013D378(void *, s32);
+
+extern void func_0012B218(void *, int);
+
+/* ER-072: drafted with m2c (tools/m2c_bulk.py --plain), declarations aligned with the file by hand; names, types and
+   offsets are Unconfirmed readings. */
+void func_0013CB60(void *arg0, s32 arg1) {
+    s8 temp_4;
+
+    temp_4 = *(s8 *)((char *)arg0 + 0xD);
+    *(s32 *)((char *)arg0 + 0x2C) = (s32) (*(s32 *)((char *)arg0 + 0x2C) + 1);
+    switch (temp_4) {
+    case 0:
+        func_0013CF78(arg0, arg1);
+        break;
+    case 1:
+        func_0013D068(arg0, arg1);
+        break;
+    case 2:
+        func_0013D088(arg0, arg1);
+        break;
+    }
+    func_0013D378(arg0, arg1);
+    func_0012B218(arg0, 1);
+    func_0012B218(arg0, 2);
+}
 
 extern s32 func_00131088(void *);
 extern void func_0013C658(s8 *);
@@ -88,7 +116,7 @@ INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013CF78);
 extern void func_0013D488(void *arg0, s8 arg1);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
-void func_0013D068(void *arg0) {
+void func_0013D068(void *arg0, s32 arg1) {
     s8 temp_5;
 
     temp_5 = *(s8 *)((char *)arg0 + 0xF);
@@ -122,7 +150,11 @@ void func_0013D488(void *arg0, s8 arg1) {
     *(s32 *)((char *)arg0 + 0x2C) = 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013D498);
+/* ER-072: drafted with m2c (tools/m2c_bulk.py --plain), declarations aligned with the file by hand; names, types and
+   offsets are Unconfirmed readings. */
+s32 func_0013D498(void *arg0) {
+    return *(u8 *)(*(char **)arg0 + 0x149);
+}
 
 extern s32 func_0012BA30(void *, s32, s32);
 
@@ -167,7 +199,6 @@ INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013D5D0);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013D688);
 
-extern void func_0012B218(void *, int);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_0013D7A8(void *arg0) {
