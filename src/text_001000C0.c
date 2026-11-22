@@ -1137,7 +1137,62 @@ void func_00126EB0(void) {
     func_00115408(temp_16, *(s32 **)((char *)temp_16 + 0xEC), 0x50, 0.8f);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00126F00);
+/* Unofficial: a 16-byte aligned float vector, copied by assignment (ld / sd pairs). */
+typedef struct {
+    float v[4];
+} __attribute__((aligned(16))) Vec4;
+
+extern const Vec4 D_003543C0;
+extern const Vec4 D_003543B0;
+extern const Vec4 D_00354390;
+extern float D_001FF340[];
+extern s32 func_001E9C70();
+extern void func_001CA048(float *, float *, float);
+extern void func_001C9FE8(void *, void *, void *);
+extern void func_00158AD8(s32, s32, void *, void *, void *, void *);
+
+/* ER-094: ER-063's draft; the three vector constants are const (they sit in .rodata): only then does the scheduler
+   issue each copy's %lo load before its +8 load, as the game does. Names, types and offsets are Unconfirmed
+   readings. */
+void func_00126F00(void) {
+    Vec4 p;
+    Vec4 v;
+    Vec4 out;
+    Vec4 a = D_003543C0;
+    Vec4 b = D_003543B0;
+    Vec4 c = D_00354390;
+    float m[16] __attribute__((aligned(16)));
+    float ang;
+    float d;
+    float sc;
+    float dz;
+    float h;
+    s32 n;
+    s32 r;
+
+    sc = -1.0f;
+    ang = 3.1415927f - D_001FF340[5];
+    if (3.1415927f < ang) {
+        ang -= 6.2831855f;
+    }
+    if (ang < -3.1415927f) {
+        ang += 6.2831855f;
+    }
+    h = 1200.0f;
+    n = 2400;
+    func_001D7778(m, D_001F5780, -sc);
+    func_001D7820(m, m, -ang);
+    func_001C9B18(&p, D_001FF340);
+    func_001C9F60(&a, m, &a);
+    r = func_001E9C70() % 800;
+    func_001CA048(v.v, a.v, r);
+    func_001C9FE8(&v, &v, &p);
+    d = func_001E9C70() % n - h;
+    dz = func_001E9C70() % 2400 - h;
+    v.v[0] += d;
+    v.v[2] += dz;
+    func_00158AD8(0x5D, 0x3B, &v, &out, &c, &b);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001270E0);
 
@@ -1496,9 +1551,7 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D3B8);
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D3E8);
 
 extern float sqrtf(float);
-extern void func_001CA048(float *, float *, float);
 extern void func_0012C778(char *);
-extern void func_001C9FE8(void *, void *, void *);
 
 /* ER-063. a0+0x90 (a vector, reading) is moved by d (x and z negated) through the matrix at (*a0)+0x50, then clamped
    to length max (func_0012D568 inline); returns the length. Names and types Unconfirmed. */
@@ -1657,7 +1710,6 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012E428);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012E488);
 
-extern s32 func_001E9C70();
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 s32 func_0012E568(s32 arg0, s32 arg1) {
