@@ -313,7 +313,31 @@ INCLUDE_ASM("asm/nonmatchings/text_00145120", func_001469B8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00146C20);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00146DF8);
+extern f32 func_001E3DE0(f32);
+extern f32 func_001E3EC8(f32);
+extern const f32 D_0035BD14;
+extern f32 D_0035BD18;
+extern const f32 D_0035BD1C;
+
+/* ER-100: by hand; names, types and offsets are Unconfirmed readings. */
+void func_00146DF8(char *arg0) {
+    f32 v[4];
+    f32 n;
+    char *t;
+    char *e;
+
+    t = *(char **)(arg0 + 0x130);
+    v[0] = *(f32 *)t + D_0035BD18 * func_001E3DE0(1.5707964f - *(f32 *)(*(char **)(arg0 + 0x134) + 4));
+    t = *(char **)(arg0 + 0x130);
+    v[1] = *(f32 *)(t + 4);
+    v[2] = *(f32 *)(t + 8) + D_0035BD18 * func_001E3EC8(1.5707964f - *(f32 *)(*(char **)(arg0 + 0x134) + 4));
+    *(f32 *)(arg0 + 0xB0) = D_0035BD1C;
+    *(f32 *)(arg0 + 0x94) = -D_0035BD14;
+    n = func_0012DA18(*(f32 *)(*(char **)arg0 + 0x94), *(f32 *)(arg0 + 0x54), *(f32 *)(arg0 + 0x94), *(f32 *)(arg0 + 0xB0));
+    e = *(char **)arg0;
+    *(f32 *)(arg0 + 0x90) = (v[0] - *(f32 *)(e + 0x90)) / n;
+    *(f32 *)(arg0 + 0x98) = (v[2] - *(f32 *)(e + 0x98)) / n;
+}
 
 extern void func_0012B238(void *, void *);
 
@@ -576,7 +600,7 @@ void func_00148360(s8 *arg0) {
 }
 
 extern s32 func_0012B890(void **, s32, s32, s32, s16, f32, s32);
-extern void func_00131140(char *, void *, void *, void *, void *, void *);
+extern s32 func_00131140(char *, void *, void *, void *, void *, void *);
 extern void func_00148470(s8 *, void *);
 
 /* ER-054: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
@@ -813,15 +837,133 @@ void func_00149DD8(void **arg0, void *arg1) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149EE8);
+extern void func_0014A500();
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_0014A0B8);
+/* ER-100: by hand; names, types and offsets are Unconfirmed readings. The address-taken local only stops the
+   sibling call (ruling 3.14: the game has jal where plain C gives a tail j). */
+void func_00149EE8(void **arg0, char *arg1) {
+    f32 t;
+    f32 g;
+    s32 n;
+    (void)&n; /* ruling 3.14 */
+
+    *(s32 *)((char *)arg0 + 0x10) += 1;
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        *(s32 *)((char *)arg0 + 0x10) = 0;
+        *(s16 *)((char *)arg0 + 0x6E) = 1;
+    }
+    if (func_00131140((char *)arg0, func_0014A3B0, func_0014A500, func_0014A500, 0, 0) == 0) {
+        func_0012B890(arg0, 1, 0xD, *(s32 *)((char *)arg0 + 0x10), 0x14, 0.15f, 1);
+        switch (*(s16 *)((char *)arg0 + 0x6E)) {
+        case 1:
+            func_0012B890(arg0, 0, 0xD, *(s16 *)((char *)arg0 + 0x6C), 0x1E, 0.1f, 1);
+            if (0.17453294f <= func_001302C8(arg0)) {
+                *(f32 *)((char *)arg0 + 0x30) = *(f32 *)(arg1 + 0xA4);
+                *(s16 *)((char *)arg0 + 0x6E) = 2;
+                *(s32 *)((char *)arg0 + 0x14) = 0;
+                *(s16 *)((char *)arg0 + 0x6C) = 0;
+            } else {
+                func_00130CE0((char *)arg0, 10.0f);
+            }
+            break;
+        case 2:
+            if (func_0012B890(arg0, 0, 0xE, *(s16 *)((char *)arg0 + 0x6C), 6, 0.2f, 0) != 0) {
+                t = func_00130378(arg1 + 0x90, *(s32 *)((char *)arg0 + 0x130)) + 6.2831855f;
+                g = func_0012E7B0((t - ((f32)(s32)(t / 6.2831855f) * 6.2831855f)) - 3.1415927f, *(f32 *)((char *)arg0 + 0x30));
+                n = *(s32 *)((char *)arg0 + 0x14) + 1;
+                *(s32 *)((char *)arg0 + 0x14) = n;
+                if (func_0012DA68(arg0, n, 0x14, *(f32 *)((char *)arg0 + 0x30), g) != 0) {
+                    *(s16 *)((char *)arg0 + 0x6E) = 1;
+                    *(s16 *)((char *)arg0 + 0x6C) = 0;
+                }
+            }
+            break;
+        }
+    }
+}
+
+extern void func_00149D50();
+
+/* ER-100: by hand; names, types and offsets are Unconfirmed readings. The address-taken local only stops the
+   sibling call (ruling 3.14: the game has jal where plain C gives a tail j). */
+void func_0014A0B8(void **arg0, char *arg1) {
+    f32 t;
+    f32 g;
+    s32 n;
+    (void)&n; /* ruling 3.14 */
+
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        *(f32 *)((char *)arg0 + 0x30) = *(f32 *)(arg1 + 0xA4);
+        *(s16 *)((char *)arg0 + 0x6E) += 1;
+        *(s32 *)((char *)arg0 + 0x10) = 0;
+    }
+    if (func_00131140((char *)arg0, func_0014A3B0, func_0014A238, 0, 0, 0) == 0) {
+        func_0012B890(arg0, 1, 0xE, *(s16 *)((char *)arg0 + 0x6C), 6, 0.2f, 0);
+        if (func_0012B890(arg0, 0, 0xE, *(s16 *)((char *)arg0 + 0x6C), 6, 0.2f, 0) != 0) {
+            t = func_00130378(arg1 + 0x90, *(s32 *)((char *)arg0 + 0x130)) + 6.2831855f;
+            g = func_0012E7B0((t - ((f32)(s32)(t / 6.2831855f) * 6.2831855f)) - 3.1415927f, *(f32 *)((char *)arg0 + 0x30));
+            n = *(s32 *)((char *)arg0 + 0x10) + 1;
+            *(s32 *)((char *)arg0 + 0x10) = n;
+            if (func_0012DA68(arg0, n, 0x14, *(f32 *)((char *)arg0 + 0x30), g) != 0) {
+                func_00131140((char *)arg0, func_0014A3B0, func_0014A238, func_0014A500, func_00149EE8, func_00149D50);
+            }
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_0014A238);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_0014A3B0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_0014A500);
+extern void func_0014A948(int **a0);
+extern void func_0014A708();
+
+/* ER-100: by hand; names, types and offsets are Unconfirmed readings. The address-taken local only stops the
+   sibling call (ruling 3.14: the game has jal where plain C gives a tail j). */
+void func_0014A500(void **arg0, char *arg1) {
+    f32 t;
+    f32 g;
+    s32 n;
+    (void)&n; /* ruling 3.14 */
+
+    *(s32 *)((char *)arg0 + 0x10) += 1;
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        func_0014A948((int **)arg0);
+        *(s32 *)((char *)arg0 + 0x10) = 0;
+        *(s16 *)((char *)arg0 + 0x6E) = 1;
+    }
+    if (func_00131140((char *)arg0, func_0014A3B0, 0, 0, 0, 0) == 0) {
+        func_0012B890(arg0, 1, 0xA, *(s32 *)((char *)arg0 + 0x10), 0xA, 0.25f, 1);
+        switch (*(s16 *)((char *)arg0 + 0x6E)) {
+        case 1:
+            func_0012B890(arg0, 0, 0xA, *(s16 *)((char *)arg0 + 0x6C), 0xA, 0.25f, 1);
+            if (0.08726647f <= func_001302C8(arg0)) {
+                *(f32 *)((char *)arg0 + 0x30) = *(f32 *)(arg1 + 0xA4);
+                *(s16 *)((char *)arg0 + 0x6E) = 2;
+                *(s32 *)((char *)arg0 + 0x14) = 0;
+                *(s16 *)((char *)arg0 + 0x6C) = 0;
+            } else {
+                func_00130CE0((char *)arg0, 50.0f);
+                if (*(s32 *)((char *)arg0 + 0x10) >= 0x79) {
+                    func_00131000((char *)arg0, func_0014A708);
+                }
+            }
+            break;
+        case 2:
+            if (func_0012B890(arg0, 0, 0xE, *(s16 *)((char *)arg0 + 0x6C), 6, 0.2f, 0) != 0) {
+                t = func_00130378(arg1 + 0x90, *(s32 *)((char *)arg0 + 0x130)) + 6.2831855f;
+                g = func_0012E7B0((t - ((f32)(s32)(t / 6.2831855f) * 6.2831855f)) - 3.1415927f, *(f32 *)((char *)arg0 + 0x30));
+                n = *(s32 *)((char *)arg0 + 0x14) + 1;
+                *(s32 *)((char *)arg0 + 0x14) = n;
+                if (func_0012DA68(arg0, n, 0x14, *(f32 *)((char *)arg0 + 0x30), g) != 0) {
+                    *(s16 *)((char *)arg0 + 0x6E) = 1;
+                    *(s16 *)((char *)arg0 + 0x6C) = 0;
+                }
+            }
+            break;
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_0014A708);
 

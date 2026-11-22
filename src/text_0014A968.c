@@ -166,7 +166,49 @@ void func_0014B4C8(s8 *arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014B528);
+extern void func_00130CE0(char *, float);
+extern f32 func_001302C8(void *);
+extern float func_00130378(char *, s32);
+extern f32 func_0012E7B0(f32, f32);
+extern s32 func_0012DA68(void *, f32, s32, s32, f32);
+
+/* ER-100: by hand; names, types and offsets are Unconfirmed readings. func_0012DA68's float parameter first
+   (as in recipes 2.21: same registers, other scheduling); `case 2:` beside the default (ruling 3.9); the
+   address-taken local only stops the sibling call (ruling 3.14: the game has jal where plain C gives a tail j). */
+void func_0014B528(void **arg0, char *arg1) {
+    f32 t;
+    f32 g;
+    (void)&g; /* ruling 3.14 */
+
+    switch (*(s16 *)((char *)arg0 + 0x6E)) {
+    case 0:
+        if (func_001302C8(arg0) <= 0.17453294f) {
+            func_00130CE0((char *)arg0, 15.0f);
+            *(s16 *)((char *)arg0 + 0x6E) = 2;
+        } else {
+            *(s32 *)((char *)arg0 + 0x34) = 0;
+            if (func_0012B7C0(arg0, 3, 0xF, *(s16 *)((char *)arg0 + 0x6C), 0x14, 0, 0.2f) != 0) {
+                *(f32 *)((char *)arg0 + 0x30) = *(f32 *)(arg1 + 0xA4);
+                *(s16 *)((char *)arg0 + 0x6E) = 1;
+                *(s16 *)((char *)arg0 + 0x6C) = 0;
+            }
+        }
+        break;
+    case 1:
+        t = func_00130378(arg1 + 0x90, *(s32 *)((char *)arg0 + 0x130)) + 6.2831855f;
+        g = func_0012E7B0((t - ((f32)(s32)(t / 6.2831855f) * 6.2831855f)) - 3.1415927f, *(f32 *)((char *)arg0 + 0x30));
+        if (func_0012DA68(arg0, *(f32 *)((char *)arg0 + 0x30), *(s16 *)((char *)arg0 + 0x6C), 0x1E, g) != 0) {
+            *(s16 *)((char *)arg0 + 0x6E) = 2;
+        }
+        break;
+    case 2:
+    default:
+        break;
+    }
+    if (*(s16 *)((char *)arg0 + 0x6E) == 2 && func_0014BC88(arg0) == 0) {
+        func_00131000((char *)arg0, func_0014B338);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014B688);
 
@@ -194,14 +236,13 @@ void func_0014BC40(void *arg0) {
 }
 
 extern s32 func_001312D0(void *, s32, s32, s32, s32, s32);
-extern void func_0014B528(void **, void *);
+extern void func_0014B528(void **, char *);
 
 /* ER-054: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 s32 func_0014BC88(void *arg0) {
     return func_001312D0(arg0, (s32) func_0014B3A0, (s32) func_0014B3E0, (s32) func_0014B420, (s32) func_0014B4C8, (s32) func_0014B528);
 }
 
-extern void func_00130CE0(char *, float);
 
 /* ER-054: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_0014BCC8(s8 *arg0) {
