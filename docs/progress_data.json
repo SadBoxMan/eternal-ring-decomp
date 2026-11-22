@@ -878,7 +878,25 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-062 (same five files)",
+      "waits_on": "nothing now ER-062 is merged (the five ER-054 files)",
+      "notes": ""
+    },
+    {
+      "code": "ER-065",
+      "title": "place.py / cmpfunc.py fixes (+ renumber the duplicate recipes 2.8)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, medium",
+      "waits_on": "nothing (tools/ only)",
+      "notes": ""
+    },
+    {
+      "code": "ER-066",
+      "title": "m2c_bulk --plain pass-through retry",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-060 done with m2c_bulk.py",
       "notes": ""
     }
   ]
