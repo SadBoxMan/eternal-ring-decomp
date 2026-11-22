@@ -1096,6 +1096,51 @@
       "model": "Opus, medium",
       "waits_on": "nothing",
       "notes": ""
+    },
+    {
+      "code": "ER-089",
+      "title": "Ruling: unused stack buffer (func_00113C30 / func_00113ED8), then finish both",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "LuciDin's ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-090",
+      "title": "Toolchain research: loops on a loaded pointer's field not register-promoted (loop.c)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "nothing",
+      "notes": ""
+    },
+    {
+      "code": "ER-091",
+      "title": "func_00120EF0 from the 265-word draft",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "ER-090 may help; text_001000C0 writer one at a time",
+      "notes": ""
+    },
+    {
+      "code": "ER-092",
+      "title": "func_0011BB90 by hand",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "text_001000C0 writer one at a time",
+      "notes": ""
+    },
+    {
+      "code": "ER-093",
+      "title": "func_00119FE0 by hand (6,636 bytes)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high (xhigh if it resists)",
+      "waits_on": "text_001000C0 writer one at a time",
+      "notes": ""
     }
   ]
 }
