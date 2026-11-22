@@ -898,6 +898,24 @@
       "model": "Opus, medium",
       "waits_on": "ER-060 done with m2c_bulk.py; fold into ER-064 if ER-064 runs after ER-060",
       "notes": ""
+    },
+    {
+      "code": "ER-067",
+      "title": "Place the 22 functions unblocked by ER-041 (by file owner)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium (high for func_00106A38 / func_00178C60)",
+      "waits_on": "ER-063 / ER-060 take their files now; text_001343E8 share after ER-031",
+      "notes": ""
+    },
+    {
+      "code": "ER-068",
+      "title": "census.py / split.py: non-func_ names, anonymous-constant takeover",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "no other card editing tools/split.py",
+      "notes": ""
     }
   ]
 }
