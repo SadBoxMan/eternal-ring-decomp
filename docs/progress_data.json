@@ -749,11 +749,11 @@
     {
       "code": "ER-050",
       "title": "m2c bulk driver for EE (for ER-016)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "nothing (tools/ only)",
-      "notes": ""
+      "notes": "Done Sat 21 Nov 2026: tools/m2c_bulk.py + docs/matching_tools.md 6. Raw m2c draft rate (masked compares, nothing placed): text_00145120 32/100 MATCH, text_0014A968 22/48; 71% up to 32 instr., 6% from 33. Branch claude/elastic-austin-17008f."
     },
     {
       "code": "ER-051",

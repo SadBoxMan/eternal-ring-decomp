@@ -14,7 +14,8 @@ placed in `src/` and `make regress` green.**
 | `tools/place.py` | swap a function's `INCLUDE_ASM` line for C in the right `src/` file, and back; extract a placed function to a scratch file |
 | `tools/clones.py` | list a function's strict clone family (`tools/census.py` keys) and try its placed C on every member |
 | `tools/eematch.py` | the shared code (Makefile settings, compile, object reader, compare, report) |
-| m2c (`mipsee` target) | first drafts from splat's asm (section 4); not in this repo, run from Twinblade's copy |
+| m2c (`mipsee` target) | first drafts from splat's asm (section 5); not in this repo, run from Twinblade's copy |
+| `tools/m2c_bulk.py` | m2c in bulk (ER-050): draft, clean, compile and compare many functions, per-function result table (section 6) |
 
 ## 1. The loop
 
@@ -146,12 +147,141 @@ Six game functions tried, one per kind (census picks):
 
 Verdict: **useful for integer, MMI, 128-bit and COP1 code**; COP1 square roots need the one line by hand, VU0 macro
 code is out of m2c's reach. Not tried: a `--context` header (Twinblade's bulk tools generate one), larger functions,
-how often a raw draft matches (that is ER-016's measurement).
+how often a raw draft matches (that is ER-016's measurement). ER-050 did these: section 6.
 
-## 6. Not verified
+## 6. `tools/m2c_bulk.py` (ER-050, Sat 21 Nov 2026)
+
+```
+python -I tools/m2c_bulk.py --file text_00145120                 every INCLUDE_ASM function of src/text_00145120.c
+python -I tools/m2c_bulk.py func_00145208 func_00145428          named functions
+python -I tools/m2c_bulk.py --list picks.txt                     one name per line (# comments); --file / names mix
+   [--ctx none|src|harvest] [--single] [--depth 2] [--rounds 4] [--par 4] [--label NAME] [--m2c DIR] [--timeout 120]
+```
+
+Nothing goes into `src/`. Each run writes `build/m2c_bulk/<label>/` (gitignored: the drafts are game code; the
+label defaults to the file names plus the context mode, and the run clears its own `asm/`, `c/`, `obj/`,
+`harvest/` first): `results.md` (summary tables, then one row per function), `results.csv`, `results.json`, and
+per function `c/<func>.c` (the kept draft, compilable as it stands), `c/<func>.m2c.txt` (m2c's raw output),
+`c/<func>.diff.txt` (the cmpfunc-style report) or `c/<func>.err.txt` (gcc's message). A MATCH draft goes in with
+`tools/place.py c func_X build/m2c_bulk/<label>/c/func_X.c` and `make regress` (the masked compare is a working
+aid, not proof; ruling `docs/decomp_recipes.md` 3.1). Strip the draft's `#include` lines of the m2c headers first
+and turn its `M2C_FIELD` / `M2C_UNK` into plain C (casts, `s32`): the build does not include m2c's macro header.
+
+**What it does for each function**
+
+1. **Asm rewrites** (a copy in `asm/`; splat's files are untouched), each one instruction for one, so delay slots
+   stay where they are:
+
+   | splat / rabbitizer writes | m2c gets | Why |
+   |---|---|---|
+   | `li.s $fN, 1.5e+03` (a `.lit4` load; `tools/split.py` writes them so) | `lwc1 $fN, (M2CLIT_44BB8000)`; the cleaner puts the literal back as `1500.0f` (shortest decimal giving the same float32 bits) | m2c cannot parse `li.s`: **every function with a `.lit4` float failed** before (e.g. `func_00145120`, `func_00145578`, `func_00145760`) |
+   | `c1 0xC0004` | `sqrt.s $f0, $f12` | rabbitizer's R5900 square root (COP1 S funct 4, source in the `ft` field, `fs` 0); other `c1` words are flagged, not rewritten |
+   | `.word 0x46001064 # cvt.w.s $f1, $f2` | `cvt.w.s $f1, $f2` | rabbitizer prints the R5900 `cvt.w.s` as a word with the instruction in a comment (422 sites in 241 functions of the game's asm); m2c then saw an unset `$f1` ("second half of f64") |
+
+2. **m2c** (`-t mipsee-gcc-c --valid-syntax`, run natively from the m2c folder, default Twinblade's copy) with a
+   context header. `--ctx`:
+   - `none`: no context;
+   - `src`: the prototypes of the C functions in `src/` (definitions, then `extern` prototypes; a clash between
+     files is reported and the first kept) and the `extern` data lines of `src/`;
+   - `harvest` (default): `src` plus a signature for every target and its callees to `--depth` levels, inferred by
+     m2c from each callee's own asm, **in rounds** (each round uses the previous round's signatures as context;
+     stops when none change, at most `--rounds`). One round is not enough: a wrapper that passes its arguments on
+     to its callee comes out as `(void)` until the callee's parameters are known (text_00145120: 193 signatures,
+     changes per round 193, 65, 26, 7).
+   The context always leaves out the function's own prototype; `s128` / `u128` are declared for m2c with
+   `__attribute__((mode(TI)))` (a plain `s128 *` made the context fail to parse).
+
+3. **Fallback contexts.** Unless `--single`, each function is tried with `harvest`, then `harvest` without the
+   harvested signatures that say `void` (a callee m2c thought returns nothing but whose `$v0` / `$f0` the caller
+   uses: "Read from unset register"), then `src`, then `none`, until one matches; the best attempt is kept (match,
+   compiles, fewest `M2C_ERROR`, nearest size, fewest differing words) and named in the Notes column.
+
+4. **Cleaning** into a scratch file: `#include "common.h"`, a generated `m2c_extra.h` (`f64`, `s128`, `u128`), m2c's
+   own `m2c_macros.h` from the m2c folder (included by path, **never copied into this repo**: m2c is GPL-3), and the
+   context prototypes. Then:
+   - `extern M2C_UNK func_X;` (m2c declares a function whose address is taken as data) becomes
+     `extern void func_X();`: under `-G8` a 4-byte extern is read `$gp`-relative, the game uses `lui` / `addiu`;
+   - `extern T D_X;` that the asm reaches through `%hi` / `%lo` gets `__attribute__((section(".data")))`, which makes
+     ee-gcc use `%hi` / `%lo` for it (checked on a scratch file). **A draft aid only**: a placed function uses the
+     recipe form `extern T D_X[];` (`docs/decomp_recipes.md` 2.6); a section attribute in `src/` would need a ruling;
+   - undeclared stack variables (`sp10`, a bare `sp` for a stack buffer m2c lost) are declared so the draft compiles,
+     and listed in Notes (such drafts are unlikely to match);
+   - `M2C_ERROR(...)` stays (m2c's header makes it `0`): counted, and the row's class says so.
+
+5. **Compile** with exactly the Makefile's `CC` / `CFLAGS` / `CPPFLAGS` / `AS` / `ASFLAGS` (`eematch.settings()`)
+   into `obj/`, **compare** with `eematch.compare_function` (the cmpfunc check: relocation targets checked).
+
+6. **Two shape variants** on a compiled draft that does not match, both from confirmed recipes
+   (`docs/decomp_recipes.md` 2.1):
+   - **return-wrapper**: ours shorter than the game's and the draft is `void f(..) { ...; g(..); }`: try
+     `M2C_UNK f(..) { ...; return g(..); }`. A call whose value is returned gets a frame and `jal`, a void tail call
+     a sibling `j`; m2c gives the void form when it cannot tell that `$v0` is passed on;
+   - **store order**: same size as the game's: try the other orders of each run of 2 or more plain top-level
+     assignments (every order up to 4 statements, else reversed; at most 24 compiles), kept only on a MATCH.
+
+Columns of the table: function, file, address, instructions and size band (`tools/census.py` bands), m2c gave a
+draft, draft compiles, exact match, differing words, sizes, class (MATCH / diff / compile error / m2c failed /
+M2C_ERROR in draft) with detail (the diff's kind: size +-N instructions, same instructions with other operands
+(registers, offsets), same instructions in another order (scheduling), different instructions), flags from the asm
+(`div/sqrt (ER-034)`, `VU0`, `jump table`, unknown `c1` words), notes (cleaning and variant used, context kept).
+Speed at `--par 4`, all fallbacks and the harvest rounds included: 148 functions in 102 s (68 s for 100, 34 s for 48).
+
+### 6.1 First runs (Sat 21 Nov 2026; masked compares, nothing placed)
+
+**`src/text_00145120.c`** (100 asm functions, 3 to 255 instructions; game code; 14 with `div.s` / square root, 5
+with a jump table):
+
+| Mode | Drafts | Compile | MATCH |
+|---|---|---|---|
+| `--ctx none` (m2c alone, with the asm rewrites, cleaning and variants) | 100 | 93 | 19 |
+| `--ctx src` (falls back to none) | 100 | 97 | 23 |
+| `--ctx harvest --single` | 100 | 99 | 29 |
+| `--ctx harvest` (all fallbacks; the default) | 100 | 100 | **32** |
+
+4 of the 32 are members of `func_0014A940`'s clone family (`j func`), which ER-049 places by clone anyway.
+
+**`src/text_0014A968.c`** (48 asm functions): default mode, 48 compile, **22 match**.
+
+Both files together (148 functions, default mode):
+
+| Result | Functions | Note |
+|---|---|---|
+| MATCH | 54 (36%) | 48 with the full harvest context, 6 with void returns left out; 9 use `.lit4` literals, 7 the return-wrapper form, 6 a permuted store order, 5 a function-address extern, 3 a `%hi` / `%lo` data extern |
+| size differs | 49 | mostly medium and large functions: m2c's control flow and temporaries differ from the original's (not analysed one by one) |
+| has `div.s` / `sqrt.s` | 15 | none can match until ER-034 (two `nop`s before each in the game, none from our gcc) |
+| same size, order differs (scheduling) | 8 | permuter / hand work |
+| same size, 1-2 words differ | 7 | the nearest misses: hand work first |
+| same size, different instructions | 7 | |
+| same size, operands differ (register allocation, offsets) | 6 | |
+| `M2C_ERROR` left in the draft | 2 | |
+
+| Band | Functions | MATCH |
+|---|---|---|
+| 3-8 | 23 | 17 |
+| 9-16 | 17 | 13 |
+| 17-32 | 29 | 19 |
+| 33-64 | 33 | 4 |
+| 65-128 | 36 | 1 |
+| 129-256 | 10 | 0 |
+
+So **up to 32 instructions, 49 of 69 drafts match as drafted (71%)**; from 33 instructions on, 5 of 79 (6%).
+
+Failure kinds seen on reading single diffs (examples, not counted over all rows; Unconfirmed as classes):
+- a store in the delay slot of a tail `j` that m2c left out (`func_00146EF0`: the game's `swc1 $f1, 0x54($a0)` after
+  `j func_0012B238` is missing from the draft);
+- wrappers that m2c gives the wrong return shape (fixed by the return-wrapper variant where the callee's type allows);
+- store order and the registers of address loads (`func_001464A8`, `func_00146FE0`: same instructions, the
+  `lui` / `addiu` pairs in another order and registers).
+
+## 7. Not verified
 
 - The tools were checked on the functions named above only; relocation types other than the five handled
   (`R_MIPS_26`, `HI16`, `LO16`, `GPREL16`, `LITERAL`) are reported as "unhandled" (none met yet).
 - `place.py c` on a function with `INCLUDE_RODATA` neighbours that it takes over: not met yet (the text edit works; the
   standalone symbol needs dropping by hand).
 - m2c: the six-function sample above only.
+- `m2c_bulk.py` (ER-050): run on two game files only (148 functions). **None of its MATCH drafts was placed or
+  checked by `make regress`** (the card placed nothing in `src/`): the matches are masked compares. Drafts that
+  match only with the `%hi` / `%lo` section-attribute extern need the recipe form before placement. Not tried on
+  SDK code, VU0 / MMI functions, jump tables in `text_001343E8`, or functions over 255 instructions. The failure
+  kinds in 6.1 come from reading a few diffs, not from a count.

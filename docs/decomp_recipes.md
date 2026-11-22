@@ -50,6 +50,8 @@ gcc.exe -B<gcc dir>\ -B<as dir>\ -O2 -G8 -fno-strict-aliasing -c file.c -o file.
   `src/` file with the Makefile's own settings and compares functions with the original (side-by-side R5900 diff;
   jal, `%hi` / `%lo`, `$gp` targets and `.lit4` values checked); `tools/place.py` swaps INCLUDE_ASM and C;
   `tools/clones.py` tries a placed function's C on its strict clone family; m2c's `mipsee` target gives first drafts.
+  `tools/m2c_bulk.py` (ER-050, Sat 21 Nov 2026) drafts, cleans, compiles and compares many functions at once
+  (`docs/matching_tools.md` 6).
   ER-011's `er011_compare.py` is superseded (kept for its record).
 
 ### 1.3 The 1999 assembler and splat's output (ER-003, confirmed by the whole-ELF match)
