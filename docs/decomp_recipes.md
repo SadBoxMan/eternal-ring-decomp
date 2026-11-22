@@ -436,6 +436,13 @@ constant anonymously in the same place. Placed: `func_001371C0` (`D_00354718`, E
 | **A callee called with different argument counts in one file** (a variadic-looking routine): declare it without a prototype, `extern s32 f();`; integer and pointer arguments compile the same | `func_001CB808`, `func_001E9D08` callers |
 | **A float passed to a `double` parameter** gives the game's `jal fptodp` between the float call and the callee: write the plain call with the prototype `(void *, double)` | `func_001BEF18` |
 
+### 2.13 Bulk pass over `text_001000C0` (ER-060 part 2, Sun 22 Nov 2026; Confirmed by `make regress`, 58 functions)
+
+| Lesson | Proved by |
+|---|---|
+| **A sibling-call wrapper's return type does not show in its own code**: `return g(x);` compiled as `j g` is the same for `s32` and `f32`. m2c guesses `s32`; a caller that reads `$f0` after calling it (or a `cvt.w.s` that the game lacks) shows it is `f32`. Fix the wrapper, its callee's extern and the caller together; no byte changes in the wrapper | `func_001314C8`, `func_00131508` (`f32`, `j func_001E3EC8`), `func_0012DA68`, `func_00130758` |
+| **A float passed through in `$f12`** works like the integer `$a0` of 2.9: the function never sets `$f12` before calling a callee that reads it, so give it an `f32` parameter and pass it on (no move is emitted) | `func_0012B6B0` (to `func_0012BAE0`) |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
