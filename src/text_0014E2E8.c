@@ -51,13 +51,59 @@ INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014E450);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014E608);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014E740);
+extern void func_0014E740();
+extern s32 func_0014F298(char *, s32, s32, s32, f32);
+extern s32 func_0014EAD0(s8 *, s32);
+extern void func_00131000(char *, void *);
+extern void func_0014E608();
+
+/* ER-083: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_0014E740(s8 *arg0) {
+    func_0014F298(arg0, 0xB, 0xF, 0, 0.1f);
+    func_0014EAD0(arg0, 1);
+    if (*(s16 *)((char *)arg0 + 0x6C) >= 0x3D) {
+        func_00131000(arg0, func_0014E608);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014E7A8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014E960);
-
 int func_0014F618(void *a0);
+void func_0014EA70(void *arg0);
+extern s32 func_0012BA30(void *, s32, s32);
+extern s32 func_0012E568(s32, s32);
+
+/* ER-083: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_0014E960(void *arg0, void *arg1) {
+    s16 temp_3;
+
+    func_0014EAD0(arg0, 1);
+    temp_3 = *(s16 *)((char *)arg0 + 0x6E);
+    switch (temp_3) {                               /* irregular */
+    case 0:
+        if (func_0014F618(arg0) == 6) {
+            func_00131000(arg0, &func_0014E608);
+            return;
+        }
+        if (func_0014F298(arg0, 0xC, 0x23, 0, 0.2f) != 0) {
+            if (*(u16 *)((char *)(*(void **)((char *)arg1 + 0xE0)) + 0x62C) == 0xE) {
+                func_0014EA70(arg0);
+            }
+            if (func_0012BA30(arg1, 0, 0xC) != 0) {
+                *(s16 *)((char *)arg0 + 0x6C) = 0;
+                *(s32 *)((char *)arg0 + 0x24) = func_0012E568(0x1E, 0xB4);
+                *(s16 *)((char *)arg0 + 0x6E) = (s16) ((u16) *(s16 *)((char *)arg0 + 0x6E) + 1);
+            }
+        }
+        return;
+    case 1:
+        if (*(s16 *)((char *)arg0 + 0x6C) >= 0x15) {
+            func_00131000(arg0, &func_0014E608);
+        }
+        break;
+    }
+}
+
 extern void *func_0012C630(void *, s32, s32, s32, s32 *);
 extern s32 D_0032FFF0[];
 
@@ -81,7 +127,6 @@ INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014EC58);
 
 extern s32 func_0014F210(void *arg0);
 extern void func_0014F5F8(s8 *);
-extern void func_00131000(char *, void *);
 extern void func_0014E450(void **, void *);
 extern s32 func_0014F240(void *);
 
@@ -118,7 +163,6 @@ s32 func_0014EE68(s8 *arg0, void *arg1) {
 
 extern double fabs(double);
 extern s32 func_00131088(void *);
-extern void func_0014E608();
 extern void func_0012CB70(float *, char *, char *);
 extern float func_00130758(char *);
 extern void func_001CA018(float *, char *, char *);
@@ -128,8 +172,6 @@ extern void func_001D76D0(float *, float *, float);
 extern void func_001C9EE8(float *, float *, char *);
 extern void func_001C9F60(void *, void *, void *);
 extern void func_001C9FE8(void *, void *, void *);
-extern void func_0014F298(char *, s32, s32, s32, f32);
-extern void func_0014E740();
 void func_0014F480(void *arg0, f32 fparg0, f32 fparg1, f32 fparg2);
 extern float D_001F5780[];
 extern f32 D_0035BEE4;
@@ -297,14 +339,20 @@ s32 func_0014FE00(void) {
     return 2;
 }
 
-extern void func_0014FE10(void);
+extern s32 func_0014FE10(void *, s32);
 
 /* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed. */
-void func_0014FE08(void) {
-    func_0014FE10();
+/* ER-083: passes its arguments on to func_0014FE10 (recipes 2.13; same `j`). */
+void func_0014FE08(void *arg0, s32 arg1) {
+    func_0014FE10(arg0, arg1);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014FE10);
+extern s32 func_0014FE30(void *, s32, s32);
+
+/* ER-083: drafted with m2c (tools/m2c_bulk.py, return-wrapper form); names, types and offsets are Unconfirmed readings. */
+s32 func_0014FE10(void *arg0, s32 arg1) {
+    return func_0014FE30(arg0, arg1, 2);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014FE30);
 
