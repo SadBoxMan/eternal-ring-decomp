@@ -843,7 +843,7 @@
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "nothing now ER-034 is done (one writer per file; use gcc r1 / as r3)",
-      "notes": "Part 2 done Sun 22 Nov 2026 (13:16-13:40 ET, Opus medium), branch claude/great-raman-ec257e: text_001000C0.c, 58 placed (55 m2c_bulk --plain MATCHes + 3 after aligning declarations), 4,752 bytes, make regress green after each of 3 batches (docs/matching_tools.md 6.5, recipes 2.13). Left: 18 same-size near misses, 125 compile errors, VU0 / ER-063-parked skipped. Part 1 (text_00150878) in its own session; text_001343E8 still open."
+      "notes": "Part 2 done Sun 22 Nov 2026 (13:16-13:37 ET, Opus medium), branch claude/great-raman-ec257e: text_001000C0.c, 58 placed (55 m2c_bulk --plain MATCHes + 3 after aligning declarations), 4,752 bytes, make regress green after each of 3 batches (docs/matching_tools.md 6.5, recipes 2.13). Left: 18 same-size near misses, 125 compile errors, VU0 / ER-063-parked skipped. Part 1 (text_00150878) in its own session; text_001343E8 still open."
     },
     {
       "code": "ER-061",
