@@ -1267,6 +1267,24 @@
       "model": "Opus, high",
       "waits_on": "ER-106",
       "notes": ""
+    },
+    {
+      "code": "ER-108",
+      "title": "Recomp: save to an imported card, export to PCSX2",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "ER-099",
+      "notes": ""
+    },
+    {
+      "code": "ER-109",
+      "title": "Recomp: libmc HLE fidelity",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "ER-108",
+      "notes": ""
     }
   ]
 }
