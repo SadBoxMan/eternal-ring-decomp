@@ -334,7 +334,27 @@ void func_0014F680(s8 *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F690);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F728);
+extern s32 func_0012B890(void **, s32, s32, s32, s16, s32, f32 fparg0);
+extern void func_0012FA18(void *, s32, float);
+void func_0014FBA0(void *arg0, f32 fparg0);
+extern void func_0014F7F8();
+
+/* ER-100: by hand from the m2c draft; func_0014FBA0 gets arg0 passed through and 0.0f, func_0012FA18 is
+   (void *, s32, float) (its asm reads $a1); names, types and offsets are Unconfirmed readings. */
+void func_0014F728(char *arg0, char *arg1) {
+    func_0014FBA0(arg0, 0.0f);
+    if (*(s16 *)(arg0 + 0x6E) == 0) {
+        *(s16 *)(arg0 + 0x74) = func_0012E568(0x96, 0xF0);
+        *(s16 *)(arg0 + 0x6E) += 1;
+    }
+    func_0012B890((void **)arg0, 0, 0, *(s16 *)(arg0 + 0x6C), 0x14, 0, 0.3f);
+    if (*(u16 *)(*(char **)(arg1 + 0xE0) + 0x26C) == 0x78) {
+        func_0012FA18(arg0, 2, 100000.0f);
+    }
+    if (func_0012BA30(arg1, 0, 0) != 0) {
+        func_00131000(arg0, func_0014F7F8);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F7F8);
 
@@ -528,13 +548,13 @@ void func_001507B8(void *arg0) {
 }
 
 extern float D_0035BF20;
-extern void func_0012FA18(void *, float);
 extern void func_0012FB48(void *, int);
 extern void func_0012FAE8(void *, int, int, int, float);
 
-/* ER-014. Arguments Unconfirmed ($a0-$a3 pass through unchanged). */
-void func_00150810(void *a0) {
-    func_0012FA18(a0, D_0035BF20);
+/* ER-014. Arguments Unconfirmed ($a0-$a3 pass through unchanged). ER-100: func_0012FA18 reads $a1, so the
+   wrapper passes its second argument on. */
+void func_00150810(void *a0, s32 a1) {
+    func_0012FA18(a0, a1, D_0035BF20);
 }
 
 /* ER-014. Types and offsets are Unconfirmed readings. */

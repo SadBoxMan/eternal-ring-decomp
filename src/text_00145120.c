@@ -851,7 +851,32 @@ void func_00149C60(void *arg0) {
     func_0014FE10();
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149C80);
+extern void func_0012B1B8(void *, s32, s32, s8);
+extern void func_0014A880();
+extern void func_0014A8B0();
+extern void func_0014A8F8();
+extern void func_0014A940();
+extern void func_00149D50();
+
+/* ER-100: by hand from the m2c draft (store order by search); names, types and offsets are Unconfirmed readings. */
+void func_00149C80(char *arg0) {
+    char *p;
+
+    *(void **)(arg0 + 0xC0) = func_0014A880;
+    *(void **)(arg0 + 0xC4) = func_0014A8B0;
+    *(void **)(arg0 + 0xC8) = func_0014A8B0;
+    *(void **)(arg0 + 0xF8) = func_0014A8F8;
+    *(void **)(arg0 + 0xCC) = func_0014A940;
+    func_0012F978(*(void **)arg0, 0xD, 2);
+    func_0012B1B8(*(void **)arg0, 0xA, 0xC, 2);
+    func_0012B1B8(*(void **)arg0, 6, 9, 2);
+    func_0012B1B8(*(void **)arg0, 0xE, 0x11, 2);
+    p = *(char **)arg0;
+    if (*(f32 *)(p + 0x12C) == 0.0f) {
+        *(f32 *)(p + 0x12C) = 1000.0f;
+    }
+    func_00131000(arg0, func_00149D50);
+}
 
 extern void func_0014A3B0(void **, void *);
 extern void func_00149DD8(void **, void *);
@@ -934,7 +959,6 @@ void func_00149EE8(void **arg0, char *arg1) {
     }
 }
 
-extern void func_00149D50();
 
 /* ER-100: by hand; names, types and offsets are Unconfirmed readings. The address-taken local only stops the
    sibling call (ruling 3.14: the game has jal where plain C gives a tail j). */
