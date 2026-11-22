@@ -61,7 +61,29 @@ void func_0014CC68(void **arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014CCD0);
+extern void func_0014D8F8(void *, s32);
+extern void func_0014D5F0();
+extern void func_0012E820(char *, float, float);
+extern s32 func_0012B7C0(void **, u32, s32, s32, s16, s32, f32 fparg0);
+extern f32 D_0035BE3C;
+
+/* ER-085: by hand from the m2c draft; `case 2:` beside the default gives the game's compare tree (ruling 3.9, extended Sun 22 Nov 2026); names, types and offsets are Unconfirmed readings. */
+void func_0014CCD0(void **arg0) {
+    switch (*(s16 *)((char *)arg0 + 0x6E)) {
+    case 0:
+        func_0014D8F8(arg0, (s32) func_0014D5F0);
+        *(s16 *)((char *)arg0 + 0x6E) += 1;
+        /* fallthrough */
+    case 1:
+        func_0012E820((char *)arg0 + 0x4C, (D_0035BE3C * 3.1415927f) / 180.0f, 10.0f);
+        if (func_0012B7C0(arg0, 3U, 1, *(s16 *)((char *)arg0 + 0x6C), 0x28, 0, 0.2f) != 0) {
+            *(s16 *)((char *)arg0 + 0x6E) += 1;
+        }
+        break;
+    case 2:
+        break;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014CD88);
 
