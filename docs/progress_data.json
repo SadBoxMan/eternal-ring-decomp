@@ -959,7 +959,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium (high without ER-069)",
-      "waits_on": "ER-069",
+      "waits_on": "nothing (ER-069 merged)",
       "notes": ""
     },
     {
@@ -1067,6 +1067,33 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium (high for stack-buffer ones)",
+      "waits_on": "nothing",
+      "notes": ""
+    },
+    {
+      "code": "ER-086",
+      "title": "Place the GCSE-parked functions of text_001000C0 (func_0012EEB0 first)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium (high for 113C30 / 113ED8)",
+      "waits_on": "nothing (ruling 3.11 merged)",
+      "notes": ""
+    },
+    {
+      "code": "ER-087",
+      "title": "Census MATCHes and GCSE-parked functions in text_0013DBC0 / text_0014E2E8",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "nothing (ruling 3.11 merged)",
+      "notes": ""
+    },
+    {
+      "code": "ER-088",
+      "title": "Re-run m2c_bulk --plain after -fno-edge-lcm (fold into bulk cards)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
       "waits_on": "nothing",
       "notes": ""
     }
