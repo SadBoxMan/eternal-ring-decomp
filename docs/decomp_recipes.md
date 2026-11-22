@@ -395,6 +395,14 @@ MATCHes of `tools/m2c_bulk.py --plain`, 10 more after aligning declarations, `fu
 | `func_0013FCF8` | GCSE hoists the `u16` reload of `+0x6E` above the table (2.11's toolchain difference; with `-fno-gcse`, diagnostic only, only one block's store order is left); its double `D_00354968` has `.align 3` now |
 | `func_0013AA28`, `func_0013BD90`, `func_0013DF90` | each reads a double constant from a standalone `INCLUDE_RODATA` (`D_00354800`, `D_00354848`, `D_00354928` / `D_00354930`): `tools/split.py`'s order check blocker of 2.10 (`func_001371C0`). Not drafted by hand |
 
+### 2.13 Bulk placement in `text_00150878` (ER-060, Sun 22 Nov 2026; Confirmed by `make regress`, 230 functions)
+
+| Lesson | Proved by |
+|---|---|
+| **A callee's return type matters even when the value is unused.** With `extern void func_001132B0(void *);` a caller that calls it as a statement kept a later value in `$v0`; the game uses `$v1` (why: a reading, gcc treats `$v0` as set by an `s32` call). `extern s32 ...` matches in that caller and in the six other callers | `func_001BE7E8` (the other callers: func_00195E88 func_00196CE0 func_00197368 func_0019A3E0 func_0019BDC0 func_001BE7E8 func_001BE830) |
+| **A callee called with different argument counts in one file** (a variadic-looking routine): declare it without a prototype, `extern s32 f();`; integer and pointer arguments compile the same | `func_001CB808`, `func_001E9D08` callers |
+| **A float passed to a `double` parameter** gives the game's `jal fptodp` between the float call and the callee: write the plain call with the prototype `(void *, double)` | `func_001BEF18` |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.

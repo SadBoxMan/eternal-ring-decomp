@@ -4434,7 +4434,14 @@ void func_001BEF10(s32 *arg0) {
     *arg0 = 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BEF18);
+extern void func_001BE0B0(void *, double);
+
+/* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); the float-to-double conversion written as a cast (recipes
+   2.10). Names, types and offsets are Unconfirmed readings. */
+void func_001BEF18(void *arg0) {
+    func_001BE0B0((char *)arg0 + 0x14, func_001E41B8(*(f32 *)((char *)arg0 + 8), *(f32 *)((char *)arg0 + 0x10)));
+    *(s32 *)arg0 = 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BEF68);
 

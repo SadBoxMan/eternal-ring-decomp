@@ -388,6 +388,69 @@ hand versions are in recipes 2.12.
 `cmpfunc` limit seen again: a `%lo` of a function address (`.text`-relative) whose `%hi` sits in another block is
 "no HI16 before it" (8 functions here); all proven by `make regress`.
 
+### 6.5 `text_00150878` (ER-060 part 1, Sun 22 Nov 2026)
+
+`--plain` over the whole file (1,448 `INCLUDE_ASM` functions; default `harvest` context, 1,628 harvested
+signatures, par 4), with the ER-034 toolchain. **230 functions placed, 13,260 bytes, `make regress` (-j4) green after
+each of five batches and on a clean split at the end** (commit `af8f897` for 229, then `func_001BEF18`); 1,448 ->
+1,218 `INCLUDE_ASM`. Bands placed: 3-8 91, 9-16 54, 17-32 66, 33-64 18, 65-128 1; 6 with `div.s` / `sqrt.s`
+(`func_001528E0`, `func_0015A228`, `func_0015C6C0`, `func_0015D7C0`, `func_00176FF8`, `func_001A5360`).
+
+| Stage | Functions |
+|---|---|
+| m2c gave a draft | 1,447 (all but `func_00179B30`, below) |
+| draft compiles | 1,068 |
+| masked MATCH | 234 |
+| plain MATCH | 230 |
+| placed, regress green | 229 + `func_001BEF18` by hand = 230 |
+| same size, 1-2 words differ (near misses, not tried) | 48 |
+| same size, 3-8 / 9+ words differ | 71 / 116 |
+| size differs | 598 |
+
+Comment above each: `ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed
+readings.` (the tool writes `ER-054:`; the tag was changed in the copied drafts, the tool is unchanged).
+
+**Declarations aligned by hand** (two drafts of one file guessed a callee differently; build error "conflicting
+types"; no code change, each proven by regress):
+
+| Callee | Kept | Note |
+|---|---|---|
+| `func_0012B890` | `(void **, s32, s32, s32, s16, s32, f32)` (as `text_00145120`) | the other draft had `s32` for a constant argument |
+| `func_0012C360` | `void *(void *, s32, s32, s32, void *)` | |
+| `func_00153380` | `s32 (void *)` | value unused at both calls |
+| `func_001132B0` | **`s32`** `(void *)` | a `void` prototype changed `func_001BE7E8`'s registers (`$v0` instead of `$v1`): see recipes 2.13 |
+| `func_001CB808`, `func_001E9D08` | `extern s32 f();` (no prototype) | called with 2 / 3 and 2 / 4 integer or pointer arguments (variadic: Unconfirmed) |
+| `func_00131088` | `(void *)`; `func_00156F80` passes `arg0` (pass-through, recipes 2.9) | the draft called it with none |
+| `func_0014FE10` | `(void *, s32)`; `func_001546F8` takes `arg1` too and passes both | ER-049's `(void)` clone prototype again (ER-061) |
+
+`func_001BEF18`: its draft called `func_001E9A10` by address, which ER-041 named `fptodp` (link error after the
+merge). Written as plain C, the conversion as the argument of `extern void func_001BE0B0(void *, double);`
+(recipes 2.10); placed, regress green.
+
+**Not placed:**
+
+| Function | Cause |
+|---|---|
+| `func_00179B30` | **cc1 loops for ever** on every draft context of it (killed by hand after 6,457 s and 27,150 s of CPU; the run then finished). `m2c_bulk.py` has no compile timeout (follow-up) |
+| `func_00161568` | plain form: parse error |
+| `func_001C46C8` | plain form: too many arguments (declaration clash) |
+| `func_0017D290`, `func_001BF5B0` | plain form: `s128` (no 128-bit type in `common.h`) |
+| `func_00177098` | VU0 (the file's only VU0 function); not a MATCH |
+| 33 jump-table functions | none a MATCH as drafts |
+| ER-041's seven: `func_00178C60` (size -351 instr), `func_001BB2C8`, `func_001BB750` (compile error: m2c's macro), `func_0015C0E0` (too many arguments), `func_0015BE00` (+1 instr), `func_00160CE0` (-9), `func_00189810` (-1) | rerun with the ER-041 names (label `er060b`): drafts call `dpadd` / `sqrtf` ... by name; need plain double C by hand (recipes 2.10) |
+
+Near misses (same size, 1-2 words; not tried): func_00150A30 func_00153DA0 func_00154BD0 func_00157B08 func_00159830
+func_0015D3E8 func_0015E628 func_0015E988 func_00163C68 func_00164220 func_00164C08 func_00164C50 func_00168328
+func_00168358 func_00169480 func_001766E0 func_0017A2E0 func_0017CC28 func_0017D3E8 func_0017D6F0 func_001835E0
+func_00189198 func_0018C730 func_0019BA90 func_0019C078 func_001AB480 func_001AED88 func_001AEF90 func_001AF2E8
+func_001B42B0 func_001B4BE8 func_001B5E68 func_001B77B8 func_001BBD40 func_001BBEB8 func_001BCD68 func_001BCF48
+func_001BE1E0 func_001BF260 func_001BFEB8 func_001C0570 func_001C1310 func_001C1580 func_001C4F68 func_001C4FF0
+func_001C53D0 func_001C8920 func_001C8928.
+
+**Time.** Bulk run 03:25-03:53 ET for 1,447 functions (about 1.2 s per function at par 4), then stalled on the
+`cc1` loop until 13:17; placement and five regress rounds 13:22-13:25, full regress and commit gate after. The run's
+folder holds 32,000 object files: copy only `results.*` and `c/` out of `build/` (copying all of it took minutes).
+
 ## 7. Not verified
 
 - The tools were checked on the functions named above only; relocation types other than the five handled
