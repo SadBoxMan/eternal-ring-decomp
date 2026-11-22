@@ -1081,11 +1081,11 @@
     },
     {
       "code": "ER-087",
-      "title": "Census MATCHes and GCSE-parked functions in text_0013DBC0 / text_0014E2E8",
+      "title": "GCSE-parked functions in text_0013DBC0 / 0013A410 / 0013B748 (func_0013FCF8, 0013AA28, 0013BD90, 0013DF90, 00145D08)",
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "nothing (ruling 3.11 merged)",
+      "waits_on": "nothing (ER-069 done)",
       "notes": ""
     },
     {
