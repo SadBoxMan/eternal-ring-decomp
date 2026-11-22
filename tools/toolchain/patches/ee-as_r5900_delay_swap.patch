@@ -1,0 +1,36 @@
+Ringsmith ER-070 (ruling LuciDin, docs/decomp_recipes.md 3.12)
+
+ee-as for the r5900: fill a reorder-mode branch delay slot by swapping the previous instruction, as gas
+means to, except a div.s / sqrt.s. In append_insn the last test of the long "can not swap" list reads
+`(prev_pinfo && INSN_SYNC)` (a logical and), which is true for every instruction with any pinfo flag, so
+this 1999 gas never swapped anything into a delay slot: every branch gcc left in reorder mode got a nop.
+For the r5900 the test becomes `(prev_pinfo & INSN_SYNC)` (only sync / sync.l / sync.p refuse, as the
+comment above it says), and a div.s or sqrt.s is never moved into a slot (ee-gcc's "nop; nop; div.s",
+ruling 3.7; the game has none of its 832 in a slot). Other CPUs keep the old text. In .set noreorder
+nothing changes (gas never swaps there).
+
+Evidence (SLUS_200.15, whole .text): every mtc1 whose register is used just before a reorder-mode branch
+has the use in the slot (285 sites in the asm still unplaced, 0 with a nop); a census of all 28,567 game
+branches with a nop slot finds every one explained by gas's other refusal rules, gcc's own noreorder
+blocks and short-loop pads, or div.s / sqrt.s, except one $gp store that gas keeps in a relaxable frag
+(which it never swaps). Without the div.s / sqrt.s exception the whole ELF breaks (12 bytes short). A
+documented reconstruction of the original assembler's behaviour, not Sony's code.
+
+Applies to SSXModding/ps2-ee-toolchain b595ded, directory ee/ (patch -p1 -d <src>/ee), with or without
+the other three ee-as patches.
+
+--- a/gas/config/tc-mips.c
++++ b/gas/config/tc-mips.c
+@@ -2097,7 +2097,11 @@
+ 	      || (mips_opts.mips16 && prev_insn_fixp)
+ 	      /* If the previous instruction is a sync, sync.l, or 
+ 		 sync.p, we can not swap. */
+-	      || (prev_pinfo && INSN_SYNC))
++	      || (mips_cpu == 5900 /* Ringsmith ER-070 */
++		  ? ((prev_pinfo & INSN_SYNC) != 0
++		     || prev_insn.insn_mo->match == 0x46000003	/* div.s */
++		     || prev_insn.insn_mo->match == 0x46000004)	/* sqrt.s */
++		  : (prev_pinfo && INSN_SYNC)))
+ 	    {
+ 	      /* We could do even better for unconditional branches to
+ 		 portions of this object file; we could pick up the
