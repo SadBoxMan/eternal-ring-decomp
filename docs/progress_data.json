@@ -11,7 +11,7 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 282,
+          "done": 285,
           "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
@@ -21,7 +21,7 @@
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 13280,
+          "done": 13920,
           "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
@@ -870,7 +870,7 @@
       "track": "decomp",
       "model": "Opus, medium (high for the parked four)",
       "waits_on": "nothing for the first 11; ER-041 for the 23",
-      "notes": "Part 1 (text_001000C0.c) done Sun 22 Nov 2026: 2 matched (func_0012BF08, func_0012BDA8; +564 bytes); 5 parked (GCSE reload: func_00113C30, func_00113ED8, func_00131D40; gas mtc1 delay-slot swap: func_00126F00; func_00124BE8 not attempted in depth). Still open: the 10 untried in text_00150878 / text_001343E8 / text_00145120 and parked func_00142788, func_0019B6D0, func_00163158; 23 wait on ER-041. Recipes 2.11."
+      "notes": "Part 1 (text_001000C0.c, with the ER-041 names) done Sun 22 Nov 2026: 5 matched (func_0012BF08, func_0012BDA8, func_0012D568, func_0012D470, func_0012D7C0; +1,204 bytes); parked: GCSE reloads (func_00113C30, func_00113ED8, func_00131D40, func_0012D600, func_0012EBB0, func_0012EEB0), gas mtc1 delay-slot swap (func_00126F00); not attempted: func_00124BE8, func_00120EF0, func_0011BB90, func_00119FE0 (large), func_00106A38 (VU0). Still open: the other files' functions. Recipes 2.11."
     },
     {
       "code": "ER-064",
