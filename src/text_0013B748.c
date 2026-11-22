@@ -78,7 +78,16 @@ INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013BA50);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013BBC8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013BD28);
+extern s32 func_0012F8C8(s8 *, s32, s32, s32, s32, f32);
+void func_0013B840(char *a0);
+
+/* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_0013BD28(s8 *arg0) {
+    if (func_0012F8C8(arg0, 1, (s32) *(s16 *)((char *)arg0 + 0x6C), 0x28, 0, 0.07f) != 0) {
+        func_00131000(arg0, func_0013B840);
+    }
+    func_00131140(arg0, func_0013BBC8, NULL, NULL, NULL, NULL);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013BD90);
 
@@ -91,15 +100,35 @@ void func_0013C318(void) {
     func_0012B238();
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013C320);
+extern s32 func_0013C450(void **arg0);
+extern void func_0013C4E0(void **);
+extern s32 func_0014FF38(void *arg0, s32 arg1);
+
+/* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_0013C320(void **arg0) {
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        if (func_0013C450(arg0) != 0) {
+            func_0013C4E0(arg0);
+        }
+    }
+    if (func_0014FF38(arg0, 3) != 0) {
+        func_00131000((s8 *) arg0, func_0013B840);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013C390);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013C3E8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013C438);
+/* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_0013C438(void **arg0, s32 arg1) {
+    *(s8 *)((char *)(*(void **)((char *)(*arg0) + 0xE0)) + 0xA78) = (s8) (arg1 == 0);
+}
 
-INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013C450);
+/* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+s32 func_0013C450(void **arg0) {
+    return *(u8 *)((char *)(*(void **)((char *)(*arg0) + 0xE0)) + 0xA78) == 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013C468);
 
