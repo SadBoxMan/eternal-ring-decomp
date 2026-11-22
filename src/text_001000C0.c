@@ -1577,13 +1577,47 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012EB60);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012EBB0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012EEB0);
+extern void func_001D7820(float *, float *, float);
+extern void func_001D76D0(float *, float *, float);
 
-extern void func_0012EEB0(void);
+/* ER-063 / ER-086: matched with -fno-edge-lcm (ruling 3.11); names, types and offsets are Unconfirmed readings. */
+void func_0012EEB0(float *out, float *src) {
+    float m[16];
+    float e[4];
+    float r[4];
 
-/* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed. */
-void func_0012F158(void) {
-    func_0012EEB0();
+    func_001D75C8((s32)m, (s32 *)src);
+    m[12] = 0.0f;
+    m[13] = 0.0f;
+    m[14] = 0.0f;
+    m[15] = 0.0f;
+    e[0] = 1.0f;
+    e[1] = 0.0f;
+    e[2] = 0.0f;
+    e[3] = 0.0f;
+    func_001C9F60(r, m, e);
+    out[1] = -func_001E41B8(r[2], r[0]);
+    out[2] = func_001E41B8(r[1], sqrtf(r[0] * r[0] + r[2] * r[2]));
+    func_001D7820(m, m, -out[1]);
+    func_001D76D0(m, m, -out[2]);
+    e[0] = 0.0f;
+    e[1] = 0.0f;
+    e[2] = 1.0f;
+    e[3] = 0.0f;
+    func_001C9F60(r, m, e);
+    out[0] = func_001E41B8(-r[1], r[2]);
+    while (3.1415927f < out[0]) out[0] -= 6.2831855f;
+    while (out[0] < -3.1415927f) out[0] += 6.2831855f;
+    while (3.1415927f < out[1]) out[1] -= 6.2831855f;
+    while (out[1] < -3.1415927f) out[1] += 6.2831855f;
+    while (3.1415927f < out[2]) out[2] -= 6.2831855f;
+    while (out[2] < -3.1415927f) out[2] += 6.2831855f;
+}
+
+/* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed.
+   ER-086: passes both pointers on to func_0012EEB0 (recipes 2.13); same code. */
+void func_0012F158(float *arg0, float *arg1) {
+    func_0012EEB0(arg0, arg1);
 }
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012F160);
