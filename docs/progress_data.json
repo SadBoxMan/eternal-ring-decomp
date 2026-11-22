@@ -301,7 +301,7 @@
       "status": "In progress",
       "by": "",
       "text": "First PC build: recompiled EE code + HLE stubs compiles to a Windows exe and boots",
-      "notes": "ER-008 spike (18 Nov 2026): the exe builds and boots into the first PSS movie, then stalled. ER-018 (18 Nov 2026): stall fixed (local PS2Recomp patch: priority-0 threads, libmpeg Background callback, sceGsSetDefDispEnv PMODE); the game's movie player runs and the GS presents frames. ER-029 (19 Nov 2026): VBlank pacing fixed (second local patch; 59.94 Hz measured): the Agetec movie plays its 210 pictures in about 7 s as on PCSX2. ER-043 (19 Nov 2026): the movie now ends as on PCSX2 (libmpeg end checks bound to HLE; third local patch), about 4.5 s of black where the FromSoftware logo belongs, then the opening FMV plays (bottom half of the picture correct). Not a playable boot. Needs: boot to the title screen, the logo stage, GS movie upload path (ER-030), then GS, VU1 checks."
+      "notes": "ER-008 spike (18 Nov 2026): the exe builds and boots into the first PSS movie, then stalled. ER-018 (18 Nov 2026): stall fixed (local PS2Recomp patch: priority-0 threads, libmpeg Background callback, sceGsSetDefDispEnv PMODE); the game's movie player runs and the GS presents frames. ER-029 (19 Nov 2026): VBlank pacing fixed (second local patch; 59.94 Hz measured): the Agetec movie plays its 210 pictures in about 7 s as on PCSX2. ER-043 (19 Nov 2026): the movie now ends as on PCSX2 (libmpeg end checks bound to HLE; third local patch), about 4.5 s of black where the FromSoftware logo belongs, then the opening FMV plays (bottom half of the picture correct). ER-046 (22 Nov 2026): the opening FMV ends (fourth local patch: video ends on its sequence end code), the boot reaches the title screen loop, which draws nothing (black), then the attract movies. Not a playable boot. Needs: title screen and logo drawing (ER-058 / ER-047), GS movie upload path (ER-030), then GS, VU1 checks."
     }
   ],
   "tasks": [
@@ -713,11 +713,11 @@
     {
       "code": "ER-046",
       "title": "Recomp boot to the title screen (opening FMV to its end)",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, high",
       "waits_on": "one recomp card at a time",
-      "notes": ""
+      "notes": "Done 22 Nov 2026: opening FMV ends, boot reaches the title screen stage (black, ~22 s, then attract movies). Cause: EROPEN.PSS = 925 x 64 KiB + 4, player stops demuxing with <5 bytes left, so the program end code never reached the HLE. Fourth local patch er046_mpeg_seqend.patch (video ends on its own sequence end code B7, sceRead games only). recomp_spike.md 11"
     },
     {
       "code": "ER-047",

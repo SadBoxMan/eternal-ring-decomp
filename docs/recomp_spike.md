@@ -355,7 +355,7 @@ anywhere (the PS2Recomp fork waits on the GPL-3.0 decision, ER-019).
 
 ### 8.7 Not verified / Unconfirmed
 
-- That the first stream is `AGETEC.PSS` and the second `EROPEN.PSS` (layout and screenshot match; no file log). *ER-043: the recomp now plays the second movie too, and it shows the opening FMV; file names still inferred.*
+- That the first stream is `AGETEC.PSS` and the second `EROPEN.PSS` (layout and screenshot match; no file log). *ER-043: the recomp now plays the second movie too, and it shows the opening FMV; file names still inferred.* *ER-046: confirmed by the code: `func_00101F20` plays `"AGETEC.PSS"`, then `"EROPEN.PSS"` (string literals at `0x00353FE0` / `0x00353FF0`).*
 - The SDK-sample reading of the player and every Unofficial name in 8.2.
 - That calling Background once per `sceMpegGetPicture` matches how often real libmpeg calls it (it is called while
   waiting on the IPU, so likely several times per picture); enough here, audio rate not measured.
@@ -586,5 +586,100 @@ diagnostic was removed.
   nothing visible is drawn there in the recomp, and what draws the logo on the PS2 was not looked up.
 - One extra `sceMpegGetPicture` with no picture after the last one (upstream's presentation rule in HLE IsEnd), so
   one old slot is shown for one display period at the very end; whether the real decoder does the same: not checked.
-- The opening FMV's own end and the title screen: the runs stopped at 17 s and 24 s.
+- The opening FMV's own end and the title screen: the runs stopped at 17 s and 24 s. *ER-046 (section 11): the FMV did
+  not end (its 4-byte program end code is never fed); fixed, the boot now reaches the title stage.*
 - PCSX2 was not run again (the comparison uses ER-018's PINE log); sound never heard (muted); `ps2x_tests` not run.
+
+## 11. ER-046: boot to the title screen (Thu 19 and Sun 22 Nov 2026)
+
+Written by ER-046 (Opus 5.5, high), work Thu 19 Nov 22:00 to 22:35 and Sun 22 Nov 01:56 to about 02:30 Eastern.
+Question: does the opening FMV end and the boot reach the title screen (reference boot sequence (4))? **Short answer:
+the FMV did not end, for a reason that only this file has: its last 4 bytes, the program end code, are never fed to
+the demuxer. Fixed in a fourth local patch (`C:\rs\recomp\patches\er046_mpeg_seqend.patch`, described in
+`tools/recomp/ER-046_mpeg_seqend_patch.md`): the FMV now ends as on PCSX2 and the boot reaches the title screen
+stage, which shows nothing (black, where PCSX2 shows the white title screen); after about 22 s the game goes back to
+its movies (attract loop).**
+
+### 11.1 The boot flow (read from our split's asm; role names Unofficial)
+
+`func_00101F20` runs the whole start-up in one function: `func_001C4FF0("AGETEC.PSS", ...)` (0x00101F7C), a loop
+of `0x10E` = **270** frames at 0x00102018-0x00102300 (counter at `0x130(sp)`; this is the FromSoftware logo stage,
+4.5 s, which matches the recomp's black gap, 10.4), then `func_001C4FF0("EROPEN.PSS", ..., 1)` (0x00102328; the last
+argument makes it skippable: after 16 pictures, Start or Cross (`0x4008` in the pad word `D_0035B828`) asks the
+player to stop), or `"ERDEMO.PSS"` instead (0x0010234C) when `0x14C(sp)` is non-zero; then the title setup from
+0x00102360 and the title loop from 0x001023F0, which starts each frame with `func_00104378` (a VSync wait through
+`func_001CEBE8(0)`) and reads the pad. The two file names are string literals at `0x00353FE0` / `0x00353FF0`, so
+8.7's inference is confirmed.
+
+### 11.2 The blocker
+
+The player's main loop `func_001C5188` (8.2, 10.1) starts with the stream size from `sceLseek(fd, 0, SEEK_END)`
+(`func_001C7470`), reads 64 KiB at a time with `sceRead` while the ring has room, subtracts what
+`sceMpegDemuxPssRing` consumes, and leaves the loop **as soon as fewer than 5 bytes are left** (`slti $19, 5` at
+0x001C52E0 / 0x001C5318). On the PS2 the end of input is then the sequence end code the game writes into its own
+video buffer (`func_001C8A30`, 10.1), which the HLE does not read. ER-043's rule waits for the PSS program end code
+`00 00 01 B9` instead.
+
+| File | Size | Size mod 64 KiB | Result |
+|---|---|---|---|
+| `AGETEC.PSS` | 6,766,596 | 16,388 | the last read carries real data plus the end code; run 3: the last demux call took 212,996 bytes, total exactly 6,766,596, end seen |
+| `EROPEN.PSS` | 60,620,804 | **4** | the last full read leaves only the 4-byte end code; the count drops to 4 and the loop ends before reading it; run 3: no demux call ever saw the end |
+| `ERDEMO.PSS`, `TEXT0.PSS`, `TEXT1.PSS` | | 16,388 | not affected (not run) |
+| `STAFF.PSS` | | 49,156 | not affected (not run) |
+
+So the decoder thread (thread 5, entry `func_001C8B48`) sat in the HLE `sceMpegGetPicture` wait for ever (run 2:
+status Waiting, reason Mpeg, pc 0x001C8C0C) after the 1,874th picture, the videoDec state stayed 2, the playing flag
+stayed 1, and the main thread looped at the end check 0x001C5368 (10.1).
+
+### 11.3 The fix (LuciDin's choice, Sun 22 Nov 2026, from three options: "Video B7 = end")
+
+Every PSS file on the disc has exactly one video sequence, and its elementary stream ends with the sequence end
+code `00 00 01 B7` as the last 4 bytes of the last video packet (only audio and padding follow: 17,451 bytes in
+AGETEC, 255,101 in EROPEN). The HLE now counts the video as ended when the video data fed so far ends with that
+code (any later video data clears it), drains the decoder, stops `sceMpegGetPicture` from waiting and lets
+`sceMpegIsEnd` pass, for games that never start a `sceCdSt` stream (ER-043's case); `sceCdSt` games keep upstream's
+rule. Audio after the code is still passed to the game. Details in `tools/recomp/ER-046_mpeg_seqend_patch.md`. The
+other two options were a "short tail" rule (needs the file size in the MPEG HLE) and writing it down only.
+
+### 11.4 Runs (muted, window on the secondary monitor, killed by PID; LuciDin's yes, runs paused by him after run 4)
+
+| Run | Build | Result |
+|---|---|---|
+| 1 (Thu 22:12, 150 s) | ER-043 final | FMV visible from about 14 s to 65 s (bottom half), then black with static tiles to the end |
+| 2 (22:16, 110 s) | + temporary state log (scheduler, every 60 VBlanks) | 11.2: FMV 1,874 pictures from VBlank 774 to about 4560, then stuck |
+| 3 (22:20, 85 s) | + temporary demux log | 11.2: AGETEC fully demuxed with end seen, EROPEN's end never seen |
+| 4 (22:23, 85 s) | same | ran slower (1,805 pictures at VBlank 5040), did not reach the end |
+| 5 (Sun 01:59, 150 s) | fix, no logs | first 35 s as before; from 40 s the screen copy caught another window in front of the game, so those captures were deleted |
+| 6 (02:02, 120 s) | fix + state log; capture with PrintWindow (the game window only) | **state 3 at VBlank 4560**, playing flag 0, frameCount reset (as PCSX2, 9.3); main thread at 0x001043A4 (inside `func_00104378`, the title loop's VSync wait) from VBlank 4560 to about 5900; the player starts again at about 5900 (Agetec logo at 100 s, about 460 VBlanks) and at about 6660 (gameplay footage with a HUD at 115 s) |
+| 7 (02:05, 110 s) | final build (fix, no logs) | the FMV still playing at 110 s (slower than the other runs; cause not known) |
+| 8 (02:08, 150 s) | final build | FMV to about 90 s; **plain black from 105 s to 135 s** (title stage, no static tiles); static tiles again at 150 s (player running) |
+
+Why the main thread at 0x001043A4 is the title loop and not the logo loop (both call `func_00104378` first): the
+logo loop runs before `EROPEN.PSS` and the EROPEN call returns only to the title setup at 0x00102358 (11.1), and the
+log shows the main thread there right after the FMV's state 3, with the same stack pointer as in the logo stage
+(`0x01EFFCA0`, the frame of `func_00101F20`).
+
+### 11.5 Files (outside git)
+
+| File | What |
+|---|---|
+| `C:\rs\recomp\patches\er046_mpeg_seqend.patch` | the `MPEG.cpp` change as a diff against its ER-043 state, CRLF kept (SHA-1 20013ace...); checked: applies there to a file identical to `game_build`'s, reverse-applies on `game_build` |
+| `C:\rs\recomp\work_er046\` | `pre_diag\` (EeScheduler.cpp and MPEG.cpp as ER-043 left them), `base\` / `fixed\` (the patch ends), `check\` (apply test) |
+| `C:\rs\recomp\scripts\er046_run.ps1`, `er046_run_pw.ps1` | run scripts (screen copy / PrintWindow; both now start the exe with its console window hidden, per LuciDin's rule of 22 Nov 2026: not yet tried in a run); `sheet.py` (contact sheets), `er046_fix.py` / `er046_fix2.py` (the edit, CRLF-safe), `er046_diag2.py` |
+| `C:\rs\recomp\er046_r1_*.txt` ... `er046_r8_*.txt`, `C:\rs\recomp\shots\er046_r*` | logs, screenshots, contact sheets; build logs `C:\rs\recomp\er046_build1_diag.txt` ... `er046_build6_final.txt` |
+
+`EeScheduler.cpp` is back to its ER-043 state (byte-identical to `pre_diag\`); the final exe has no diagnostics.
+
+### 11.6 Not verified / Unconfirmed
+
+- PCSX2 was not run: how long the title screen waits before the attract movies, and which movies follow (the
+  recomp shows the Agetec logo, then gameplay footage with a HUD, likely `ERDEMO.PSS`: Unconfirmed; the flow from the
+  title loop back to the movies was not traced).
+- The title screen picture: nothing is visible (black) where PCSX2 shows the white title screen; not looked into
+  (picture paths, ER-030 / ER-047 area).
+- Run-to-run timing: the FMV ended at about 77 s (run 6) and about 90 s (run 8), and run 7 was slower still; not
+  explained (the host clock drives guest time, 9.2; capture stalls or host load are guesses).
+- That real libmpeg ends on the stream's own `B7` the same way (the game's own `B7` follows it at once, so the real
+  decoder would most likely stop at the same picture): Unconfirmed.
+- Sound never heard (muted); the console window during runs 5 to 8 (the scripts did not hide it then); `ps2x_tests`
+  not run.
