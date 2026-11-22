@@ -247,7 +247,19 @@ INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139A70);
 
 INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139AD0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139AF8);
+extern s32 func_00130780(s8 *);
+
+/* ER-078: from the m2c draft, the two flag stores in game order. Names, types and offsets Unconfirmed. */
+s32 func_00139AF8(s8 *arg0) {
+    s32 n;
+
+    n = func_00130780(arg0);
+    if (n < 4) {
+        *(s8 *)(arg0 + 0xD) = 1;
+        *(s8 *)(arg0 + 0xE) = 1;
+    }
+    return n;
+}
 
 INCLUDE_RODATA("asm/nonmatchings/text_001388E8", D_00354788);
 

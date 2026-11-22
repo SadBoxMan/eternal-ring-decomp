@@ -89,8 +89,8 @@ INCLUDE_DATA("asm/nonmatchings/text_0013DBC0", D_0032FEE0);
 INCLUDE_DATA("asm/nonmatchings/text_0013DBC0", D_0032FEF0);
 
 extern void func_0013E760(void);
-extern void func_0013E678(void);
-extern void func_0013E758(void);
+extern void func_0013E678(void *, void *);
+extern void func_0013E758(void *);
 extern void func_0013DCF0(void);
 extern void func_0013E8C8(char *);
 extern int func_00150280(char *);
@@ -155,9 +155,44 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E2F0);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E410);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E678);
+extern int func_0012E568(int, int);
+extern f32 func_0012E320(s32 *, s32 *, s32, s32, s32);
+void func_0013E818(void *);
+extern void func_0012FB48(void *, s32);
+extern void func_0012B218(void *, int);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E758);
+/* ER-078: from the m2c draft, the four stores in game order. Two random values (func_0012E568) drive two eased
+   angles (func_0012E320) written into the object at arg1 + 0xE0. Names, types and offsets Unconfirmed. */
+void func_0013E678(void *arg0, void *arg1) {
+    f32 a;
+    f32 b;
+    f32 nb;
+    s32 r1;
+    s32 r2;
+    char *e;
+
+    if (*(s8 *)((char *)arg0 + 0xD) != 0) {
+        r1 = func_0012E568(0x1E, 0x32);
+        r2 = func_0012E568(0x1E, 0x2D);
+        a = func_0012E320((s32 *)((char *)arg0 + 0x20), (s32 *)((char *)arg0 + 0x28), r1, -0xA, 0x3B);
+        b = func_0012E320((s32 *)((char *)arg0 + 0x24), (s32 *)((char *)arg0 + 0x2C), r2, -0xA, 0x3B);
+        e = *(char **)((char *)arg1 + 0xE0);
+        nb = -b;
+        *(f32 *)(e + 0x914) = -a;
+        *(f32 *)(e + 0xF54) = a;
+        *(f32 *)(e + 0x2D4) = b;
+        *(f32 *)(e + 0x234) = nb;
+        func_0013E818(arg0);
+    } else {
+        func_0012FB48(arg0, 0);
+    }
+    func_0012B218(arg0, 1);
+}
+
+/* ER-078: by hand (m2c ignores a tail j's delay slot): passes its object on with 1. Names Unconfirmed. */
+void func_0013E758(void *arg0) {
+    func_0012FB48(arg0, 1);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E760);
 
@@ -208,15 +243,19 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F068);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F128);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F258);
+void func_0013F280(void *arg0, s32 arg1);
+
+/* ER-078: by hand (m2c ignores a tail j's delay slot): passes its object on with 1. Names Unconfirmed. */
+void func_0013F258(void *arg0) {
+    func_0013F280(arg0, 1);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F260);
 
-extern void func_0012FB48(void);
 
 /* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed. */
-void func_0013F280(void) {
-    func_0012FB48();
+void func_0013F280(void *arg0, s32 arg1) {
+    func_0012FB48(arg0, arg1);
 }
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F288);
@@ -269,7 +308,6 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F580);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F748);
 
-extern void func_0012B218(void *, int);
 extern void func_001407F0(void *, void *);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
@@ -462,7 +500,6 @@ void func_001416B0(void) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_001416B8);
 
-extern int func_0012E568(int, int);
 extern int func_00130780(char *);
 extern void func_001417E8(void **);
 
@@ -800,7 +837,10 @@ void func_00144930(void *arg0, void *arg1) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_001449D0);
+/* ER-078: by hand (m2c ignores a tail j's delay slot): passes its object on with 1. Names Unconfirmed. */
+void func_001449D0(void *arg0) {
+    func_0012FB48(arg0, 1);
+}
 
 extern s32 func_0014FF58(void **arg0, s32 arg1);
 extern f32 func_00144D18(void *arg0, s32 arg1);
