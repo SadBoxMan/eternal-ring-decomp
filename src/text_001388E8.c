@@ -42,7 +42,74 @@ void func_001389B8(s8 *arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00138A20);
+extern s32 func_00139608(s8 *arg0, s32 arg1);
+extern int func_0012E568(int, int);
+extern void func_00139640(void *arg0);
+extern s32 func_00139650(s8 *, s32);
+extern void func_001389B8();
+extern void func_00138CB0();
+extern void func_00138D50();
+extern s32 func_00139AF8(s8 *);
+extern void func_00131000(char *, void *);
+
+/* ER-072: two jump tables (5 entries each) by hand from the m2c draft. A state handler (a reading): counts down
+   +0x14 each frame and steps the state at +0x6E; state 2 switches on func_00139AF8's choice to leave for
+   func_00138D50 / func_00138CB0 / func_001389B8 or go to state 3. Names, types and offsets Unconfirmed. */
+void func_00138A20(s8 *arg0, s32 arg1) {
+    *(s8 *)(arg0 + 0xB) = 1;
+    *(s32 *)(arg0 + 0x14) -= 1;
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        if (func_00139608(arg0, *(s16 *)(arg0 + 0x6C)) != 0) {
+            *(s32 *)(arg0 + 0x14) = func_0012E568(0x4B0, 0x708);
+            *(s16 *)(arg0 + 0x6E) = 1;
+        }
+        break;
+    case 1:
+        *(s32 *)(arg0 + 0x10) = func_0012E568(0x1E, 0x78);
+        *(s16 *)(arg0 + 0x6E) = 2;
+    case 2:
+        *(s32 *)(arg0 + 0x10) -= 1;
+        switch (func_00139AF8(arg0)) {
+        case 0:
+            func_00131000(arg0, func_00138D50);
+            break;
+        case 1:
+            if (*(s16 *)(arg0 + 0x6C) < 0x79) {
+                *(s16 *)(arg0 + 0x6E) = 3;
+            } else {
+                func_00131000(arg0, func_00138CB0);
+            }
+            break;
+        case 2:
+            if (*(s32 *)(arg0 + 0x14) < 0) {
+                func_00131000(arg0, func_00138CB0);
+            } else if (*(s32 *)(arg0 + 0x10) < 0) {
+                *(s16 *)(arg0 + 0x6E) = 3;
+            }
+            break;
+        case 3:
+            *(s16 *)(arg0 + 0x6E) = 3;
+            break;
+        case 4:
+            func_00131000(arg0, func_001389B8);
+            break;
+        }
+        break;
+    case 3:
+        if (*(s32 *)(arg0 + 0x44) != 0) {
+            func_00131000(arg0, func_00138CB0);
+            return;
+        }
+        func_00139640(arg0);
+        *(s16 *)(arg0 + 0x6E) = 4;
+    case 4:
+        if (func_00139650(arg0, arg1) != 0) {
+            *(s16 *)(arg0 + 0x6E) = 1;
+        }
+        break;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00138BE0);
 
@@ -149,8 +216,6 @@ INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139AD0);
 INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139AF8);
 
 INCLUDE_RODATA("asm/nonmatchings/text_001388E8", D_00354788);
-extern s32 func_00139AF8(s8 *);
-extern void func_00131000(char *, void *);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void* func_00139B38(s8 *arg0, void *arg1, void *arg2, void *arg3, void *arg4, void *arg5) {
@@ -217,7 +282,52 @@ void func_00139E70(s8 *arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139EE0);
+extern int func_00131140(char *, void *, void *, void *, void *, void *);
+extern void func_00130CE0(char *, float);
+extern void func_00130848(s8 **, f32);
+extern f32 func_00130AD0(s8 *, f32, f32);
+extern void func_0013A050();
+extern void func_0013A1A0();
+extern f32 D_0035BA5C;
+extern f32 D_0035BA60;
+extern f32 D_0035BA64;
+
+/* ER-072: jump table (5 entries) by hand from the m2c draft. A state handler (a reading): unless func_00131140
+   leaves, steps the counter at +0x6E through five states; states 1 and 3 fall through into 2 and 4, which wait for
+   the value 11 / 44 at +0x8C of arg1's +0xE0 object. Names, types and offsets Unconfirmed. */
+void func_00139EE0(s8 *arg0, void *arg1) {
+    if (func_00131140(arg0, func_0013A1A0, NULL, NULL, NULL, func_0013A050) != 0) {
+        return;
+    }
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        func_00130CE0(arg0, 25.0f);
+        if (func_0012F8C8(arg0, 1, *(s16 *)(arg0 + 0x6C), 10, 1, 0.25f) != 0) {
+            *(s16 *)(arg0 + 0x6E) += 1;
+        }
+        break;
+    case 1:
+        func_00130848((s8 **)arg0, D_0035BA5C);
+        *(s16 *)(arg0 + 0x6E) += 1;
+    case 2:
+        func_00130CE0(arg0, 25.0f);
+        func_00130AD0(arg0, D_0035BA60, D_0035BA64);
+        if (*(u16 *)(*(char **)((char *)arg1 + 0xE0) + 0x8C) == 11) {
+            *(s16 *)(arg0 + 0x6E) += 1;
+        }
+        break;
+    case 3:
+        func_00130848((s8 **)arg0, D_0035BA5C);
+        *(s16 *)(arg0 + 0x6E) += 1;
+    case 4:
+        func_00130CE0(arg0, 25.0f);
+        func_00130AD0(arg0, D_0035BA60, D_0035BA64);
+        if (*(u16 *)(*(char **)((char *)arg1 + 0xE0) + 0x8C) == 44) {
+            *(s16 *)(arg0 + 0x6E) = 1;
+        }
+        break;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_0013A050);
 

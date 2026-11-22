@@ -194,6 +194,18 @@ object, so **a C jump table cannot be placed in `text_001343E8`** until the file
 (`docs/game_seams.md` 8.6; seam S3 waits for matching, LuciDin 22 Nov 2026). The five files ER-051 cut from it
 start 16-aligned and take C jump tables (func_0013D4D0, `docs/game_seams.md` 9.10). `text_0014D930`'s run is one 8-byte item, so nothing to do.
 
+**The same rule for 8 bytes (ER-072, Sun 22 Nov 2026).** A label on an 8-byte boundary with 4 zero bytes before it in
+the file's run, not already 16-aligned by the rule above, gets `.align 3` where spimdisasm wrote none (it already
+writes `.align 3` before most doubles). Needed when the item before is a jump table that comes from C: the asm table
+carried the pad word, gcc's table ends 4 bytes earlier, and the double after it moved -4 (`D_00354788`, `D_003547C8`
+after func_00138A20 / func_00139EE0). Same file limit (16-aligned runs only). With no `src/` change it leaves the ELF
+identical (`make regress` PASS); the split adds the directive to 19 generated files: `text_001000C0` `D_00354360`;
+`text_001388E8` `D_00354788`, `D_003547C8`; `text_0013DBC0` `D_00354928`, `D_00354968`; `text_0014E2E8`
+`D_00354A68`; `text_00150878` `D_00354AF8`, `D_00354D70`, `D_00354EA0`, `D_00354FD0`, `D_00354FE0`, `D_00354FF8`,
+`D_003551F8`, `D_00355A50`, `D_00355D80`, `D_003568C0`, `D_003568D0`, `D_00356900`, `D_00356930`. Like the 16-byte
+rule this is evidence from zero bytes, not proof that the original was aligned: a real zero word before an 8-aligned
+item looks the same (Unconfirmed per item until a C neighbour proves it).
+
 **Gotchas.** Run a clean split after changing the yaml (`rm -rf asm linker`, or `make regress`): stale
 `asm/data/*.s` files from an old cut would be linked twice. A C file that defines one of its data symbols itself
 (`static const float D_x[4] = ...`) drops that INCLUDE line; the check accepts the gap and the byte check judges the

@@ -72,7 +72,7 @@ MipsSymbolBase.SymbolBase.isDouble = is_double
 FIX_INCLUDES = False
 ERRORS: list[str] = []
 SUMMARY = {"lit4_files": 0, "lit4_asm": 0, "lit4_c": 0, "ro_files": 0, "ro_standalone": 0, "ro_inserted": 0,
-           "align4": 0, "align_skipped": [], "data_files": [], "data_syms": 0}
+           "align4": 0, "align3": 0, "align_skipped": [], "data_files": [], "data_syms": 0}
 
 INC_RE = re.compile(r"\b(INCLUDE_ASM|INCLUDE_RODATA)\s*\(\s*\"([^\"]*)\"\s*,\s*(\w+)\s*\)\s*;")
 LWC1_RE = re.compile(r"^(\s*/\*[^*]*\*/\s*)lwc1(\s+)(\$f\d+), \((\w+)\)(?:\s*/\* gp_rel: \(\w+\) \*/)?\s*$")
@@ -225,7 +225,11 @@ def _rodata_align(seg, ro, entries, rom_bytes: bytes):
     gap; the same evidence R as docs/game_seams.md 4.4). While the item before stays asm the zeros are in its
     bytes and the directive changes nothing; once that item comes from C, the directive makes the padding.
     Only for files whose range starts on a 16-byte boundary: in another file a 16-aligned item would move the
-    whole object (text_001343E8, docs/build.md 3.2)."""
+    whole object (text_001343E8, docs/build.md 3.2).
+
+    The same rule one step down (ER-072): a label on an 8-byte boundary with 4 zero bytes before it (inside the
+    file's range) that is not 16-aligned by the rule above was 8-aligned, so it gets `.align 3` (doubles after a
+    jump table whose pad word the asm table carried; a C table ends without it)."""
     from splat.util import options
 
     lo = ro.vram_start
@@ -233,17 +237,23 @@ def _rodata_align(seg, ro, entries, rom_bytes: bytes):
         SUMMARY["align_skipped"].append(seg.name)
         return
     rom0 = ro.rom_start
-    files: dict[str, set] = {}
+    files: dict[str, dict] = {}  # owner -> {symbol name: alignment power}
     for e in entries:
         for s in e.rodataSyms:
             v = s.vram
             is_jtbl = s.getNameUnquoted().startswith("jtbl_") or s.contextSym.isJumpTable()
             padded = (v % 16 == 0 and v - 8 >= lo
                       and rom_bytes[v - 8 - lo + rom0:v - lo + rom0] == bytes(8))
-            if not (is_jtbl and v % 16 == 0) and not padded:
+            padded8 = (v % 8 == 0 and v - 4 >= lo
+                       and rom_bytes[v - 4 - lo + rom0:v - lo + rom0] == bytes(4))
+            if (is_jtbl and v % 16 == 0) or padded:
+                power = 4
+            elif padded8:
+                power = 3
+            else:
                 continue
             owner = e.function.getNameUnquoted() if e.function is not None else s.getNameUnquoted()
-            files.setdefault(owner, set()).add(s.getNameUnquoted())
+            files.setdefault(owner, {})[s.getNameUnquoted()] = power
     asm_dir = options.opts.nonmatchings_path / seg.dir / seg.name
     for owner, names in files.items():
         path = asm_dir / f"{owner}.s"
@@ -254,14 +264,23 @@ def _rodata_align(seg, ro, entries, rom_bytes: bytes):
         for line in lines:
             parts = line.split()
             if len(parts) == 2 and parts[0] == "nonmatching" and parts[1] in names:
+                power = names[parts[1]]
                 j = len(out) - 1
                 while j >= 0 and out[j].strip() == "":
                     j -= 1
-                if j >= 0 and ALIGN_RE.match(out[j]):
-                    out[j] = ".align 4"
-                else:
-                    out.append(".align 4")
-                SUMMARY["align4"] += 1
+                m = ALIGN_RE.match(out[j]) if j >= 0 else None
+                if power == 4:
+                    if m:
+                        out[j] = ".align 4"
+                    else:
+                        out.append(".align 4")
+                    SUMMARY["align4"] += 1
+                elif not m or int(m[1]) < 3:  # spimdisasm already writes .align 3 before most doubles
+                    if m:
+                        out[j] = ".align 3"
+                    else:
+                        out.append(".align 3")
+                    SUMMARY["align3"] += 1
             out.append(line)
         path.write_text("\n".join(out), encoding="utf-8", newline="\n")
 
@@ -384,7 +403,7 @@ if __name__ == "__main__":
     print(f"split.py: .rodata owned by {s['ro_files']} C files ({s['ro_standalone']} INCLUDE_RODATA symbols)"
           f"; .lit4 owned by {s['lit4_files']}"
           f" C files ({s['lit4_asm']} asm loads written as li.s, {s['lit4_c']} literals from C); .align 4 on"
-          f" {s['align4']} .rodata items (not in {', '.join(s['align_skipped']) or '-'}: range not 16-aligned);"
+          f" {s['align4']} .rodata items, .align 3 on {s['align3']} (not in {', '.join(s['align_skipped']) or '-'}: range not 16-aligned);"
           f" owned .data / .sdata: {len(s['data_files'])} ranges, {s['data_syms']} symbols"
           f"{'; %d INCLUDE lines inserted in C files' % s['ro_inserted'] if s['ro_inserted'] else ''}")
     if ERRORS:
