@@ -284,7 +284,24 @@ void func_0014F480(void *arg0, f32 fparg0, f32 fparg1, f32 fparg2) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F490);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F550);
+extern void func_0012F9C0(void **, s32);
+extern s32 func_0012B180(void *, s32);
+
+/* ER-083: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+f32 func_0014F550(void **arg0, s32 arg1) {
+    u16 temp_17;
+    void *temp_4;
+
+    temp_4 = *(void **)arg0;
+    if (*(u8 *)((char *)temp_4 + 0x149) != *(s8 *)((char *)arg0 + 0xF)) {
+        return 0.0f;
+    }
+    temp_17 = *(u16 *)((char *)(*(void **)((char *)temp_4 + 0xE0)) + 0x6CC);
+    if ((arg1 != 0) && (temp_17 == 0x14)) {
+        func_0012F9C0(arg0, 2);
+    }
+    return (2.0f * ((f32) temp_17 / (f32) func_0012B180(*(void **)arg0, (s32) *(s8 *)((char *)arg0 + 0xF)))) + -1.0f;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F5F8);
 
@@ -450,7 +467,17 @@ void func_001502C0(s8 *arg0) {
     func_00131000(arg0, func_00150350);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_00150350);
+void func_00150818(int **a0, int a1, int a2);
+extern s32 func_0012B7C0(void **, u32, s32, s32, s16, s32, f32 fparg0);
+
+/* ER-083: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_00150350(s32 **arg0) {
+    if ((*(s16 *)((char *)arg0 + 0x6E) == 0) && (*(s16 *)((char *)arg0 + 0x6C) >= 0x79)) {
+        func_00150818(arg0, 0, 0x7F);
+        *(s16 *)((char *)arg0 + 0x6E) = (s16) ((u16) *(s16 *)((char *)arg0 + 0x6E) + 1);
+    }
+    func_0012B7C0((void **) arg0, 7U, 0, (s32) *(s16 *)((char *)arg0 + 0x6C), 0xA, 1, 0.3f);
+}
 
 extern void func_001507B8(void *arg0);
 
@@ -468,7 +495,6 @@ s32 func_001503E0(s8 *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_00150400);
 
-extern s32 func_0012B7C0(void **, u32, s32, s32, s16, s32, f32 fparg0);
 
 /* ER-054: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_001505F8(void **arg0) {
