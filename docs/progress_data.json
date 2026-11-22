@@ -1474,6 +1474,15 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-131",
+      "title": "func_00120EF0 round 3",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, xhigh",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
