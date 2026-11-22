@@ -11,21 +11,21 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 682,
+          "done": 706,
           "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
-          "notes": "Matched = C placed in src/ and proven by the byte-identical build (make regress: whole-ELF SHA-1 + func_check, nothing masked); goal: true 100% (every function in C, NON_MATCHING 0), LuciDin 17 Nov 2026. Done 262 = 20 by ER-049 (clone matches placed by tools/clones.py; 21 Nov 2026) + 127 empty functions splat wrote as C + 17 real game functions matched by ER-014 + 3 by ER-024 (18 Nov 2026) + 6 by ER-026 (func_001115E0, func_0012EA28, func_0012EAB8, func_0012E7B0, func_00131608, func_00148330; 19 Nov 2026) + 10 by ER-035 (func_00123BA8, func_00130F50, func_0012F550, func_0012CD08, func_0012E908, func_0011B9D0, func_0011BAB0, func_00133098, func_0013DBC0, func_0013B840; 19 Nov 2026) + 1 by ER-015 (func_0014D098, the matching tools' proof function; 19 Nov 2026). Total 3,609 = the 3,606 function symbols func_check counts (4 crt0, 3,475 INCLUDE_ASM, 127 C at ER-003) + 3 INCLUDE_ASM blocks splat labels as data (func_001D73D0, func_001D7658, func_001DECA0, COP2/VU0-style words), which func_check does not count but still need C. + 78 by ER-054 (m2c_bulk --plain drafts in text_00145120, text_0014A968, text_0014C840, text_0014D930, text_0014E2E8; 22 Nov 2026). + 11 by ER-062 (the ER-054 same-size near misses, by hand; 22 Nov 2026). + 1 by ER-031 (func_0013D4D0, the first C jump table in a file cut from S1's; 22 Nov 2026). + 88 by ER-072 (73 m2c_bulk --plain matches and 10 after aligning declarations in the five files cut by ER-051, func_0013D550 / func_00138A20 / func_00139EE0 by hand, ER-041's func_001399B8 / func_001411E8; 22 Nov 2026). + 230 by ER-060 part 1 (229 m2c_bulk --plain matches in text_00150878 after aligning 8 declarations, func_001BEF18 by hand; 22 Nov 2026)."
+          "notes": "Matched = C placed in src/ and proven by the byte-identical build (make regress: whole-ELF SHA-1 + func_check, nothing masked); goal: true 100% (every function in C, NON_MATCHING 0), LuciDin 17 Nov 2026. Done 262 = 20 by ER-049 (clone matches placed by tools/clones.py; 21 Nov 2026) + 127 empty functions splat wrote as C + 17 real game functions matched by ER-014 + 3 by ER-024 (18 Nov 2026) + 6 by ER-026 (func_001115E0, func_0012EA28, func_0012EAB8, func_0012E7B0, func_00131608, func_00148330; 19 Nov 2026) + 10 by ER-035 (func_00123BA8, func_00130F50, func_0012F550, func_0012CD08, func_0012E908, func_0011B9D0, func_0011BAB0, func_00133098, func_0013DBC0, func_0013B840; 19 Nov 2026) + 1 by ER-015 (func_0014D098, the matching tools' proof function; 19 Nov 2026). Total 3,609 = the 3,606 function symbols func_check counts (4 crt0, 3,475 INCLUDE_ASM, 127 C at ER-003) + 3 INCLUDE_ASM blocks splat labels as data (func_001D73D0, func_001D7658, func_001DECA0, COP2/VU0-style words), which func_check does not count but still need C. + 78 by ER-054 (m2c_bulk --plain drafts in text_00145120, text_0014A968, text_0014C840, text_0014D930, text_0014E2E8; 22 Nov 2026). + 11 by ER-062 (the ER-054 same-size near misses, by hand; 22 Nov 2026). + 1 by ER-031 (func_0013D4D0, the first C jump table in a file cut from S1's; 22 Nov 2026). + 88 by ER-072 (73 m2c_bulk --plain matches and 10 after aligning declarations in the five files cut by ER-051, func_0013D550 / func_00138A20 / func_00139EE0 by hand, ER-041's func_001399B8 / func_001411E8; 22 Nov 2026). + 230 by ER-060 part 1 (229 m2c_bulk --plain matches in text_00150878 after aligning 8 declarations, func_001BEF18 by hand; 22 Nov 2026). + 21 by ER-086 / ER-081 (text_001000C0, -fno-edge-lcm: func_0012EEB0, func_0012EBB0, func_0012D600; the 18 ER-060 part 2 same-size near misses by hand; 22 Nov 2026)."
         },
         {
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 44292,
+          "done": 47716,
           "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
-          "notes": "ER-003: .text 0xF0354 bytes. Done = function-symbol sizes of the C functions: 127 empty ones (8 bytes each, 1,016) + ER-014's 17 (688 bytes) + ER-024's 3 (184 bytes: 28 + 100 + 56) + ER-026's 6 (464 bytes: 60 + 76 + 64 + 108 + 108 + 48). + ER-035's 10 (2,756 bytes: 128 + 140 + 164 + 272 + 284 + 220 + 220 + 500 + 304 + 524). + ER-015's 1 (156 bytes: func_0014D098). + ER-049's 20 (160 bytes: 20 x 8). + ER-054's 78 (5,460 bytes; m2c_bulk --plain drafts in five files). + ER-062's 11 (708 bytes: 12 + 12 + 92 + 72 + 164 + 16 + 76 + 200 + 28 + 28 + 8). + ER-031's 1 (128 bytes: func_0013D4D0). + ER-072's 88 (8,376 bytes: 6,928 bulk + func_0013D550, 448 func_00138A20, 364 func_00139EE0, 184 func_001399B8, 452 func_001411E8). + ER-060 part 1's 230 (13,260 bytes, text_00150878)."
+          "notes": "ER-003: .text 0xF0354 bytes. Done = function-symbol sizes of the C functions: 127 empty ones (8 bytes each, 1,016) + ER-014's 17 (688 bytes) + ER-024's 3 (184 bytes: 28 + 100 + 56) + ER-026's 6 (464 bytes: 60 + 76 + 64 + 108 + 108 + 48). + ER-035's 10 (2,756 bytes: 128 + 140 + 164 + 272 + 284 + 220 + 220 + 500 + 304 + 524). + ER-015's 1 (156 bytes: func_0014D098). + ER-049's 20 (160 bytes: 20 x 8). + ER-054's 78 (5,460 bytes; m2c_bulk --plain drafts in five files). + ER-062's 11 (708 bytes: 12 + 12 + 92 + 72 + 164 + 16 + 76 + 200 + 28 + 28 + 8). + ER-031's 1 (128 bytes: func_0013D4D0). + ER-072's 88 (8,376 bytes: 6,928 bulk + func_0013D550, 448 func_00138A20, 364 func_00139EE0, 184 func_001399B8, 452 func_001411E8). + ER-060 part 1's 230 (13,260 bytes, text_00150878). + ER-086's 3 (1,888 bytes: 676 + 764 + 448) + ER-081's 18 (1,108 bytes)."
         },
         {
           "id": "m-dec-sdk",
@@ -924,7 +924,7 @@
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "nothing; adoption needs LuciDin's ruling",
-      "notes": "Ruling 3.11 (13:48 ET): -fno-edge-lcm in CFLAGS (edge-based LCM removed partially redundant loads at joins; the game keeps them). Whole ELF identical; func_0012EEB0 proven in scratch make regress (control fails); m2c census 693 funcs: +3 matches, 0 lost. No compiler patch; GCC_DIR stays r1. Parked functions listed for file owners (recipes 2.13)."
+      "notes": "Ruling 3.11 (13:48 ET): -fno-edge-lcm in CFLAGS (edge-based LCM removed partially redundant loads at joins; the game keeps them). Whole ELF identical; func_0012EEB0 proven in scratch make regress; m2c census 693 funcs: +3 matches, 0 lost. No compiler patch; GCC_DIR stays r1. Part 2 after main 937b403 merged: 3 placed (func_00144488, func_0014F550, func_00150350; control without the flag fails). Others listed for file owners (recipes 2.17)."
     },
     {
       "code": "ER-070",
@@ -956,11 +956,11 @@
     {
       "code": "ER-073",
       "title": "Three large functions in text_001000C0 (after ER-069)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium (high without ER-069)",
       "waits_on": "nothing (ER-069 merged)",
-      "notes": ""
+      "notes": "Sun 22 Nov 2026: all three parked with causes (recipes 2.18). func_00120EF0: hand draft right shape (48-byte struct copy as ldl/ldr, struct globals), 265 of 337 words differ: our loop hoists the 0x70000010 scratchpad address into a saved register and spills the loop bound. func_0011BB90: fixed m2c draft 27 instructions short (needs a full hand rewrite). func_00119FE0 (6,636 bytes): surveyed only. Drafts: notes folder ER-086_081_073_drafts/. Follow-up: one dedicated card per function."
     },
     {
       "code": "ER-074",
@@ -1028,11 +1028,11 @@
     {
       "code": "ER-081",
       "title": "Hand work: text_001000C0's 18 near misses",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "nothing",
-      "notes": ""
+      "notes": "Sun 22 Nov 2026 (branch claude/objective-rhodes-dcaad2, recipes 2.18): all 18 placed, make regress green, 1,108 bytes. m2c_bulk small-list rerun with -fno-edge-lcm gave 1 plain MATCH (func_00130CE0, pass-through retry); 17 by hand (pointer steps, u8 / u16 types, pass-through arguments, return wrappers, two early returns). func_00131000 / func_00130FE0 return s32 (file extern changed), func_0012B238 takes (void *) and its ER-049 clone func_001336D8 passes it on."
     },
     {
       "code": "ER-082",
@@ -1073,19 +1073,19 @@
     {
       "code": "ER-086",
       "title": "Place the GCSE-parked functions of text_001000C0 (func_0012EEB0 first)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium (high for 113C30 / 113ED8)",
       "waits_on": "nothing (ruling 3.11 merged)",
-      "notes": ""
+      "notes": "Sun 22 Nov 2026 (branch claude/objective-rhodes-dcaad2, recipes 2.18): 3 placed with -fno-edge-lcm, make regress green: func_0012EEB0 (ER-063's C; clone func_0012F158 now (float *, float *)), func_0012EBB0 (by hand; sqrtf into a local), func_0012D600 (pointer to &m[8] set before sqrtf; func_001CA048 takes its float last, 4 callers updated, same code). Parked: func_00113C30 (45 words: registers in head / loop; unused float buf[16] for the 0x80 frame needs the dead-code ruling), func_00113ED8 (same head and the same unused 0x40 stack, ruling), func_00131D40 (wrap loops: the game loads / stores the field every pass where our loop.c promotes it, same open shape as func_00145D08). func_00126F00 listed: ER-070's as r4 not in main."
     },
     {
       "code": "ER-087",
-      "title": "Census MATCHes and GCSE-parked functions in text_0013DBC0 / text_0014E2E8",
+      "title": "GCSE-parked functions in text_0013DBC0 / 0013A410 / 0013B748 (func_0013FCF8, 0013AA28, 0013BD90, 0013DF90, 00145D08)",
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "nothing (ruling 3.11 merged)",
+      "waits_on": "nothing (ER-069 done)",
       "notes": ""
     },
     {
@@ -1095,6 +1095,51 @@
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "nothing",
+      "notes": ""
+    },
+    {
+      "code": "ER-089",
+      "title": "Ruling: unused stack buffer (func_00113C30 / func_00113ED8), then finish both",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "LuciDin's ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-090",
+      "title": "Toolchain research: loops on a loaded pointer's field not register-promoted (loop.c)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "nothing",
+      "notes": ""
+    },
+    {
+      "code": "ER-091",
+      "title": "func_00120EF0 from the 265-word draft",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "ER-090 may help; text_001000C0 writer one at a time",
+      "notes": ""
+    },
+    {
+      "code": "ER-092",
+      "title": "func_0011BB90 by hand",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "text_001000C0 writer one at a time",
+      "notes": ""
+    },
+    {
+      "code": "ER-093",
+      "title": "func_00119FE0 by hand (6,636 bytes)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high (xhigh if it resists)",
+      "waits_on": "text_001000C0 writer one at a time",
       "notes": ""
     }
   ]

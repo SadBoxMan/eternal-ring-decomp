@@ -502,7 +502,7 @@ MATCH anyway), and the 29 VU0-flagged functions (none matched; they need inline 
 
 | Kind | Functions |
 |---|---|
-| same size, 1-2 words differ (rerun as a list of 18, label `er060c`: none matched, unlike ER-062's run) | `func_00101238`, `func_00103E30`, `func_0010CAF0` (div), `func_00111660`, `func_00129ED8`, `func_0012A140`, `func_0012B238`, `func_0012C778`, `func_0012F838`, `func_0012F870`, `func_00130A88`, `func_00130AD0`, `func_00130CE0`, `func_00130FE0`, `func_00131000`, `func_001320B8`, `func_001321D8`, `func_001328D8` |
+| same size, 1-2 words differ (rerun as a list of 18, label `er060c`: none matched, unlike ER-062's run; **all 18 placed by ER-081**, Sun 22 Nov 2026: a rerun with `-fno-edge-lcm` in small lists gave `func_00130CE0` by the pass-through retry, the other 17 by hand, recipes 2.18) | `func_00101238`, `func_00103E30`, `func_0010CAF0` (div), `func_00111660`, `func_00129ED8`, `func_0012A140`, `func_0012B238`, `func_0012C778`, `func_0012F838`, `func_0012F870`, `func_00130A88`, `func_00130AD0`, `func_00130CE0`, `func_00130FE0`, `func_00131000`, `func_001320B8`, `func_001321D8`, `func_001328D8` |
 | same size, 3-8 words differ | 33 |
 | same size, 9+ words differ | 53 |
 | size differs | 238 |
