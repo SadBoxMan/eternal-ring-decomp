@@ -1,2 +1,17 @@
-// ER-003: symbol names for splat. Address names only; see docs/build.md.
+// ER-003: symbol names for splat. Address names, plus the names gcc emits itself (ER-041); see docs/build.md.
 func_00100008 = 0x00100008; // type:func
+// ER-041 (Sun 22 Nov 2026): names gcc emits itself (evidence: docs/census.md 4.4).
+// newlib libm wrapper (wf_sqrt.c shape; its struct exception names the string "sqrtf" at D_00357DD0):
+sqrtf = 0x001E42E0; // type:func
+// libgcc fp-bit.c built with US_SOFTWARE_GOFAST (ee-gcc config/mips/t-r5900): our ee-gcc emits these names for double
+// arithmetic, every double comparison (dpcmp) and float <-> double / int conversions.
+dpadd = 0x001E8588; // type:func
+dpsub = 0x001E85E0; // type:func
+dpmul = 0x001E8648; // type:func
+dpdiv = 0x001E88F0; // type:func
+dpcmp = 0x001E8B70; // type:func
+litodp = 0x001E8BC0; // type:func
+dptoli = 0x001E8C78; // type:func
+dptoul = 0x001E8D10; // type:func
+dptofp = 0x001E8E18; // type:func
+fptodp = 0x001E9A10; // type:func
