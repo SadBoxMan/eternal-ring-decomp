@@ -365,15 +365,17 @@ Parked by ER-063 (one-line causes; drafts in the notes folder `ER-063_drafts/`):
 
 ### 2.12 Jump tables in the files cut by ER-051, and a bulk pass (ER-072, Sun 22 Nov 2026; Confirmed by `make regress`)
 
-86 functions placed in `text_001388E8` / `0013A410` / `0013B748` / `0013C510` / `0013DBC0` (commits `2bc2d39`,
-`e9e8f1f`, `468ebef`, `cd450b0`, `0f3a1a8`), 7,564 bytes: 73 plain MATCHes of `tools/m2c_bulk.py --plain`, 10 more
-after aligning declarations, `func_0013D550` by hand, and ER-041's proven `func_001399B8` / `func_001411E8`. Jump
-tables placed: `func_00139B38`, `func_0013AD40` (bulk), `func_0013D550` (hand).
+88 functions placed in `text_001388E8` / `0013A410` / `0013B748` / `0013C510` / `0013DBC0` (commits `2bc2d39`,
+`e9e8f1f`, `468ebef`, `cd450b0`, `0f3a1a8`, `b6690a2` (split.py), `979af8c`), 8,376 bytes: 73 plain
+MATCHes of `tools/m2c_bulk.py --plain`, 10 more after aligning declarations, `func_0013D550`, `func_00138A20` and
+`func_00139EE0` by hand, and ER-041's proven `func_001399B8` / `func_001411E8`. Jump tables placed: `func_00139B38`,
+`func_0013AD40` (bulk), `func_0013D550`, `func_00138A20` (two tables), `func_00139EE0` (hand): 5 of 11.
 
 | Lesson | Proved by |
 |---|---|
 | **gcc needs five case "nodes" for a table; a run of adjacent values on one body is one range node that counts 2.** With four (0, 9, 11-12 as one range: 1 + 1 + 2) gcc builds a compare tree; one more label beside `default` (ruling 3.9) gives the game's 13-entry table. Reading (Unconfirmed mechanism; gcc's `expand_end_case` / `add_case_node` source not checked): `case 0: case 1: case 2:` on one body counts 2, which is why `func_0013C750`'s inner switch (0..2, 3, 4) is a compare tree in the game (masked compare) | `func_0013D550` (`case 10:` beside `default`; which value of 1..8 / 10 the original listed is Unconfirmed, all give the same bytes) |
 | **splat's function regex reads `void *func_X(` as the name `*func_X`**, and `tools/split.py`'s INCLUDE order check then fails ("splat expects func_X"). Write a pointer return type as `void* func_X(` (no code change) | `func_00139B38` |
+| **A double right after a C jump table needs `.align 3`**: the asm table carried the pad word; gcc's table ends 4 bytes earlier, and the double moved -4 until `tools/split.py` gave 8-aligned items with 4 zero bytes before them `.align 3` (`docs/build.md` 3.2; dispatcher's yes, Sun 22 Nov 2026) | `func_00138A20` (`D_00354788`), `func_00139EE0` (`D_003547C8`) |
 | **State handlers take (object, argument)** even when one ignores the argument: a caller that passes `$a1` on (`func_0013CB60`'s `func_0013D068(arg0, arg1)` in its switch) needs the callee's second parameter in the file's prototype; adding an unused parameter changes nothing in the callee | `func_0013D068`, `func_0013CB60` |
 | **A `(void)` clone or a function whose address is taken, once its callee gets a parameter, passes it on**: `void f(void *arg0) { g(arg0); }` gives the same `j g` (2.9) | `func_00142600`, `func_00143F10` (ER-049 clones) |
 
@@ -388,10 +390,9 @@ tables placed: `func_00139B38`, `func_0013AD40` (bulk), `func_0013D550` (hand).
 
 | Function | Cause |
 |---|---|
-| `func_00138A20`, `func_00139EE0` | masked MATCH; placed, `make regress` fails: the double after the table (`D_00354788`, `D_003547C8`) moves -4. In asm the table carried the pad word; gcc's table ends 4 bytes earlier and splat's `D_` file has no `.align 3` (`tools/split.py` `_rodata_align` handles 16-aligned items only) |
 | `func_0013C750` | the last tail call (`j` in the game, `jal` ours, above) + register choice in case 0 |
 | `func_0013D088` | one delay slot: the game's `beqz n, return` takes the epilogue's `ld $ra`, ours fills from the fall-through; then everything shifts (3 shapes) |
-| `func_0013FCF8` | GCSE hoists the `u16` reload of `+0x6E` above the table (2.11's toolchain difference; with `-fno-gcse`, diagnostic only, only one block's store order is left); also needs the `.align 3` fix (`D_00354968`) |
+| `func_0013FCF8` | GCSE hoists the `u16` reload of `+0x6E` above the table (2.11's toolchain difference; with `-fno-gcse`, diagnostic only, only one block's store order is left); its double `D_00354968` has `.align 3` now |
 | `func_0013AA28`, `func_0013BD90`, `func_0013DF90` | each reads a double constant from a standalone `INCLUDE_RODATA` (`D_00354800`, `D_00354848`, `D_00354928` / `D_00354930`): `tools/split.py`'s order check blocker of 2.10 (`func_001371C0`). Not drafted by hand |
 
 ## 3. Rulings (LuciDin)
