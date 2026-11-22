@@ -883,11 +883,74 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012BAE0);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012BCE0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012BDA8);
+extern void func_001C9B18(void *, void *);
+extern float func_001114E8(char *, float *);
+extern float func_0012BEC8(char *, float);
+
+/* ER-063. Twin of func_0012BF08 that first sets v[1] = func_0012BEC8(a1, pos[1]) (returns 1 if that changed it).
+   Readings, Unconfirmed: v = pos clamped in x / z to the radius at obj+0x12C around the point at a1+0x80. */
+s32 func_0012BDA8(void *out, char *a1, float *pos) {
+    float v[4];
+    char *obj;
+    float d;
+    s32 r;
+
+    r = 0;
+    obj = *(char **)a1;
+    func_001C9B18(v, pos);
+    v[1] = func_0012BEC8(a1, pos[1]);
+    if (v[1] != pos[1]) {
+        r = 1;
+    }
+    d = func_001114E8(a1 + 0x80, pos);
+    if (*(float *)(obj + 0x12C) < d) {
+        v[0] = *(float *)(a1 + 0x80);
+        v[2] = *(float *)(a1 + 0x88);
+        r = 1;
+        if (0.0f < *(float *)(obj + 0x12C)) {
+            v[0] = *(float *)(a1 + 0x80) + (pos[0] - *(float *)(a1 + 0x80)) * *(float *)(obj + 0x12C) / d;
+            v[2] = *(float *)(a1 + 0x88) + (pos[2] - *(float *)(a1 + 0x88)) * *(float *)(obj + 0x12C) / d;
+        }
+    }
+    if (out == NULL) {
+        return r;
+    }
+    func_001C9B18(out, v);
+    return r;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012BEC8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012BF08);
+/* ER-063 (parked by ER-034). Copies pos into v; if pos is farther than the radius at obj+0x12C from the point at
+   a1+0x80 (func_001114E8: a distance), returns 1 and pulls v's x / z onto that radius; copies v to out when given
+   (readings, Unconfirmed). The separate `if (out == NULL) return r;` gives the game's $s3 / $s4 for r and out. */
+s32 func_0012BF08(void *out, char *a1, float *pos) {
+    float v[4];
+    char *obj;
+    float d;
+    s32 r;
+
+    r = 0;
+    obj = *(char **)a1;
+    func_001C9B18(v, pos);
+    if (*(float *)(obj + 0x12C) != 0.0f) {
+        d = func_001114E8(a1 + 0x80, pos);
+        if (*(float *)(obj + 0x12C) < d) {
+            v[0] = *(float *)(a1 + 0x80);
+            v[2] = *(float *)(a1 + 0x88);
+            r = 1;
+            if (0.0f < *(float *)(obj + 0x12C)) {
+                v[0] = *(float *)(a1 + 0x80) + (pos[0] - *(float *)(a1 + 0x80)) * *(float *)(obj + 0x12C) / d;
+                v[2] = *(float *)(a1 + 0x88) + (pos[2] - *(float *)(a1 + 0x88)) * *(float *)(obj + 0x12C) / d;
+            }
+        }
+    }
+    if (out == NULL) {
+        return r;
+    }
+    func_001C9B18(out, v);
+    return r;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012C020);
 
