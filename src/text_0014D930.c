@@ -182,7 +182,14 @@ INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014E0A8);
 void func_0014E118(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014E120);
+void func_0014E2C8(char *a0);
+extern void func_0012FB48(void *arg0, s32 arg1);
+
+/* ER-083: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_0014E120(s8 *arg0) {
+    func_0014E2C8(arg0);
+    func_0012FB48(arg0, 0);
+}
 
 extern void func_00131000(char *, void *);
 void func_0014DA78(void);
@@ -192,7 +199,39 @@ void func_0014E150(s8 *arg0) {
     func_00131000(arg0, func_0014DA78);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014E160);
+void func_0014DEB8(void *arg0, s32 arg1);
+void func_0014DAC0(void);
+void func_0014DEC8(void *arg0, s32 arg1);
+extern s32 func_0012D9B8(void *, f32 fparg0);
+extern void func_001321E8(void *arg0);
+
+/* ER-083: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_0014E160(s8 *arg0) {
+    f32 temp_f0;
+
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        *(s32 *)((char *)arg0 + 0x44) = 0;
+        *(s32 *)((char *)arg0 + 0x48) = 0;
+        *(s32 *)((char *)arg0 + 0x4C) = 0;
+        func_0014DEB8(arg0, (s32) func_0014DAC0);
+        func_0014DEC8(arg0, (s32) func_0014DAC0);
+        func_0014DED8(arg0, (s32) func_0014DAC0);
+        func_0014E2C8(arg0);
+        func_0012FB48(arg0, 1);
+        *(u8 *)((char *)arg0 + 0x5A) = (u8) (*(u8 *)((char *)arg0 + 0x5A) | 8);
+        *(f32 *)((char *)arg0 + 0xB0) = 1.0f;
+        *(s16 *)((char *)arg0 + 0x6E) = (s16) ((u16) *(s16 *)((char *)arg0 + 0x6E) + 1);
+        *(s32 *)((char *)arg0 + 0x90) = 0;
+        *(f32 *)((char *)arg0 + 0x94) = 0.0f;
+        *(s32 *)((char *)arg0 + 0x98) = 0;
+        *(s32 *)((char *)arg0 + 0x9C) = 0;
+    }
+    temp_f0 = *(f32 *)((char *)arg0 + 0x94) + *(f32 *)((char *)arg0 + 0xB0);
+    *(f32 *)((char *)arg0 + 0x94) = temp_f0;
+    if (func_0012D9B8(arg0, temp_f0) != 0) {
+        func_001321E8(arg0);
+    }
+}
 
 void func_0014E248(void) {
 }
