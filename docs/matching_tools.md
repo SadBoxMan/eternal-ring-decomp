@@ -566,7 +566,7 @@ ER-060's run folder was gone (`build/` is wiped by every regress), so `--rerun-d
 of 6.5 went in as a list instead, `--list near48.txt --chunk 8 --plain --tag ER-080` (6 chunks, 70 s at par 4, today's
 toolchain with `-fno-edge-lcm`). **16 masked / 15 plain MATCH** (func_00164220 needed its caller's extern aligned):
 all placed, `make regress` green. The other 31 came out as 1-2 word DIFFs again and were matched by hand (recipes
-2.19). So the small-list effect of 6.3 held here (16 of 48 that the file-wide run had as DIFF), where ER-060 part 2's
+2.20). So the small-list effect of 6.3 held here (16 of 48 that the file-wide run had as DIFF), where ER-060 part 2's
 list of 18 gave none (6.6).
 
 Kinds among the 31 hand matches (recipes 2.20): byte strides m2c scaled by a typed base or pointer (8), tail-call

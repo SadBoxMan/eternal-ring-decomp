@@ -552,7 +552,7 @@ seven (plain double C). Each lesson below is proved by the named functions place
   `func_001776D8` to `(s32, s32, char *)`, the `sprintf`-like `func_001E9D08` taking `$a2` untouched) keeps its own
   bytes (masked MATCH) (func_001C46C8's draft).
 
-**Parked (one-line causes; drafts in the dispatcher's notes folder `ER-080_c/`):**
+**Parked (one-line causes; drafts in the dispatcher's notes folder `ER-080_c/`; all four rechecked after main gained ee-as r4 (ruling 3.12): the same words differ):**
 
 | Function | Cause |
 |---|---|
