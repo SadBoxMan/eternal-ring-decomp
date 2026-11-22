@@ -263,6 +263,13 @@ def compare_function(obj: Obj, game: Game, name: str, addr: int | None = None) -
     n = max(size, game_size or 0)
     gbytes = game.bytes_at(addr, n) or b""
     pending_hi: dict[str, list[int]] = {}
+    # every HI16 of the function by symbol, in address order: a LO16 whose lui sits in another branch (a shared %hi)
+    # has no HI16 pending before it, so it is paired with the last HI16 of its symbol seen, else the first anywhere
+    all_hi: dict[str, list[int]] = {}
+    for o, r in sorted(relocs.items()):
+        if off <= o < off + size and r.type == R_MIPS_HI16:
+            all_hi.setdefault(r.sym, []).append(o - off)
+    seen_hi: dict[str, int] = {}
     for w in range(0, n, 4):
         a = struct.unpack_from("<I", text, off + w)[0] if w < size else None
         b = struct.unpack_from("<I", gbytes, w)[0] if w + 4 <= len(gbytes) else None
@@ -293,20 +300,28 @@ def compare_function(obj: Obj, game: Game, name: str, addr: int | None = None) -
             res.words.append(WordResult(w, a, b, ok, note))
         elif rel.type == R_MIPS_HI16:
             pending_hi.setdefault(rel.sym, []).append(w)
+            seen_hi[rel.sym] = w
             ok = (a >> 16) == (b >> 16)
             res.words.append(WordResult(w, a, b, ok, f"{kind} {rel.sym} (checked with its LO16)"))
         elif rel.type == R_MIPS_LO16:
             fixed_ok = (a >> 16) == (b >> 16)
             his = pending_hi.pop(rel.sym, [])
+            shared = False
             if not his:
-                res.words.append(WordResult(w, a, b, fixed_ok and a == b, f"{kind} {rel.sym}: no HI16 before it"))
-                continue
-            hw = his[-1]
+                hw = seen_hi.get(rel.sym, (all_hi.get(rel.sym) or [None])[0])
+                if hw is None:
+                    res.words.append(WordResult(w, a, b, fixed_ok and a == b, f"{kind} {rel.sym}: no HI16 in the function"))
+                    continue
+                shared = True
+            else:
+                hw = his[-1]
             our_hi = struct.unpack_from("<I", text, off + hw)[0] & 0xFFFF
             game_hi = struct.unpack_from("<I", gbytes, hw)[0] & 0xFFFF
             addend = (our_hi << 16) + s16(a & 0xFFFF)
             gaddr = ((game_hi << 16) + s16(b & 0xFFFF)) & 0xFFFFFFFF
             ok, note = _check_target(game, rel, addend, gaddr, kind, obj, res, w)
+            if shared:
+                note += f" [shares the HI16 at +{hw:#x}]"
             res.words.append(WordResult(w, a, b, fixed_ok and ok, note))
             # every HI16 of this pair must give the same game address
             for h in his:

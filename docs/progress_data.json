@@ -884,11 +884,11 @@
     {
       "code": "ER-065",
       "title": "place.py / cmpfunc.py fixes (+ duplicate recipes 2.8 / 2.10, place.py comment-line drop)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Sonnet, medium",
       "waits_on": "nothing (tools/ only)",
-      "notes": "Also: recipes has two 2.8 headings (ER-054 / ER-034), two 2.10 (ER-041 / ER-063 part 1) and ER-063's part 1 text repeated in 2.11 (after the 011043e merge): renumber and drop the duplicate; place.py drops an existing comment line (ER-063 D)"
+      "notes": "place.py: declaration below insertion point moved up, comment lines kept; cmpfunc/eematch: shared-HI16 pairing (func_0014DDD8 MATCH); recipes section 2 renumbered 2.1-2.16, duplicate ER-063 text dropped, docs refs fixed; round trip src byte-identical, regress PASS"
     },
     {
       "code": "ER-066",

@@ -53,7 +53,7 @@ must be equal and the game's target is resolved and checked:
 | Relocation | Check |
 |---|---|
 | `R_MIPS_26` (`jal`, `j`) | the game's target equals the symbol's address (`func_` / `D_` name, or a name of the syms ELF) |
-| `R_MIPS_HI16` + `R_MIPS_LO16` | the game's `%hi` / `%lo` pair gives the symbol's address plus our addend |
+| `R_MIPS_HI16` + `R_MIPS_LO16` | the game's `%hi` / `%lo` pair gives the symbol's address plus our addend. A `%lo` with no `lui` of its symbol pending before it (a `lui` shared between branches, `func_0014DDD8` +0x94) is paired with the last `HI16` of the same symbol seen, else the first one anywhere in the function; the note says "shares the HI16 at +0x..." (ER-065; before it, "no HI16 before it" and a false DIFF) |
 | `R_MIPS_GPREL16` | `_gp` (0x00360B70) plus the game's offset equals the symbol's address (`.sdata` / `.data` symbols of an owned run are found by name in our object) |
 | `R_MIPS_LITERAL` (`.lit4`) | the game's literal word has the same value as ours; its place in `.lit4` is judged by `make regress` |
 | section-relative `.rodata` (jump tables, strings) | not checkable here; listed under "not checkable" with the game's address |
@@ -80,14 +80,34 @@ python -I tools/place.py extract func_X [-o out.c]          placed C (+ the exte
 python -I tools/place.py where func_X                        which src/ file and line, C or asm
 ```
 
-- `c` drops the scratch file's `#include` lines and any line already present in the target file (an extern that is
-  already there), and puts the rest (declarations, a comment, the definition) where the `INCLUDE_ASM` line was. The
-  scratch file must define that function and no other.
+- `c` drops the scratch file's `#include` lines and any single-line declaration (extern, prototype, typedef at
+  brace depth 0, ending in `;`) that the target file already has **above** the insertion point, and puts the rest
+  (declarations, comments, the definition) where the `INCLUDE_ASM` line was. A declaration the file has only
+  **below** is moved up (see 3.1). Comment lines are never dropped. The scratch file must define that function and
+  no other.
 - `asm` removes the definition and the comment directly above it; extern lines above stay and are listed (other
   functions may use them).
 - Files are written with LF. The tool edits text only: run `make regress` afterwards.
 - Checked (ER-015): `extract`, `asm`, `c` round trip on four placed functions (with comments and externs) leaves
   `src/` byte-identical (`git status` clean).
+
+### 3.1 ER-065 fixes (Sun 22 Nov 2026)
+
+- **Extern below the insertion point (6.3, `D_001FFB06`, `func_00145760`, `func_0012FB48`).** `place.py c` counted a
+  line as already present when it was anywhere in the file. Now only a copy **above** the insertion point counts; a
+  declaration whose only copy is below is written above the new function and its lower copy is deleted (one
+  declaration, nothing lost, every function in between still sees it). Checked on a scratch file for
+  `src/text_0014A968.c` (extern `func_0014B0D8`, whose file copy is below `func_0014A968`'s `INCLUDE_ASM`): the old
+  tool dropped the line, the new one writes it above and removes the lower copy.
+- **Comment lines (ER-063).** The old filter dropped any scratch line equal to a line elsewhere in the file unless it
+  started with `/*` or `*`: a `//` comment, or the body line of a multi-line `/* */` comment, that matched another
+  comment was lost (the old tool left `/* multi` without its closing line: an unterminated comment, so the definition below it was swallowed). Now only a single-line
+  declaration at brace depth 0 is deduplicated (found with the same comment / string blanking as the definition
+  finder); nothing inside a comment or a struct / initialiser body is.
+- **Round trip.** `extract`, `asm`, `c` on `func_0014DDD8`, `func_0014D918`, `func_0012FB48`, `func_0014FF38`,
+  `func_00145238` leaves `src/` byte-identical (`git diff` empty). A moved extern is the one thing `asm` does not
+  undo (extern lines stay by design), so place-then-unplace of a function whose extern was moved leaves the
+  declaration in its new place above the function.
 
 Data: a function whose `.rodata` splat migrated (jump tables, strings used by one function) needs nothing more: the
 migrated copy lived in the function's asm file and the C emits its own (`docs/decomp_recipes.md` 2.5). A standalone
@@ -358,9 +378,9 @@ was not traced (Unconfirmed). Rerunning a file's remaining same-size DIFFs in sm
 
 **The pass-through signature.** A same-size DIFF where every argument sits one register higher in the game
 (`lui $a1` / `addiu $a1` against our `$a0`) means the function passes its own `$a0` to the callee untouched, and
-m2c left it out. Give the function a parameter and pass it (recipes 2.8, 2.9).
+m2c left it out. Give the function a parameter and pass it (recipes 2.8, 2.10).
 
-**Two tool limits met (not fixed; queued in `docs/handoff.md`):**
+**Two tool limits met (both fixed by ER-065, Sun 22 Nov 2026: see 3.1; the text below is what was seen):**
 
 - `place.py c` drops a scratch extern line that the target file already has, also when the file's copy is
   **below** the insertion point. The placed function then uses a name not yet declared: a build error for a data
@@ -379,11 +399,11 @@ m2c left it out. Give the function a parameter and pass it (recipes 2.8, 2.9).
 `text_0013DBC0` (237 asm functions, 186 s at `--par 4`; label `er072`): 229 compile, **83 masked MATCH, 73 plain
 MATCH**. All 73 placed (`make regress` green per file or file group); the other 10 masked MATCHes placed after aligning
 declarations by hand (the file's own extern for the function was `(void)` / `(char *)` from an address-taking user, or
-a pass-through callee argument m2c dropped; recipes 2.12). Two `place.py` extern-below cases met again (6.3) and
+a pass-through callee argument m2c dropped; recipes 2.13). Two `place.py` extern-below cases met again (6.3) and
 fixed by hand. 9 same-size near misses (1-2 words) left: `func_001390F8`, `func_00139AF8`, `func_0013CA60`,
 `func_0013E678`, `func_0013E758`, `func_0013F258`, `func_0013F288`, `func_001431A0`, `func_001449D0`. 31 functions
 carry `div.s` / `sqrt.s` flags. m2c drafts of two-table functions fail to compile ("multiple default labels"); the
-hand versions are in recipes 2.12.
+hand versions are in recipes 2.13.
 
 `cmpfunc` limit seen again: a `%lo` of a function address (`.text`-relative) whose `%hi` sits in another block is
 "no HI16 before it" (8 functions here); all proven by `make regress`.
@@ -418,9 +438,9 @@ types"; no code change, each proven by regress):
 | `func_0012B890` | `(void **, s32, s32, s32, s16, s32, f32)` (as `text_00145120`) | the other draft had `s32` for a constant argument |
 | `func_0012C360` | `void *(void *, s32, s32, s32, void *)` | |
 | `func_00153380` | `s32 (void *)` | value unused at both calls |
-| `func_001132B0` | **`s32`** `(void *)` | a `void` prototype changed `func_001BE7E8`'s registers (`$v0` instead of `$v1`): see recipes 2.13 |
+| `func_001132B0` | **`s32`** `(void *)` | a `void` prototype changed `func_001BE7E8`'s registers (`$v0` instead of `$v1`): see recipes 2.15 |
 | `func_001CB808`, `func_001E9D08` | `extern s32 f();` (no prototype) | called with 2 / 3 and 2 / 4 integer or pointer arguments (variadic: Unconfirmed) |
-| `func_00131088` | `(void *)`; `func_00156F80` passes `arg0` (pass-through, recipes 2.9) | the draft called it with none |
+| `func_00131088` | `(void *)`; `func_00156F80` passes `arg0` (pass-through, recipes 2.10) | the draft called it with none |
 | `func_0014FE10` | `(void *, s32)`; `func_001546F8` takes `arg1` too and passes both | ER-049's `(void)` clone prototype again (ER-061) |
 
 `func_001BEF18`: its draft called `func_001E9A10` by address, which ER-041 named `fptodp` (link error after the
@@ -437,7 +457,7 @@ merge). Written as plain C, the conversion as the argument of `extern void func_
 | `func_0017D290`, `func_001BF5B0` | plain form: `s128` (no 128-bit type in `common.h`) |
 | `func_00177098` | VU0 (the file's only VU0 function); not a MATCH |
 | 33 jump-table functions | none a MATCH as drafts |
-| ER-041's seven: `func_00178C60` (size -351 instr), `func_001BB2C8`, `func_001BB750` (compile error: m2c's macro), `func_0015C0E0` (too many arguments), `func_0015BE00` (+1 instr), `func_00160CE0` (-9), `func_00189810` (-1) | rerun with the ER-041 names (label `er060b`): drafts call `dpadd` / `sqrtf` ... by name; need plain double C by hand (recipes 2.10) |
+| ER-041's seven: `func_00178C60` (size -351 instr), `func_001BB2C8`, `func_001BB750` (compile error: m2c's macro), `func_0015C0E0` (too many arguments), `func_0015BE00` (+1 instr), `func_00160CE0` (-9), `func_00189810` (-1) | rerun with the ER-041 names (label `er060b`): drafts call `dpadd` / `sqrtf` ... by name; need plain double C by hand (recipes 2.11) |
 
 Near misses (same size, 1-2 words; not tried): func_00150A30 func_00153DA0 func_00154BD0 func_00157B08 func_00159830
 func_0015D3E8 func_0015E628 func_0015E988 func_00163C68 func_00164220 func_00164C08 func_00164C50 func_00168328
@@ -462,17 +482,17 @@ Unconfirmed readings` (the tool writes `ER-054`; changed in the copies before pl
 
 | Function | What it took |
 |---|---|
-| `func_0012B6B0` | calls `func_0012BAE0` without setting `$f12`, and `func_0012BAE0` reads `$f12` (another draft, `func_0012F958`, passes a float there): given an `f32 fparg0` parameter passed through; same code (recipes 2.13) |
+| `func_0012B6B0` | calls `func_0012BAE0` without setting `$f12`, and `func_0012BAE0` reads `$f12` (another draft, `func_0012F958`, passes a float there): given an `f32 fparg0` parameter passed through; same code (recipes 2.16) |
 | `func_0012DA68` | uses `func_001314C8`'s `$f0`: `func_001314C8` / `func_00131508` (placed in batch 2 as `s32`, sibling `j func_001E3EC8`) and the file's `func_001E3EC8` extern made `f32`; same code |
 | `func_00130758` | returns `func_001114E8`'s float as it is (no `cvt.w.s` in the game): `float func_00130758(void *)` |
-| `func_00132CF8` | the file's extern was `void func_00132CF8(void)` (an address-taking user, recipes 2.9 / 2.12): changed to `(s8 *)`; three declarations moved above it |
+| `func_00132CF8` | the file's extern was `void func_00132CF8(void)` (an address-taking user, recipes 2.10 / 2.13): changed to `(s8 *)`; three declarations moved above it |
 
 `place.py`'s extern-below limit (6.3) met 3 times (`D_0035B8A0`, `D_0035B8A8`, and `func_00133290` / `func_00132E80` /
 `func_00133098`); fixed by moving the file's line up. A small checker run after each batch (every `extern` line of a
 placed draft must be declared above the placed definition) found the first two before the build; the third was a
 plain prototype line (no `extern`), caught by the compile. No implicit declarations in the build log.
 
-**Skipped:** the 14 functions recipes 2.10 / 2.11 park or leave for ER-069 / ER-070 / ER-071 / ER-073 (none was a
+**Skipped:** the 14 functions recipes 2.11 / 2.12 park or leave for ER-069 / ER-070 / ER-071 / ER-073 (none was a
 MATCH anyway), and the 29 VU0-flagged functions (none matched; they need inline asm, ruling 3.3).
 
 **Left in asm (not placed):**
