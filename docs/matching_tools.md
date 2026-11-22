@@ -689,11 +689,11 @@ the hand work below (byte strides came up 6 times). Results and every chunk's dr
 | m2c gave a draft | 1,165 (all but `func_00179B30`, every context `TIMEOUT`) |
 | draft compiles | 807 |
 | masked MATCH | 18 |
-| plain MATCH | 17 (+ func_001C4750: the file's extern aligned, 2.24) |
+| plain MATCH | 17 (+ func_001C4750: the file's extern aligned, 2.25) |
 | same size, 1-2 / 3-8 / 9+ words differ | 3 / 66 / 140 |
 | size differs | 580 |
 
-- **All 18 placed**, and 50 more by hand from the drafts (recipes 2.24): 68 functions, 7,348 bytes for ER-098.
+- **All 18 placed**, and 50 more by hand from the drafts (recipes 2.25): 68 functions, 7,348 bytes for ER-098.
   The small lists turned only 18 of the file's 1,166 into MATCHes (ER-080's 48 near misses had given 16), but they
   gave a near-miss list to work from: all of the 1-5 word ones and most of 6-8 are now placed.
 - **Field order is the biggest single cause** (20 of the 50): the drafts list stores in the game's schedule order;
