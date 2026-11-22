@@ -659,9 +659,61 @@ void func_00148B60(s8 *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00148BB0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00148BE0);
+extern int func_0012E568(int, int);
+extern float func_00130758(char *);
+extern f32 func_001301F8(char *, char *);
+extern void func_00148D28();
+extern void func_00148EE8();
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00148D28);
+/* ER-100: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. The address-taken
+   parameter only stops the sibling call (ruling 3.14: the game has jal where plain C gives a tail j). */
+void func_00148BE0(char *arg0, char *arg1) {
+    u16 k;
+    (void)&arg0; /* ruling 3.14 */
+
+    if (*(s16 *)(arg0 + 0x6E) == 0) {
+        *(u16 *)(arg0 + 0x74) = func_0012E568(0x384, 0x5DC);
+        *(s16 *)(arg0 + 0x6E) += 1;
+    }
+    k = *(u16 *)(*(char **)(arg1 + 0xE0) + 0x8C);
+    if (k == 0x64 || k == 0xBE) {
+        func_0012F9C0((void **)arg0, 2);
+    }
+    func_0012F8C8((s8 *)arg0, 0, *(s16 *)(arg0 + 0x6C), 0x14, 1, 0.1f);
+    if (func_00131140(arg0, func_00148D28, 0, 0, 0, 0) == 0) {
+        if (func_00130758(arg0) <= *(f32 *)(arg0 + 0x14C) && func_001301F8(arg0, arg1 + 0x90) <= 0.34906587f) {
+            if ((s16)(*(u16 *)(arg0 + 0x74) -= 1) < 0) {
+                *(u64 *)(arg0 + 0x70) |= (u64)0x8000 << 34;
+                func_00131000(arg0, func_00148EE8);
+            }
+        } else {
+            *(u16 *)(arg0 + 0x74) = func_0012E568(0x384, 0x5DC);
+        }
+    }
+}
+
+extern void func_00148BE0();
+extern void func_00148DB8();
+
+/* ER-100: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. The address-taken
+   parameter only stops the sibling call (ruling 3.14: the game has jal where plain C gives a tail j). */
+void func_00148D28(char *arg0) {
+    s32 n;
+    (void)&arg0; /* ruling 3.14 */
+
+    if (func_00131140(arg0, 0, func_00148BE0, func_00148BE0, func_00148BE0, func_00148BE0) == 0) {
+        if (*(s16 *)(arg0 + 0x6E) == 0) {
+            func_0012E568(0xB4, 0x12C);
+            *(s32 *)(arg0 + 0x10) = 0;
+            *(s16 *)(arg0 + 0x6E) += 1;
+        }
+        n = *(s32 *)(arg0 + 0x10) - 1;
+        *(s32 *)(arg0 + 0x10) = n;
+        if (n < 0) {
+            func_00131000(arg0, func_00148DB8);
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00148DB8);
 
