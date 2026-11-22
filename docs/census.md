@@ -227,21 +227,22 @@ not one of `_lt_f2`, `_gt_f2`, ... (which return a fixed value for NaN). ER-035 
 
 | Address | Name | Evidence (all read from the game's code) | Grade |
 |---|---|---|---|
-| 0x001E42E0 | `sqrtf` | newlib `wf_sqrt.c` wrapper line by line: `__ieee754_sqrtf` (`func_001E5290`), `_LIB_VERSION == _IEEE_` (-1) at `D_003582C0`, `isnanf` (`func_001E6350`), `x < 0` -> `struct exception` with type 1 (DOMAIN), name = the string `"sqrtf"` at `D_00357DD0`, `arg1 = arg2 = (double)x`, retval 0.0 for `_SVID_` else `D_00357DD8` (`0x7FF8000000000000`, the folded `0.0/0.0`), `errno = EDOM` (33) through `__errno`-shaped `func_001E9A50`, `matherr` (`func_001E5F78`), `return (float)exc.retval`. **Proven:** `func_0012D568` (calls it through gcc's builtin) matched under `make regress` | Confirmed |
+| 0x001E42E0 | `sqrtf` | newlib `wf_sqrt.c` wrapper line by line: `__ieee754_sqrtf` (`func_001E5290`), `_LIB_VERSION == _IEEE_` (-1) at `D_003582C0`, `isnanf` (`func_001E6350`), `x < 0` -> `struct exception` with type 1 (DOMAIN), name = the string `"sqrtf"` at `D_00357DD0`, `arg1 = arg2 = (double)x`, retval 0.0 for `_SVID_` else `D_00357DD8` (`0x7FF8000000000000`, the folded `0.0/0.0`), `errno = EDOM` (33) through `__errno`-shaped `func_001E9A50`, `matherr` (`func_001E5F78`), `return (float)exc.retval`. **Proven:** committed `func_00148210` (through gcc's builtin); also `func_0012D568` | Confirmed |
 | 0x001E8588 | `dpadd` | unpack both (`func_001E82A8`), `_fpadd_parts` (`func_001E8348`), pack (`func_001E8178`) | Confirmed (code; no placed caller yet) |
-| 0x001E85E0 | `dpsub` | as `dpadd` but flips b's sign (`xori 1` on the unpacked sign word) first. **Proven:** `func_001411E8` (`fabs` of a double) matched under `make regress` | Confirmed |
+| 0x001E85E0 | `dpsub` | as `dpadd` but flips b's sign (`xori 1` on the unpacked sign word) first. **Proven:** committed `func_0014DAC8` (`fabs` of a double); also `func_001411E8` | Confirmed |
 | 0x001E8648 | `dpmul` | unpack both, 64-bit partial products through `func_001E7608` (a `__muldi3`-like helper: the r5900 has no `dmult`), pack; source order after `sub` | Confirmed (code) |
 | 0x001E88F0 | `dpdiv` | unpack both, shift-and-subtract loop, pack; source order after `multiply` | Confirmed (code) |
 | 0x001E8A58 | (fp-bit `__fpcmp_parts_d`, left address-named) | NaN -> 1; both infinite -> `b->sign - a->sign`; zero, sign, exponent, fraction tests in fp-bit's order | Unconfirmed name, not needed |
-| 0x001E8B70 | `dpcmp` | unpack both, `__fpcmp_parts_d`, no NaN test (fp-bit `compare`). **Proven:** `func_001399B8`, `func_001411E8` matched under `make regress` | Confirmed |
+| 0x001E8B70 | `dpcmp` | unpack both, `__fpcmp_parts_d`, no NaN test (fp-bit `compare`). **Proven:** committed `func_00145428`, `func_0014D510`, `func_0014DAC8`; also `func_001399B8`, `func_001411E8` | Confirmed |
 | 0x001E8BC0 | `litodp` | int -> unpacked number, pack only (fp-bit `si_to_float`) | Confirmed (code) |
 | 0x001E8C78 | `dptoli` | unpack; NaN / zero -> 0; saturates to `0x7FFFFFFF` / `0x80000000` above exponent 30; negates for sign (fp-bit `float_to_si`) | Confirmed (code) |
 | 0x001E8D10 | `dptoul` | unpack; saturates to `0xFFFFFFFF` above exponent 31, shifts left above 60 (fp-bit `float_to_usi`) | Confirmed (code) |
 | 0x001E8E18 | `dptofp` | unpack double, `__make_fp` (`func_001E99E0`); called by the libm wrappers for `return (float)exc.retval` | Confirmed (code) |
-| 0x001E9A10 | `fptodp` | unpack float (`func_001E8F80`), `__make_dp` (`func_001E8DE8`); called by the libm wrappers for `exc.arg1 = (double)x`. **Proven:** `func_001399B8`, `func_001411E8` | Confirmed |
+| 0x001E9A10 | `fptodp` | unpack float (`func_001E8F80`), `__make_dp` (`func_001E8DE8`); called by the libm wrappers for `exc.arg1 = (double)x`. **Proven:** committed `func_00145428`, `func_0014D510`, `func_0014DAC8`; also `func_001399B8`, `func_001411E8` | Confirmed |
 
-**Proven** = placed in `src/` in ER-041's worktree with `make regress` green (whole-ELF SHA-1 and all 3,606
-functions), then put back to INCLUDE_ASM before the commit, because their files belong to other wave 3 cards
+**Proven** = matched under `make regress` (whole-ELF SHA-1 and all 3,606 functions). "Committed" functions are
+placed on ER-041's branch (`text_00145120.c`, `text_0014C840.c`, `text_0014D930.c`, freed by ER-062); the "also"
+ones were placed in ER-041's worktree, then put back to INCLUDE_ASM before the commit, because their files belong to other wave 3 cards
 (`text_001343E8.c` ER-031, `text_001000C0.c` ER-063); the C is in the dispatcher's notes folder, `ER-041_c/`, for
 the file owners to place. Control: with the three proof functions placed and the names removed, the link fails with undefined `sqrtf`,
 `fptodp` and `dpcmp`; with the names, `make regress` passes. The renames alone change no byte (whole-ELF SHA-1 and

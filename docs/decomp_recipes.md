@@ -261,13 +261,14 @@ and 11 call the soft-double routines (libgcc names): both ER-041; 3 have VU0 cod
 | **A `%lo` sharing a `lui` with another branch** (one `lui $v0, %hi(D_X)` reaching two `lwc1 %lo(D_X)($v0)` in different cases) comes from plain C with `extern f32 D_X[];` read in both cases; gcc shares the `%hi` itself | `func_0014DDD8` (`D_0035BEB0`) |
 | **A taken address needs the same prototype as the definition.** A file that only takes a function's address may have declared it `(void)`; once the function is placed with a parameter, that extern must be changed to match (no code change) | `func_00145238`, `func_001501D8` |
 
-### 2.10 Doubles and `sqrtf` (ER-041, Sun 22 Nov 2026; Confirmed by `make regress` in ER-041's worktree)
+### 2.10 Doubles and `sqrtf` (ER-041, Sun 22 Nov 2026; Confirmed by `make regress`, commits `48f1dc6`, `34893a6`)
 
 The names gcc emits for these are in `symbol_addrs.txt` since ER-041 (`docs/census.md` 4.4): `sqrtf`, and libgcc's
 GOFAST soft-double routines `dpadd`, `dpsub`, `dpmul`, `dpdiv`, `dpcmp`, `litodp`, `dptoli`, `dptoul`, `dptofp`,
 `fptodp` (not `__adddf3` / `__ltdf2`: this ee-gcc is configured for GOFAST). Write plain C with doubles; never call
-these routines by name. Proof functions (placed, regress green, then put back for their files' owners; C in the
-dispatcher's notes folder `ER-041_c/`):
+these routines by name. Committed matches: `func_00145428`, `func_00148210` (`text_00145120.c`), `func_0014D510`
+(`text_0014C840.c`), `func_0014DAC8` (`text_0014D930.c`). Also proven in place and put back for their files' owners
+(C in the dispatcher's notes folder `ER-041_c/`): `func_001399B8`, `func_001411E8`, `func_0012D568`.
 
 | Lesson | Proved by |
 |---|---|
@@ -275,12 +276,19 @@ dispatcher's notes folder `ER-041_c/`):
 | **A float compared with a double constant** (`f < 0.0`, a `fabs()` result against a float literal) is promoted: `jal fptodp`, then `jal dpcmp` with the constant in `$a1` (0.0 as `$0`, 200.0 built with `ori` / `dsll32`, others from `.rodata`), then a branch on the sign of `$v0`; every comparison operator calls `dpcmp` | `func_001399B8`, `func_001411E8` |
 | **`fabs()` of a double** (`extern double fabs(double);` at file scope) gives `dpcmp(d, 0)`, `bgez`, `dpsub(0, d)` | `func_001411E8` (`if (fabs(v[0]) > 200.0f) return;`) |
 | **A sign as `?:`**: `s = (f(x) < 0.0) ? -1.0f : 1.0f;` loads `1.0f` after the call, as the game does; `s = 1.0f; if (...) s = -1.0f;` hoists the load above the call | `func_001399B8` |
+| **The same sign test with the values swapped** (`(x < 0.0) ? 1.0f : -1.0f`), and a sign flip on the return (`return (g() < 0x1F) ? s : -s;`, not `if (...) s = -s; return s;`) | `func_0014D510`, `func_00145428` |
+| **`if (!(d < 0.0f)) v = -v;`** gives the game's `bc1fl` with `neg.s` in the likely slot; a `?:` in the call's argument gives `bc1t` over two moves | `func_0014DAC8` |
+| **A variable used as a call argument in one branch shares that argument register**: a value computed in the other branch needs its own variable to get the game's registers (`v` in `$f12` in branch 1, `w` in `$f2` in branch 2) | `func_0014DAC8` |
+| **A pointer used in both branches loaded once before the test**: `p = *(char **)a0;` ahead of the `if` gives the game's single `lw` above the branch; `*(char **)a0 + 0x90` in each branch reloads it | `func_00148210` |
+| **`if (*(s8 *)(a0 + 9) == 0) *(u8 *)(a0 + 9) += 1;`** gives `lb` for the test and `lbu; addiu; sb` for the increment | `func_0014DAC8` |
+| **A prototype narrower than the game's argument**: `func_0012F8C8`'s third parameter was `s16` (from m2c); the game passes a plain `lw` there, which an `s16` parameter would truncate. Widened to `s32`; the other caller's `lh` value compiles the same | `func_00148210` |
 | **Each branch's own call, not one call with a chosen pointer**: `if (a && g(...)) { f(p, A); return 1; } if (...) ...` lets gcc cross-jump the shared `jal f; li 1` tail with `$a0` / `$a1` set in each branch, as the game has; `fn = A; ... f(p, fn);` gives one setup | `func_001371C0` (masked MATCH only, see below) |
 
 Not proven: `func_001371C0` matches on the masked compare, but its double constant `D_00354718`
 (`(double)0.17453293f`, 10 degrees) is gcc's anonymous `.rodata` entry in C, and `tools/split.py`'s order check
 refuses dropping the `INCLUDE_RODATA` line (the C defines no symbol of that name). Placing it needs a decision on
-that check, or the file cut (ER-031) first.
+that check, or the file cut (ER-031) first. Same blocker, not tried: `func_0014DF08` (`D_00354A28`, `(double)0.69813174f`,
+40 degrees; the last `.rodata` item of `text_0014D930.c`) and `func_0014EEF0` (`D_00354A68`, `text_0014E2E8.c`).
 
 ### 2.10 Div / sqrt and FP compares, batch 2 (ER-063, Sun 22 Nov 2026; Confirmed by `make regress`)
 

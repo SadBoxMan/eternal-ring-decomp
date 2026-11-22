@@ -11,7 +11,7 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 283,
+          "done": 287,
           "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
@@ -21,7 +21,7 @@
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 13408,
+          "done": 14624,
           "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
@@ -672,7 +672,7 @@
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "one src/ writer at a time",
-      "notes": "Done Sun 22 Nov 2026 (03:15-03:48 ET, Opus high; code commit 5b91db7). 11 names in symbol_addrs.txt (GOFAST: dpadd/dpsub/dpmul/dpdiv/dpcmp/litodp/dptoli/dptoul/dptofp/fptodp, not __adddf3/__ltdf2; sqrtf = func_001E42E0); make regress green, no byte changed. Proven under make regress then put back (other cards' files): func_001399B8, func_001411E8, func_0012D568; func_001371C0 masked match (rodata order check). 22 waiting functions listed (notes folder ER-041_list.md, C in ER-041_c/). m-dec-funcs unchanged (280)."
+      "notes": "Done Sun 22 Nov 2026 (03:15-04:00 ET, Opus high). 11 names in symbol_addrs.txt (GOFAST: dpadd/dpsub/dpmul/dpdiv/dpcmp/litodp/dptoli/dptoul/dptofp/fptodp, not __adddf3/__ltdf2; sqrtf = func_001E42E0), commit 5b91db7; make regress green, no byte changed. 4 matched and committed in files freed by ER-062 (48f1dc6, 34893a6): func_00145428, func_00148210, func_0014D510, func_0014DAC8 (m-dec-funcs 284, bytes 13,932). Proven then put back (other cards' files): func_001399B8, func_001411E8, func_0012D568. Blocked by the rodata order check: func_001371C0, func_0014DF08, func_0014EEF0. 22 waiting functions listed (notes folder ER-041_list.md, C in ER-041_c/)."
     },
     {
       "code": "ER-042",
