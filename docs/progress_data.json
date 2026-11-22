@@ -301,7 +301,7 @@
       "status": "In progress",
       "by": "",
       "text": "First PC build: recompiled EE code + HLE stubs compiles to a Windows exe and boots",
-      "notes": "ER-008 spike (18 Nov 2026): the exe builds and boots into the first PSS movie, then stalled. ER-018 (18 Nov 2026): stall fixed (local PS2Recomp patch: priority-0 threads, libmpeg Background callback, sceGsSetDefDispEnv PMODE); the game's movie player runs and the GS presents frames. ER-029 (19 Nov 2026): VBlank pacing fixed (second local patch; 59.94 Hz measured): the Agetec movie plays its 210 pictures in about 7 s as on PCSX2. ER-043 (19 Nov 2026): the movie now ends as on PCSX2 (libmpeg end checks bound to HLE; third local patch), about 4.5 s of black where the FromSoftware logo belongs, then the opening FMV plays (bottom half of the picture correct). ER-046 (22 Nov 2026): the opening FMV ends (fourth local patch: video ends on its sequence end code), the boot reaches the title screen loop, which draws nothing (black), then the attract movies. Not a playable boot. ER-058 / ER-047 (22 Nov 2026): the FromSoftware logo and the title screen show as on PCSX2, also on the attract loop's second pass (fifth local patch: LoadImage address, D2 chain mode with QWC, libgraph double buffer after the shipped code, field presentation, GS reset); menus respond; the movie pictures are now invisible. NEWGAME reaches loading, then stopped at a missing recompiled function. ER-074 (22 Nov 2026): fixed (a libvu0 function the split labels as data; our syms_to_csv.py / make_configs.py); the game runs into the opening in-engine cutscene, but only the sky draws (every 3D model missing), at single-digit FPS, no sound. ER-099 (22 Nov 2026): PCSX2 memory cards (8 MB .ps2 image or folder card) can be imported as recomp card 1 / 2 (optional, read-only copy each launch; sixth local patch): LuciDin's PCSX2 saves list on CONTINUE and one loads into gameplay (Waterfall Cavern, pause menu works, 3D models missing), so gameplay can now be tested without NEWGAME. Not a playable build. Needs: the 3D model path (VU1 / VIF1 / PATH1, libvu0 HLE audit), speed, movie picture (ER-030)."
+      "notes": "ER-008 spike (18 Nov 2026): the exe builds and boots into the first PSS movie, then stalled. ER-018 (18 Nov 2026): stall fixed (local PS2Recomp patch: priority-0 threads, libmpeg Background callback, sceGsSetDefDispEnv PMODE); the game's movie player runs and the GS presents frames. ER-029 (19 Nov 2026): VBlank pacing fixed (second local patch; 59.94 Hz measured): the Agetec movie plays its 210 pictures in about 7 s as on PCSX2. ER-043 (19 Nov 2026): the movie now ends as on PCSX2 (libmpeg end checks bound to HLE; third local patch), about 4.5 s of black where the FromSoftware logo belongs, then the opening FMV plays (bottom half of the picture correct). ER-046 (22 Nov 2026): the opening FMV ends (fourth local patch: video ends on its sequence end code), the boot reaches the title screen loop, which draws nothing (black), then the attract movies. Not a playable boot. ER-058 / ER-047 (22 Nov 2026): the FromSoftware logo and the title screen show as on PCSX2, also on the attract loop's second pass (fifth local patch: LoadImage address, D2 chain mode with QWC, libgraph double buffer after the shipped code, field presentation, GS reset); menus respond; the movie pictures are now invisible. NEWGAME reaches loading, then stopped at a missing recompiled function. ER-074 (22 Nov 2026): fixed (a libvu0 function the split labels as data; our syms_to_csv.py / make_configs.py); the game runs into the opening in-engine cutscene, but only the sky draws (every 3D model missing), at single-digit FPS, no sound. ER-099 (22 Nov 2026): PCSX2 memory cards (8 MB .ps2 image or folder card) can be imported as recomp card 1 / 2 (optional, read-only copy each launch; sixth local patch): LuciDin's PCSX2 saves list on CONTINUE and one loads into gameplay (Waterfall Cavern, pause menu works, 3D models missing), so gameplay can now be tested without NEWGAME. ER-102 / ER-103 (22 Nov 2026): the 3D models draw (libvu0 HLE audit: 14 of 28 bindings wrong; 11 recompiled from the shipped code, tenth local patch: vf0 in every thread, clip handlers); the opening cutscene and gameplay from a save show in 3D, extremely slowly, no sound. Not a playable build. Needs: speed (ER-104), sound (ER-105), movie picture (ER-030)."
     }
   ],
   "tasks": [
@@ -1217,20 +1217,20 @@
     {
       "code": "ER-102",
       "title": "Recomp: 3D models missing after NEWGAME (VU1 / VIF1 / PATH1 or libvu0)",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, high",
       "waits_on": "one recomp card at a time",
-      "notes": ""
+      "notes": "Done 22 Nov 2026 (with ER-103): the 3D models draw (cutscene: sea, coast, boat; gameplay from a save in 3D with HUD); very slow, no sound. A/B: VIF1 / VU1 / XGKICK worked all along, the HLE libvu0 matrices (MulMatrix reversed, RotMatrix) put the geometry off screen. Start-of-run flicker not traced. recomp_spike.md 15 (Recomp)"
     },
     {
       "code": "ER-103",
       "title": "Recomp: libvu0 HLE audit (~40 bindings vs shipped asm)",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, high",
       "waits_on": "rebuild one recomp card at a time",
-      "notes": ""
+      "notes": "Done 22 Nov 2026: 28 libvu0 bindings read vs the shipped code: 14 match, 14 differ; 11 recompiled (make_configs.py DROP_STUBS), 3 clip handlers rewritten + vf0 pinned in every context (tenth local patch er103_libvu0_vf0.patch). Clip / camera / light / RotTransPers not exercised (no direct game calls). recomp_spike.md 15.1, tools/recomp/ER-103_libvu0_vf0.md (Recomp)"
     },
     {
       "code": "ER-104",
@@ -1437,6 +1437,33 @@
       "track": "port",
       "model": "Opus, high",
       "waits_on": "port playable",
+      "notes": ""
+    },
+    {
+      "code": "ER-127",
+      "title": "Recomp: cutscene start flicker",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-128",
+      "title": "Recomp: which libvu0 change mattered (harness)",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-129",
+      "title": "Recomp: 2D UI a bit off",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
       "notes": ""
     }
   ]
