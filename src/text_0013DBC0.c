@@ -327,7 +327,88 @@ INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354928);
 INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354930);
 INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354938);
 INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354940);
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013FCF8);
+extern void func_0012FAA8(void *);
+extern void func_001C9F60(void *, void *, void *);
+extern void func_001C9FE8(void *, void *, void *);
+extern void func_00140250(void *, void *);
+extern void func_0012E820(char *, float, float);
+extern s32 func_0012B540(void *, s32, s8, s32);
+extern s32 func_0012B890(void *, s32, s32, s16, s32, s32, f32);
+extern s32 func_0013FF70(void *, void *, f32);
+extern f32 D_0035BB68;
+extern f32 D_0035BB6C;
+
+/* ER-072 / ER-087: jump table (5 entries) by hand from the m2c draft; case 0 takes -D_0035BB68 into a local first
+   (recipes 2.18). A state handler (a reading) on the state at +0x6E: copies
+   a position from arg1's +0xE0 object, turns it (func_001C9F60 / func_001C9FE8) while +0x30 decays, then raises +0x30
+   to at most 50 (degrees) for func_0013FF70. Names, types and offsets Unconfirmed. */
+void func_0013FCF8(char *arg0, char *arg1) {
+    float m[4];
+    float v[4];
+    float z;
+    float t;
+    char *o;
+    float n;
+
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        if (func_00131430(*(void **)(arg0 + 0xEC), 0x20) != 0) {
+            func_0012FAA8(arg0);
+            *(u8 *)(*(char **)(arg0 + 0xEC) + 0x5A) |= 0x80;
+        }
+        n = -D_0035BB68;
+        o = *(char **)(arg1 + 0xE0);
+        *(f32 *)(arg0 + 0x34) = *(f32 *)(o + 0xE90);
+        *(f32 *)(arg0 + 0x38) = *(f32 *)(o + 0xE94);
+        *(s16 *)(arg0 + 0x6E) += 1;
+        *(f32 *)(arg0 + 0x3C) = *(f32 *)(o + 0xE98);
+        *(f32 *)(arg0 + 0x30) = n;
+    case 1:
+        v[0] = 0.0f;
+        v[1] = *(f32 *)(arg0 + 0x30);
+        v[2] = 0.0f;
+        v[3] = 0.0f;
+        func_001C9F60(m, *(char **)(arg1 + 0xE0) + 0xE60, v);
+        z = 0.0f;
+        t = 10.0f;
+        func_001C9FE8(m, m, *(char **)(arg1 + 0xE0) + 0xE90);
+        *(f32 *)(arg0 + 0x30) *= D_0035BB6C;
+        func_00140250(arg1, m);
+        func_0012E820(*(char **)(arg1 + 0xE0) + 0xEB0, z, t);
+        func_0012E820(*(char **)(arg1 + 0xE0) + 0xEB4, z, t);
+        func_0012E820(*(char **)(arg1 + 0xE0) + 0xEB8, z, t);
+        func_0012B540(arg1, 1, 2, 0);
+        if (func_0012B890(arg0, 0, 2, *(s16 *)(arg0 + 0x6C), 0x1E, 0, 0.1f) != 0) {
+            *(f32 *)(arg0 + 0x30) = z;
+            *(s16 *)(arg0 + 0x6C) = 0;
+            *(s16 *)(arg0 + 0x6E) += 1;
+        }
+        break;
+    case 2:
+        if (*(s16 *)(arg0 + 0x6C) >= 0x1F) {
+            *(s16 *)(arg0 + 0x6E) += 1;
+        }
+        break;
+    case 3:
+        *(f32 *)(arg0 + 0x30) += 0.4f;
+        if (50.0f < *(f32 *)(arg0 + 0x30)) {
+            *(f32 *)(arg0 + 0x30) = 50.0f;
+        }
+        if (func_0013FF70(arg0, arg1, *(f32 *)(arg0 + 0x30) * 3.1415927f / 180.0f) != 0) {
+            *(s16 *)(arg0 + 0x6C) = 0;
+            *(s16 *)(arg0 + 0x6E) += 1;
+        }
+        break;
+    case 4:
+        if (*(s16 *)(arg0 + 0x6C) >= 0x1F) {
+            func_001321E8(arg0);
+            if (func_00131430(*(void **)(arg0 + 0xEC), 0x20) != 0) {
+                func_001321E8(*(char **)(arg0 + 0xEC));
+            }
+        }
+        break;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013FF70);
 
@@ -399,7 +480,6 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140DD8);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140E00);
 
-extern void func_0012E820(char *, float, float);
 extern void func_0012DAF8(s32 *, void *, f32 fparg0);
 extern f32 func_00130AD0(s8 *, f32 fparg0, f32 fparg1);
 extern f32 D_0035BB8C;
@@ -900,7 +980,6 @@ s32 func_00144BB8(void *arg0) {
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00144BF0);
 
 extern f32 D_0035BC50;
-extern void func_001C9FE8(void *, void *, void *);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); the pass-through arg0 to func_00130848 written out by hand.
    Names, types and offsets are Unconfirmed readings. */
