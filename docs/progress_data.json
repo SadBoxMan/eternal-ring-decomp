@@ -1249,6 +1249,24 @@
       "model": "Opus, high",
       "waits_on": "low priority",
       "notes": ""
+    },
+    {
+      "code": "ER-106",
+      "title": "Toolchain research: the original compiler's alias model (ruling 3.6 interplay)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "nothing; adoption needs LuciDin's ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-107",
+      "title": "Place what ER-106 unlocks (func_0013D088, 0013AA28, 0013F288, 001431A0, 0013BD90)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "ER-106",
+      "notes": ""
     }
   ]
 }
