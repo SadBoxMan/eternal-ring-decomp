@@ -567,7 +567,6 @@ func_0017D290 and func_001BF5B0, left by ER-060 for `s128`, no longer need it: w
 `func_001C9B18` with plain arguments (placed above); func_00161568's parse error is gone the same way. No typedef was
 added.
 
-
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
