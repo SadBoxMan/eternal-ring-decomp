@@ -282,7 +282,16 @@ INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00146C20);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00146DF8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00146EF0);
+extern void func_0012B238(void *, void *);
+
+/* ER-085: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+void func_00146EF0(void *arg0, void *arg1) {
+    if (*(f32 *)((char *)arg1 + 0x94) > 0.0f) {
+        *(f32 *)((char *)arg1 + 0x94) = 0.0f;
+    }
+    *(f32 *)((char *)arg0 + 0x54) = 0.0f;
+    func_0012B238(arg0, arg1);
+}
 
 extern s32 func_0014FF38(void *arg0, s32 arg1);
 extern void func_001469B8(s32 *, void *);
@@ -407,11 +416,11 @@ INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147A28);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147CF8);
 
-extern void func_0012B238(void);
 
 /* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed. */
-void func_00147D88(void) {
-    func_0012B238();
+/* ER-085: passes its arguments on to func_0012B238 (recipes 2.13; same `j`). */
+void func_00147D88(void *arg0, void *arg1) {
+    func_0012B238(arg0, arg1);
 }
 
 extern void func_00147018(s8 *, s32);
@@ -576,7 +585,14 @@ INCLUDE_ASM("asm/nonmatchings/text_00145120", func_001490B0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149170);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_001492D0);
+void func_00149330(float *a0, float *a1, float lim);
+
+/* ER-085: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_001492D0(void *arg0, void *arg1) {
+    func_00149330(*(s32 *)((char *)arg1 + 0xE0) + 0xF0, arg0 + 0x48, *(f32 *)((char *)arg0 + 0x44));
+    func_00149330(*(s32 *)((char *)arg1 + 0xE0) + 0xF8, arg0 + 0x4C, *(f32 *)((char *)arg0 + 0x44));
+    func_0012B238(arg0, arg1);
+}
 
 /* ER-034. Clamps *a1 to [-lim, lim], adds it (degrees) to the angle *a0 in radians, wraps *a0 into [-pi, pi], and
    writes the clamped value back to *a1. The `?:` clamp into lim is what gives the game's registers (if / else does
@@ -641,8 +657,9 @@ INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149978);
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149AB8);
 
 /* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed. */
-void func_00149C10(void) {
-    func_0012B238();
+/* ER-085: passes its arguments on to func_0012B238 (recipes 2.13; same `j`). */
+void func_00149C10(void *arg0, void *arg1) {
+    func_0012B238(arg0, arg1);
 }
 
 extern s32 func_0014FF58(void **arg0, s32 arg1);

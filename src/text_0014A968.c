@@ -369,7 +369,10 @@ INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014C630);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014C658);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014C748);
+/* ER-085: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+s32 func_0014C748(s32 arg0) {
+    return (arg0 != 9) ? 9 : 8;
+}
 
 /* ER-054: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 s32 func_0014C760(void **arg0, s32 arg1) {

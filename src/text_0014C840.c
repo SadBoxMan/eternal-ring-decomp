@@ -69,7 +69,10 @@ INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014CF60);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D028);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D050);
+/* ER-085: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+s32 func_0014D050(s32 arg0) {
+    return (arg0 != 9) ? 9 : 8;
+}
 
 extern s32 func_0012B890(void **, s32, s32, s32, s16, s32, f32 fparg0);
 
