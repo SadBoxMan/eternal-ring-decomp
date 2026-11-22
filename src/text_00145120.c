@@ -489,7 +489,20 @@ INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149170);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_001492D0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149330);
+/* ER-034. Clamps *a1 to [-lim, lim], adds it (degrees) to the angle *a0 in radians, wraps *a0 into [-pi, pi], and
+   writes the clamped value back to *a1. The `?:` clamp into lim is what gives the game's registers (if / else does
+   not). Names and reading Unconfirmed. */
+void func_00149330(float *a0, float *a1, float lim) {
+    lim = (*a1 < -lim) ? -lim : ((lim < *a1) ? lim : *a1);
+    *a0 += (lim * 3.14159274101257324219f) / 180.0f;
+    while (3.14159274101257324219f < *a0) {
+        *a0 -= 6.28318548202514648438f;
+    }
+    while (*a0 < -3.14159274101257324219f) {
+        *a0 += 6.28318548202514648438f;
+    }
+    *a1 = lim;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_001493F8);
 

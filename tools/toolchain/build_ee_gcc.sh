@@ -8,17 +8,22 @@
 # (Two case-colliding files, ee/libgloss/sparc/crt0.[sS] and ee/readline/{CHANGELOG,ChangeLog}, cannot
 #  both exist on NTFS; neither is used by this build.)
 #
-# Run from an MSYS2 MSYS shell:  /c/rs/toolchain/build_ee_gcc.sh
-# Output: /c/rs/toolchain/ee-gcc-2.9-991111/{gcc,cpp,cc1}.exe (+ msys-2.0.dll)
+# ER-034: first applies our compiler patches from patches/ beside this script, once (docs/toolchain.md 4.1):
+#   ee-gcc_r5900_fdiv_nops.patch  div.s / sqrt.s as "nop; nop; div.s", length 3 (ruling 3.7)
+# Run:  MSYSTEM=MSYS C:\msys64\usr\bin\bash.exe -lc "'<repo>/tools/toolchain/build_ee_gcc.sh'"
+# Output: /c/rs/toolchain/ee-gcc-2.9-991111-r1/{gcc,cpp,cc1}.exe (+ msys-2.0.dll)
+#   (r1 = with the ER-034 patch; ER-002's unpatched build in ee-gcc-2.9-991111 stays as a fallback)
 set -e
 export PATH="/usr/bin:$PATH"
 unset CC CXX
 
+HERE=$(cd "$(dirname "$0")" && pwd)
+PATCHES="$HERE/patches"
 ROOT=/c/rs/toolchain
 SRC=$ROOT/src-lf/ee
-BUILD=$ROOT/b-gcc
-OUT=$ROOT/ee-gcc-2.9-991111
-LOG=$ROOT/build_ee_gcc.log
+BUILD=$ROOT/b-gcc-r1
+OUT=$ROOT/ee-gcc-2.9-991111-r1
+LOG=$ROOT/build_ee_gcc-r1.log
 
 # Host compiler flags: GCC 15 rejects much 1990s C by default; these only relax diagnostics.
 CFLAGS="-O0 -g0 -std=gnu89 -w -fcommon -Wno-int-conversion -Wno-implicit-function-declaration -Wno-implicit-int -Wno-return-mismatch -Wno-incompatible-pointer-types"
@@ -63,6 +68,17 @@ cat > gcc/config/xm-msys64.h <<'EOF'
 #define BSTRING
 #include "tm.h"
 EOF
+
+# 2b. ER-034: apply each compiler patch once (a reverse dry run that succeeds means it is already in the tree).
+for p in "$PATCHES"/ee-gcc_*.patch; do
+    if patch -p1 -d "$SRC" -R --dry-run -s -f < "$p" > /dev/null 2>&1; then
+        echo "already applied: $(basename "$p")"
+    else
+        patch -p1 -d "$SRC" -N -s < "$p"
+        echo "applied: $(basename "$p")"
+    fi
+done
+grep -q 'Ringsmith ER-034' "$SRC/gcc/config/mips/mips.md"
 
 # 3. The tree ships no generated c-parse.c / cexp.c; MSYS2's bison 3.8 rejects the 1999 grammar.
 #    Build the tree's own bison 1.25 and use it, with the grammar unchanged.

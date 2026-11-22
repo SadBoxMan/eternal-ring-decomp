@@ -1257,7 +1257,23 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001303A8);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130420);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001304C8);
+extern float func_0012E7B0(float, float);
+
+/* ER-034. Returns s or -s by the sign of func_0012E7B0(angle from a0 + 0x90 to a1, wrapped into [-pi, pi), +0xA4)
+   (a turn direction: reading). The sign as a nested `?:` gives the game's registers. Names and reading Unconfirmed. */
+float func_001304C8(char *a0, char *a1, float s) {
+    float v[4];
+    float f;
+    float d;
+    float sign;
+
+    func_001CA018(v, a1, a0 + 0x90);
+    f = func_001E41B8(v[0], v[2]) + 6.28318548202514648438f;
+    d = func_0012E7B0((f - (int)(f / 6.28318548202514648438f) * 6.28318548202514648438f) - 3.14159274101257324219f,
+                      *(float *)(a0 + 0xA4));
+    sign = (d == 0.0f) ? 0.0f : ((d < 0.0f) ? -1.0f : 1.0f);
+    return (sign < 0.0f) ? -s : s;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130590);
 

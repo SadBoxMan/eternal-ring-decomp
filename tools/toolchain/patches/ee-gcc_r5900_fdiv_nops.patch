@@ -1,0 +1,50 @@
+Ringsmith ER-034 (ruling LuciDin 22 Nov 2026, docs/decomp_recipes.md 3.7)
+
+ee-gcc for the r5900: every single-float divide and square root is emitted as "nop; nop; div.s" /
+"nop; nop; sqrt.s", one insn of length 3, so it is never put in a branch delay slot. The game has 754
+div.s and 59 sqrt.s in game code and 19 div.s in the SDK, each with exactly two nops before it (whatever
+the instruction before them) and none in a delay slot; this compiler put div.s in delay slots with no
+nops. A documented reconstruction of Sony's compiler behaviour (same output on every site checked), not
+Sony's code; why the chip needs it is not known.
+
+Applies to SSXModding/ps2-ee-toolchain b595ded, directory ee/ (patch -p1 -d <src>/ee).
+
+--- a/gcc/config/mips/mips.md
++++ b/gcc/config/mips/mips.md
+@@ -2685,14 +2685,16 @@
+    (set_attr "mode"	"DF")
+    (set_attr "length"	"1")])
+ 
++;; Ringsmith ER-034: r5900 div.s as "nop; nop; div.s", length 3 (never in a
++;; delay slot), as in the original game's code.
+ (define_insn "divsf3"
+   [(set (match_operand:SF 0 "register_operand" "=f")
+ 	(div:SF (match_operand:SF 1 "register_operand" "f")
+ 		(match_operand:SF 2 "register_operand" "f")))]
+   "TARGET_HARD_FLOAT"
+-  "div.s\\t%0,%1,%2"
++  "nop\\n\\tnop\\n\\tdiv.s\\t%0,%1,%2"
+   [(set_attr "type"	"fdiv")
+    (set_attr "mode"	"SF")
+-   (set_attr "length"	"1")])
++   (set_attr "length"	"3")])
+ 
+ (define_insn ""
+@@ -3320,13 +3322,15 @@
+    (set_attr "mode"	"DF")
+    (set_attr "length"	"1")])
+ 
++;; Ringsmith ER-034: r5900 sqrt.s as "nop; nop; sqrt.s", length 3 (never in a
++;; delay slot), as in the original game's code.
+ (define_insn "sqrtsf2"
+   [(set (match_operand:SF 0 "register_operand" "=f")
+ 	(sqrt:SF (match_operand:SF 1 "register_operand" "f")))]
+   "TARGET_HARD_FLOAT && HAVE_SQRT_P()"
+-  "sqrt.s\\t%0,%1"
++  "nop\\n\\tnop\\n\\tsqrt.s\\t%0,%1"
+   [(set_attr "type"	"fsqrt")
+    (set_attr "mode"	"SF")
+-   (set_attr "length"	"1")])
++   (set_attr "length"	"3")])
+ 
+ (define_insn ""

@@ -15,10 +15,13 @@ SHELL := /usr/bin/bash
 
 # --- toolchain (built by tools/toolchain/*.sh; docs/toolchain.md 4, docs/build.md) -----------------------
 TOOLCHAIN ?= C:/rs/toolchain
-GCC_DIR   := $(TOOLCHAIN)/ee-gcc-2.9-991111
-# ER-035: -r2 = ee-as with both patches in tools/toolchain/patches/ (rulings docs/decomp_recipes.md 3.4, 3.5).
-# ER-026's -r1 (first patch only) and the unpatched ER-011 build (ee-binutils-2.9-991111) stay as fallbacks.
-BIN_DIR   ?= $(TOOLCHAIN)/ee-binutils-2.9-991111-r2
+# ER-034: -r1 = ee-gcc with tools/toolchain/patches/ee-gcc_r5900_fdiv_nops.patch (ruling docs/decomp_recipes.md
+# 3.7: div.s / sqrt.s as "nop; nop; div.s", never in a delay slot). The unpatched ee-gcc-2.9-991111 stays as a fallback.
+GCC_DIR   := $(TOOLCHAIN)/ee-gcc-2.9-991111-r1
+# ER-034: -r3 = ee-as with the three ee-as_*.patch files in tools/toolchain/patches/ (rulings docs/decomp_recipes.md
+# 3.4, 3.5, 3.8). ER-035's -r2 (first two), ER-026's -r1 (first only) and the unpatched ER-011 build
+# (ee-binutils-2.9-991111) stay as fallbacks.
+BIN_DIR   ?= $(TOOLCHAIN)/ee-binutils-2.9-991111-r3
 CC        := $(GCC_DIR)/gcc.exe
 AS        := $(BIN_DIR)/ee-as.exe
 LD        := $(BIN_DIR)/ee-ld.exe

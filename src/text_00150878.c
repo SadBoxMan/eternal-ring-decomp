@@ -111,7 +111,35 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00153538);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001535A8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001536A0);
+extern float func_001114E8(char *, float *);
+extern int D_0035B824;
+extern float D_003302E0[];
+
+/* ER-034. When D_0035B824 is 0x17: d = func_001114E8(a0 + 0x90, D_003302E0) (a distance: reading); beyond 1750 pulls
+   +0x90 / +0x98 in by 1750 / d relative to D_003302E0[0] / [2]; caps +0x94 at 0, -50 or -100 by d. Names, types and the
+   reading Unconfirmed. */
+void func_001536A0(char *a0) {
+    float d;
+    float f;
+
+    if (D_0035B824 == 0x17) {
+        d = func_001114E8(a0 + 0x90, D_003302E0);
+        if (1750.0f < d) {
+            *(float *)(a0 + 0x90) = ((*(float *)(a0 + 0x90) - D_003302E0[0]) * 1750.0f) / d;
+            *(float *)(a0 + 0x98) = ((*(float *)(a0 + 0x98) - D_003302E0[2]) * 1750.0f) / d;
+        }
+        f = 0.0f;
+        if (d < 1500.0f) {
+            f = -50.0f;
+        }
+        if (d < 750.0f) {
+            f -= 50.0f;
+        }
+        if (f < *(float *)(a0 + 0x94)) {
+            *(float *)(a0 + 0x94) = f;
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00153798);
 
@@ -2646,13 +2674,35 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8958);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8AF0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8BC0);
+extern float func_001E3FB8(float);
+extern float D_001F0380[];
+
+/* ER-034. 0 outside [-1, 1]; else looks func_001E3FB8(x) (a libm angle function: reading) up in the 4096-entry table
+   D_001F0380 (a sine table: reading). func_001B8CD8 and func_001B8FF0 are byte-identical copies. Names Unconfirmed. */
+float func_001B8BC0(float x) {
+    float a;
+
+    if (x < -1.0f || 1.0f < x) {
+        return 0.0f;
+    }
+    a = func_001E3FB8(x);
+    return D_001F0380[(int)((a * 4096.0f) / 6.2831855f) & 0xFFF];
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8C50);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8CB0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8CD8);
+/* ER-034. Same code as func_001B8BC0. */
+float func_001B8CD8(float x) {
+    float a;
+
+    if (x < -1.0f || 1.0f < x) {
+        return 0.0f;
+    }
+    a = func_001E3FB8(x);
+    return D_001F0380[(int)((a * 4096.0f) / 6.2831855f) & 0xFFF];
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8D68);
 
@@ -2666,7 +2716,16 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8F58);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8FC8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8FF0);
+/* ER-034. Same code as func_001B8BC0. */
+float func_001B8FF0(float x) {
+    float a;
+
+    if (x < -1.0f || 1.0f < x) {
+        return 0.0f;
+    }
+    a = func_001E3FB8(x);
+    return D_001F0380[(int)((a * 4096.0f) / 6.2831855f) & 0xFFF];
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B9080);
 
@@ -3061,7 +3120,14 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C0EE8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C10E0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C12D0);
+/* ER-034 (parked by ER-026). Degrees to radians, with a above 180 first taken down by 360. Needs ee-gcc r1
+   (ruling docs/decomp_recipes.md 3.7: the nop; nop before div.s). Reading Unconfirmed. */
+float func_001C12D0(float a) {
+    if (180.0f < a) {
+        a -= 360.0f;
+    }
+    return (a * 3.14159274101257324219f) / 180.0f;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C1310);
 
