@@ -620,7 +620,101 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001139C8);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00113AC8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00113C30);
+/* Unofficial layout: only tab (0x80) and sel (0x101) are read here. */
+typedef struct {
+    char pad0[0x80];
+    char *tab[32];
+    u8 x100;
+    u8 sel;
+} Anm;
+
+extern s32 func_00114450(void *, s32);
+extern void func_001C9F60(void *, void *, void *);
+extern void func_001C9B18(void *, void *);
+
+/* ER-089: by hand from the asm (ER-063 / ER-086 drafts); names, types and offsets are Unconfirmed readings.
+   One variable (id) is the part index and, in the i == n scan, the vertex pointer: the original's register
+   choice ($a1 for both) comes only from that reuse. buf: ruling 3.13 (an unused local that only sizes the
+   0x80 stack frame; nothing reads sp+0..0x3F). */
+void func_00113C30(char *a0, s32 a1, void *a2) {
+    s32 n, id, i, k, cnt, c, j, w;
+    Anm *t;
+    char *q, *p, *m, *rec;
+    float buf[16]; /* ruling 3.13: sizes the frame only */
+
+    n = func_00114450(a0, a1);
+    if (*(u16 *)(a0 + 0xE8) & 1) {
+        Anm *t0 = *(Anm **)(a0 + 0xE4);
+        id = *(u16 *)(t0->tab[t0->sel] + n * 64 + 4);
+        if (id == 0xFFFF) {
+            return;
+        }
+    } else {
+        id = n;
+    }
+    if (!(*(u16 *)(a0 + 0xE8) & 0x8000)) {
+        rec = (char *)(id * 0x50 + *(s32 *)(a0 + 8));
+        m = *(char **)(rec + 0x3C);
+        cnt = *(u16 *)(rec + 0x30);
+        p = *(char **)(rec + 0x34);
+        do {
+            k = *(u16 *)p;
+            p += 0x20;
+            do {
+                k--;
+                if (254.9f < *(float *)(p + 0x10) && *(float *)(p + 0x14) < 0.1f && *(float *)(p + 0x18) < 0.1f) {
+                    func_001C9F60(a2, *(char **)(a0 + 0xE0) + n * 0xA0, m + *(u16 *)p * 16);
+                    return;
+                }
+                p += 0x20;
+            } while (k != 0);
+        } while (--cnt != 0);
+        return;
+    }
+    q = *(char **)(a0 + 0xEC);
+    for (i = 0; i < *(u16 *)(a0 + 4); i++) {
+        if (*(u16 *)(a0 + 0xE8) & 1) {
+            t = *(Anm **)(a0 + 0xE4);
+            w = *(u16 *)(t->tab[t->sel] + i * 64 + 4);
+            if (w == 0xFFFF) {
+                continue;
+            }
+            id = w;
+        } else {
+            id = i;
+        }
+        if (i != n) {
+            q += 0x30;
+            c = *(u16 *)(*(char **)(a0 + 0xF0) + id * 16 + 0xA);
+            do {
+                w = *(s32 *)q & 0xEFFFFFFF;
+                c--;
+                j = (w - 5) / 4;
+                q += 0x80;
+                q += j * 0x40;
+                q += 0x10;
+            } while (c != 0);
+        } else {
+            q += 0x30;
+            c = *(u16 *)(*(char **)(a0 + 0xF0) + id * 16 + 0xA);
+            do {
+                w = *(s32 *)q & 0xEFFFFFFF;
+                id = (s32)(q + 0x80);
+                for (j = (w - 5) / 4 - 1; j != -1; j--) {
+                    if (254.9f < *(float *)(id + 0x30)) {
+                        func_001C9B18(a2, (void *)id);
+                        goto end;
+                    }
+                    id += 0x40;
+                }
+                c--;
+                q = (char *)id + 0x10;
+            } while (c != 0);
+        }
+    }
+end:
+    func_001C9F60(a2, *(char **)(a0 + 0xE0) + n * 0xA0, a2);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00113ED8);
 
@@ -812,7 +906,278 @@ float func_0011BAB0(float *a0, float *a1, float a, float lim) {
     return r;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0011BB90);
+/* Unofficial layout of D_001FF390 (a camera / view work area, a reading): fields named by offset; the struct form
+   (not char-array offsets) gives the game's base register, a symbol plus field offset. fc and bits are read by
+   func_00120EF0. */
+typedef struct {
+    char pad0[0x60];
+    float x60;
+    char pad64[4];
+    float x68;
+    char pad6C[4];
+    float x70;
+    float x74;
+    char pad78[8];
+    float x80;
+    char pad84[4];
+    float x88;
+    char pad8C[4];
+    float x90;
+    float x94;
+    char pad98[8];
+    s32 xA0;
+    char padA4[4];
+    s32 xA8;
+    char padAC[4];
+    s32 xB0;
+    s32 xB4;
+    char padB8[0xC];
+    u8 xC4;
+    char padC5[0x1B];
+    float xE0;
+    float xE4;
+    float xE8;
+    char padEC[0x10];
+    char *fc;
+    u8 x100;
+    u8 x101;
+    char pad102[6];
+    float x108;
+    char pad10C[4];
+    float x110[4];
+    char pad120[0x20];
+    u8 bits[64];
+} G390;
+extern G390 D_001FF390;
+extern float D_001FF340[];
+extern char D_001FFAA4[];
+extern float D_001FF180[];
+extern float D_001FF100[];
+extern void func_001E9B0C(void *, s32, s32);
+extern void func_001CA048(float *, float *, float);
+extern void func_001D73D0(float *, float *);
+extern float func_001114E8(char *, float *);
+extern void func_001C9FE8(void *, void *, void *);
+extern void func_001D7450(void *, float *);
+extern void func_001D7340(void *, void *, void *);
+
+/* ER-092: by hand from the asm (ER-073's m2c draft as a map); names, types and offsets are Unconfirmed readings.
+   Pad bits of D_0035B828 (read once) step the clamped counters at 0xA0 / 0xA8 / 0xB0 / 0xB4, which decay to 0
+   when their bit is idle; then angles are wrapped to [-pi, pi] and the view matrix D_001FF180 is rebuilt. */
+void func_0011BB90(void) {
+    float a[4];
+    float v[4];
+    float d[4];
+    float r[4];
+    float m[16];
+    float ang;
+    float nrx;
+    float len;
+    s32 x;
+    float *p;
+    s32 btn;
+
+    func_001E9B0C(v, 0, 0x10);
+    btn = D_0035B828;
+    v[3] = 1.0f;
+    D_001FF390.xC4 = 0;
+    D_001FF390.x80 = 0.2f;
+    D_001FF390.x88 = 0.2f;
+    D_001FF390.x90 = 0.0006f;
+    D_001FF390.x94 = 0.0008f;
+    if (btn & 0x200) {
+        D_001FF390.xB0--;
+        if (D_001FF390.xB0 < -25) {
+            D_001FF390.xB0 = -25;
+        }
+        D_001FF390.xC4 |= 8;
+        r[0] = -0.006f;
+    }
+    if (btn & 0x100) {
+        D_001FF390.xB0++;
+        if (D_001FF390.xB0 > 25) {
+            D_001FF390.xB0 = 25;
+        }
+        D_001FF390.xC4 |= 8;
+        r[0] = 0.006f;
+    }
+    if (btn & 0x20) {
+        D_001FF390.xB4++;
+        if (D_001FF390.xB4 > 25) {
+            D_001FF390.xB4 = 25;
+        }
+        D_001FF390.xC4 |= 4;
+        r[1] = 0.006f;
+    }
+    if (btn & 0x80) {
+        D_001FF390.xB4--;
+        if (D_001FF390.xB4 < -25) {
+            D_001FF390.xB4 = -25;
+        }
+        D_001FF390.xC4 |= 4;
+        r[1] = -0.006f;
+    }
+    if (btn & 0x800) {
+        D_001FF390.xA0++;
+        if (D_001FF390.xA0 > 20) {
+            D_001FF390.xA0 = 20;
+        }
+        D_001FF390.xC4 |= 1;
+        d[0] = 1.5f;
+    }
+    if (btn & 0x400) {
+        D_001FF390.xA0--;
+        if (D_001FF390.xA0 < -20) {
+            D_001FF390.xA0 = -20;
+        }
+        D_001FF390.xC4 |= 1;
+        d[0] = -1.5f;
+    }
+    if (btn & 0x10) {
+        D_001FF390.xA8++;
+        if (D_001FF390.xA8 > 20) {
+            D_001FF390.xA8 = 20;
+        }
+        D_001FF390.xC4 |= 2;
+        d[2] = 1.5f;
+    }
+    if (btn & 0x40) {
+        D_001FF390.xA8--;
+        if (D_001FF390.xA8 < -20) {
+            D_001FF390.xA8 = -20;
+        }
+        D_001FF390.xC4 |= 2;
+        d[2] = -1.5f;
+    }
+    a[1] = 0.0f;
+    a[3] = 1.0f;
+    if (btn & 0x1000) {
+        a[1] = -5.0f;
+    }
+    if (btn & 0x4000) {
+        a[1] += 5.0f;
+    }
+    if ((D_001FF390.xC4 & 1) && (D_001FF390.xC4 & 2)) {
+        D_001FF390.x60 = (d[0] + D_001FF390.x80 * (float)D_001FF390.xA0) * 0.70710677f;
+        D_001FF390.x68 = (d[2] + D_001FF390.x88 * (float)D_001FF390.xA8) * 0.70710677f;
+    } else {
+        if (D_001FF390.xC4 & 1) {
+            D_001FF390.x60 = d[0] + D_001FF390.x80 * (float)D_001FF390.xA0;
+        } else {
+            if (D_001FF390.xA0 > 0) {
+                D_001FF390.xA0 = D_001FF390.xA0 - 1;
+            } else if (D_001FF390.xA0 < 0) {
+                D_001FF390.xA0 = D_001FF390.xA0 + 1;
+            }
+            D_001FF390.x60 = D_001FF390.x80 * (float)D_001FF390.xA0;
+        }
+        if (D_001FF390.xC4 & 2) {
+            x = D_001FF390.xA8;
+            D_001FF390.x68 = d[2] + D_001FF390.x88 * (float)x;
+            if (D_001FF390.xC4 & 0x20) {
+                if (x > 0) {
+                    D_001FF390.xA8 = x - 1;
+                } else if (x < 0) {
+                    D_001FF390.xA8 = x + 1;
+                }
+            }
+        } else {
+            if (D_001FF390.xA8 > 0) {
+                D_001FF390.xA8 = D_001FF390.xA8 - 1;
+            } else if (D_001FF390.xA8 < 0) {
+                D_001FF390.xA8 = D_001FF390.xA8 + 1;
+            }
+            D_001FF390.x68 = D_001FF390.x88 * (float)D_001FF390.xA8;
+        }
+    }
+    a[0] = D_001FF390.x60;
+    a[2] = D_001FF390.x68;
+    if (D_001FF390.xC4 & 8) {
+        D_001FF390.x70 = r[0] + D_001FF390.x90 * (float)D_001FF390.xB0;
+    } else {
+        if (D_001FF390.xB0 > 0) {
+            D_001FF390.xB0 = D_001FF390.xB0 - 1;
+        } else if (D_001FF390.xB0 < 0) {
+            D_001FF390.xB0 = D_001FF390.xB0 + 1;
+        }
+        D_001FF390.x70 = D_001FF390.x90 * (float)D_001FF390.xB0;
+    }
+    if (D_001FF390.xC4 & 4) {
+        x = D_001FF390.xB4;
+        D_001FF390.x74 = r[1] + D_001FF390.x94 * (float)x;
+        if (D_001FF390.xC4 & 0x40) {
+            if (x > 0) {
+                D_001FF390.xB4 = x - 1;
+            } else if (x < 0) {
+                D_001FF390.xB4 = x + 1;
+            }
+        }
+    } else {
+        if (D_001FF390.xB4 > 0) {
+            D_001FF390.xB4 = D_001FF390.xB4 - 1;
+        } else if (D_001FF390.xB4 < 0) {
+            D_001FF390.xB4 = D_001FF390.xB4 + 1;
+        }
+        D_001FF390.x74 = D_001FF390.x94 * (float)D_001FF390.xB4;
+    }
+    if (D_001FFAA4[0] == 0) {
+        D_001FF340[4] += D_001FF390.x70;
+        D_001FF340[5] += D_001FF390.x74;
+    }
+    if (btn & 0x2000) {
+        func_001CA048(a, a, 8.0f);
+    }
+    if (3.1415927f < D_001FF340[4]) {
+        D_001FF340[4] -= 6.2831855f;
+    }
+    if (D_001FF340[4] < -3.1415927f) {
+        D_001FF340[4] += 6.2831855f;
+    }
+    if (3.1415927f < D_001FF340[5]) {
+        D_001FF340[5] -= 6.2831855f;
+    }
+    if (D_001FF340[5] < -3.1415927f) {
+        D_001FF340[5] += 6.2831855f;
+    }
+    ang = 3.1415927f - D_001FF340[5];
+    nrx = -D_001FF340[4];
+    if (3.1415927f < ang) {
+        ang -= 6.2831855f;
+    }
+    if (ang < -3.1415927f) {
+        ang += 6.2831855f;
+    }
+    func_001D7820(m, D_001F5780, -ang);
+    func_001C9F60(v, m, a);
+    if (D_001FF390.x100 != 0 && (D_001FF390.x101 & 2)) {
+        p = D_001FF390.x110;
+        D_001FF390.xC4 |= 0x22;
+        func_001CA018(d, D_001FF340, p);
+        d[1] = 0.0f;
+        func_001D73D0(d, d);
+        len = func_001114E8((char *)D_001FF340, p);
+        if (len < D_001FF390.x108) {
+            func_001CA048(d, d, len);
+        } else {
+            func_001CA048(d, d, D_001FF390.x108);
+        }
+        v[0] -= d[0];
+        v[2] -= d[2];
+    }
+    D_001FF390.xE4 += v[1];
+    func_001C9FE8(D_001FF340, D_001FF340, v);
+    D_001FF340[1] = D_001FF390.xE4 - D_001FF390.xE0 - D_001FF390.xE8;
+    func_001D7820(D_001FF180, D_001F5780, ang);
+    func_001D7778(D_001FF180, D_001FF180, nrx);
+    func_001D76D0(D_001FF180, D_001FF180, D_001FF340[6]);
+    func_001D7450(&D_001FF390, D_001FF180);
+    a[0] = -D_001FF340[0];
+    a[1] = -D_001FF340[1];
+    a[2] = -D_001FF340[2];
+    func_001C9F60(a, D_001FF180, a);
+    func_001D7588(D_001FF180, D_001FF180, a);
+    func_001D7340(D_001FF200, D_001FF100, D_001FF180);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0011C3A8);
 
@@ -1043,7 +1408,59 @@ void func_00126EB0(void) {
     func_00115408(temp_16, *(s32 **)((char *)temp_16 + 0xEC), 0x50, 0.8f);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00126F00);
+/* Unofficial: a 16-byte aligned float vector, copied by assignment (ld / sd pairs). */
+typedef struct {
+    float v[4];
+} __attribute__((aligned(16))) Vec4;
+
+extern const Vec4 D_003543C0;
+extern const Vec4 D_003543B0;
+extern const Vec4 D_00354390;
+extern s32 func_001E9C70();
+extern void func_00158AD8(s32, s32, void *, void *, void *, void *);
+
+/* ER-094: ER-063's draft; the three vector constants are const (they sit in .rodata): only then does the scheduler
+   issue each copy's %lo load before its +8 load, as the game does. Names, types and offsets are Unconfirmed
+   readings. */
+void func_00126F00(void) {
+    Vec4 p;
+    Vec4 v;
+    Vec4 out;
+    Vec4 a = D_003543C0;
+    Vec4 b = D_003543B0;
+    Vec4 c = D_00354390;
+    float m[16] __attribute__((aligned(16)));
+    float ang;
+    float d;
+    float sc;
+    float dz;
+    float h;
+    s32 n;
+    s32 r;
+
+    sc = -1.0f;
+    ang = 3.1415927f - D_001FF340[5];
+    if (3.1415927f < ang) {
+        ang -= 6.2831855f;
+    }
+    if (ang < -3.1415927f) {
+        ang += 6.2831855f;
+    }
+    h = 1200.0f;
+    n = 2400;
+    func_001D7778(m, D_001F5780, -sc);
+    func_001D7820(m, m, -ang);
+    func_001C9B18(&p, D_001FF340);
+    func_001C9F60(&a, m, &a);
+    r = func_001E9C70() % 800;
+    func_001CA048(v.v, a.v, r);
+    func_001C9FE8(&v, &v, &p);
+    d = func_001E9C70() % n - h;
+    dz = func_001E9C70() % 2400 - h;
+    v.v[0] += d;
+    v.v[2] += dz;
+    func_00158AD8(0x5D, 0x3B, &v, &out, &c, &b);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001270E0);
 
@@ -1128,7 +1545,6 @@ INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354410);
 INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354470);
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00129F78);
 
-extern void func_001C9B18(void *, void *);
 
 /* ER-081: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
 void func_0012A140(void *arg0, void *arg1, void *arg2) {
@@ -1231,7 +1647,6 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012BAE0);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012BCE0);
 
-extern float func_001114E8(char *, float *);
 extern float func_0012BEC8(char *, float);
 
 /* ER-063. Twin of func_0012BF08 that first sets v[1] = func_0012BEC8(a1, pos[1]) (returns 1 if that changed it).
@@ -1363,7 +1778,6 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012CC68);
 
 extern void func_0012CAD8(void *, void *, int);
 extern void func_0012EAF8(void *, void *);
-extern void func_001C9F60(void *, void *, void *);
 
 /* ER-035. Builds two matrices for entry idx of a0 (func_0012CAD8, func_0012EAF8), takes the heading of a2 seen
    from there (atan2 of x and z, a reading) plus the entry's angle at +0x54 (entries of 0xA0 bytes at a0 + 0xE0),
@@ -1404,9 +1818,7 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D3B8);
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D3E8);
 
 extern float sqrtf(float);
-extern void func_001CA048(float *, float *, float);
 extern void func_0012C778(char *);
-extern void func_001C9FE8(void *, void *, void *);
 
 /* ER-063. a0+0x90 (a vector, reading) is moved by d (x and z negated) through the matrix at (*a0)+0x50, then clamped
    to length max (func_0012D568 inline); returns the length. Names and types Unconfirmed. */
@@ -1565,7 +1977,6 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012E428);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012E488);
 
-extern s32 func_001E9C70();
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 s32 func_0012E568(s32 arg0, s32 arg1) {
