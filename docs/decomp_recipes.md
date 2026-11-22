@@ -600,7 +600,7 @@ Parked by ER-085 (one-line causes; C in the dispatcher's notes folder `ER-085_c/
 | ~~func_00149EE8, func_0014A500~~ | placed by ER-100 (2.24: store order and ruling 3.14) |
 | func_0014D3F8 | 13 words: the angle constant chosen by the `200.0f` tests lands in `$f1`, the game's in `$f0` (shared with `-200.0f`); 3 branch shapes, 4 expression shapes, all 120 declaration orders. ER-100 (`-dl` dump): our `r = a * pi / 180` chain is tied into one register (pi, product and the block-local `r` all in `$f20`); the game keeps pi in `$f1`, the product in `$f0`, only `r` in `$f20` |
 | ~~func_001459A8, func_001485A8, func_0014A0B8, func_00146DF8, func_0014B528~~ | placed by ER-100 (2.24) |
-| func_00146598 | not attempted by ER-100 (0x2EC, clamp logic; the m2c draft is 11 words long) |
+| func_00146598 | still parked: ER-119 got it to 2 words (2.26) |
 
 ER-100 rechecked func_00147F78 and func_00145FE8 (ee-as r4 changes nothing): both are local-alloc ties. func_00147F78:
 `K * x98` ties the product to K's register, while the game's product is in x98's, and `x98 * K` drops K to `$f2` (108
@@ -703,7 +703,7 @@ the C of the parked ones are in the dispatcher's notes, `ER-100_notes.md` and `E
 **Parked by ER-100's helper (needs a ruling; Unconfirmed reading):** func_0014C840 (26 words) and func_0014D930 (18
 words) match only with `-fstrict-aliasing`, as a diagnostic (ruling 3.6 forbids it). The game moves the `*arg0` load
 above stores of other types and keeps those stores in source order; 120 orders and more were tried for each. This is
-the same family as 2.22's func_0013F288 / func_0013AA28. Not attempted: func_00146598, func_00145578 (79 words) and
+the same family as 2.22's func_0013F288 / func_0013AA28. Not attempted: func_00146598, func_00145578 (79 words; both taken by ER-119, 2.26) and
 the 86 drafts whose size differs.
 
 ### 2.25 `text_00150878` round: whole-file small-list rerun, field order, ruling 3.4 (ER-095 + ER-096 + ER-098, Sun 22 Nov 2026; Confirmed by `make regress`, 71 functions)
@@ -751,6 +751,34 @@ func_001C4838 (4), func_001C8700 (5), func_0016E368, func_0017D6B8, func_0018B8A
 `(void)` with an argument), func_001C6880 / func_001C6B18 / func_001C6BD8 (64-bit packing), func_001A7CA8,
 func_001B34F8, func_001BE9C0, func_001C20B0, func_001C8600 (not tried); about 130 of 9+ words (only the sorter
 tried them).
+
+### 2.26 The five small game files, round 4 (ER-112 + ER-119, Sun 22 Nov 2026; Confirmed by `make regress`, 6 functions)
+
+6 placed, 656 bytes, branch `er-119-five-files` (worktree `C:\rs\wt\er119`), commits `87fc92e` (ER-112: func_00148BB0,
+func_0014C630, func_0014D028, func_0014DEA0, func_0014F5F8) and `f69bb83` (ER-119: func_00145578); `make regress`
+(-j4) green after each and after merging main. ER-112's rerun (`m2c_bulk.py --plain --tag ER-112`, label `er112`, 5
+functions) gave 3 masked MATCHes; func_0014C630 / func_0014D028 came out one instruction short this time (the run
+harvested no callee signatures, so `func_0012C3E8` lost its pass-through `$a0`), and all three plain forms clashed
+with their file's own declarations. All five were written by hand into each file's declarations from the drafts (ER-084's
+drafts in the notes `ER-084_c/` agree) and each matched first try. func_0014DEA0 needed its file's
+`extern void func_0014DEA0(void)` changed to `(char *)`.
+
+| Lesson | Proved by |
+|---|---|
+| **A callee called with two arguments by one caller and one by another takes both** (recipes 2.10 / 2.24 again): func_00145578 sets `$a1` from its own `arg1` before each `jal func_00145F70`, which never reads `$a1`. `func_00145F70(void **, void *)` (second parameter unused) lets it compile; its other caller func_00145208 passes its own second parameter through (same bytes, no move emitted) | func_00145578, func_00145208, func_00145F70 |
+| **The store order the game emits was the source order here**, not ascending offsets (2.25): case 1 `x30, x6C, x6E, xE`; the counter block `x10 -= 1, x30, x74, xD, x6E, x6C, xE`. Ascending was not tried first; the emitted order matched at once except the `x30` pair below | func_00145578 |
+| **`extern const` again** (2.21): `D_0035BCEC` is loaded ahead of the `x10` decrement's store in the game; plain, gcc keeps the load after it (`x30` written first gives the load early but swaps the two stores) | func_00145578 |
+| **A limit written out in each comparison** (as a `DEG2RAD(x)`-style macro would expand: `if (w < -(D * 3.1415927f / 180.0f)) w = -(...); else if (... < w) w = ...;`) gives the game's registers where a `lim` local puts the quotient in a fresh register (`$f3` against the game's `$f1`). Reading (Unconfirmed): the original used such a macro | func_00146598 (success branch; parked, below) |
+
+**Parked: func_00146598** (0x2EC, right size, 2 words): one load pair in each of two blocks. The game loads the pi
+literal before `D_0035BD28` in the `x6E == 0` block and after it in the clamp `else` block. In our build both orders
+come from sched2 and both follow `D_0035BD28`'s const-ness: `const` (needed for the first block, where the loads of
+`D_0035BD28` / `D_0035BD2C` must move above the `x10` store) gives pi first in both blocks; plain gives
+`D_0035BD28` first in both. The sched2 dump shows why: with a plain extern the load gets an anti-dependence on the
+later `x30` store, which raises its priority over the pi load (whose `$f1` is reused by the `D_0035BD24` load).
+Tried: const on either or both globals, struct-typed stores in the first block (recipes 2.22's fixed-scalar rule,
+with and without const), argument and statement orders, locals, 13 forms of the `else` block. C and the variant
+script: notes `ER-119_c/`.
 
 ## 3. Rulings (LuciDin)
 
