@@ -620,7 +620,101 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001139C8);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00113AC8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00113C30);
+/* Unofficial layout: only tab (0x80) and sel (0x101) are read here. */
+typedef struct {
+    char pad0[0x80];
+    char *tab[32];
+    u8 x100;
+    u8 sel;
+} Anm;
+
+extern s32 func_00114450(void *, s32);
+extern void func_001C9F60(void *, void *, void *);
+extern void func_001C9B18(void *, void *);
+
+/* ER-089: by hand from the asm (ER-063 / ER-086 drafts); names, types and offsets are Unconfirmed readings.
+   One variable (id) is the part index and, in the i == n scan, the vertex pointer: the original's register
+   choice ($a1 for both) comes only from that reuse. buf: ruling 3.13 (an unused local that only sizes the
+   0x80 stack frame; nothing reads sp+0..0x3F). */
+void func_00113C30(char *a0, s32 a1, void *a2) {
+    s32 n, id, i, k, cnt, c, j, w;
+    Anm *t;
+    char *q, *p, *m, *rec;
+    float buf[16]; /* ruling 3.13: sizes the frame only */
+
+    n = func_00114450(a0, a1);
+    if (*(u16 *)(a0 + 0xE8) & 1) {
+        Anm *t0 = *(Anm **)(a0 + 0xE4);
+        id = *(u16 *)(t0->tab[t0->sel] + n * 64 + 4);
+        if (id == 0xFFFF) {
+            return;
+        }
+    } else {
+        id = n;
+    }
+    if (!(*(u16 *)(a0 + 0xE8) & 0x8000)) {
+        rec = (char *)(id * 0x50 + *(s32 *)(a0 + 8));
+        m = *(char **)(rec + 0x3C);
+        cnt = *(u16 *)(rec + 0x30);
+        p = *(char **)(rec + 0x34);
+        do {
+            k = *(u16 *)p;
+            p += 0x20;
+            do {
+                k--;
+                if (254.9f < *(float *)(p + 0x10) && *(float *)(p + 0x14) < 0.1f && *(float *)(p + 0x18) < 0.1f) {
+                    func_001C9F60(a2, *(char **)(a0 + 0xE0) + n * 0xA0, m + *(u16 *)p * 16);
+                    return;
+                }
+                p += 0x20;
+            } while (k != 0);
+        } while (--cnt != 0);
+        return;
+    }
+    q = *(char **)(a0 + 0xEC);
+    for (i = 0; i < *(u16 *)(a0 + 4); i++) {
+        if (*(u16 *)(a0 + 0xE8) & 1) {
+            t = *(Anm **)(a0 + 0xE4);
+            w = *(u16 *)(t->tab[t->sel] + i * 64 + 4);
+            if (w == 0xFFFF) {
+                continue;
+            }
+            id = w;
+        } else {
+            id = i;
+        }
+        if (i != n) {
+            q += 0x30;
+            c = *(u16 *)(*(char **)(a0 + 0xF0) + id * 16 + 0xA);
+            do {
+                w = *(s32 *)q & 0xEFFFFFFF;
+                c--;
+                j = (w - 5) / 4;
+                q += 0x80;
+                q += j * 0x40;
+                q += 0x10;
+            } while (c != 0);
+        } else {
+            q += 0x30;
+            c = *(u16 *)(*(char **)(a0 + 0xF0) + id * 16 + 0xA);
+            do {
+                w = *(s32 *)q & 0xEFFFFFFF;
+                id = (s32)(q + 0x80);
+                for (j = (w - 5) / 4 - 1; j != -1; j--) {
+                    if (254.9f < *(float *)(id + 0x30)) {
+                        func_001C9B18(a2, (void *)id);
+                        goto end;
+                    }
+                    id += 0x40;
+                }
+                c--;
+                q = (char *)id + 0x10;
+            } while (c != 0);
+        }
+    }
+end:
+    func_001C9F60(a2, *(char **)(a0 + 0xE0) + n * 0xA0, a2);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00113ED8);
 
@@ -1128,7 +1222,6 @@ INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354410);
 INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354470);
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00129F78);
 
-extern void func_001C9B18(void *, void *);
 
 /* ER-081: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
 void func_0012A140(void *arg0, void *arg1, void *arg2) {
@@ -1363,7 +1456,6 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012CC68);
 
 extern void func_0012CAD8(void *, void *, int);
 extern void func_0012EAF8(void *, void *);
-extern void func_001C9F60(void *, void *, void *);
 
 /* ER-035. Builds two matrices for entry idx of a0 (func_0012CAD8, func_0012EAF8), takes the heading of a2 seen
    from there (atan2 of x and z, a reading) plus the entry's angle at +0x54 (entries of 0xA0 bytes at a0 + 0xE0),
