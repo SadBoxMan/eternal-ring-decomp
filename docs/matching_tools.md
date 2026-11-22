@@ -373,6 +373,21 @@ m2c left it out. Give the function a parameter and pass it (recipes 2.8, 2.9).
   `%lo` is reported "no HI16 before it" and counted as a difference although the instruction's fixed part is equal.
   `make regress` proved the function.
 
+### 6.4 The files cut by ER-051 (ER-072, Sun 22 Nov 2026)
+
+`--plain`, default context, the five files `text_001388E8`, `text_0013A410`, `text_0013B748`, `text_0013C510`,
+`text_0013DBC0` (237 asm functions, 186 s at `--par 4`; label `er072`): 229 compile, **83 masked MATCH, 73 plain
+MATCH**. All 73 placed (`make regress` green per file or file group); the other 10 masked MATCHes placed after aligning
+declarations by hand (the file's own extern for the function was `(void)` / `(char *)` from an address-taking user, or
+a pass-through callee argument m2c dropped; recipes 2.12). Two `place.py` extern-below cases met again (6.3) and
+fixed by hand. 9 same-size near misses (1-2 words) left: `func_001390F8`, `func_00139AF8`, `func_0013CA60`,
+`func_0013E678`, `func_0013E758`, `func_0013F258`, `func_0013F288`, `func_001431A0`, `func_001449D0`. 31 functions
+carry `div.s` / `sqrt.s` flags. m2c drafts of two-table functions fail to compile ("multiple default labels"); the
+hand versions are in recipes 2.12.
+
+`cmpfunc` limit seen again: a `%lo` of a function address (`.text`-relative) whose `%hi` sits in another block is
+"no HI16 before it" (8 functions here); all proven by `make regress`.
+
 ## 7. Not verified
 
 - The tools were checked on the functions named above only; relocation types other than the five handled
