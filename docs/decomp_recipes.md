@@ -423,5 +423,11 @@ Standing rulings; each applies until LuciDin changes it.
 |---|---|
 | **Accepted** | Third ee-as patch (`tools/toolchain/patches/ee-as_r5900_mfc1_reorder.patch`): no load-delay `nop` between `mfc1` and the next instruction that uses its GPR, in reorder mode, for the r5900 (58 sites, none with a `nop`; the 11 branch users in noreorder keep it). Same standing as 3.4 / 3.5; built into `ee-binutils-2.9-991111-r3` |
 
+### 3.9 ER-031: explicit case labels beside default (Sun 22 Nov 2026, 04:08 Eastern, via DISP-02)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** | A `switch` that lists explicit `case` labels sharing the `default` body (func_0013D4D0: `case 0:` and `case 12:` beside `default:`), when that is the only C shape that gives the original's jump table (its base and entry count) and the listing reads as the original source naming those values. Natural C, not a matching trick; ER-072 may use the same shape on the other jump-table functions |
+
 No ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, dead code): park such functions with a
 one-line cause and ask.

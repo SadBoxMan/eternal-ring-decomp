@@ -950,7 +950,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "switch-listing question for LuciDin",
+      "waits_on": "nothing (ruling 3.9 accepted the switch listing)",
       "notes": ""
     },
     {
