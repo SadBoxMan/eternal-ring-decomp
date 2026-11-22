@@ -892,3 +892,79 @@ sky (LuciDin's screenshot, `C:\rs\captures\er074\pcsx2_luci_newgame_cutscene.web
 - Whether the cutscene's camera, timing and subtitle order match PCSX2 beyond the one frame compared.
 - The other two data blocks were not exercised (0x001D7658 unreachable; 0x001DECA0 unchanged).
 - Sound (nothing heard); `ps2x_tests` not run; the FMV is still invisible (ER-030).
+
+## 14. ER-099: PCSX2 memory cards in the recomp (Sun 22 Nov 2026)
+
+Written by ER-099 (Opus 5.5, high), work 14:59 to about 15:25 Eastern. Question: can a save made in PCSX2 be loaded in
+the recomp, so live gameplay can be tested without playing from NEWGAME (as Project Twinblade's port takes DuckStation
+cards)? **Short answer: yes. With `PS2X_MC0_IMPORT` / `PS2X_MC1_IMPORT` pointing at a copy of a PCSX2 card (8 MB
+`.ps2` image or PCSX2 folder card), the game's card poll finds the saves, CONTINUE lists them, and LuciDin loaded one
+into gameplay (Waterfall Cavern, pause menu working; stats as in PCSX2, text spacing off). 3D models are still missing
+(ER-102).** One local runtime change, `C:\rs\recomp\patches\er099_mc_import.patch` (described in
+`tools/recomp/ER-099_mc_import.md`); our cross-check reader `tools/recomp/ps2mc.py`.
+
+### 14.1 How the game reaches its cards in the recomp
+
+- The game uses libmc only. The analyzer binds its 18 `sceMc*` functions to the runtime's HLE handlers
+  (`Stubs/MemoryCard.cpp`, 3.1); the IOP side's card requests (`PS2IopHostAdapter::memoryCard`) call the same
+  handlers. MCMAN / MCSERV are loaded into the IOP interpreter (3.4) but carry no card traffic.
+- A card is **a host folder**: port 0 `C:\rs\recomp\boot\mc0`, port 1 `boot\mc1` (from the ELF's folder), both empty
+  since ER-008; files and save folders are host files and folders; GetDir reports host times read as local time;
+  GetInfo always says formatted, 8,192 free clusters. No image, FAT or ECC.
+- The game polls both ports on its title / Load screens: GetInfo, then `GetDir '/BISLUS-20015??'` with up to 8
+  entries (every run since ER-008: 0 entries). Save folders are `BISLUS-20015nn`, each holding `BISLUS-20015nn`
+  (59,392 bytes), `ETERNAL.ICO` (37,152) and `icon.sys` (976) (read from LuciDin's cards: file names and sizes only).
+
+### 14.2 LuciDin's PCSX2 cards (PCSX2 2.5.185, `memcards\`; copied unchanged to `C:\rs\captures\cards\`, SHA-1s compared)
+
+| Card | Form | Contents (by `ps2mc.py`) |
+|---|---|---|
+| Slot 1 `Mcd001.ps2` | 8 MB image with ECC (8,650,752 bytes), format 1.2.0.0, 8,192 clusters, alloc 41-8135 | `BISLUS-2001500` (Eternal Ring) and two other games' saves; ECC: 724 pages read, 0 bad chunks |
+| Slot 2 `p.ps2` | PCSX2 folder card (`_pcsx2_superblock`, `_pcsx2_index` per folder) | `BISLUS-2001500` to `BISLUS-2001507` (8 Eternal Ring saves, written 27 Apr to 2 May 2025) |
+
+On the image the stored stamps sit 13 h after LuciDin's local time and 9 h after UTC (the PS2's Japan-time clock:
+Unconfirmed reading); PCSX2's `_pcsx2_index` keeps the same stored stamp as `timeModified` written as if UTC (the
+value is the host file time + 9 h on all 8 saves), and its keys are NUL-padded 32-byte names.
+
+### 14.3 The import (LuciDin's choices, 22 Nov 2026: test card `p.ps2`; "fresh copy each launch")
+
+At the first use of a port whose variable is set, the runtime empties `boot\mc<port>_import` and fills it from the
+card (image: superblock, indirect FAT, directory entries, ECC check; folder card: copy without `_pcsx2_*`), sets each
+host time so GetDir reports the card's stored stamp, and serves that folder as the port's card. The source is opened
+for reading only; saves made in the recomp go to the copy and are replaced at the next launch. Without the variable
+nothing changes (as shipped). Details, limits and the reproduce steps: `tools/recomp/ER-099_mc_import.md`.
+
+### 14.4 Runs (Sun 22 Nov 2026, window on the secondary monitor, console hidden, muted, killed by PID; LuciDin's yes)
+
+| Run | Time | Setup | Result |
+|---|---|---|---|
+| 1 | 15:10:13, window closed by LuciDin at 260 s | card 1 = `Mcd001.ps2`, card 2 = `p.ps2`, `-Pad` (LuciDin drove) | Import: image 3 folders / 12 files, ECC 0 bad; folder card 8 folders / 24 files. **GetDir now returns 1 (port 0) and 8 (port 1).** LuciDin: the saves show on CONTINUE; a save loads into gameplay: Cain Morgan level 1, HP 64/64, Waterfall Cavern, 1st day, pause menu draws and responds ("kind of matches, but there's some spacing issues"); **no 3D models** (as ER-074). Log: Open, Read 260 bytes, Close, Open, Read 59,392 bytes (a whole save file), Close, all succeeding; no `missing-target` |
+| 2 | 15:18:15, 30 s, no pad | as run 1, after the index-key fix | Host times equal the card stamps: image entries = their stored "modified" stamps; folder card = `_pcsx2_index` values (e.g. `BISLUS-2001504`: folder 07:47:43, `ETERNAL.ICO` 07:47:41, `icon.sys` 07:47:42, save 07:47:43 on 3 May 2025). In run 1 the folder card's files had fallen back to host time + 9 h (2 s later) because the index keys are NUL-padded; fixed |
+| 3 | 15:18:46, 30 s, no pad | no variables (as shipped) | No `[MC-import]` line; GetDir 0 on both ports; `boot\mc0` / `mc1` still empty |
+
+Cross-check: `ps2mc.py` on each card and `ps2mc.py --plain` on the runtime's import folder list the same files with
+the same sizes and SHA-1s (both cards, after run 2). Captures: `C:\rs\recomp\shots\er099_r1_*` (LuciDin's screenshot
+of the pause menu is in the session only); logs `C:\rs\recomp\er099_r*_*.txt`; builds `er099_build1.txt`,
+`er099_build2_index.txt` (0 errors).
+
+### 14.5 Files (outside git)
+
+| File | What |
+|---|---|
+| `C:\rs\recomp\patches\er099_mc_import.patch` | the change, diff of `Stubs/MemoryCard.cpp` against e5636981 (SHA-1 95efca17...); applies forward to a copy of the original, reverse-applies on `game_build` |
+| `C:\rs\recomp\scripts\er099_run.ps1` | run script: `-Mc0` / `-Mc1 <card>` plus `er074_run.ps1`'s switches |
+| `C:\rs\captures\cards\` | copies of LuciDin's two cards (`src_sha1.txt`: SHA-1s of the originals); game data, never in git |
+| `C:\rs\recomp\boot\mc0_import`, `mc1_import` | the last import (refilled at every launch with the switch) |
+| `C:\rs\recomp\scratch\MemoryCard.cpp.er099_orig` | the file before the change |
+
+### 14.6 Not verified / Unconfirmed
+
+- Which save LuciDin loaded (card and slot) and that every value in it reaches the game unchanged beyond the file
+  bytes (the files match bit for bit; the stats were compared by eye against his memory of the save).
+- Saving from the recomp to an imported card (write path not exercised); a card the game finds full, unformatted
+  or damaged; ECC errors (none on this card; the import counts them and does not correct them).
+- That the PS2 stores Japan time (the 9 h offset is read from LuciDin's card and PCSX2's index only); the fallback
+  for folder-card files with no index entry rests on it.
+- The text spacing LuciDin saw in the menus (not chased: expected at this stage, his word).
+- The runtime's card model itself, unchanged: fixed attributes and created = modified in GetDir, name order instead
+  of card order, constant free space in GetInfo, `mc0:` file I/O not redirected (Eternal Ring does not use it).
