@@ -2011,11 +2011,12 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00175D90);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00175DA8);
 
-extern void func_00167B20(void);
+extern void func_00167B20(s32, s32, s32, s32, s32);
 
-/* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed. */
-void func_00175DD0(void) {
-    func_00167B20();
+/* ER-049: clone of func_0014A940, placed by tools/clones.py (callee name is the only change). Tail call (`j`); reading Unconfirmed.
+   ER-095: widened to pass five arguments through (func_001C46C8 sets $a0-$a4 before calling it); same bytes. */
+void func_00175DD0(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
+    func_00167B20(arg0, arg1, arg2, arg3, arg4);
 }
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00175DD8);
@@ -2168,9 +2169,15 @@ extern u8 D_01ADEDB0[];
 extern s32 D_0035C340[];
 extern void func_00177858(s32, s32, u8 *);
 
-/* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
-void func_001776D8(s32 arg0, s32 arg1) {
-    func_001E9D08(D_01ADEDB0, D_0035C340);
+/* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings.
+   ER-095: the third argument passes through untouched in $a2 to func_001E9D08 (func_001C46C8 passes a string there);
+   s32 and falls off the end after the call (no return statement): only that shape gives the sibling call
+   `j func_00177858` here and the $v1 its caller func_001C46C8 uses after the call (recipes 2.20).
+   PORT NOTE (ruling 3.4, applied to this function 22 Nov 2026): the caller gets whatever func_00177858 left in $v0;
+   a PC build must not rely on the missing return (undefined in C) and returns that as-shipped value explicitly on
+   its side. */
+s32 func_001776D8(s32 arg0, s32 arg1, char *arg2) {
+    func_001E9D08(D_01ADEDB0, D_0035C340, arg2);
     func_00177858(arg0, arg1, D_01ADEDB0);
 }
 
@@ -5256,7 +5263,22 @@ s32 func_001C4668(void) {
     return var_16;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C46C8);
+/* ER-095: drafted by ER-080 from m2c; names, types and offsets are Unconfirmed readings. Needs func_001776D8 to be
+   s32 (ruling 3.4's shape, see its PORT NOTE): a void callee would let this function reuse $v0 after the call,
+   where the game uses $v1 (recipes 2.20). */
+s32 func_001C46C8(void) {
+    s32 var_16;
+
+    var_16 = 0;
+    func_00176388(1);
+    func_00175DD0(0x50, 0x64, 0x1A4, 0xC, 0xFF);
+    func_001776D8(0xA0, 0x6E, "Not enough space for save.");
+    func_001776D8(0xC8, 0x7A, "Min. 100KB needed.");
+    if (D_0035B828 & 0x2000) {
+        var_16 = !(D_0035B82C & 0x2000) ? 0 : -1;
+    }
+    return var_16;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C4750);
 
