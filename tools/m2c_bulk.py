@@ -15,8 +15,12 @@ For each function (named, read from a list file, or every INCLUDE_ASM function o
    never copied into this repo: m2c is GPL-3) and the context prototypes; float literals; undeclared stack
    variables declared (flagged: m2c lost a stack buffer)
 4. compile with the Makefile's own settings (tools/eematch.py) into the output folder and compare with the original
-   (eematch.compare_function: masked relocations with targets checked)
-5. write a per-function table: function, size band, draft compiles, exact match, differing words, failure class
+   (eematch.compare_function: masked relocations with targets checked); a compile that runs past --gcc-timeout is
+   killed with its children (cc1) and marked TIMEOUT (ER-066 / ER-079)
+5. pass-through retry (ER-066): a same-size DIFF whose call arguments sit one register higher in the game is drafted
+   again with the callee's prototype widened by a leading `void *`, so m2c passes the function's own $a0 on
+6. write a per-function table: function, size band, draft compiles, exact match, differing words, failure class
+   (rows printed as each function finishes; --rerun-diffs / --chunk rerun same-size DIFFs in small lists)
 
 Nothing is placed in src/. Output (drafts are game code: gitignored, under build/): build/m2c_bulk/<label>/
   results.csv, results.md, results.json, asm/, c/, obj/, m2c_ctx.h, protos.h
@@ -365,21 +369,128 @@ def clean_draft(draft: str, name: str, includes: list[Path], hilo: set[str]) -> 
 
 # --- compile ------------------------------------------------------------------------------------------------
 
+GCC_TIMEOUT = 120          # seconds per gcc / ee-as call (--gcc-timeout); ER-060 met a draft cc1 looped on for hours
+TIMEOUT_TAG = "TIMEOUT"
+
+
+def kill_tree(pid: int) -> None:
+    """Kill a process and its Windows children by PID (taskkill /T). Not enough for gcc: the MSYS-built driver
+    starts cc1.exe outside the Windows parent chain (seen on func_00179B30: cc1's parent was not under the driver's
+    PID, and every timed-out cc1 kept running), so run_killable puts the driver in a job object first."""
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, stdin=subprocess.DEVNULL)
+    else:
+        try:
+            os.kill(pid, 9)
+        except OSError:
+            pass
+
+
+class _Job:
+    """A Windows job object with kill-on-close: every process started inside it (cc1 included, whatever its parent
+    PID says) belongs to it, and terminate() / close() ends them all."""
+
+    def __init__(self):
+        import ctypes
+        from ctypes import wintypes
+        self.k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        self.k32.CreateJobObjectW.restype = wintypes.HANDLE
+        self.k32.CreateJobObjectW.argtypes = (wintypes.LPVOID, wintypes.LPCWSTR)
+        self.k32.SetInformationJobObject.argtypes = (wintypes.HANDLE, ctypes.c_int, wintypes.LPVOID, wintypes.DWORD)
+        self.k32.AssignProcessToJobObject.argtypes = (wintypes.HANDLE, wintypes.HANDLE)
+        self.k32.TerminateJobObject.argtypes = (wintypes.HANDLE, wintypes.UINT)
+        self.k32.CloseHandle.argtypes = (wintypes.HANDLE,)
+
+        class BASIC(ctypes.Structure):
+            _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64), ("PerJobUserTimeLimit", ctypes.c_int64),
+                        ("LimitFlags", wintypes.DWORD), ("MinimumWorkingSetSize", ctypes.c_size_t),
+                        ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", wintypes.DWORD),
+                        ("Affinity", ctypes.c_size_t), ("PriorityClass", wintypes.DWORD),
+                        ("SchedulingClass", wintypes.DWORD)]
+
+        class IO(ctypes.Structure):
+            _fields_ = [(n, ctypes.c_uint64) for n in ("r", "w", "o", "rb", "wb", "ob")]
+
+        class EXT(ctypes.Structure):
+            _fields_ = [("BasicLimitInformation", BASIC), ("IoInfo", IO), ("ProcessMemoryLimit", ctypes.c_size_t),
+                        ("JobMemoryLimit", ctypes.c_size_t), ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                        ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+        self.handle = self.k32.CreateJobObjectW(None, None)
+        if not self.handle:
+            raise OSError(ctypes.get_last_error(), "CreateJobObjectW")
+        info = EXT()
+        info.BasicLimitInformation.LimitFlags = 0x2000          # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        if not self.k32.SetInformationJobObject(self.handle, 9, ctypes.byref(info), ctypes.sizeof(info)):
+            raise OSError(ctypes.get_last_error(), "SetInformationJobObject")
+
+    def add_and_resume(self, proc: subprocess.Popen) -> None:
+        import ctypes
+        if not self.k32.AssignProcessToJobObject(self.handle, int(proc._handle)):
+            raise OSError(ctypes.get_last_error(), "AssignProcessToJobObject")
+        ntdll = ctypes.WinDLL("ntdll")
+        ntdll.NtResumeProcess.argtypes = (ctypes.c_void_p,)
+        ntdll.NtResumeProcess(int(proc._handle))                 # started suspended: nothing escaped the job
+
+    def terminate(self) -> None:
+        self.k32.TerminateJobObject(self.handle, 1)
+
+    def close(self) -> None:
+        self.k32.CloseHandle(self.handle)
+
+
+def run_killable(cmd: list[str], timeout: int) -> tuple[int | None, str, str]:
+    """subprocess.run with a timeout that also kills every process the command started; returncode None on a
+    timeout. On Windows the command starts suspended inside a kill-on-close job object (_Job), so cc1 is ended with
+    the driver however it was spawned; elsewhere the driver is killed (not tested)."""
+    job = _Job() if os.name == "nt" else None
+    p = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                         stdin=subprocess.DEVNULL, creationflags=0x4 if job else 0)     # 0x4: CREATE_SUSPENDED
+    try:
+        if job:
+            try:
+                job.add_and_resume(p)
+            except OSError:
+                p.kill()
+                job.close()
+                raise
+        try:
+            out, err = p.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            if job:
+                job.terminate()
+            kill_tree(p.pid)
+            try:
+                p.communicate(timeout=15)
+            except subprocess.TimeoutExpired:
+                p.kill()
+            return None, "", ""
+        return p.returncode, out, err
+    finally:
+        if job:
+            job.close()                                           # kill-on-close: no leftovers either way
+
+
 def compile_draft(c_path: Path, obj_dir: Path) -> tuple[Path | None, str]:
-    """Compile with exactly the Makefile's CC / CFLAGS / CPPFLAGS / AS / ASFLAGS (eematch.settings) into obj_dir."""
+    """Compile with exactly the Makefile's CC / CFLAGS / CPPFLAGS / AS / ASFLAGS (eematch.settings) into obj_dir.
+    A gcc or ee-as call that runs longer than GCC_TIMEOUT is killed with its children; the message then starts with
+    TIMEOUT_TAG."""
     st = eematch.settings()
     s_path, o_path = obj_dir / (c_path.stem + ".s"), obj_dir / (c_path.stem + ".o")
     cc = [st["CC"], f"-B{st['GCC_DIR']}/", *st["CFLAGS"].split(),
           *[f.replace("-I", "-I" + str(ROOT) + "/", 1) if f.startswith("-I") else f for f in st["CPPFLAGS"].split()],
           "-S", str(c_path), "-o", str(s_path)]
-    r = subprocess.run(cc, cwd=ROOT, capture_output=True, text=True, stdin=subprocess.DEVNULL)
-    if r.returncode != 0:
-        return None, r.stdout + r.stderr
-    r2 = subprocess.run([st["AS"], *st["ASFLAGS"].split(), "-o", str(o_path), str(s_path)], cwd=ROOT,
-                        capture_output=True, text=True, stdin=subprocess.DEVNULL)
-    if r2.returncode != 0:
-        return None, "ee-as: " + r2.stdout + r2.stderr
-    return o_path, r.stderr
+    rc, out, err = run_killable(cc, GCC_TIMEOUT)
+    if rc is None:
+        return None, f"{TIMEOUT_TAG}: gcc killed after {GCC_TIMEOUT} s"
+    if rc != 0:
+        return None, out + err
+    rc2, out2, err2 = run_killable([st["AS"], *st["ASFLAGS"].split(), "-o", str(o_path), str(s_path)], GCC_TIMEOUT)
+    if rc2 is None:
+        return None, f"{TIMEOUT_TAG}: ee-as killed after {GCC_TIMEOUT} s"
+    if rc2 != 0:
+        return None, "ee-as: " + out2 + err2
+    return o_path, err
 
 
 def gcc_error_class(msg: str) -> str:
@@ -462,6 +573,9 @@ class Attempt:
     size_game: int | None = None
     files: dict[str, str] = field(default_factory=dict)   # suffix -> text (written for the kept attempt only)
     protos_h: Path | None = None                           # the prototypes header the draft was compiled with
+    ctx: Path | None = None                                # the m2c context it was drafted with
+    res: object = None                                     # the eematch.FuncResult of the kept draft
+    widened: dict[str, str] = field(default_factory=dict)  # pass-through retry: callee -> widened prototype
 
     def score(self) -> tuple:
         size_off = abs((self.size_ours or 0) - (self.size_game or 0)) if self.compiles else 10 ** 6
@@ -529,7 +643,7 @@ def compile_compare(name: str, addr: int | None, c_text: str, c_path: Path, out:
 
 def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, ctx: Path | None,
             protos_h: Path | None, ctx_label: str, game: eematch.Game, timeout: int, hilo: set[str]) -> Attempt:
-    at = Attempt(ctx_label, protos_h=protos_h)
+    at = Attempt(ctx_label, protos_h=protos_h, ctx=ctx)
     rc, draft, err = run_m2c(m2c_dir, a_out, ctx, timeout)
     at.files["m2c.txt"] = draft + ("\n/* stderr:\n" + err + "*/\n" if err.strip() else "")
     fail = re.search(r"Decompilation failure:\s*\n\s*\n?(.*)", draft)
@@ -550,9 +664,13 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
     c_path = out / "obj" / f"{name}.{re.sub(r'[^a-z]+', '_', ctx_label)}.c"
     res, msg = compile_compare(name, addr, c_text, c_path, out, game)
     if res is None:
+        at.files["err.txt"] = msg
+        if msg.startswith(TIMEOUT_TAG):
+            at.klass, at.detail = TIMEOUT_TAG, msg
+            at.notes.append(f"{TIMEOUT_TAG} ({ctx_label})")
+            return at
         at.klass = "compile error"
         at.detail = gcc_error_class(msg)
-        at.files["err.txt"] = msg
         return at
     at.compiles = True
     if res is False:
@@ -576,6 +694,7 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
                 at.notes.append("store order permuted")
                 break
     at.files["diff.txt"] = eematch.report(res)
+    at.res = res
     at.match = res.match
     at.size_ours, at.size_game = res.our_size, res.game_size
     at.diff_words = sum(not w.ok for w in res.words)
@@ -589,8 +708,118 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
     return at
 
 
+# --- pass-through retry (ER-066) ------------------------------------------------------------------------------
+
+ARG_REGS = ["$a0", "$a1", "$a2", "$a3"]
+
+
+def _ops(word: int, vram: int) -> tuple[str, list[str]]:
+    parts = eematch.disasm(word, vram).split(None, 1)
+    return parts[0], [x.strip() for x in parts[1].split(",")] if len(parts) > 1 else []
+
+
+def _call_target(word: int, vram: int) -> int | None:
+    if word >> 26 in (2, 3):                       # j / jal
+        return (vram & 0xF0000000) | ((word & 0x3FFFFFF) << 2)
+    return None
+
+
+def passthrough_calls(res, game: eematch.Game) -> dict[str, int]:
+    """Calls whose arguments sit one register higher in the game: {callee name: highest $aN the game sets for it}.
+    A differing word counts when the game writes $a1..$a3 and ours is the same instruction writing the register one
+    lower (every $a register operand one lower; other operands such as relocated immediates are not compared), or
+    ours is a nop there (m2c's prototype dropped that argument altogether). The callee is the game's j / jal whose
+    delay slot holds the word, else the next j / jal within 16 words. Such a function hands its own $a0 to the callee
+    untouched and m2c left it out (docs/decomp_recipes.md 2.9)."""
+    found: dict[str, int] = {}
+    if res is None or res.game_size is None or res.our_size != res.game_size:
+        return found
+    for w in res.words:
+        if w.ok or w.ours is None or w.game is None:
+            continue
+        vram = res.addr + w.off
+        gm, gops = _ops(w.game, vram)
+        if not gops or gops[0] not in ARG_REGS[1:]:
+            continue
+        n = ARG_REGS.index(gops[0])
+        if w.ours != 0:
+            om, oops = _ops(w.ours, vram)
+            pairs = [(a, b) for a, b in zip(oops, gops) if a in ARG_REGS and b in ARG_REGS]
+            if om != gm or len(oops) != len(gops) or not oops or oops[0] != ARG_REGS[n - 1] or \
+                    not all(ARG_REGS.index(b) == ARG_REGS.index(a) + 1 for a, b in pairs):
+                continue
+        target = None
+        if w.off >= 4:
+            target = _call_target(game.word(vram - 4), vram - 4)
+        off = w.off
+        while target is None and off < min(res.game_size, w.off + 64):
+            target = _call_target(game.word(res.addr + off), res.addr + off)
+            off += 4
+        if target is None:
+            continue
+        callee = game.name_at.get(target) or f"func_{target:08X}"
+        found[callee] = max(found.get(callee, 0), n)
+    return found
+
+
+def widen_proto(line: str | None, name: str, top: int) -> str | None:
+    """`T name(params);` -> `T name(void *, params[, s32 ...]);` with at least top + 1 parameters ($a0..$a<top>).
+    None for a variadic prototype."""
+    if line is None:
+        line = f"void {name}(void);"
+    m = re.match(rf"^\s*(?:extern\s+)?(.*?\b{name}\()(.*)(\);.*)$", line)
+    if not m:
+        return None
+    inner = m[2].strip()
+    params = [] if inner in ("", "void") else [" ".join(p.split()) for p in _split_top(inner)]
+    if "..." in params:
+        return None
+    new = ["void *"] + params
+    while len(new) < top + 1:
+        new.append("s32")
+    return m[1] + ", ".join(new) + m[3].split(";")[0] + ";"
+
+
+def passthrough_retry(name: str, addr: int | None, best: Attempt, a_out: Path, out: Path, m2c_dir: Path,
+                      game: eematch.Game, timeout: int, hilo: set[str]) -> Attempt | None:
+    """Re-draft with each shifted callee's prototype widened by a leading `void *` in m2c's context (and the draft's
+    prototypes header), so m2c itself reads the untouched $a0 as the function's own arg0 and the arguments after it
+    from $a1 on (a trailing constant m2c had dropped comes back too)."""
+    calls = passthrough_calls(best.res, game)
+    if not calls:
+        return None
+    ctx_text = best.ctx.read_text(encoding="utf-8") if best.ctx else CTX_TYPEDEFS + "\n"
+    ph_text = best.protos_h.read_text(encoding="utf-8") if best.protos_h else ""
+    m2c_txt = best.files.get("m2c.txt", "")
+    widened = {}
+    for callee, top in calls.items():
+        old = None
+        for src in (ph_text, ctx_text, m2c_txt):
+            for mm in re.finditer(rf"^[^\n]*\b{callee}\([^\n]*;", src, re.M):
+                if not mm[0].startswith((" ", "\t")):          # a declaration, not a call in a body
+                    old = re.sub(r"/\*\s*extern\s*\*/", "", mm[0]).strip()
+                    break
+            if old:
+                break
+        new = widen_proto(old, callee, top)
+        if new is None:
+            return None
+        widened[callee] = new
+    tag = "pt"
+    ctx = out / "obj" / f"{name}.{tag}.ctx.h"
+    ph = out / "obj" / f"{name}.{tag}.protos.h"
+    add = "".join(v + "\n" for v in widened.values())
+    ctx.write_text(drop_names(ctx_text, set(widened)) + add, encoding="utf-8", newline="\n")
+    ph.write_text(drop_names(ph_text, set(widened)) + add, encoding="utf-8", newline="\n")
+    label = "pass-through retry (" + ", ".join(sorted(widened)) + " widened)"
+    at = attempt(name, addr, a_out, out, m2c_dir, ctx, ph, label, game, timeout, hilo)
+    at.widened = widened
+    at.notes.append("pass-through retry: " + ", ".join(v.rstrip(";") for v in widened.values()))
+    return at
+
+
 def job(name: str, asm_path: Path, out: Path, m2c_dir: Path, ctxs: list[tuple[Path | None, Path | None, str]],
-        game: eematch.Game, timeout: int) -> Row:
+        game: eematch.Game, timeout: int, passthrough: bool = True) -> Row:
     """ctxs: (m2c context, protos header for the draft, label) to try in order until one matches; the best attempt
     (match, compiles, fewest M2C_ERROR, nearest size, fewest differing words) is kept and written to c/."""
     t0 = time.time()
@@ -622,7 +851,14 @@ def job(name: str, asm_path: Path, out: Path, m2c_dir: Path, ctxs: list[tuple[Pa
         if tried[-1].match:
             break
     best = min(tried, key=Attempt.score)
+    if passthrough and not best.match and best.compiles:
+        pt = passthrough_retry(name, addr, best, a_out, out, m2c_dir, game, timeout, info.hilo_syms)
+        if pt is not None:
+            tried.append(pt)
+            if pt.match:
+                best = pt
     KEPT[name] = (best.files.get("c", ""), best.protos_h)
+    WIDENED[name] = dict(best.widened)
     for suffix in ("m2c.txt", "c", "err.txt", "diff.txt", "plain.c", "plain.diff.txt", "plain.err.txt"):
         p = out / "c" / f"{name}.{suffix}"
         if suffix in best.files:
@@ -633,7 +869,10 @@ def job(name: str, asm_path: Path, out: Path, m2c_dir: Path, ctxs: list[tuple[Pa
     row.klass, row.detail = best.klass, best.detail
     row.diff_words, row.size_ours, row.size_game = best.diff_words, best.size_ours, best.size_game
     notes = list(best.notes)
-    if len(ctxs) > 1:
+    notes += [n for at in tried if at is not best for n in at.notes if n.startswith(TIMEOUT_TAG)]
+    if any(at.widened for at in tried) and not best.widened:
+        notes.append("pass-through retry tried, no match")
+    if len(tried) > 1:
         notes.append(f"ctx {best.ctx_label} ({len(tried)} tried)")
     row.notes = "; ".join(notes)
     row.seconds = round(time.time() - t0, 2)
@@ -643,11 +882,13 @@ def job(name: str, asm_path: Path, out: Path, m2c_dir: Path, ctxs: list[tuple[Pa
 # --- plain C (--plain, ER-054) ------------------------------------------------------------------------------
 
 KEPT: dict[str, tuple[str, Path | None]] = {}     # function -> (kept draft text, its prototypes header)
+WIDENED: dict[str, dict[str, str]] = {}           # function -> {callee: prototype widened by the pass-through retry}
+TAG = ""                                           # --tag: task code at the start of the plain comment
 
 PLAIN_TYPES = [("M2C_UNK8", "s8"), ("M2C_UNK16", "s16"), ("M2C_UNK32", "s32"), ("M2C_UNK64", "s64"),
                ("M2C_UNK", "s32"), ("f64", "double")]
 NAME_RE = re.compile(r"\b(?:func|D)_[0-9A-F]{8}\b")
-PLAIN_COMMENT = ("/* ER-054: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed "
+PLAIN_COMMENT = ("/* {tag}drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed "
                  "readings. */")
 
 
@@ -812,30 +1053,41 @@ def make_plain(rows: list[Row], out: Path, game: eematch.Game) -> None:
         head, func, _hilo = p
         fdecls = fdecls_cache.setdefault(r.file, file_decls(r.file))
         protos = proto_lines(KEPT[r.func][1])
+        widened = {n: "extern " + plain_types(v) for n, v in WIDENED.get(r.func, {}).items()}
+        must_widen = [n for n, v in widened.items()
+                      if n in fdecls and " ".join(fdecls[n].split()) != " ".join(v.split())]
         lines = []
         for n in dict.fromkeys(NAME_RE.findall(func)):
             if n == r.func:
                 if n in fdecls and fdecls[n].startswith("extern"):
                     lines.append(fdecls[n])      # the file's own extern for it must agree with the definition
                 continue
-            for src in (fdecls, run_sigs, head, protos):
+            for src in (widened, fdecls, run_sigs, head, protos):
                 if n in src:
                     lines.append(src[n])
                     break
             else:
                 lines.append(f"/* m2c_bulk: no declaration for {n} */")
         text = '#include "common.h"\n\n' + "".join(ln + "\n" for ln in lines) + ("\n" if lines else "") + \
-            PLAIN_COMMENT + "\n" + func.strip() + "\n"
+            PLAIN_COMMENT.format(tag=f"{TAG}: " if TAG else "") + "\n" + func.strip() + "\n"
         res, msg = compile_compare(r.func, game.addr(r.func), text, out / "obj" / f"{r.func}.plain.c", out, game)
         (out / "c" / f"{r.func}.plain.c").write_text(text, encoding="utf-8", newline="\n")
         if res is None:
             r.plain = "compile error: " + gcc_error_class(msg)
+            own = fdecls.get(r.func, "")
+            dm = SIG_RE.search(func)
+            if own.startswith("extern") and dm and \
+                    " ".join(own.split()) != f"extern {' '.join(dm[1].split())} {r.func}({dm[3].strip() or 'void'});":
+                r.plain += f" (the file's own extern is `{own}`; align it with the definition, recipes 2.9)"
             (out / "c" / f"{r.func}.plain.err.txt").write_text(msg, encoding="utf-8", newline="\n")
         elif res is False:
             r.plain = "compare failed: " + msg[:80]
         else:
             (out / "c" / f"{r.func}.plain.diff.txt").write_text(eematch.report(res), encoding="utf-8", newline="\n")
             r.plain = "MATCH" if res.match else "diff: " + diff_class(res)
+        if must_widen:
+            r.plain += " (file declares " + ", ".join(must_widen) + " narrower; widen it to the plain file's line " \
+                       "before placing)"
     # one name declared two ways by drafts of the same file would clash when both are placed
     by_file: dict[str, dict[str, set[str]]] = collections.defaultdict(lambda: collections.defaultdict(set))
     for r in rows:
@@ -849,64 +1101,13 @@ def make_plain(rows: list[Row], out: Path, game: eematch.Game) -> None:
                 print(f"m2c_bulk: plain: {f}: {n} declared {len(ds)} ways by the drafts: " + " | ".join(sorted(ds)))
 
 
-# --- main ---------------------------------------------------------------------------------------------------
-
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("funcs", nargs="*", help="function names")
-    ap.add_argument("--file", action="append", default=[], help="every INCLUDE_ASM function of src/<file>.c")
-    ap.add_argument("--list", help="a text file with one function name per line (# comments)")
-    ap.add_argument("--ctx", choices=("none", "src", "harvest"), default="harvest",
-                    help="m2c context: none; src = prototypes / externs of src/; harvest = src + m2c's inferred "
-                         "signature of every callee (default)")
-    ap.add_argument("--depth", type=int, default=2, help="harvest: callee levels below the targets (default 2)")
-    ap.add_argument("--rounds", type=int, default=4, help="harvest: most rounds (default 4)")
-    ap.add_argument("--single", action="store_true",
-                    help="try only the --ctx context (default: fall back to harvest minus void returns, src, none "
-                         "until one matches; the best attempt is kept)")
-    ap.add_argument("--label", help="output folder name under build/m2c_bulk (default: from the input and --ctx)")
-    ap.add_argument("--m2c", default=str(DEFAULT_M2C), help=f"m2c folder (default {DEFAULT_M2C})")
-    ap.add_argument("--par", type=int, default=4, help="parallel jobs (default 4)")
-    ap.add_argument("--timeout", type=int, default=120, help="m2c timeout per function, seconds")
-    ap.add_argument("--plain", action="store_true",
-                    help="also write c/<func>.plain.c for every MATCH: plain C for tools/place.py (no m2c macros or "
-                         "headers, recipe-form %%hi/%%lo externs), compiled and compared again")
-    args = ap.parse_args()
-    sys.stdout.reconfigure(line_buffering=True)
-
-    m2c_dir = Path(args.m2c)
-    if not (m2c_dir / "m2c.py").exists():
-        print(f"m2c_bulk: m2c not found at {m2c_dir}", file=sys.stderr)
-        return 2
-    names = list(args.funcs)
-    for f in args.file:
-        names += file_functions(f)
-    if args.list:
-        names += [ln.split("#")[0].strip() for ln in Path(args.list).read_text(encoding="utf-8").splitlines()
-                  if ln.split("#")[0].strip()]
-    names = list(dict.fromkeys(names))
-    if not names:
-        ap.error("no functions: name some, or use --file / --list")
-    idx = asm_index()
-    missing = [n for n in names if n not in idx]
-    if missing:
-        print(f"m2c_bulk: no asm for {len(missing)} function(s) (placed as C already?): {' '.join(missing[:10])}",
-              file=sys.stderr)
-        names = [n for n in names if n in idx]
-    game = eematch.Game()
-    if not game.have_syms:
-        print("m2c_bulk: build/SLUS_200.15.syms.elf missing (run make regress first)", file=sys.stderr)
-        return 2
-
-    label = args.label or ("_".join(Path(f).stem for f in args.file) or "funcs") + f"_{args.ctx}"
-    if not re.fullmatch(r"[\w.-]+", label):
-        ap.error(f"--label {label!r}: letters, digits, '_', '-', '.' only")
-    out = OUT_BASE / label
+def run_batch(names: list[str], out: Path, args, m2c_dir: Path, idx: dict[str, Path], game: eematch.Game):
+    """One run over `names` into `out` (asm/, c/, obj/, harvest/ cleared first): context (with its own harvest),
+    the per-function jobs, --plain. Returns (rows, harvested signature count)."""
     for sub in ("asm", "c", "obj", "harvest"):
         if (out / sub).is_dir():
             shutil.rmtree(out / sub)          # this run's own scratch folders under build/m2c_bulk/<label>/
         (out / sub).mkdir(parents=True, exist_ok=True)
-    t_start = time.time()
     (out / "m2c_extra.h").write_text(DRAFT_EXTRA_H, encoding="utf-8", newline="\n")
 
     # context
@@ -952,16 +1153,129 @@ def main() -> int:
         ctxs.append((None, None, "none"))
         if args.single:
             ctxs = ctxs[:1]
-        return job(n, idx[n], out, m2c_dir, ctxs, game, args.timeout)
+        return job(n, idx[n], out, m2c_dir, ctxs, game, args.timeout, not args.no_passthrough)
 
-    rows: list[Row] = []
+    # results are printed as each function finishes (ER-079: in input order a slow function hid all progress after
+    # it); the table keeps the input order
+    done: dict[str, Row] = {}
+    t0 = time.time()
     with cf.ThreadPoolExecutor(args.par) as ex:
-        for row in ex.map(run_one, names):
-            rows.append(row)
-            print(f"  {row.func} {row.band:>8} {row.klass:<20} {row.detail[:90]}")
+        futs = {ex.submit(run_one, n): n for n in names}
+        for k, fut in enumerate(cf.as_completed(futs), 1):
+            row = fut.result()
+            done[row.func] = row
+            print(f"  [{k}/{len(names)} {time.time() - t0:5.0f} s] {row.func} {row.band:>8} {row.klass:<20} "
+                  f"{row.detail[:90]}")
+    rows: list[Row] = [done[n] for n in names]
 
     if args.plain:
         make_plain(rows, out, game)
+    return rows, harvested
+
+
+# --- main ---------------------------------------------------------------------------------------------------
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("funcs", nargs="*", help="function names")
+    ap.add_argument("--file", action="append", default=[], help="every INCLUDE_ASM function of src/<file>.c")
+    ap.add_argument("--list", help="a text file with one function name per line (# comments)")
+    ap.add_argument("--ctx", choices=("none", "src", "harvest"), default="harvest",
+                    help="m2c context: none; src = prototypes / externs of src/; harvest = src + m2c's inferred "
+                         "signature of every callee (default)")
+    ap.add_argument("--depth", type=int, default=2, help="harvest: callee levels below the targets (default 2)")
+    ap.add_argument("--rounds", type=int, default=4, help="harvest: most rounds (default 4)")
+    ap.add_argument("--single", action="store_true",
+                    help="try only the --ctx context (default: fall back to harvest minus void returns, src, none "
+                         "until one matches; the best attempt is kept)")
+    ap.add_argument("--label", help="output folder name under build/m2c_bulk (default: from the input and --ctx)")
+    ap.add_argument("--m2c", default=str(DEFAULT_M2C), help=f"m2c folder (default {DEFAULT_M2C})")
+    ap.add_argument("--par", type=int, default=4, help="parallel jobs (default 4)")
+    ap.add_argument("--timeout", type=int, default=120, help="m2c timeout per function, seconds")
+    ap.add_argument("--plain", action="store_true",
+                    help="also write c/<func>.plain.c for every MATCH: plain C for tools/place.py (no m2c macros or "
+                         "headers, recipe-form %%hi/%%lo externs), compiled and compared again")
+    ap.add_argument("--gcc-timeout", type=int, default=120,
+                    help="kill a gcc / ee-as call (with cc1) after this many seconds and mark the draft TIMEOUT "
+                         "(default 120)")
+    ap.add_argument("--no-passthrough", action="store_true",
+                    help="skip the pass-through retry (a same-size DIFF whose call arguments sit one register higher "
+                         "in the game is re-drafted with the callee's prototype widened by a leading void *)")
+    ap.add_argument("--rerun-diffs", metavar="RESULTS",
+                    help="take the functions from an earlier run's results.json (or its folder): its same-size DIFFs "
+                         "that are still INCLUDE_ASM; use with --chunk")
+    ap.add_argument("--chunk", type=int, default=0,
+                    help="run the functions in small lists of this many, each with its own harvest (sub-folders "
+                         "chunkNN/; c/ files and the results table are gathered in the run folder)")
+    ap.add_argument("--tag", default="",
+                    help="task code for the comment above each plain function (e.g. ER-064: \"/* ER-064: drafted "
+                         "with m2c ... */\")")
+    args = ap.parse_args()
+    sys.stdout.reconfigure(line_buffering=True)
+    global GCC_TIMEOUT, TAG
+    GCC_TIMEOUT = args.gcc_timeout
+    TAG = args.tag
+
+    m2c_dir = Path(args.m2c)
+    if not (m2c_dir / "m2c.py").exists():
+        print(f"m2c_bulk: m2c not found at {m2c_dir}", file=sys.stderr)
+        return 2
+    names = list(args.funcs)
+    for f in args.file:
+        names += file_functions(f)
+    if args.list:
+        names += [ln.split("#")[0].strip() for ln in Path(args.list).read_text(encoding="utf-8").splitlines()
+                  if ln.split("#")[0].strip()]
+    if args.rerun_diffs:
+        rp = Path(args.rerun_diffs)
+        rp = rp / "results.json" if rp.is_dir() else rp
+        prev = json.loads(rp.read_text(encoding="utf-8"))
+        picked = [r["func"] for r in prev if r.get("klass") == "diff" and r.get("size_ours") is not None
+                  and r.get("size_ours") == r.get("size_game")]
+        print(f"m2c_bulk: {len(picked)} same-size DIFF(s) from {rp}")
+        names += picked
+    names = list(dict.fromkeys(names))
+    if not names:
+        ap.error("no functions: name some, or use --file / --list / --rerun-diffs")
+    idx = asm_index()
+    missing = [n for n in names if n not in idx]
+    if missing:
+        print(f"m2c_bulk: no asm for {len(missing)} function(s) (placed as C already?): {' '.join(missing[:10])}",
+              file=sys.stderr)
+        names = [n for n in names if n in idx]
+    game = eematch.Game()
+    if not game.have_syms:
+        print("m2c_bulk: build/SLUS_200.15.syms.elf missing (run make regress first)", file=sys.stderr)
+        return 2
+
+    label = args.label or ("_".join(Path(f).stem for f in args.file) or "funcs") + f"_{args.ctx}"
+    if not re.fullmatch(r"[\w.-]+", label):
+        ap.error(f"--label {label!r}: letters, digits, '_', '-', '.' only")
+    out = OUT_BASE / label
+    t_start = time.time()
+    if args.chunk and args.chunk < len(names):
+        # small lists (ER-066): each with its own harvest, as ER-062's run on 11 names matched 4 drafts that the
+        # file-wide run had as DIFF (the harvested signatures differ between the runs)
+        for sub in ("asm", "c", "obj", "harvest"):
+            if (out / sub).is_dir():
+                shutil.rmtree(out / sub)
+        (out / "c").mkdir(parents=True, exist_ok=True)
+        for old in out.glob("chunk[0-9][0-9]"):
+            shutil.rmtree(old)
+        rows, harvested = [], 0
+        chunks = [names[i:i + args.chunk] for i in range(0, len(names), args.chunk)]
+        for k, part in enumerate(chunks, 1):
+            sub = out / f"chunk{k:02d}"
+            print(f"m2c_bulk: chunk {k} of {len(chunks)}: {len(part)} function(s)")
+            r, h = run_batch(part, sub, args, m2c_dir, idx, game)
+            for row in r:
+                row.notes = "; ".join(filter(None, [row.notes, f"chunk{k:02d}"]))
+            rows += r
+            harvested += h
+            for f in (sub / "c").iterdir():
+                shutil.copy2(f, out / "c" / f.name)
+    else:
+        rows, harvested = run_batch(names, out, args, m2c_dir, idx, game)
     write_results(out, rows, args, harvested, time.time() - t_start)
     return 0
 

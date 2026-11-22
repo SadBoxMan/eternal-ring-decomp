@@ -177,6 +177,9 @@ python -I tools/m2c_bulk.py func_00145208 func_00145428          named functions
 python -I tools/m2c_bulk.py --list picks.txt                     one name per line (# comments); --file / names mix
    [--ctx none|src|harvest] [--single] [--depth 2] [--rounds 4] [--par 4] [--label NAME] [--m2c DIR] [--timeout 120]
    [--plain]                                                     also write placeable plain C for each MATCH (6.2)
+   [--tag ER-NNN]                                                task code for the plain comment (6.6)
+   [--gcc-timeout 120] [--no-passthrough]                        gcc / ee-as kill time; skip the pass-through retry (6.6)
+python -I tools/m2c_bulk.py --rerun-diffs build/m2c_bulk/<label> --chunk 8 --plain    an earlier run's same-size DIFFs in small lists (6.6)
 ```
 
 **`make regress` deletes all of `build/`, `build/m2c_bulk/` included**: copy a run's folder out (e.g. to a scratch
@@ -507,6 +510,56 @@ MATCH anyway), and the 29 VU0-flagged functions (none matched; they need inline 
 
 The run's `results.md` / `.csv` (game code: not in git) are in the scratch folder of the ER-060 part 2 session only.
 
+### 6.7 Timeout, pass-through retry, small lists; the rerun of three ER-054 files (ER-066 + ER-079, ER-064, Sun 22 Nov 2026)
+
+**Tool changes (ER-066, with ER-079 folded in):**
+
+| Change | What it does | Checked on |
+|---|---|---|
+| **gcc / ee-as timeout** (`--gcc-timeout`, default 120 s) | each compile starts **suspended inside a Windows job object** with kill-on-close, is resumed, and runs under a timer; on expiry the job is terminated, which ends cc1.exe with the driver, and the attempt is classed `TIMEOUT` (row class, or a note when another context compiled); the run goes on. `taskkill /T` alone is **not** enough: the MSYS-built gcc.exe starts cc1.exe outside the Windows parent chain (cc1's parent PID was not under the driver's), and a first version that used it left every timed-out cc1 running (7 orphans from two test runs, killed by PID) | `func_00179B30` (text_00150878, the draft cc1 that looped for 9 h in ER-060; draft only, nothing placed): `--gcc-timeout 30`, all four contexts `TIMEOUT`, run finished in 124 s, **no cc1 left**; the same draft at 10 s: 1 cc1 while running, 0 after; a normal draft still compiles; smoke run on `text_0014C840` |
+| **Results in completion order** | each row is printed when its function finishes, with `[k/n, seconds]`; the tables keep the input order (ER-060's log stopped at the first slow function, so a hang looked like no progress) | every run below |
+| **`--tag ER-NNN`** | the plain comment reads `/* ER-NNN: drafted with m2c ... */` (no tag: `/* Drafted with m2c ... */`; it was hard-coded `ER-054:`) | ER-066's runs |
+| **Pass-through retry** (on by default; `--no-passthrough` skips it) | for a function whose best draft compiles at the game's size but differs: if a differing word is the game writing `$a1`..`$a3` where ours writes the register one lower with the same instruction (relocated immediates not compared), or ours has a `nop` there, the callee is the game's `j` / `jal` holding that word in its delay slot, else the next one within 16 words. Its prototype is **widened in m2c's context** by a leading `void *` (padded with `s32` up to the highest `$aN` the game sets), and the function is drafted again, so m2c itself reads the untouched `$a0` as the function's own `arg0` (recipes 2.9). Kept only on a MATCH; the Notes say `pass-through retry: <prototype>` or `pass-through retry tried, no match`. `--plain` declares the widened prototype and says in the Plain column when the target file declares the callee narrower, or declares the function itself differently (its address-taking extern, recipes 2.9): align that line by hand before placing | below |
+| **`--rerun-diffs RUN --chunk N`** | takes an earlier run's same-size DIFFs (from `results.json`) and runs them in lists of N, each with its own harvest (`chunkNN/` folders; `c/` files and the tables gathered in the run folder). `--chunk` also works on any name list | below |
+
+**Reproduction on ER-062's five** (Sun 22 Nov 2026): `src/text_00145120.c`, `text_0014A968.c`, `text_0014C840.c`,
+`text_0014E2E8.c` set back to their state before ER-062 (`a751ee2^`) in the worktree, split, the tool run on the
+ER-062 names, the files restored afterwards (never committed):
+
+| Function | Without the retry | With it |
+|---|---|---|
+| `func_00145238` | diff (`lui $a0` against the game's `lui $a1`) | **MATCH** (`func_00130FE0` widened to `(void *, s32 *)`); plain: compile error, and the Plain column names the cause: the file's own `extern void func_00145238(void);` (ER-062 changed it by hand) |
+| `func_00145248` | diff (same shape) | **MATCH**, plain MATCH |
+| `func_0014D380` | MATCH already (today's context has the callee's two parameters) | (not needed) |
+| `func_0014C620` | diff: not this shape (`arg0` is there; m2c read the constant `5` as a parameter `arg3`) | not tried (no shifted register) |
+| `func_001501D8` | diff | retry fired (`func_0012FB48` widened to `(void *, s32)`), still a diff: m2c then wrote `func_0012FB48(arg0, arg1)`; it **ignores the delay slot of a tail `j`** (the game's `daddu $a1, $zero, $zero` there), the same m2c limit as `func_00146EF0` in 6.1 |
+
+So the retry reproduces the two pure pass-through cases; the other three need what ER-062 did by hand.
+
+**ER-064: rerun of `text_00145120`, `text_0014A968`, `text_0014C840`** (`--plain`, default context, the ER-034
+toolchain and ER-041 names; 107 asm functions, 125 harvested signatures, 117 s at par 4; label `er064`):
+
+| File | Asm functions | Masked MATCH | Plain MATCH | Placed (regress green) |
+|---|---|---|---|---|
+| `text_00145120` | 64 | 6 | 5 | 5: `func_001462D8`, `func_00146F10`, `func_00147D90`, `func_00149880` (by the pass-through retry: `func_0012FB48(arg0, 0)`), `func_00149C18` |
+| `text_0014A968` | 27 | 6 | 6 | 6: `func_0014AF58`, `func_0014B3A0`, `func_0014B3E0`, `func_0014B4C8`, `func_0014BC40`, `func_0014C220` |
+| `text_0014C840` | 16 | 2 | 2 | 2: `func_0014CC10`, `func_0014D338` |
+| **All** | **107** | **14** | **13** | **13, 1,312 bytes** |
+
+- `func_001462D8` (skipped by ER-054 for `s128`) and `func_0014B3A0` / `func_0014B3E0` / `func_0014B4C8` (ER-054's
+  `func_0014BC88` clash) now come out plain: 4 of ER-061's 7 are done. `func_001492D0` is still the `func_0012B238`
+  `(void)` clash (plain: "too many arguments").
+- **None of the 15 `div.s` / `sqrt.s` functions matched as drafts.** The divides are not the cause any more: the
+  drafts differ in shape (12 by size, 3 same size with other instructions). Example `func_00147F78`: m2c lost a stack
+  buffer (declared `sp[64]` by the cleaner), so the frame is 0x180 against the game's 0xD0; hand work.
+- Small lists: the 26 same-size DIFFs rerun with `--rerun-diffs er064 --chunk 8` (4 chunks, 42 s): **no new
+  match**, and none of them is a 1-2 word near miss (10 have 3-8 words, 16 have 9+). The pass-through retry fired
+  on 4 more (`func_00145FE8`, `func_001464A8`, `func_00146FE0`, `func_001497D0`) without a match.
+- `place.py`'s extern-below limit (6.3, ER-065) met in **5 of 13 placements, 7 extern lines** (`func_001469B8`, `func_0012FAE8`
+  in `text_00145120`; `func_0014BC88`, `func_0014B7C0` in `text_0014A968`; `func_0014D8F8`, `func_0014D068`,
+  `func_0014D890` in `text_0014C840`): each extern line moved above the new function before the build (a scratch
+  check listed every name a placed body uses that is declared only below it).
+
 ## 7. Not verified
 
 - The tools were checked on the functions named above only; relocation types other than the five handled
@@ -522,3 +575,8 @@ The run's `results.md` / `.csv` (game code: not in git) are in the scratch folde
   match only with the `%hi` / `%lo` section-attribute extern need the recipe form before placement. Not tried on
   SDK code, VU0 / MMI functions, jump tables in `text_001343E8`, or functions over 255 instructions. The failure
   kinds in 6.1 come from reading a few diffs, not from a count.
+- ER-066: the pass-through detection was checked on ER-062's functions and the ER-064 run only (one placed match,
+  `func_00149880`); a callee reached through a register (`jalr`) is not looked for; a variadic callee prototype is
+  left alone. The timeout's job-object kill was checked on `func_00179B30` only (Windows); outside Windows the
+  tool kills the driver only (not tested). Why small lists matched 4 more drafts for ER-062 is still not traced
+  (no new match from them in ER-064).
