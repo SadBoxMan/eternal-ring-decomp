@@ -323,6 +323,46 @@ Parked by ER-063 (one-line causes; drafts in the notes folder `ER-063_drafts/`):
 | `func_00124BE8` | 1860 | not attempted in depth: m2c lost arguments and a stack variable; needs a dedicated round (also reads a `.rodata` vector like `func_00126F00`) |
 
 
+### 2.11 Div / sqrt and FP compares, batch 2 (ER-063, Sun 22 Nov 2026, with the ER-041 names; Confirmed by `make regress`)
+
+| Lesson | Proved by |
+|---|---|
+| **Two `$s` registers swapped between a result flag and a pointer argument: try a second `return`.** `if (out == NULL) return r; f(out, v); return r;` gives the game's allocation where `if (out != NULL) f(out, v); return r;` swaps them (same code otherwise; the extra use of `r` changes its priority: a reading). Moving `r = 0`, a local copy of `out`, `if (out)` or `else r = 0` did not (ER-034 tried 6 more) | `func_0012BF08` (parked by ER-034), `func_0012BDA8` |
+| **A field read twice is not a pointer local**: the game reads `a1 + 0x80` / `+0x88` straight off the argument register each time; a `float *p = a1 + 0x80` costs an extra `$s` register and frame slot | `func_0012BF08` |
+| **The vector being measured is read off the struct, not through the local pointer** that the calls got: `func_001C9FE8(v, v, m); len = sqrtf(*(float *)(a0 + 0x90) * ... );` with `v = a0 + 0x90` gives the game's `lwc1 0x94($s0)`; `v[1] * v[1]` reads through `$s2`. The clamp tail is `func_0012D568` written out (`if (max < len) { scale(max / len, v, v); len = max; }`) | `func_0012D470`, `func_0012D7C0` |
+| **A local vector built from constants and then copied with signs** (`q = {0, 0, a, 0}; t = {-q[0], q[1], -q[2], 0}`) gives the game's `sw $0` stores, one `lwc1` of `q[0]` and that register stored for every zero of `t`: write it out like that, not `t = {0, 0, -a, 0}` | `func_0012D7C0` |
+
+**Seen only in masked compares (Unconfirmed until a placement proves them under `make regress`):**
+
+| Shape | Seen in |
+|---|---|
+| **A 16-byte `.rodata` vector copied with `ld` / `ld` / `sd` / `sd` is a struct assignment** from a shared `const` (several functions read the same `D_` symbol, so it is not a local initialiser): `typedef struct { float v[4]; } __attribute__((aligned(16))) Vec4; extern Vec4 D_X; Vec4 a = D_X;`. Without the alignment gcc copies with four `lw` / `sw`. The `INCLUDE_RODATA` line stays | `func_00126F00` (masked compare, all but 6 words; not placed, see below) |
+| **A float constant kept in a saved FPR across calls** (`lui; mtc1 $f21` long before its two uses) is a local variable assigned the constant (`h = 1200.0f;` then `% n - h` twice); an `int` constant in `$s2` likewise (`n = 2400;`) | `func_00126F00` (masked compare) |
+| **`lui 0xBF80; mtc1; ... neg.s` (a run-time `-(-1.0)`)** is `sc = -1.0f;` set in an earlier block and `-sc` at the use: local-alloc moves the single-use constant next to the `neg.s`. Set in the same block, CSE folds it to `+1.0` | `func_00126F00` (masked compare) |
+| **A `u16` counter decremented in place gives the game's `lhu; andi 0xFFFF`** (`if (*(u16 *)(a0 + 0x7A) != 0xFFFF) *(u16 *)(a0 + 0x7A) -= 1;`); ER-035 had parked `func_00131D40` on that `andi` | `func_00131D40` (head matches; parked for the GCSE reload below) |
+| **Two calls cross-jumped into one `jal`**: put the branch that ends in the call first (`if (a || f() != 0) { ...; g(a0, fn); } else { ... }`), so both call sites end in a jump to the same label and gcc merges them | `func_00131D40` (masked compare of that part) |
+
+**Two toolchain differences found (the effects are measured; the causes in the original toolchain are readings; neither adopted, each needs a ruling and a card):**
+
+- **GCSE removes a reload the game keeps.** At a join after `if (*(u16 *)(a0 + 0xE8) & 1) {...} else {...}` the game reads `a0+0xE8` again (`lhu` in both arms, `b; lhu` in the delay slot); our ee-gcc reuses the first load. With `--cflags=-fno-gcse` (diagnostic only) the head of `func_00113C30` matches and its size is right, and the reload of the counter in `func_00131D40` matches too. But the whole ELF built with `-fno-gcse` is not identical: `func_0012F550` (ER-035) needs GCSE's copy propagation. So the original compiler ran GCSE but did not remove redundant loads across joins (reading: an older or differently configured `gcse.c`; not checked in the source). Parks `func_00113C30`, `func_00113ED8` (same head), `func_00131D40`, and after ER-041's merge `func_0012D600` (with `-fno-gcse` all but 7 words match), `func_0012EBB0` and `func_0012EEB0` (both match up to their six angle-wrap loops; the loops differ with and without GCSE, and a `static inline` wrap helper did not help).
+- **ee-as does not swap a use of an `mtc1`-written FPR into a delay slot.** Where gcc leaves a `jal` in `.set reorder` (after a divide trap block, for example), gas fills the slot itself; ours refuses to swap `cvt.s.w $f12, $f12` after `mtc1 $a2, $f12` and emits `nop` (the swap check still applies the coprocessor-move delay that ruling 3.5 removed for `nop` insertion). Census of the game's asm: **288** sites with such a use in the slot after `mtc1; jal/j/branch` (265 `cvt.s.w`, 7 `mul.s`, 5 `mov.s`, 4 `add.s`, 3 `sub.s`, 4 `swc1`), **0** in the unswapped form (2 hits were `c.cond` before `bc1`, which cannot move). Script: notes folder `ER-063_drafts/census_mtc1_slot.py`. Parks `func_00126F00` (one word; 5 more words of `ld` order in its struct copies are still open after 7 shapes).
+
+Parked by ER-063 (one-line causes; drafts in the notes folder `ER-063_drafts/`):
+
+| Function | Size | Cause |
+|---|---|---|
+| `func_00113C30` | 676 | the GCSE reload of `a0+0xE8` (above); with it left aside: register numbering in both arms (an unused `float buf[16]` local gives the game's 0x80 frame and its `jal` instead of a sibling call: dead code, would need a ruling) |
+| `func_00113ED8` | 760 | same head as `func_00113C30` (GCSE reload); not drafted further |
+| `func_00126F00` | 476 | gas delay-slot swap (above) + 5 words of struct-copy load order |
+| `func_00131D40` | 732 | GCSE reload of the `u16` counter at +0x7A; the six angle-wrap loops' pointer reloads not yet matched (2 shapes) |
+| `func_00124BE8` | 1860 | not attempted in depth: m2c lost arguments and a stack variable; needs a dedicated round (also reads a `.rodata` vector like `func_00126F00`) |
+| `func_0012D600` | 448 | GCSE reload of `a[0]` / `a[1]` after each clamp; 7 words around the last call (`&m[8]` set before `sqrtf` in the game) also open |
+| `func_0012EBB0` | 764 | matches to the angle wraps (same as `func_0012EEB0`); wrap loops: GCSE / load placement |
+| `func_0012EEB0` | 676 | first 0x118 bytes match; the six wrap loops reload `out[n]` after each join in the game |
+| `func_00120EF0`, `func_0011BB90`, `func_00119FE0` | 1348, 2068, 6636 | not attempted (large; ER-041 names now in place, `func_001E9B0C` is a plain call); best after the GCSE follow-up |
+| `func_00106A38` | 4136 | VU0 inline asm (ruling 3.3) plus `sqrtf`; not attempted |
+
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.

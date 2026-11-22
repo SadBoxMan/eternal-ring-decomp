@@ -1044,13 +1044,80 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D3B8);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D3E8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D470);
+extern float sqrtf(float);
+extern void func_001CA048(float, float *, float *);
+extern void func_0012C778(char *);
+extern void func_001C9FE8(void *, void *, void *);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D568);
+/* ER-063. a0+0x90 (a vector, reading) is moved by d (x and z negated) through the matrix at (*a0)+0x50, then clamped
+   to length max (func_0012D568 inline); returns the length. Names and types Unconfirmed. */
+float func_0012D470(char *a0, float *d, float max) {
+    float m[4];
+    float t[4];
+    float *v;
+    char *o;
+    float len;
+
+    v = (float *)(a0 + 0x90);
+    o = *(char **)a0;
+    t[0] = -d[0];
+    t[1] = d[1];
+    t[2] = -d[2];
+    t[3] = 0.0f;
+    func_0012C778(o);
+    func_001C9F60(m, o + 0x50, t);
+    func_001C9FE8(v, v, m);
+    len = sqrtf(*(float *)(a0 + 0x90) * *(float *)(a0 + 0x90) + *(float *)(a0 + 0x94) * *(float *)(a0 + 0x94)
+                + *(float *)(a0 + 0x98) * *(float *)(a0 + 0x98));
+    if (max < len) {
+        func_001CA048(max / len, v, v);
+        len = max;
+    }
+    return len;
+}
+
+/* ER-041 (placed by ER-063). Clamps v to length max; returns the length. Names and types Unconfirmed. */
+float func_0012D568(float *v, float max) {
+    float len = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+
+    if (max < len) {
+        func_001CA048(max / len, v, v);
+        len = max;
+    }
+    return len;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D600);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D7C0);
+/* ER-063. As func_0012D470 with d = {0, 0, a, 0} and the length taken in x / z only. Names and types Unconfirmed. */
+float func_0012D7C0(char *a0, float a, float max) {
+    float m[4];
+    float q[4];
+    float t[4];
+    float *v;
+    char *o;
+    float len;
+
+    q[0] = 0.0f;
+    q[1] = 0.0f;
+    q[2] = a;
+    q[3] = 0.0f;
+    v = (float *)(a0 + 0x90);
+    o = *(char **)a0;
+    t[0] = -q[0];
+    t[1] = q[1];
+    t[2] = -q[2];
+    t[3] = 0.0f;
+    func_0012C778(o);
+    func_001C9F60(m, o + 0x50, t);
+    func_001C9FE8(v, v, m);
+    len = sqrtf(*(float *)(a0 + 0x90) * *(float *)(a0 + 0x90) + *(float *)(a0 + 0x98) * *(float *)(a0 + 0x98));
+    if (max < len) {
+        func_001CA048(max / len, v, v);
+        len = max;
+    }
+    return len;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D8B8);
 
