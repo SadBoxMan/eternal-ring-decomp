@@ -1483,6 +1483,33 @@
       "model": "Opus, xhigh",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-132",
+      "title": "func_00178C60 (volatile ruling first)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-133",
+      "title": "func_001BB2C8 last 2 words (sched2 rank)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-134",
+      "title": "func_0015C0E0 with extended climber",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "ER-117",
+      "notes": ""
     }
   ]
 }
