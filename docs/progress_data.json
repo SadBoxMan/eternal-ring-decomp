@@ -301,7 +301,7 @@
       "status": "In progress",
       "by": "",
       "text": "First PC build: recompiled EE code + HLE stubs compiles to a Windows exe and boots",
-      "notes": "ER-008 spike (18 Nov 2026): the exe builds and boots into the first PSS movie, then stalled. ER-018 (18 Nov 2026): stall fixed (local PS2Recomp patch: priority-0 threads, libmpeg Background callback, sceGsSetDefDispEnv PMODE); the game's movie player runs and the GS presents frames. ER-029 (19 Nov 2026): VBlank pacing fixed (second local patch; 59.94 Hz measured): the Agetec movie plays its 210 pictures in about 7 s as on PCSX2. ER-043 (19 Nov 2026): the movie now ends as on PCSX2 (libmpeg end checks bound to HLE; third local patch), about 4.5 s of black where the FromSoftware logo belongs, then the opening FMV plays (bottom half of the picture correct). ER-046 (22 Nov 2026): the opening FMV ends (fourth local patch: video ends on its sequence end code), the boot reaches the title screen loop, which draws nothing (black), then the attract movies. Not a playable boot. Needs: title screen and logo drawing (ER-058 / ER-047), GS movie upload path (ER-030), then GS, VU1 checks."
+      "notes": "ER-008 spike (18 Nov 2026): the exe builds and boots into the first PSS movie, then stalled. ER-018 (18 Nov 2026): stall fixed (local PS2Recomp patch: priority-0 threads, libmpeg Background callback, sceGsSetDefDispEnv PMODE); the game's movie player runs and the GS presents frames. ER-029 (19 Nov 2026): VBlank pacing fixed (second local patch; 59.94 Hz measured): the Agetec movie plays its 210 pictures in about 7 s as on PCSX2. ER-043 (19 Nov 2026): the movie now ends as on PCSX2 (libmpeg end checks bound to HLE; third local patch), about 4.5 s of black where the FromSoftware logo belongs, then the opening FMV plays (bottom half of the picture correct). ER-046 (22 Nov 2026): the opening FMV ends (fourth local patch: video ends on its sequence end code), the boot reaches the title screen loop, which draws nothing (black), then the attract movies. Not a playable boot. ER-058 / ER-047 (22 Nov 2026): the FromSoftware logo and the title screen show as on PCSX2, also on the attract loop's second pass (fifth local patch: LoadImage address, D2 chain mode with QWC, libgraph double buffer after the shipped code, field presentation, GS reset); menus respond; the movie pictures are now invisible. NEWGAME reaches loading, then stops at a missing recompiled function (ER-074). Not a playable build. Needs: movie picture (ER-030), ER-074, then GS, VU1 checks."
     }
   ],
   "tasks": [
@@ -722,11 +722,11 @@
     {
       "code": "ER-047",
       "title": "Recomp FromSoftware logo stage is black",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, high",
       "waits_on": "folded into ER-058's card",
-      "notes": ""
+      "notes": "Done 22 Nov 2026 in ER-058's card: the FromSoftware logo is drawn by game code (GIF packet from scratchpad by D2 chain mode with QWC), never sent by the runtime; fixed with ER-058's patch; logo white on black and centred, both passes. docs/recomp_spike.md 12."
     },
     {
       "code": "ER-048",
@@ -821,11 +821,11 @@
     {
       "code": "ER-058",
       "title": "Recomp title screen draws nothing (fold in ER-047)",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, high",
       "waits_on": "one recomp card at a time",
-      "notes": ""
+      "notes": "Done 22 Nov 2026 (with ER-047): logo and title screen show as on PCSX2. Five runtime faults fixed in local patch er058_gs_dma.patch (LoadImage 8x address; D2 chain mode with QWC ignored; HLE libgraph DBuff/SwapDBuff/PutDrawEnv/SetDefDrawEnv/SetDefClear after the shipped code; 224-line fields shown as 448 lines; GS reset ignored, inverted second logo). Movie pictures now invisible (ER-030). docs/recomp_spike.md 12, tools/recomp/ER-058_gs_dma_patch.md."
     },
     {
       "code": "ER-059",
@@ -960,6 +960,24 @@
       "track": "decomp",
       "model": "Opus, medium (high without ER-069)",
       "waits_on": "ER-069",
+      "notes": ""
+    },
+    {
+      "code": "ER-074",
+      "title": "Recomp NEWGAME: missing recompiled function 0x1D73D0",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "one recomp card at a time",
+      "notes": ""
+    },
+    {
+      "code": "ER-075",
+      "title": "Recomp HLE libgraph leftovers (zbufaddr args, ResetGraph A+D)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-030 (same file)",
       "notes": ""
     }
   ]

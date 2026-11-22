@@ -676,10 +676,130 @@ log shows the main thread there right after the FMV's state 3, with the same sta
   recomp shows the Agetec logo, then gameplay footage with a HUD, likely `ERDEMO.PSS`: Unconfirmed; the flow from the
   title loop back to the movies was not traced).
 - The title screen picture: nothing is visible (black) where PCSX2 shows the white title screen; not looked into
-  (picture paths, ER-030 / ER-047 area).
+  (picture paths, ER-030 / ER-047 area). *ER-058 (section 12): fixed; five runtime faults, the logo too.*
 - Run-to-run timing: the FMV ended at about 77 s (run 6) and about 90 s (run 8), and run 7 was slower still; not
   explained (the host clock drives guest time, 9.2; capture stalls or host load are guesses).
 - That real libmpeg ends on the stream's own `B7` the same way (the game's own `B7` follows it at once, so the real
   decoder would most likely stop at the same picture): Unconfirmed.
 - Sound never heard (muted); the console window during runs 5 to 8 (the scripts did not hide it then); `ps2x_tests`
   not run.
+
+## 12. ER-058 (with ER-047): the FromSoftware logo and the title screen (Sun 22 Nov 2026)
+
+Written by ER-058 (Opus 5.5, high), work 03:35 to about 05:20 Eastern. Question: why do the FromSoftware logo stage
+(the 270-frame loop, 11.1) and the title screen show plain black, while the movies draw? **Short answer: five
+faults in PS2Recomp's runtime, none in the game's own code. The game draws both screens itself (GIF packets it
+builds and sends by DMA), not through the movie path; the runtime never sent those packets to the GS, put every
+LoadImage texture at the wrong VRAM address, set up libgraph's double buffer with made-up values, showed 224-line
+fields as 448 lines, and ignored the GS reset. With all five fixed (fifth local patch
+`C:\rs\recomp\patches\er058_gs_dma.patch`, described in `tools/recomp/ER-058_gs_dma_patch.md`) the logo and the
+title screen show as on PCSX2, both times round the attract loop. The movie pictures are not visible any more
+(12.5, ER-030).**
+
+### 12.1 What the two screens draw (read from our split's asm; role names Unofficial)
+
+| Address | What it does |
+|---|---|
+| `func_00101F20` logo loop 0x00102018-0x00102300 | Per frame: `func_00104378` (VSync, `sceGsSetHalfOffset`, `sceGsSwapDBuff` for both dbuff structs `D_00202B00` / `D_00202D30`), pad read, then `sceGsSetDefLoadImage` / `sceGsExecLoadImage` of a 16x16 PSMCT32 CLUT to block 0x3B40, then 8 times: a 1024x64 PSMT8 strip (from the buffer at `D_0035B880` + 0x200050 + i * 0x10000) to block 0x1A40, and `func_00109398` to draw it. Waits on D2_CHCR.STR and GIF_STAT.APATH directly. Fade: vertex alpha 0 to 0x80 over the first 60 frames, out from frame 0xD3. Start / Cross (`0x4008`) leaves the loop |
+| `func_00110748(0, 2, 0, 1, 0, 1)` (before the loop) | A+D packet: PABE 0 and ALPHA_1 = A Cs, B 0, C As, D Cd (0x48: additive), sent by `func_00104548` |
+| `func_00109398` | Builds a GIF packet in scratchpad (`0x70002000` / `0x70003000`, alternating): A+D PRIM 0, TEX1 0, TEX0 0x80076805A9341A40 (TBP 0x1A40, TBW 16, PSMT8, 1024x64, TCC 1, MODULATE, CBP 0x3B40, CPSM CT32, CLD 4), CLAMP 0; A+D TEXCLUT 4, TEX2 (same value); then a PRE tag with PRIM 0x56 (sprite, TME, ABE, ST coordinates) and ST / RGBAQ / XYZF2 for two vertices; sends it with `func_00104478` |
+| `func_00104478` / `func_00104548` | Wait for D2 idle, write D2_QWC and D2_MADR (`func_00104478`: scratchpad address with bit 31; `func_00104548`: also TADR = `D_0032EAE0`), then D2_CHCR = **0x105** (DIR 1, MOD 1 = chain, STR 1, tag field 0) |
+| title loop 0x001023F0 | The same frame helpers; its art is PSMT8 at 0x1A40 / 0x2640 / 0x3B20 with CLUTs at 0x3B40 (CLD 1), 0x3C40 and 0x3FFC (CLD 2), blended subtractively (ALPHA 0x42) onto white |
+| frame setup `func_001000C0` / `func_00100F70` | `sceGsSetDefDBuff(env, PSMCT32, 640, 224, ztest 3, zpsm 0x30, clear 1)` for both structs (arguments 5 to 7 in `$t0`-`$t2`, read from the run 1 log) |
+
+So both screens use libgraph for the frame (double buffer, LoadImage) and the game's own packets for the drawing;
+the movie player builds its own IMAGE packets and display env (8.2), which is why movies drew and these did not.
+
+### 12.2 The five causes and fixes (all in the runtime; details in `tools/recomp/ER-058_gs_dma_patch.md`)
+
+1. **LoadImage at 8 times the address.** The HLE `sceGsExecLoadImage` (and StoreImage) turned libgraph's `dbp`
+   into `dbp * 2048 / 256`; the shipped `sceGsSetDefLoadImage` (0x001CEF98) puts `dbp` into BITBLTBUF.DBP as it is.
+   Run 1's VRAM dumps: the logo CLUT sat at block 0x1A00 (0x3B40 * 8 & 0x3FFF), block 0x3B40 was empty, the title's
+   "Newgame" art sat at 0x1200, and boot-time textures landed inside the frame buffers: **the "static tiles" seen
+   since ER-018 were misplaced textures** (gone from run 3 on).
+2. **The game's packets never reached the GS.** CHCR 0x105 with QWC / MADR set is chain mode started "in the middle
+   of a tag": the DMAC sends the QWC qwords at MADR first and, as the tag ID held in CHCR is REFE (0), stops there.
+   The runtime's chain branch ignored QWC / MADR and walked the stale chain at TADR. Run 2: the scratchpad packet
+   held exactly the tags of 12.1, yet the GS saw no vertex kick in any logo or title frame. Fixed in the chain
+   branch (QWC first, then stop on REFE / END / IRQ with TIE, else continue at TADR). After it (run 3) the logo and
+   the title appeared, but twice, one above the other.
+3. **libgraph's double buffer made up.** The HLE `sceGsSetDefDBuff` read ztest / zpsm / clear from the stack (the
+   game passes them in registers), put both buffers at FBP 0, enabled both display circuits (PMODE 0x8007) with
+   DISPLAY MAGH 0, and built no clear sprite; `sceGsSwapDBuff` applied 8 registers and ignored the giftag;
+   `sceGsPutDrawEnv` read its 8 pairs starting at the giftag; `sceGsSetDefDrawEnv` asked zbufaddr with the wrong
+   registers; `sceGsSetDefClear` did nothing. All five now follow the shipped code (0x001CE8D8, 0x001CEB88,
+   0x001CE7F0, 0x001CE608, 0x001CFC28, with zbufaddr 0x001CFB60): buffers at FBP 0 and 0x46 (640x224 each), PMODE
+   0x66, the clear sprite sent with the draw env by GIF DMA.
+4. **Fields shown as frames.** The display is interlaced with SMODE2.FFMD = 1 and DH 447 for a 224-line buffer
+   (libgraph's `sceGsSetDefDispEnv` sets DH = 2h - 1 in this mode), so the GS reads 224 consecutive lines per
+   field. The runtime's presenter read 448, i.e. the buffer and the next one below it (FBP + 0x46), hence the
+   doubled logo and title in run 4. It now reads (DH + 1) / 2 lines and doubles each line (line doubling is my
+   presentation choice: **Unofficial**). Run 5: logo centred and single, title clean.
+5. **GS reset ignored.** The second logo of the attract loop (after the title and an Agetec movie) came out black
+   on grey in runs 5 and 6 (LuciDin noticed it first). Run 8 log: the first logo loads its CLUT with CLD 4 (CBP0 =
+   0x3B40); the title loads its own at the same CBP with CLD 1 (CBP0 unchanged); the second logo's CLD 4 finds CBP ==
+   CBP0 and skips the reload, so it is drawn through the title's CLUT (index 0 black instead of white). Blend (0x48)
+   and clear colour (black) were right. PCSX2 shows the second logo white on black (12.4). The shipped
+   `sceGsResetGraph` (0x001CE130), which the movie player calls at every start, writes GS CSR = 0x200 (RESET); the
+   runtime ignored it. The HLE `sceGsResetGraph` now resets the GS backend's internal state (CLUT buffer, CBP0 /
+   CBP1, texture cache, transfer state) in mode 0. That a GS reset clears CBP0 on the console is **Unconfirmed**
+   (inferred from PCSX2's picture and the CSR write). Run 9: the second logo is white on black.
+
+### 12.3 Runs (Sun 22 Nov 2026, muted, window on the secondary monitor, console hidden, killed by PID; LuciDin's yes, from run 3 on "as needed")
+
+| Run | Build | Result |
+|---|---|---|
+| 1 (03:49, 120 s; my pipeline mistake ended the script at 14 s, the same process was then captured to 120 s and killed by PID) | temporary log (swap / LoadImage / draws / D2 kicks) + VRAM dumps | no draws at all in logo or title frames; LoadImage at 8x the address (12.2 item 1); frame buffers unchanged from swap 200 to 1800 |
+| 2 (04:08, 120 s) | fix 1 + more logging (GIF tags, scratchpad packet dump, kicks) | the packets are right but never processed: chain mode (item 2) |
+| 3 (04:24, 120 s) | fixes 1, 2 + logging | **logo and title visible** (doubled); LuciDin drove the menus (Load screen shows) |
+| 4 (04:31, 98 s) | fixes 1-3 | logo / title doubled (item 4); LuciDin started NEWGAME: the game thread later stopped at a missing recompiled function (12.5); window closed at about 98 s |
+| 5 (04:36, 120 s) | fixes 1-4 | logo centred, title clean; FMV invisible; second logo inverted (LuciDin driving) |
+| 6, 7 (04:40, 04:51; 150 s) | + pad input off (`PS2X_NO_PAD_INPUT`) | no-input sequence: logo 12-18 s, FMV invisible to 81 s / 132 s (run-to-run variation, ER-059), title about 20 s, attract: Agetec, **second logo inverted**, next movie |
+| 8 (05:01, 210 s) | fixes 1-4 + CLUT / clear / blend log | item 5's cause |
+| 9 (05:10, 210 s) | final: fixes 1-5, no logs | logo 9-18 s, title 78-96 s, second logo 105-108 s **white on black**, title again 168-186 s; movies invisible |
+
+The exe's console window stayed hidden in every run (`-WindowStyle Hidden` with redirected output works; item 7 of
+the handoff paragraph). Screenshots `C:\rs\recomp\shots\er058_r*`, contact sheets `er058_r3_sheet.png` to
+`er058_r9_sheet.png`.
+
+### 12.4 Reference: PCSX2 (LuciDin ran it, Sun 22 Nov 2026, about 04:54 Eastern, no input; window captured every 2 s by a read-only watcher, `C:\rs\captures\er058\pcsx2\`)
+
+Agetec logo; FromSoftware logo, white on black, centred; opening FMV (about 58 s); title (about 20 s); Agetec logo;
+**FromSoftware logo again, white on black**; gameplay demo with HUD (about 57 s, likely `ERDEMO.PSS`: Unconfirmed);
+title again; then story text over pictures (likely `TEXT0.PSS` / `TEXT1.PSS`: Unconfirmed). This also answers part
+of ER-059 (the attract order; the recomp now shows the same order, with the movies invisible). PCSX2 is installed at
+`C:\Users\lukea\Games\Emulated\Playstation 2` (`pcsx2-qt.exe`; LuciDin, 22 Nov 2026).
+
+### 12.5 Left for other cards
+
+- **Movie pictures (ER-030).** With fix 4 the movies are not visible at all; before it only their bottom half
+  showed. That half was an artefact of the 448-line read: the presenter showed FBP 0 with FBP 0x46 below it. So the
+  movie draws its half pictures into memory that the corrected presentation does not show from the displayed
+  buffer. What it draws where (FRAME, coordinates, the field bit CSR.FIELD it uses to pick a half packet) is not
+  traced. LuciDin chose to keep fix 4.
+- **NEWGAME (run 4).** After NEWGAME and loading (`VOICE\VOICEALL.ADX` opened), the game thread stopped at a
+  missing recompiled function: `JAL 0x001D73D0` from 0x00123CAC (`[guest-branch:missing-target]`).
+- HLE `sceGszbufaddr` (w / h from `$a2` / `$a3`, byte-packed gparam) and the HLE `sceGsSetDefDBuffDc` /
+  `sceGsSetDefDrawEnv2` built around it: not used by this game, left as they are. HLE `sceGsResetGraph`'s PMODE /
+  SMODE2 A+D writes to 0x41 / 0x42 (ER-018) are still there.
+
+### 12.6 Files (outside git)
+
+| File | What |
+|---|---|
+| `C:\rs\recomp\patches\er058_gs_dma.patch` | fixes 1-5 as a diff against the ER-046 state of five runtime files (SHA-1 61b6d8de...); checked: applies to copies of those files giving `game_build`'s files, reverse-applies on `game_build` |
+| `C:\rs\recomp\patches\er058_local_run_nopad.patch` | run convenience: `PS2X_NO_PAD_INPUT=1` ignores the host pad and keyboard (SHA-1 cf343911...) |
+| `C:\rs\recomp\work_er058\pre_diag\`, `fixed\` | the files before ER-058 (patch base) and after |
+| `C:\rs\recomp\scripts\er058_fixes.py` | makes the five fixes from the base files (CRLF-safe); `er058_diag.py`, `er058_fix1_diag2.py`, `er058_diag3.py` (temporary logging), `er058_vram.py` (VRAM dump decoder: PSMCT32 frames, PSMT8 with CT32 CLUT), `er058_run.ps1` (run script, pad off), `er058_finish.ps1`, `er058_watch_pcsx2.ps1` |
+| `C:\rs\recomp\er058_r1_*.txt` ... `er058_r9_*.txt`, `er058_build*.txt` | run and build logs |
+| `C:\rs\captures\er058\` | decoded frames / textures from run 1 (`r1_*.png`), PCSX2 captures (`pcsx2\`); the raw VRAM dumps of run 3 (runs 1-2 dumps deleted after decoding) |
+
+### 12.7 Not verified / Unconfirmed
+
+- That a GS reset clears CBP0 / CBP1 on the console (fix 5), and how much else of the GS state a reset clears.
+- Line doubling (fix 4) is a presentation choice; the console shows each field on its own lines (interlaced).
+- Whether the DMAC also sends the MADR data first when CHCR's held tag is CNT / NEXT / REF (fix 2 then continues
+  at TADR, as the hardware manual's chain description implies): only REFE (0) was exercised.
+- The two logo stages and the title compared with PCSX2 by eye only (window captures), not pixel by pixel; the fade
+  timing was not measured.
+- Sound never heard (all runs muted); `ps2x_tests` not run against the patched runtime.
