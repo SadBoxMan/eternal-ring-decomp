@@ -493,12 +493,12 @@ rerun, 17 by hand). Nothing compiler-steering.
 
 | Function | Size | Cause |
 |---|---|---|
-| func_00113C30 | 676 | 45 words: which variable gets `$a0` / `$a1` in the head and the loop (the game copies the loaded id from `$v0` into `$a1` at the join); the 0x80 frame needs an unused `float buf[16]` (nothing touches `sp+0..0x3F`): dead code, needs a ruling |
-| func_00113ED8 | 760 | same head as func_00113C30 and the same untouched 0x40 bytes of stack (unused buffer, ruling); not drafted further |
+| func_00113C30 | 676 | **placed by ER-089 (2.23)**; was: 45 words: which variable gets `$a0` / `$a1` in the head and the loop (the game copies the loaded id from `$v0` into `$a1` at the join); the 0x80 frame needs an unused `float buf[16]` (nothing touches `sp+0..0x3F`): dead code, needs a ruling |
+| func_00113ED8 | 760 | **re-parked by ER-089 (2.23)**: cross-jumped found tails; was: same head as func_00113C30 and the same untouched 0x40 bytes of stack (unused buffer, ruling); not drafted further |
 | func_00131D40 | 732 | wrap loops not promoted in the game (above); head and table call: register choice |
-| func_00126F00 | 476 | not tried: ER-070's ee-as r4 (delay-slot swap after `mtc1`) is not in main |
-| func_00120EF0 | 1,348 | 265 of 337 words: the scratchpad constant hoisted in ours (above) and the `D_001FF390` base CSE; structure, struct copy and data match |
-| func_0011BB90 | 2,068 | the m2c draft (one call fixed: m2c read the store `sp[0] = -x` as a fourth argument) is 27 instructions short; needs a hand rewrite (17 calls, a jump table, 16 `.lit4` literals) |
+| func_00126F00 | 476 | **placed by ER-094 (2.23)**: `extern const` vectors |
+| func_00120EF0 | 1,348 | **ER-091 (2.23): 71 words, right size, re-parked**; was: 265 of 337 words: the scratchpad constant hoisted in ours (above) and the `D_001FF390` base CSE; structure, struct copy and data match |
+| func_0011BB90 | 2,068 | **placed by ER-092 (2.23)**, by hand (no jump table in it after all); was: the m2c draft is 27 instructions short |
 | func_00119FE0 | 6,636 | surveyed only: 925 m2c lines, 53 calls, a jump table, 36 literals; m2c's draft does not compile (`M2C_BREAK`) |
 
 ### 2.19 Delay slots filled by the assembler: ee-as r4 (ER-070, Sun 22 Nov 2026; ruling 3.12)
@@ -640,6 +640,33 @@ func_0013DF90 (6, 7 and 8 of the 11). Jump tables still open: func_0013AA28, fun
 | func_0013F288 | 2 words: `addiu $v0, 0xA0` before `lw 0xE4` in the game (7 shapes; matches with the `-fstrict-aliasing` diagnostic) |
 | func_00145D08 | not re-tried: the open shape of 2.17 / 2.18 (loops on a field of a loaded pointer are not promoted in the game) |
 
+### 2.23 `text_001000C0`: register choice by variable reuse, const vectors, struct globals (ER-089 + ER-094 + ER-091 + ER-092, Sun 22 Nov 2026; Confirmed by `make regress`, 3 functions)
+
+3 placed, 3,220 bytes, commits `6633092` (func_00113C30, 676), `bfe48ae` (func_00126F00, 476), `1b84924`
+(func_0011BB90, 2,068); branch `er-089-text-001000c0`, `make regress` (-j4) green after each. First use of ruling
+3.13 (func_00113C30's `float buf[16]`, commented; without it the frame is 0x40 and 129 words differ). Nothing else
+compiler-steering. Drafts of the parked two and the two helper scripts: notes folder `ER-089_092_drafts/`.
+
+| Lesson | Proved by |
+|---|---|
+| **One variable reused for two jobs sets the register of both.** func_00113C30's part index (`id`) and its later vertex-scan pointer share `$a1` in the game; written as one variable (`id = (s32)(q + 0x80)`, `*(float *)(id + 0x30)`, `id += 0x40`), its allocno spans the scan, conflicts with the `$a0` temporary there and inherits the call argument's `$a1` preference; the head, the loop's copy and the skip loop's `-1` / mask registers all follow (17 -> 7 words). Likewise the looked-up id read into `w` (the masked-word temporary) and the skip loop's quotient into `j` (the scan counter) closed the last 7. Separate variables for the head and the loop are much worse (71-87 words). Reading (Unconfirmed): the original reused a few general temporaries | func_00113C30 |
+| **A struct's array member indexed by a variable is addressed base first** (`t->tab[t->sel]`: `addu $a0, $a0(t), $v0`), where any pointer-arithmetic form (`*(char **)(t + sel * 4 + 0x80)`, `((char **)(t + 0x80))[sel]`) gives index first; the address tie then moves the following registers (45 -> 33 words). Layout `Anm` Unofficial | func_00113C30 |
+| **A sum written integer-first ties to the product**: `rec = (char *)(id * 0x50 + *(s32 *)(a0 + 8));` gives the game's `addu $v0, $v0(product), $v1`; `ptr + id * 0x50` in any pointer form ties to the base | func_00113C30 |
+| **Load order of a record's fields picks which one reuses the record's register**: the last field read takes it (`m`, `cnt`, `p` in func_00113C30; func_00113ED8's twin wants `m`, `p`, `cnt`) | func_00113C30 (6 orders tried) |
+| **`.rodata` vectors as `extern const`**: func_00126F00's three 16-byte `Vec4` copies (`D_003543C0` / `D_003543B0` / `D_00354390`, `INCLUDE_RODATA` in the file) issue each copy's `%lo` `ld` before its `+8` `ld` only when declared `const`; plain `extern Vec4` swaps two of the three pairs (4 words). Statement and declaration orders (320 tried) do not | func_00126F00 |
+| **A global work area as a struct, not char-array offsets**: `D_001FF390.xB0` keeps the symbol as the base (`addiu $a0, $s4, %lo(D_001FF390)` per block, `%hi` in a saved register) where `*(s32 *)(D_001FF390 + 0xB0)` folds symbol + offset into one constant and bases later fields on it (`D+0x88`, offsets -8 / 0x3C) (532 -> 93 words). A declared array indexed by constants (`D_001FF340[5]`) behaves the same. Layout `G390` Unofficial (fields named by offset; `fc` and `bits` are func_00120EF0's) | func_0011BB90 |
+| **A global read once into a local when the game keeps it across stores**: the pad word `D_0035B828` loaded once and tested eleven times from `$a2`; read directly, gcc reloads it after every store through `D_001FF390` | func_0011BB90 |
+| **A counter stepped in place** (`D.xB0--; if (D.xB0 < -25) D.xB0 = -25;`, or `--D.xB0 < -25`, or `D.xB0 = D.xB0 - 1`): one register through load, add, store and test; a temporary (`x = D.xB0 - 1; D.xB0 = x;`) gives a second register (93 -> 9 words) | func_0011BB90 (all eight clamp blocks) |
+| **Store order search again** (2.20): the six stores after func_0011BB90's `memset` matched in 3 of 720 orders (`v[3]`, `xC4`, `x80`, `x88`, `x90`, `x94`; the game's emitted order is the scheduler's); the three final negations in index order | func_0011BB90 |
+| **A loop-local pointer to a global** (`g = &D_001FF390;` at the bit test, then `g->bits[i / 8]`, `g->fc`): the game materializes the base inside the loop instead of reusing the head's; and a function pointer read into a local before a store gives the game's `lw 0xD0` before the `sh` (265 -> 71 words, right size) | func_00120EF0 (masked; parked, below) |
+
+**Parked (one-line causes; drafts in the notes folder `ER-089_092_drafts/`):**
+
+| Function | Size | Cause |
+|---|---|---|
+| func_00113ED8 | 760 | right instructions, 4 words short: our post-reload cross-jumping merges the two `func_001C9F60` found tails (both blocks end `set $a1; call` at jump2, `-dS -dJ` dumps), the game keeps both; plus one `nop` before the game's loop top. 8 found-path forms tried |
+| func_00120EF0 | 1,348 | right size, 71 words: the store block after the struct copy (the game re-materializes `&D_002029D0` / `&D_00202A50` / `&D_001FF8B0` more often than our CSE; about 700 statement orders searched, struct forms worse) and a `rec` / bit-index saved-register swap |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -730,7 +757,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling |
+| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23) |
 
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals): park such functions with a
 one-line cause and ask.
