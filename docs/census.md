@@ -259,6 +259,10 @@ are present because each file is one whole object (`LIB2FUNCS_EXTRA`, no `FINE_G
 `__pack_d` / `__unpack_d` / `__fpcmp_parts_d` (and `_f`), `_fpadd_parts` is static. `func_001E6D20` / `func_001E6E10` /
 `func_001E6F08` (libgcc2 64-bit conversions calling the dp routines) are not identified.
 
+**Census tool (ER-068, Sun 22 Nov 2026):** `tools/census.py` knew only `func_` names, so these 11 units showed as kind `?`;
+it now takes any identifier (`glabel`, INCLUDE_ASM, C definitions) and counts them as `asm` (0 units of kind `?`, totals
+unchanged at 3,609).
+
 **Not renamed:** `func_001E9B0C` (in ER-041's candidate list) is not fp-bit: it is libc's `memset` by shape (args
 dst / byte / count, byte replicated with `pcpyh` / `pcpyld` and stored with `sq` when 16-aligned; 307 game callers).
 Name Unconfirmed (no string), and game C calls it explicitly, which links under the address name. Likewise the other

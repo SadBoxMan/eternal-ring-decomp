@@ -53,7 +53,7 @@ must be equal and the game's target is resolved and checked:
 | Relocation | Check |
 |---|---|
 | `R_MIPS_26` (`jal`, `j`) | the game's target equals the symbol's address (`func_` / `D_` name, or a name of the syms ELF) |
-| `R_MIPS_HI16` + `R_MIPS_LO16` | the game's `%hi` / `%lo` pair gives the symbol's address plus our addend |
+| `R_MIPS_HI16` + `R_MIPS_LO16` | the game's `%hi` / `%lo` pair gives the symbol's address plus our addend. A `%lo` with no `lui` of its symbol pending before it (a `lui` shared between branches, `func_0014DDD8` +0x94) is paired with the last `HI16` of the same symbol seen, else the first one anywhere in the function; the note says "shares the HI16 at +0x..." (ER-065; before it, "no HI16 before it" and a false DIFF) |
 | `R_MIPS_GPREL16` | `_gp` (0x00360B70) plus the game's offset equals the symbol's address (`.sdata` / `.data` symbols of an owned run are found by name in our object) |
 | `R_MIPS_LITERAL` (`.lit4`) | the game's literal word has the same value as ours; its place in `.lit4` is judged by `make regress` |
 | section-relative `.rodata` (jump tables, strings) | not checkable here; listed under "not checkable" with the game's address |
@@ -80,14 +80,34 @@ python -I tools/place.py extract func_X [-o out.c]          placed C (+ the exte
 python -I tools/place.py where func_X                        which src/ file and line, C or asm
 ```
 
-- `c` drops the scratch file's `#include` lines and any line already present in the target file (an extern that is
-  already there), and puts the rest (declarations, a comment, the definition) where the `INCLUDE_ASM` line was. The
-  scratch file must define that function and no other.
+- `c` drops the scratch file's `#include` lines and any single-line declaration (extern, prototype, typedef at
+  brace depth 0, ending in `;`) that the target file already has **above** the insertion point, and puts the rest
+  (declarations, comments, the definition) where the `INCLUDE_ASM` line was. A declaration the file has only
+  **below** is moved up (see 3.1). Comment lines are never dropped. The scratch file must define that function and
+  no other.
 - `asm` removes the definition and the comment directly above it; extern lines above stay and are listed (other
   functions may use them).
 - Files are written with LF. The tool edits text only: run `make regress` afterwards.
 - Checked (ER-015): `extract`, `asm`, `c` round trip on four placed functions (with comments and externs) leaves
   `src/` byte-identical (`git status` clean).
+
+### 3.1 ER-065 fixes (Sun 22 Nov 2026)
+
+- **Extern below the insertion point (6.3, `D_001FFB06`, `func_00145760`, `func_0012FB48`).** `place.py c` counted a
+  line as already present when it was anywhere in the file. Now only a copy **above** the insertion point counts; a
+  declaration whose only copy is below is written above the new function and its lower copy is deleted (one
+  declaration, nothing lost, every function in between still sees it). Checked on a scratch file for
+  `src/text_0014A968.c` (extern `func_0014B0D8`, whose file copy is below `func_0014A968`'s `INCLUDE_ASM`): the old
+  tool dropped the line, the new one writes it above and removes the lower copy.
+- **Comment lines (ER-063).** The old filter dropped any scratch line equal to a line elsewhere in the file unless it
+  started with `/*` or `*`: a `//` comment, or the body line of a multi-line `/* */` comment, that matched another
+  comment was lost (the old tool left `/* multi` without its closing line: an unterminated comment, so the definition below it was swallowed). Now only a single-line
+  declaration at brace depth 0 is deduplicated (found with the same comment / string blanking as the definition
+  finder); nothing inside a comment or a struct / initialiser body is.
+- **Round trip.** `extract`, `asm`, `c` on `func_0014DDD8`, `func_0014D918`, `func_0012FB48`, `func_0014FF38`,
+  `func_00145238` leaves `src/` byte-identical (`git diff` empty). A moved extern is the one thing `asm` does not
+  undo (extern lines stay by design), so place-then-unplace of a function whose extern was moved leaves the
+  declaration in its new place above the function.
 
 Data: a function whose `.rodata` splat migrated (jump tables, strings used by one function) needs nothing more: the
 migrated copy lived in the function's asm file and the C emits its own (`docs/decomp_recipes.md` 2.5). A standalone
@@ -157,6 +177,9 @@ python -I tools/m2c_bulk.py func_00145208 func_00145428          named functions
 python -I tools/m2c_bulk.py --list picks.txt                     one name per line (# comments); --file / names mix
    [--ctx none|src|harvest] [--single] [--depth 2] [--rounds 4] [--par 4] [--label NAME] [--m2c DIR] [--timeout 120]
    [--plain]                                                     also write placeable plain C for each MATCH (6.2)
+   [--tag ER-NNN]                                                task code for the plain comment (6.6)
+   [--gcc-timeout 120] [--no-passthrough]                        gcc / ee-as kill time; skip the pass-through retry (6.6)
+python -I tools/m2c_bulk.py --rerun-diffs build/m2c_bulk/<label> --chunk 8 --plain    an earlier run's same-size DIFFs in small lists (6.6)
 ```
 
 **`make regress` deletes all of `build/`, `build/m2c_bulk/` included**: copy a run's folder out (e.g. to a scratch
@@ -358,9 +381,9 @@ was not traced (Unconfirmed). Rerunning a file's remaining same-size DIFFs in sm
 
 **The pass-through signature.** A same-size DIFF where every argument sits one register higher in the game
 (`lui $a1` / `addiu $a1` against our `$a0`) means the function passes its own `$a0` to the callee untouched, and
-m2c left it out. Give the function a parameter and pass it (recipes 2.8, 2.9).
+m2c left it out. Give the function a parameter and pass it (recipes 2.8, 2.10).
 
-**Two tool limits met (not fixed; queued in `docs/handoff.md`):**
+**Two tool limits met (both fixed by ER-065, Sun 22 Nov 2026: see 3.1; the text below is what was seen):**
 
 - `place.py c` drops a scratch extern line that the target file already has, also when the file's copy is
   **below** the insertion point. The placed function then uses a name not yet declared: a build error for a data
@@ -379,14 +402,163 @@ m2c left it out. Give the function a parameter and pass it (recipes 2.8, 2.9).
 `text_0013DBC0` (237 asm functions, 186 s at `--par 4`; label `er072`): 229 compile, **83 masked MATCH, 73 plain
 MATCH**. All 73 placed (`make regress` green per file or file group); the other 10 masked MATCHes placed after aligning
 declarations by hand (the file's own extern for the function was `(void)` / `(char *)` from an address-taking user, or
-a pass-through callee argument m2c dropped; recipes 2.12). Two `place.py` extern-below cases met again (6.3) and
+a pass-through callee argument m2c dropped; recipes 2.13). Two `place.py` extern-below cases met again (6.3) and
 fixed by hand. 9 same-size near misses (1-2 words) left: `func_001390F8`, `func_00139AF8`, `func_0013CA60`,
 `func_0013E678`, `func_0013E758`, `func_0013F258`, `func_0013F288`, `func_001431A0`, `func_001449D0`. 31 functions
 carry `div.s` / `sqrt.s` flags. m2c drafts of two-table functions fail to compile ("multiple default labels"); the
-hand versions are in recipes 2.12.
+hand versions are in recipes 2.13.
 
 `cmpfunc` limit seen again: a `%lo` of a function address (`.text`-relative) whose `%hi` sits in another block is
 "no HI16 before it" (8 functions here); all proven by `make regress`.
+
+### 6.5 `text_00150878` (ER-060 part 1, Sun 22 Nov 2026)
+
+`--plain` over the whole file (1,448 `INCLUDE_ASM` functions; default `harvest` context, 1,628 harvested
+signatures, par 4), with the ER-034 toolchain. **230 functions placed, 13,260 bytes, `make regress` (-j4) green after
+each of five batches and on a clean split at the end** (commit `af8f897` for 229, then `func_001BEF18`); 1,448 ->
+1,218 `INCLUDE_ASM`. Bands placed: 3-8 91, 9-16 54, 17-32 66, 33-64 18, 65-128 1; 6 with `div.s` / `sqrt.s`
+(`func_001528E0`, `func_0015A228`, `func_0015C6C0`, `func_0015D7C0`, `func_00176FF8`, `func_001A5360`).
+
+| Stage | Functions |
+|---|---|
+| m2c gave a draft | 1,447 (all but `func_00179B30`, below) |
+| draft compiles | 1,068 |
+| masked MATCH | 234 |
+| plain MATCH | 230 |
+| placed, regress green | 229 + `func_001BEF18` by hand = 230 |
+| same size, 1-2 words differ (near misses, not tried) | 48 |
+| same size, 3-8 / 9+ words differ | 71 / 116 |
+| size differs | 598 |
+
+Comment above each: `ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed
+readings.` (the tool writes `ER-054:`; the tag was changed in the copied drafts, the tool is unchanged).
+
+**Declarations aligned by hand** (two drafts of one file guessed a callee differently; build error "conflicting
+types"; no code change, each proven by regress):
+
+| Callee | Kept | Note |
+|---|---|---|
+| `func_0012B890` | `(void **, s32, s32, s32, s16, s32, f32)` (as `text_00145120`) | the other draft had `s32` for a constant argument |
+| `func_0012C360` | `void *(void *, s32, s32, s32, void *)` | |
+| `func_00153380` | `s32 (void *)` | value unused at both calls |
+| `func_001132B0` | **`s32`** `(void *)` | a `void` prototype changed `func_001BE7E8`'s registers (`$v0` instead of `$v1`): see recipes 2.15 |
+| `func_001CB808`, `func_001E9D08` | `extern s32 f();` (no prototype) | called with 2 / 3 and 2 / 4 integer or pointer arguments (variadic: Unconfirmed) |
+| `func_00131088` | `(void *)`; `func_00156F80` passes `arg0` (pass-through, recipes 2.10) | the draft called it with none |
+| `func_0014FE10` | `(void *, s32)`; `func_001546F8` takes `arg1` too and passes both | ER-049's `(void)` clone prototype again (ER-061) |
+
+`func_001BEF18`: its draft called `func_001E9A10` by address, which ER-041 named `fptodp` (link error after the
+merge). Written as plain C, the conversion as the argument of `extern void func_001BE0B0(void *, double);`
+(recipes 2.10); placed, regress green.
+
+**Not placed:**
+
+| Function | Cause |
+|---|---|
+| `func_00179B30` | **cc1 loops for ever** on every draft context of it (killed by hand after 6,457 s and 27,150 s of CPU; the run then finished). `m2c_bulk.py` has no compile timeout (follow-up) |
+| `func_00161568` | plain form: parse error |
+| `func_001C46C8` | plain form: too many arguments (declaration clash) |
+| `func_0017D290`, `func_001BF5B0` | plain form: `s128` (no 128-bit type in `common.h`) |
+| `func_00177098` | VU0 (the file's only VU0 function); not a MATCH |
+| 33 jump-table functions | none a MATCH as drafts |
+| ER-041's seven: `func_00178C60` (size -351 instr), `func_001BB2C8`, `func_001BB750` (compile error: m2c's macro), `func_0015C0E0` (too many arguments), `func_0015BE00` (+1 instr), `func_00160CE0` (-9), `func_00189810` (-1) | rerun with the ER-041 names (label `er060b`): drafts call `dpadd` / `sqrtf` ... by name; need plain double C by hand (recipes 2.11) |
+
+Near misses (same size, 1-2 words; not tried): func_00150A30 func_00153DA0 func_00154BD0 func_00157B08 func_00159830
+func_0015D3E8 func_0015E628 func_0015E988 func_00163C68 func_00164220 func_00164C08 func_00164C50 func_00168328
+func_00168358 func_00169480 func_001766E0 func_0017A2E0 func_0017CC28 func_0017D3E8 func_0017D6F0 func_001835E0
+func_00189198 func_0018C730 func_0019BA90 func_0019C078 func_001AB480 func_001AED88 func_001AEF90 func_001AF2E8
+func_001B42B0 func_001B4BE8 func_001B5E68 func_001B77B8 func_001BBD40 func_001BBEB8 func_001BCD68 func_001BCF48
+func_001BE1E0 func_001BF260 func_001BFEB8 func_001C0570 func_001C1310 func_001C1580 func_001C4F68 func_001C4FF0
+func_001C53D0 func_001C8920 func_001C8928.
+
+**Time.** Bulk run 03:25-03:53 ET for 1,447 functions (about 1.2 s per function at par 4), then stalled on the
+`cc1` loop until 13:17; placement and five regress rounds 13:22-13:25, full regress and commit gate after. The run's
+folder holds 32,000 object files: copy only `results.*` and `c/` out of `build/` (copying all of it took minutes).
+
+### 6.6 `text_001000C0` (ER-060 part 2, Sun 22 Nov 2026)
+
+`--plain`, default context, `--par 4`, the whole file (525 asm functions, 623 s; label `er060b`), with a watchdog
+beside it that kills any `cc1.exe` of the worktree running over 2 minutes (none was needed: no draft looped). Results:
+525 drafts, 400 compile, **58 masked MATCH, 55 plain MATCH**. All 55 placed in two batches (28 + 27), `make regress`
+(-j4) green after each; the other 3 masked MATCHes placed after aligning declarations by hand (third regress green):
+**58 functions, 4,752 bytes**, nothing compiler-steering. The comment above each says `ER-060: drafted with m2c ...
+Unconfirmed readings` (the tool writes `ER-054`; changed in the copies before placing, the tool is untouched).
+
+| Function | What it took |
+|---|---|
+| `func_0012B6B0` | calls `func_0012BAE0` without setting `$f12`, and `func_0012BAE0` reads `$f12` (another draft, `func_0012F958`, passes a float there): given an `f32 fparg0` parameter passed through; same code (recipes 2.16) |
+| `func_0012DA68` | uses `func_001314C8`'s `$f0`: `func_001314C8` / `func_00131508` (placed in batch 2 as `s32`, sibling `j func_001E3EC8`) and the file's `func_001E3EC8` extern made `f32`; same code |
+| `func_00130758` | returns `func_001114E8`'s float as it is (no `cvt.w.s` in the game): `float func_00130758(void *)` |
+| `func_00132CF8` | the file's extern was `void func_00132CF8(void)` (an address-taking user, recipes 2.10 / 2.13): changed to `(s8 *)`; three declarations moved above it |
+
+`place.py`'s extern-below limit (6.3) met 3 times (`D_0035B8A0`, `D_0035B8A8`, and `func_00133290` / `func_00132E80` /
+`func_00133098`); fixed by moving the file's line up. A small checker run after each batch (every `extern` line of a
+placed draft must be declared above the placed definition) found the first two before the build; the third was a
+plain prototype line (no `extern`), caught by the compile. No implicit declarations in the build log.
+
+**Skipped:** the 14 functions recipes 2.11 / 2.12 park or leave for ER-069 / ER-070 / ER-071 / ER-073 (none was a
+MATCH anyway), and the 29 VU0-flagged functions (none matched; they need inline asm, ruling 3.3).
+
+**Left in asm (not placed):**
+
+| Kind | Functions |
+|---|---|
+| same size, 1-2 words differ (rerun as a list of 18, label `er060c`: none matched, unlike ER-062's run) | `func_00101238`, `func_00103E30`, `func_0010CAF0` (div), `func_00111660`, `func_00129ED8`, `func_0012A140`, `func_0012B238`, `func_0012C778`, `func_0012F838`, `func_0012F870`, `func_00130A88`, `func_00130AD0`, `func_00130CE0`, `func_00130FE0`, `func_00131000`, `func_001320B8`, `func_001321D8`, `func_001328D8` |
+| same size, 3-8 words differ | 33 |
+| same size, 9+ words differ | 53 |
+| size differs | 238 |
+| compile error (mostly harvested signatures: `void value not ignored` 32, too few / many arguments 35, `invalid use of void expression` 18) | 125 (13 of them with `M2C_ERROR`) |
+
+The run's `results.md` / `.csv` (game code: not in git) are in the scratch folder of the ER-060 part 2 session only.
+
+### 6.7 Timeout, pass-through retry, small lists; the rerun of three ER-054 files (ER-066 + ER-079, ER-064, Sun 22 Nov 2026)
+
+**Tool changes (ER-066, with ER-079 folded in):**
+
+| Change | What it does | Checked on |
+|---|---|---|
+| **gcc / ee-as timeout** (`--gcc-timeout`, default 120 s) | each compile starts **suspended inside a Windows job object** with kill-on-close, is resumed, and runs under a timer; on expiry the job is terminated, which ends cc1.exe with the driver, and the attempt is classed `TIMEOUT` (row class, or a note when another context compiled); the run goes on. `taskkill /T` alone is **not** enough: the MSYS-built gcc.exe starts cc1.exe outside the Windows parent chain (cc1's parent PID was not under the driver's), and a first version that used it left every timed-out cc1 running (7 orphans from two test runs, killed by PID) | `func_00179B30` (text_00150878, the draft cc1 that looped for 9 h in ER-060; draft only, nothing placed): `--gcc-timeout 30`, all four contexts `TIMEOUT`, run finished in 124 s, **no cc1 left**; the same draft at 10 s: 1 cc1 while running, 0 after; a normal draft still compiles; smoke run on `text_0014C840` |
+| **Results in completion order** | each row is printed when its function finishes, with `[k/n, seconds]`; the tables keep the input order (ER-060's log stopped at the first slow function, so a hang looked like no progress) | every run below |
+| **`--tag ER-NNN`** | the plain comment reads `/* ER-NNN: drafted with m2c ... */` (no tag: `/* Drafted with m2c ... */`; it was hard-coded `ER-054:`) | ER-066's runs |
+| **Pass-through retry** (on by default; `--no-passthrough` skips it) | for a function whose best draft compiles at the game's size but differs: if a differing word is the game writing `$a1`..`$a3` where ours writes the register one lower with the same instruction (relocated immediates not compared), or ours has a `nop` there, the callee is the game's `j` / `jal` holding that word in its delay slot, else the next one within 16 words. Its prototype is **widened in m2c's context** by a leading `void *` (padded with `s32` up to the highest `$aN` the game sets), and the function is drafted again, so m2c itself reads the untouched `$a0` as the function's own `arg0` (recipes 2.9). Kept only on a MATCH; the Notes say `pass-through retry: <prototype>` or `pass-through retry tried, no match`. `--plain` declares the widened prototype and says in the Plain column when the target file declares the callee narrower, or declares the function itself differently (its address-taking extern, recipes 2.9): align that line by hand before placing | below |
+| **`--rerun-diffs RUN --chunk N`** | takes an earlier run's same-size DIFFs (from `results.json`) and runs them in lists of N, each with its own harvest (`chunkNN/` folders; `c/` files and the tables gathered in the run folder). `--chunk` also works on any name list | below |
+
+**Reproduction on ER-062's five** (Sun 22 Nov 2026): `src/text_00145120.c`, `text_0014A968.c`, `text_0014C840.c`,
+`text_0014E2E8.c` set back to their state before ER-062 (`a751ee2^`) in the worktree, split, the tool run on the
+ER-062 names, the files restored afterwards (never committed):
+
+| Function | Without the retry | With it |
+|---|---|---|
+| `func_00145238` | diff (`lui $a0` against the game's `lui $a1`) | **MATCH** (`func_00130FE0` widened to `(void *, s32 *)`); plain: compile error, and the Plain column names the cause: the file's own `extern void func_00145238(void);` (ER-062 changed it by hand) |
+| `func_00145248` | diff (same shape) | **MATCH**, plain MATCH |
+| `func_0014D380` | MATCH already (today's context has the callee's two parameters) | (not needed) |
+| `func_0014C620` | diff: not this shape (`arg0` is there; m2c read the constant `5` as a parameter `arg3`) | not tried (no shifted register) |
+| `func_001501D8` | diff | retry fired (`func_0012FB48` widened to `(void *, s32)`), still a diff: m2c then wrote `func_0012FB48(arg0, arg1)`; it **ignores the delay slot of a tail `j`** (the game's `daddu $a1, $zero, $zero` there), the same m2c limit as `func_00146EF0` in 6.1 |
+
+So the retry reproduces the two pure pass-through cases; the other three need what ER-062 did by hand.
+
+**ER-064: rerun of `text_00145120`, `text_0014A968`, `text_0014C840`** (`--plain`, default context, the ER-034
+toolchain and ER-041 names; 107 asm functions, 125 harvested signatures, 117 s at par 4; label `er064`):
+
+| File | Asm functions | Masked MATCH | Plain MATCH | Placed (regress green) |
+|---|---|---|---|---|
+| `text_00145120` | 64 | 6 | 5 | 5: `func_001462D8`, `func_00146F10`, `func_00147D90`, `func_00149880` (by the pass-through retry: `func_0012FB48(arg0, 0)`), `func_00149C18` |
+| `text_0014A968` | 27 | 6 | 6 | 6: `func_0014AF58`, `func_0014B3A0`, `func_0014B3E0`, `func_0014B4C8`, `func_0014BC40`, `func_0014C220` |
+| `text_0014C840` | 16 | 2 | 2 | 2: `func_0014CC10`, `func_0014D338` |
+| **All** | **107** | **14** | **13** | **13, 1,312 bytes** |
+
+- `func_001462D8` (skipped by ER-054 for `s128`) and `func_0014B3A0` / `func_0014B3E0` / `func_0014B4C8` (ER-054's
+  `func_0014BC88` clash) now come out plain: 4 of ER-061's 7 are done. `func_001492D0` is still the `func_0012B238`
+  `(void)` clash (plain: "too many arguments").
+- **None of the 15 `div.s` / `sqrt.s` functions matched as drafts.** The divides are not the cause any more: the
+  drafts differ in shape (12 by size, 3 same size with other instructions). Example `func_00147F78`: m2c lost a stack
+  buffer (declared `sp[64]` by the cleaner), so the frame is 0x180 against the game's 0xD0; hand work.
+- Small lists: the 26 same-size DIFFs rerun with `--rerun-diffs er064 --chunk 8` (4 chunks, 42 s): **no new
+  match**, and none of them is a 1-2 word near miss (10 have 3-8 words, 16 have 9+). The pass-through retry fired
+  on 4 more (`func_00145FE8`, `func_001464A8`, `func_00146FE0`, `func_001497D0`) without a match.
+- `place.py`'s extern-below limit (6.3, ER-065) met in **5 of 13 placements, 7 extern lines** (`func_001469B8`, `func_0012FAE8`
+  in `text_00145120`; `func_0014BC88`, `func_0014B7C0` in `text_0014A968`; `func_0014D8F8`, `func_0014D068`,
+  `func_0014D890` in `text_0014C840`): each extern line moved above the new function before the build (a scratch
+  check listed every name a placed body uses that is declared only below it).
 
 ## 7. Not verified
 
@@ -403,3 +575,8 @@ hand versions are in recipes 2.12.
   match only with the `%hi` / `%lo` section-attribute extern need the recipe form before placement. Not tried on
   SDK code, VU0 / MMI functions, jump tables in `text_001343E8`, or functions over 255 instructions. The failure
   kinds in 6.1 come from reading a few diffs, not from a count.
+- ER-066: the pass-through detection was checked on ER-062's functions and the ER-064 run only (one placed match,
+  `func_00149880`); a callee reached through a register (`jalr`) is not looked for; a variadic callee prototype is
+  left alone. The timeout's job-object kill was checked on `func_00179B30` only (Windows); outside Windows the
+  tool kills the driver only (not tested). Why small lists matched 4 more drafts for ER-062 is still not traced
+  (no new match from them in ER-064).

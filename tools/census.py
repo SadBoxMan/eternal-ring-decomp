@@ -128,6 +128,11 @@ def h12(items) -> str:
     return m.hexdigest()[:12]
 
 
+# ER-068: a function label is `glabel <any name>` (ER-041 named 11 SDK units: sqrtf, dpadd, ...); `dlabel` only for
+# the func_ data blocks (DATA_BLOCKS), so the D_ / jtbl_ data labels never take over a function's `.word` lines.
+LABEL_RE = r"\s*(?:glabel\s+([A-Za-z_]\w*)|dlabel\s+(func_[0-9A-F]{8}))"
+
+
 def load_marks():
     """Per function: handwritten instruction count, `.word` count, invalid-instruction count, from the asm."""
     marks = {}
@@ -136,9 +141,9 @@ def load_marks():
         cur = None
         with open(path, encoding="utf-8", errors="replace") as fh:
             for line in fh:
-                m = re.match(r"\s*(?:glabel|dlabel)\s+(func_[0-9A-F]{8})", line)
+                m = re.match(LABEL_RE, line)
                 if m:
-                    cur = m.group(1)
+                    cur = m.group(1) or m.group(2)
                     marks.setdefault(cur, [0, 0, 0, False])
                     continue
                 if cur is None:
@@ -157,9 +162,9 @@ def load_marks():
                 if "/* Handwritten function */" in line:
                     pending = True
                     continue
-                m = re.match(r"\s*(?:glabel|dlabel)\s+(func_[0-9A-F]{8})", line)
+                m = re.match(LABEL_RE, line)
                 if m and pending:
-                    marks.setdefault(m.group(1), [0, 0, 0, False])[3] = True
+                    marks.setdefault(m.group(1) or m.group(2), [0, 0, 0, False])[3] = True
                     pending = False
     return marks
 
@@ -167,8 +172,9 @@ def load_marks():
 def load_c_status():
     text = "\n".join(open(p, encoding="utf-8").read()
                      for p in sorted(glob.glob(os.path.join(SRC_DIR, "**", "*.c"), recursive=True)))
-    asm = set(re.findall(r"INCLUDE_ASM\([^,]+,\s*(func_[0-9A-F]{8})\)", text))
-    c = set(re.findall(r"^\s*\w[\w\s\*]*\b(func_[0-9A-F]{8})\s*\([^;{)]*\)\s*\{", text, re.M))
+    # ER-068: any identifier, not only func_ (ER-041 named 11 SDK units); main() looks up function symbol names only
+    asm = set(re.findall(r"INCLUDE_ASM\([^,]+,\s*([A-Za-z_]\w*)\s*\)", text))
+    c = set(re.findall(r"^\s*\w[\w\s\*]*\b([A-Za-z_]\w*)\s*\([^;{)]*\)\s*\{", text, re.M))
     return asm, c
 
 

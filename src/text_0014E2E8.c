@@ -116,7 +116,78 @@ s32 func_0014EE68(s8 *arg0, void *arg1) {
     return func_0014F240(arg0);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014EEF0);
+extern double fabs(double);
+extern s32 func_00131088(void *);
+extern void func_0014E608();
+extern void func_0012CB70(float *, char *, char *);
+extern float func_00130758(char *);
+extern void func_001CA018(float *, char *, char *);
+extern void func_00130180(float *, char *, float *);
+extern void func_0012D8B8(char *, double, double, double);
+extern void func_001D76D0(float *, float *, float);
+extern void func_001C9EE8(float *, float *, char *);
+extern void func_001C9F60(void *, void *, void *);
+extern void func_001C9FE8(void *, void *, void *);
+extern void func_0014F298(char *, s32, s32, s32, f32);
+extern void func_0014E740();
+void func_0014F480(void *arg0, f32 fparg0, f32 fparg1, f32 fparg2);
+extern float D_001F5780[];
+extern f32 D_0035BEE4;
+
+/* ER-077: by hand from the m2c draft. fabs(v[0]) is compared in double, so 300.0 is gcc's anonymous .rodata
+ * double in place of D_00354A68 (ruling 3.10); 0.69813174f is 40 degrees in radians. The callees' meanings
+ * (vector, matrix helpers) are not read. Names, types and offsets are Unconfirmed. */
+void func_0014EEF0(char *a0, char *a1, char *a2)
+{
+    float v[4];
+    float w[4];
+    float u[4];
+    float p[4];
+    float m[16];
+    float r, s;
+
+    if (func_00131088(a0) != (s32)func_0014E608) {
+        return;
+    }
+    if (*(char **)(a1 + 8) == a0) {
+        return;
+    }
+    func_0012CB70(v, *(char **)a0, a1 + 0x50);
+    if (fabs(v[0]) > 300.0f) {
+        return;
+    }
+    if (v[1] > 100.0f || v[1] < -100.0f) {
+        return;
+    }
+    if (v[2] > 800.0f || v[2] <= 0.0f) {
+        return;
+    }
+    if (func_00130758(a0) <= 400.0f) {
+        return;
+    }
+    func_001CA018(w, a1 + 0x50, a2 + 0x10);
+    func_00130180(w, *(char **)a0, w);
+    if (0.0f <= v[0]) {
+        r = 0.69813174f;
+        s = -D_0035BEE4;
+    } else {
+        s = D_0035BEE4;
+        r = -0.69813174f;
+    }
+    *(float *)(a0 + 0x3C) = r;
+    func_0012D8B8(a0, s, 0.0, D_0035BEE4);
+    func_001D76D0(m, D_001F5780, r);
+    func_001C9EE8(m, m, *(char **)a0 + 0x50);
+    u[1] = -300.0f;
+    u[2] = 200.0f;
+    u[0] = 0.0f;
+    u[3] = 0.0f;
+    func_001C9F60(p, m, u);
+    func_001C9FE8(p, *(char **)a0 + 0x90, p);
+    func_0014F480(a0, p[0], p[1], p[2]);
+    func_0014F298(a0, 0xB, 0xF, 0, 0.1f);
+    func_00131000(a0, func_0014E740);
+}
 
 extern f32 D_0035BECC;
 extern s32 func_00150070(void **arg0, s32 arg1, s32 arg2);
@@ -175,7 +246,6 @@ INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F550);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F5F8);
 
-INCLUDE_RODATA("asm/nonmatchings/text_0014E2E8", D_00354A68);
 /* ER-024 (parked by ER-014 for its jump table). Maps the u16 at offset 4 from 0x34..0x39 to 0..5, else 6;
  * the field's meaning is Unconfirmed. */
 int func_0014F618(void *a0) {

@@ -141,13 +141,29 @@ def cmd_c(name: str, scratch: Path, dry: bool) -> int:
         print(f"place: {scratch} also defines {', '.join(others)}: place one function at a time")
         return 1
     t_lines = read(target)
-    present = {l.strip() for l in t_lines if l.strip()}
-    block = []
-    for l in s_lines[:d[0]]:
+    above = {l.strip() for l in t_lines[:at] if l.strip()}
+    below = {}  # declaration lines that only exist below the insertion point: index of the first copy
+    for k in range(at + 1, len(t_lines)):
+        below.setdefault(t_lines[k].strip(), k)
+    # only a whole declaration at brace depth 0 (extern / prototype / typedef ending in ';') is deduplicated: never a
+    # comment line (a `//` line, a line inside a block comment), a blank, or a line of a struct / initialiser body
+    pre = s_lines[:d[0]]
+    code = strip_code("\n".join(pre)).split("\n")
+    depth, block, moved = 0, [], []
+    for l, c in zip(pre, code):
         st = l.strip()
-        if st.startswith("#include") or (st and st in present and not st.startswith(("/*", "*"))):
+        top = depth
+        depth += c.count("{") - c.count("}")
+        if st.startswith("#include"):
             continue
+        if top == 0 and depth == 0 and c.strip().endswith(";") and st == c.strip():
+            if st in above:
+                continue
+            if st in below:  # the file's copy is below: move it up, so this function (and any between) sees it
+                moved.append(below[st])
         block.append(l)
+    for k in sorted(set(moved), reverse=True):
+        del t_lines[k]
     while block and block[0].strip() == "":
         block.pop(0)
     block += s_lines[d[0]:d[1] + 1]

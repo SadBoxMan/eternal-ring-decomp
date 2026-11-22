@@ -15,9 +15,9 @@ C:\rs\toolchain\ee-gcc-2.9-991111-r1\gcc.exe -BC:\rs\toolchain\ee-gcc-2.9-991111
 C:\rs\toolchain\ee-binutils-2.9-991111-r3\ee-as.exe -G8 -O2 -mabi=eabi file.s -o file.o
 ```
 
-(`ee-gcc-...-r1` = with our compiler patch since ER-034 (2.8, ruling 3.7: `nop; nop; div.s`); the unpatched
+(`ee-gcc-...-r1` = with our compiler patch since ER-034 (2.9, ruling 3.7: `nop; nop; div.s`); the unpatched
 `ee-gcc-2.9-991111` stays as a fallback. `ee-binutils-...-r3` = with all three gas patches since ER-034 (2.3, 2.7,
-2.8; rulings 3.4, 3.5, 3.8); `-r2` has the first two, `-r1` the first only; the unpatched `ee-binutils-2.9-991111`
+2.9; rulings 3.4, 3.5, 3.8); `-r2` has the first two, `-r1` the first only; the unpatched `ee-binutils-2.9-991111`
 gives an extra `nop` after FP compares. `-fno-strict-aliasing` since ER-035, ruling 3.6.)
 
 or in one step, with a folder that holds a copy of `ee-as.exe` named `as.exe`:
@@ -159,7 +159,7 @@ uses the unpatched ee-as; switching is LuciDin's call (toolchain change: `tools/
 |---|---|---|
 | ~~`func_0014A948`~~ | `text_00145120.c` | matched by ER-024 (2.5) |
 | ~~`func_001115E0`~~ | `text_001000C0.c` | matched by ER-026 (2.6) |
-| ~~`func_001C12D0`~~ (ER-026) | `text_00150878.c` | matched by ER-034 (2.8: the `nop; nop; div.s` comes from the compiler, ruling 3.7) |
+| ~~`func_001C12D0`~~ (ER-026) | `text_00150878.c` | matched by ER-034 (2.9: the `nop; nop; div.s` comes from the compiler, ruling 3.7) |
 | `func_00142788` (ER-026, ER-034) | `text_001343E8.c` | the divides match since ER-034; the clamp tail does not: the game computes the clamped value in `$f0` and copies it with `mov.s $f2, $f0` (the `*p` register) before the store; about 30 C shapes tried (if / else, `?:`, temporaries, `*p` in place) |
 | ~~`func_0017D930`, `func_0014F618`~~ | `text_00150878.c`, `text_0014E2E8.c` | matched by ER-024 (2.5) |
 | `func_001C6F90` | `text_00150878.c` | epilogue scheduling: the game puts the first `$gp` store between `ld $31` and `ld $16`; ours puts both loads first. Tried 6 store orders and 5 loop forms (`while`, `do`, `for(;;)`, `u32`, `int` return); no plain-C variant found |
@@ -195,7 +195,7 @@ the `nop` before the branch stays, as in the game. A control build with the unpa
 | **Short loops get 3 `nop`s before `bc1t` from gcc itself** (`.set noreorder; nop` x3; Unconfirmed reading: gcc's r5900 short-loop workaround, padding a loop to 6 instructions; the gcc source was not read), so `do { f -= 2pi; } while (pi < f);` matches as written | `func_0012E7B0`, `func_00131608` (wrap an angle into [-pi, pi]) |
 | **Clamp with a return code**: `r = 0; if (hi < f) { f = hi; r = 1; } hi = -hi; if (f < hi) { f = hi; r = -1; }` | `func_0012EAB8` |
 
-~~Still open (parked, 2.4): `mul.s; nop; nop; div.s` followed by `jr; nop`.~~ Solved by ER-034 (2.8): the
+~~Still open (parked, 2.4): `mul.s; nop; nop; div.s` followed by `jr; nop`.~~ Solved by ER-034 (2.9): the
 compiler emits every `div.s` / `sqrt.s` as `nop; nop; div.s`, an insn of length 3 that never goes in a delay slot
 (ruling 3.7).
 
@@ -206,7 +206,7 @@ the patched ee-as `-r2` and `-fno-strict-aliasing`.
 
 | Lesson | Proved by |
 |---|---|
-| **No `nop` between `mtc1` and the next instruction that uses its register.** The game never has one (1,454 game sites, 19 SDK, 0 with a `nop`); our ee-as added one in reorder mode (`gas/config/tc-mips.c`, the `INSN_COPROC_MOVE_DELAY` test, `cop_interlocks` lacks the r5900). Fixed in the assembler (`-r2`, ruling 3.5); write plain C. `mfc1` followed by a use of its GPR still gets the `nop` when the use is a branch, as in the game (`func_0012F550`); before a normal instruction the game has none (ER-034, 2.8, ruling 3.8) | `func_0012E908`, `func_0013DBC0`; the whole ELF unchanged |
+| **No `nop` between `mtc1` and the next instruction that uses its register.** The game never has one (1,454 game sites, 19 SDK, 0 with a `nop`); our ee-as added one in reorder mode (`gas/config/tc-mips.c`, the `INSN_COPROC_MOVE_DELAY` test, `cop_interlocks` lacks the r5900). Fixed in the assembler (`-r2`, ruling 3.5); write plain C. `mfc1` followed by a use of its GPR still gets the `nop` when the use is a branch, as in the game (`func_0012F550`); before a normal instruction the game has none (ER-034, 2.9, ruling 3.8) | `func_0012E908`, `func_0013DBC0`; the whole ELF unchanged |
 | **Build with `-fno-strict-aliasing`.** This ee-gcc enables type-based aliasing at `-O2`; the game reloads a pointer after a store of another type (a float store, then `*a0` read again), which strict aliasing removes. With the flag the whole ELF is still byte-identical (all earlier C functions unchanged). Whether Sony passed the flag or its compiler defaulted to it is Unconfirmed | `func_0013DBC0` (matches only with it) |
 | **`while (pi < f) f -= 2pi;` and `if (pi < f) do { ... } while (pi < f);` both exist and give different FP registers**: the `while` form keeps the constant in one register (`c.lt $f2,$f0` in loop and test); the `if` + `do` form copies it in the first branch's delay slot. Try both | `func_0012CD08` (`while`), `func_00130F50`, `func_0012E908` (`if` + `do`) |
 | **Register numbers follow variables**: when the game uses different registers for the same value in two places, a fresh local for each use (instead of reusing one pointer variable) can give its allocation | `func_0013DBC0` (four `char *` locals) |
@@ -218,7 +218,7 @@ the patched ee-as `-r2` and `-fno-strict-aliasing`.
 | **`f = p->a + s * p->b; p->a = f;` then clamp `f` and store it again** gives the game's two stores and register use; `p->a += s * p->b;` or a reload of `p->a` gives other registers | `func_00133098` |
 | **Two functions identical but for one callee and one `.sdata` constant** match with the same C (`func_0011B9D0` / `func_0011BAB0`): try the twin as soon as one matches | `func_0011BAB0` |
 
-**`div.s` and `sqrt.s` always have two `nop`s before them in the game** (754 `div.s` and 59 square-root words that rabbitizer prints as `c1 0x...` in game code, 19 `div.s` in the SDK; none without). Our compiler and assembler give none, so every function with a float divide or square root is parked for ER-034 (cause not known: a gcc option, Sony's assembler, or a compiler build; nothing in cc1's strings names it). This widens ER-034's `mul.s; nop; nop; div.s` to all divides and square roots. `sqrtf()` compiles to the game's inline `sqrt.s` + `c.eq.s` NaN check + call to `func_001E42E0` (so that libm function is `sqrtf`), but needs the symbol name `sqrtf` and the `nop`s. **The `nop`s are solved by ER-034 (2.8, ruling 3.7); the `sqrtf` name by ER-041 (2.10).**
+**`div.s` and `sqrt.s` always have two `nop`s before them in the game** (754 `div.s` and 59 square-root words that rabbitizer prints as `c1 0x...` in game code, 19 `div.s` in the SDK; none without). Our compiler and assembler give none, so every function with a float divide or square root is parked for ER-034 (cause not known: a gcc option, Sony's assembler, or a compiler build; nothing in cc1's strings names it). This widens ER-034's `mul.s; nop; nop; div.s` to all divides and square roots. `sqrtf()` compiles to the game's inline `sqrt.s` + `c.eq.s` NaN check + call to `func_001E42E0` (so that libm function is `sqrtf`), but needs the symbol name `sqrtf` and the `nop`s. **The `nop`s are solved by ER-034 (2.9, ruling 3.7); the `sqrtf` name by ER-041 (2.11).**
 
 ### 2.8 Bulk m2c placement (ER-054, Sun 22 Nov 2026; Confirmed by `make regress`, 78 functions)
 
@@ -228,7 +228,7 @@ the patched ee-as `-r2` and `-fno-strict-aliasing`.
 | **One prototype per callee per file.** Drafts made one at a time guess a callee's parameters differently; in one file they must agree. Where a callee's value is used, keep the declaration that returns it; an argument m2c dropped because it passes through untouched in `$a0` can be written explicitly with no change to the code | `func_00149920` (`func_0012F8C8` as `s32`), `func_001507B8` (`func_00131088(arg0)`) |
 | **Arithmetic on `void *`** (m2c's `arg0 + 0x90`) compiles as byte arithmetic in ee-gcc (a GNU extension) and matches; kept as m2c wrote it | `func_0014FF98` |
 
-### 2.8 Divides, square roots and mfc1 (ER-034, Sun 22 Nov 2026; Confirmed by `make regress`)
+### 2.9 Divides, square roots and mfc1 (ER-034, Sun 22 Nov 2026; Confirmed by `make regress`)
 
 Two more toolchain facts, each ruled by LuciDin (3.7, 3.8) and now in the build: ee-gcc `-r1` and ee-as `-r3`
 (`docs/toolchain.md` 4.1, 4.2). Evidence: notes folder `ER-034_evidence.md` (dispatcher's folder).
@@ -250,9 +250,9 @@ struct type for it fixed the rest; 6 tries); `func_00163158` (FP register choice
 add tails; 8 tries, close). `func_0012BDA8` (the twin of `func_0012BF08` with an extra call) not tried.
 
 Still blocked after ER-034 (from ER-035's list of 46): 12 functions call `sqrtf` (`func_001E42E0` needs that name)
-and 11 call the soft-double routines (libgcc names): both ER-041; 3 have VU0 code. **Names in since ER-041 (2.10).**
+and 11 call the soft-double routines (libgcc names): both ER-041; 3 have VU0 code. **Names in since ER-041 (2.11).**
 
-### 2.9 Near misses by hand (ER-062, Sun 22 Nov 2026; Confirmed by `make regress`, commit `a751ee2`, 11 functions)
+### 2.10 Near misses by hand (ER-062, Sun 22 Nov 2026; Confirmed by `make regress`, commit `a751ee2`, 11 functions)
 
 | Lesson | Proved by |
 |---|---|
@@ -261,7 +261,7 @@ and 11 call the soft-double routines (libgcc names): both ER-041; 3 have VU0 cod
 | **A `%lo` sharing a `lui` with another branch** (one `lui $v0, %hi(D_X)` reaching two `lwc1 %lo(D_X)($v0)` in different cases) comes from plain C with `extern f32 D_X[];` read in both cases; gcc shares the `%hi` itself | `func_0014DDD8` (`D_0035BEB0`) |
 | **A taken address needs the same prototype as the definition.** A file that only takes a function's address may have declared it `(void)`; once the function is placed with a parameter, that extern must be changed to match (no code change) | `func_00145238`, `func_001501D8` |
 
-### 2.10 Doubles and `sqrtf` (ER-041, Sun 22 Nov 2026; Confirmed by `make regress`, commits `48f1dc6`, `34893a6`)
+### 2.11 Doubles and `sqrtf` (ER-041, Sun 22 Nov 2026; Confirmed by `make regress`, commits `48f1dc6`, `34893a6`)
 
 The names gcc emits for these are in `symbol_addrs.txt` since ER-041 (`docs/census.md` 4.4): `sqrtf`, and libgcc's
 GOFAST soft-double routines `dpadd`, `dpsub`, `dpmul`, `dpdiv`, `dpcmp`, `litodp`, `dptoli`, `dptoul`, `dptofp`,
@@ -284,46 +284,14 @@ these routines by name. Committed matches: `func_00145428`, `func_00148210` (`te
 | **A prototype narrower than the game's argument**: `func_0012F8C8`'s third parameter was `s16` (from m2c); the game passes a plain `lw` there, which an `s16` parameter would truncate. Widened to `s32`; the other caller's `lh` value compiles the same | `func_00148210` |
 | **Each branch's own call, not one call with a chosen pointer**: `if (a && g(...)) { f(p, A); return 1; } if (...) ...` lets gcc cross-jump the shared `jal f; li 1` tail with `$a0` / `$a1` set in each branch, as the game has; `fn = A; ... f(p, fn);` gives one setup | `func_001371C0` (masked MATCH only, see below) |
 
-Not proven: `func_001371C0` matches on the masked compare, but its double constant `D_00354718`
+Placed since (ER-077, 2.14): `func_001371C0`, `func_0014DF08`, `func_0014EEF0`. Before that, `func_001371C0`
+matched only on the masked compare: its double constant `D_00354718`
 (`(double)0.17453293f`, 10 degrees) is gcc's anonymous `.rodata` entry in C, and `tools/split.py`'s order check
 refuses dropping the `INCLUDE_RODATA` line (the C defines no symbol of that name). Placing it needs a decision on
 that check, or the file cut (ER-031) first. Same blocker, not tried: `func_0014DF08` (`D_00354A28`, `(double)0.69813174f`,
 40 degrees; the last `.rodata` item of `text_0014D930.c`) and `func_0014EEF0` (`D_00354A68`, `text_0014E2E8.c`).
 
-### 2.10 Div / sqrt and FP compares, batch 2 (ER-063, Sun 22 Nov 2026; Confirmed by `make regress`)
-
-| Lesson | Proved by |
-|---|---|
-| **Two `$s` registers swapped between a result flag and a pointer argument: try a second `return`.** `if (out == NULL) return r; f(out, v); return r;` gives the game's allocation where `if (out != NULL) f(out, v); return r;` swaps them (same code otherwise; the extra use of `r` changes its priority: a reading). Moving `r = 0`, a local copy of `out`, `if (out)` or `else r = 0` did not (ER-034 tried 6 more) | `func_0012BF08` (parked by ER-034), `func_0012BDA8` |
-| **A field read twice is not a pointer local**: the game reads `a1 + 0x80` / `+0x88` straight off the argument register each time; a `float *p = a1 + 0x80` costs an extra `$s` register and frame slot | `func_0012BF08` |
-
-**Seen only in masked compares (Unconfirmed until a placement proves them under `make regress`):**
-
-| Shape | Seen in |
-|---|---|
-| **A 16-byte `.rodata` vector copied with `ld` / `ld` / `sd` / `sd` is a struct assignment** from a shared `const` (several functions read the same `D_` symbol, so it is not a local initialiser): `typedef struct { float v[4]; } __attribute__((aligned(16))) Vec4; extern Vec4 D_X; Vec4 a = D_X;`. Without the alignment gcc copies with four `lw` / `sw`. The `INCLUDE_RODATA` line stays | `func_00126F00` (masked compare, all but 6 words; not placed, see below) |
-| **A float constant kept in a saved FPR across calls** (`lui; mtc1 $f21` long before its two uses) is a local variable assigned the constant (`h = 1200.0f;` then `% n - h` twice); an `int` constant in `$s2` likewise (`n = 2400;`) | `func_00126F00` (masked compare) |
-| **`lui 0xBF80; mtc1; ... neg.s` (a run-time `-(-1.0)`)** is `sc = -1.0f;` set in an earlier block and `-sc` at the use: local-alloc moves the single-use constant next to the `neg.s`. Set in the same block, CSE folds it to `+1.0` | `func_00126F00` (masked compare) |
-| **A `u16` counter decremented in place gives the game's `lhu; andi 0xFFFF`** (`if (*(u16 *)(a0 + 0x7A) != 0xFFFF) *(u16 *)(a0 + 0x7A) -= 1;`); ER-035 had parked `func_00131D40` on that `andi` | `func_00131D40` (head matches; parked for the GCSE reload below) |
-| **Two calls cross-jumped into one `jal`**: put the branch that ends in the call first (`if (a || f() != 0) { ...; g(a0, fn); } else { ... }`), so both call sites end in a jump to the same label and gcc merges them | `func_00131D40` (masked compare of that part) |
-
-**Two toolchain differences found (the effects are measured; the causes in the original toolchain are readings; neither adopted, each needs a ruling and a card):**
-
-- **GCSE removes a reload the game keeps.** At a join after `if (*(u16 *)(a0 + 0xE8) & 1) {...} else {...}` the game reads `a0+0xE8` again (`lhu` in both arms, `b; lhu` in the delay slot); our ee-gcc reuses the first load. With `--cflags=-fno-gcse` (diagnostic only) the head of `func_00113C30` matches and its size is right, and the reload of the counter in `func_00131D40` matches too. But the whole ELF built with `-fno-gcse` is not identical: `func_0012F550` (ER-035) needs GCSE's copy propagation. So the original compiler ran GCSE but did not remove redundant loads across joins (reading: an older or differently configured `gcse.c`; not checked in the source). Parks `func_00113C30`, `func_00113ED8` (same head), `func_00131D40`.
-- **ee-as does not swap a use of an `mtc1`-written FPR into a delay slot.** Where gcc leaves a `jal` in `.set reorder` (after a divide trap block, for example), gas fills the slot itself; ours refuses to swap `cvt.s.w $f12, $f12` after `mtc1 $a2, $f12` and emits `nop` (the swap check still applies the coprocessor-move delay that ruling 3.5 removed for `nop` insertion). Census of the game's asm: **288** sites with such a use in the slot after `mtc1; jal/j/branch` (265 `cvt.s.w`, 7 `mul.s`, 5 `mov.s`, 4 `add.s`, 3 `sub.s`, 4 `swc1`), **0** in the unswapped form (2 hits were `c.cond` before `bc1`, which cannot move). Script: notes folder `ER-063_drafts/census_mtc1_slot.py`. Parks `func_00126F00` (one word; 5 more words of `ld` order in its struct copies are still open after 7 shapes).
-
-Parked by ER-063 (one-line causes; drafts in the notes folder `ER-063_drafts/`):
-
-| Function | Size | Cause |
-|---|---|---|
-| `func_00113C30` | 676 | the GCSE reload of `a0+0xE8` (above); with it left aside: register numbering in both arms (an unused `float buf[16]` local gives the game's 0x80 frame and its `jal` instead of a sibling call: dead code, would need a ruling) |
-| `func_00113ED8` | 760 | same head as `func_00113C30` (GCSE reload); not drafted further |
-| `func_00126F00` | 476 | gas delay-slot swap (above) + 5 words of struct-copy load order |
-| `func_00131D40` | 732 | GCSE reload of the `u16` counter at +0x7A; the six angle-wrap loops' pointer reloads not yet matched (2 shapes) |
-| `func_00124BE8` | 1860 | not attempted in depth: m2c lost arguments and a stack variable; needs a dedicated round (also reads a `.rodata` vector like `func_00126F00`) |
-
-
-### 2.11 Div / sqrt and FP compares, batch 2 (ER-063, Sun 22 Nov 2026, with the ER-041 names; Confirmed by `make regress`)
+### 2.12 Div / sqrt and FP compares, batch 2 (ER-063, Sun 22 Nov 2026, with the ER-041 names; Confirmed by `make regress`)
 
 | Lesson | Proved by |
 |---|---|
@@ -344,7 +312,7 @@ Parked by ER-063 (one-line causes; drafts in the notes folder `ER-063_drafts/`):
 
 **Two toolchain differences found (the effects are measured; the causes in the original toolchain are readings; neither adopted, each needs a ruling and a card):**
 
-- **GCSE removes a reload the game keeps.** At a join after `if (*(u16 *)(a0 + 0xE8) & 1) {...} else {...}` the game reads `a0+0xE8` again (`lhu` in both arms, `b; lhu` in the delay slot); our ee-gcc reuses the first load. With `--cflags=-fno-gcse` (diagnostic only) the head of `func_00113C30` matches and its size is right, and the reload of the counter in `func_00131D40` matches too. But the whole ELF built with `-fno-gcse` is not identical: `func_0012F550` (ER-035) needs GCSE's copy propagation. So the original compiler ran GCSE but did not remove redundant loads across joins (reading: an older or differently configured `gcse.c`; not checked in the source). **Solved by ER-069: the edge-based LCM, `-fno-edge-lcm` in `CFLAGS` since ruling 3.11 (2.13).** Parks `func_00113C30`, `func_00113ED8` (same head), `func_00131D40`, and after ER-041's merge `func_0012D600` (with `-fno-gcse` all but 7 words match), `func_0012EBB0` and `func_0012EEB0` (both match up to their six angle-wrap loops; the loops differ with and without GCSE, and a `static inline` wrap helper did not help).
+- **GCSE removes a reload the game keeps.** At a join after `if (*(u16 *)(a0 + 0xE8) & 1) {...} else {...}` the game reads `a0+0xE8` again (`lhu` in both arms, `b; lhu` in the delay slot); our ee-gcc reuses the first load. With `--cflags=-fno-gcse` (diagnostic only) the head of `func_00113C30` matches and its size is right, and the reload of the counter in `func_00131D40` matches too. But the whole ELF built with `-fno-gcse` is not identical: `func_0012F550` (ER-035) needs GCSE's copy propagation. So the original compiler ran GCSE but did not remove redundant loads across joins (reading: an older or differently configured `gcse.c`; not checked in the source). **Solved by ER-069: the edge-based LCM, `-fno-edge-lcm` in `CFLAGS` since ruling 3.11 (2.17).** Parks `func_00113C30`, `func_00113ED8` (same head), `func_00131D40`, and after ER-041's merge `func_0012D600` (with `-fno-gcse` all but 7 words match), `func_0012EBB0` and `func_0012EEB0` (both match up to their six angle-wrap loops; the loops differ with and without GCSE, and a `static inline` wrap helper did not help).
 - **ee-as does not swap a use of an `mtc1`-written FPR into a delay slot.** Where gcc leaves a `jal` in `.set reorder` (after a divide trap block, for example), gas fills the slot itself; ours refuses to swap `cvt.s.w $f12, $f12` after `mtc1 $a2, $f12` and emits `nop` (the swap check still applies the coprocessor-move delay that ruling 3.5 removed for `nop` insertion). Census of the game's asm: **288** sites with such a use in the slot after `mtc1; jal/j/branch` (265 `cvt.s.w`, 7 `mul.s`, 5 `mov.s`, 4 `add.s`, 3 `sub.s`, 4 `swc1`), **0** in the unswapped form (2 hits were `c.cond` before `bc1`, which cannot move). Script: notes folder `ER-063_drafts/census_mtc1_slot.py`. Parks `func_00126F00` (one word; 5 more words of `ld` order in its struct copies are still open after 7 shapes).
 
 Parked by ER-063 (one-line causes; drafts in the notes folder `ER-063_drafts/`):
@@ -363,7 +331,7 @@ Parked by ER-063 (one-line causes; drafts in the notes folder `ER-063_drafts/`):
 | `func_00106A38` | 4136 | VU0 inline asm (ruling 3.3) plus `sqrtf`; not attempted |
 
 
-### 2.12 Jump tables in the files cut by ER-051, and a bulk pass (ER-072, Sun 22 Nov 2026; Confirmed by `make regress`)
+### 2.13 Jump tables in the files cut by ER-051, and a bulk pass (ER-072, Sun 22 Nov 2026; Confirmed by `make regress`)
 
 88 functions placed in `text_001388E8` / `0013A410` / `0013B748` / `0013C510` / `0013DBC0` (commits `2bc2d39`,
 `e9e8f1f`, `468ebef`, `cd450b0`, `0f3a1a8`, `b6690a2` (split.py), `979af8c`), 8,376 bytes: 73 plain
@@ -377,7 +345,7 @@ MATCHes of `tools/m2c_bulk.py --plain`, 10 more after aligning declarations, `fu
 | **splat's function regex reads `void *func_X(` as the name `*func_X`**, and `tools/split.py`'s INCLUDE order check then fails ("splat expects func_X"). Write a pointer return type as `void* func_X(` (no code change) | `func_00139B38` |
 | **A double right after a C jump table needs `.align 3`**: the asm table carried the pad word; gcc's table ends 4 bytes earlier, and the double moved -4 until `tools/split.py` gave 8-aligned items with 4 zero bytes before them `.align 3` (`docs/build.md` 3.2; dispatcher's yes, Sun 22 Nov 2026) | `func_00138A20` (`D_00354788`), `func_00139EE0` (`D_003547C8`) |
 | **State handlers take (object, argument)** even when one ignores the argument: a caller that passes `$a1` on (`func_0013CB60`'s `func_0013D068(arg0, arg1)` in its switch) needs the callee's second parameter in the file's prototype; adding an unused parameter changes nothing in the callee | `func_0013D068`, `func_0013CB60` |
-| **A `(void)` clone or a function whose address is taken, once its callee gets a parameter, passes it on**: `void f(void *arg0) { g(arg0); }` gives the same `j g` (2.9) | `func_00142600`, `func_00143F10` (ER-049 clones) |
+| **A `(void)` clone or a function whose address is taken, once its callee gets a parameter, passes it on**: `void f(void *arg0) { g(arg0); }` gives the same `j g` (2.10) | `func_00142600`, `func_00143F10` (ER-049 clones) |
 
 **Seen only in a probe / masked compares (Unconfirmed until a placement proves them):**
 
@@ -392,12 +360,59 @@ MATCHes of `tools/m2c_bulk.py --plain`, 10 more after aligning declarations, `fu
 |---|---|
 | `func_0013C750` | the last tail call (`j` in the game, `jal` ours, above) + register choice in case 0 |
 | `func_0013D088` | one delay slot: the game's `beqz n, return` takes the epilogue's `ld $ra`, ours fills from the fall-through; then everything shifts (3 shapes) |
-| `func_0013FCF8` | GCSE hoists the `u16` reload of `+0x6E` above the table (2.11's toolchain difference; with `-fno-gcse`, diagnostic only, only one block's store order is left); its double `D_00354968` has `.align 3` now |
-| `func_0013AA28`, `func_0013BD90`, `func_0013DF90` | each reads a double constant from a standalone `INCLUDE_RODATA` (`D_00354800`, `D_00354848`, `D_00354928` / `D_00354930`): `tools/split.py`'s order check blocker of 2.10 (`func_001371C0`). Not drafted by hand |
+| `func_0013FCF8` | GCSE hoists the `u16` reload of `+0x6E` above the table (2.12's toolchain difference; with `-fno-gcse`, diagnostic only, only one block's store order is left); its double `D_00354968` has `.align 3` now |
+| `func_0013AA28`, `func_0013BD90`, `func_0013DF90` | the order-check blocker is gone (ER-077, ruling 3.10); drafted by hand in ER-077 and parked on GCSE (2.14) |
 
-### 2.13 Reloads after joins: `-fno-edge-lcm` (ER-069, Sun 22 Nov 2026; ruling 3.11)
+### 2.14 Anonymous double constants (ER-077, Sun 22 Nov 2026; Confirmed by `make regress`, commits `2ed4058`, `78be147`)
 
-The first toolchain difference of 2.11 ("GCSE removes a reload the game keeps") is solved: it is this ee-gcc's
+Ruling 3.10 is in `tools/split.py` (`docs/build.md` 3.2): a C function's float compared with a double constant
+that the split had as a standalone `D_` symbol may now drop that symbol's `INCLUDE_RODATA` line; gcc writes the
+constant anonymously in the same place. Placed: `func_001371C0` (`D_00354718`, ER-041's C), `func_0014DF08`
+(`D_00354A28`), `func_0014EEF0` (`D_00354A68` = 300.0), 1,328 bytes. Each split prints the symbols taken over.
+
+| Lesson | Proved by |
+|---|---|
+| **Write the double literal as the source had it; delete the `INCLUDE_RODATA` line and nothing else.** `fabs(x) > 0.69813174f` (a float literal promoted) gives `ld` of `(double)0.69813174f` from `.rodata`; `300.0f` is loaded from `.rodata` too, where 200.0 is built with `ori` / `dsll32` (2.11; reading, Unconfirmed: 300.0's high half `0x4072C000` needs three instructions) | `func_0014DF08`, `func_0014EEF0` |
+| **A clamp that reads the field three times** (`f = (f < -c) ? -c : (f > c) ? c : f;` with `f` the struct field itself, a CLAMP-macro shape) gives the game's `bc1tl` with the store of `-c` in the likely slot and `bc1fl` / `mov.s` for the upper bound; a local copy, an `if` / `else if` chain or a `lo` / `hi` pair gives other registers or 1 more word (5 shapes) | `func_0014DF08` |
+| **Stack vectors in declaration order**: four `float[4]` and a `float[16]` declared in the order the game's offsets use (0x00, 0x10, 0x20, 0x30, 0x40) matched first time | `func_0014EEF0` |
+| **Extern declarations above the first use**: `tools/place.py c` skips an extern line that the file already has, even when the file's copy sits below the placed function; add it to the placed block (an identical second declaration is legal C) | `func_0014EEF0` (`func_00131088`, `func_0014E608`) |
+
+**Seen in drafts only (Unconfirmed until a placement proves them; drafts in the dispatcher's notes `ER-077_c/`):**
+
+- **A `?:` with one double arm makes both arms double.** `w[1] += cond ? -r * 3.0f : r * 0.2;` gives the game's
+  `func_0013DF90` code: `fptodp(w[1])` before the test, then `dpadd` in both branches (the float arm converted).
+- **A byte variable read by absolute address** (`lui` / `lbu %lo`) needs `extern u8 D_001FF451[];`: a plain
+  `extern u8` is reached through `$gp` under `-G8` (`func_0013DF90`).
+- **A `static inline` max helper** (`return (b < a) ? a : b;`) gives `func_0013AA28`'s `bc1f` with the default in
+  the delay slot where `?:` and `if` forms give the inverted branch; whether the original had such a helper is
+  Unconfirmed (and not a ruled trick: it is ordinary C, but say so if it is ever used to place a function).
+
+**Parked (one-line causes):**
+
+| Function | Cause |
+|---|---|
+| `func_0013AA28` | GCSE (2.12): `a1 + 0x90` kept in a saved register across the switch because case 6 computes it too (one extra `sd` / `ld`); with `-fno-gcse` (diagnostic) 16 words left. Placing it also needs `_anon_takeovers` to accept `D_00354800`'s 8 zero bytes after the double (16-byte symbol; tried, reverted as unproven) |
+| `func_0013BD90` | GCSE (2.12): case 1 re-reads `*(u16 *)(E0 + 0xA8C)` after the `if` in the game, ours reuses the value on one path; with `-fno-gcse` that matches, the cases' shared tail (`6C = 0; 6E = N`) is still cross-jumped with the wrong case |
+| `func_0013DF90` | GCSE (2.12): the game re-reads `*(s8 *)(a0 + 8)` after `if (s != a0[8]) { a0[8] = s; ... }`, ours reuses it; with `-fno-gcse` 86 words left (init-block registers, a `ld` schedule) |
+
+### 2.15 Bulk placement in `text_00150878` (ER-060, Sun 22 Nov 2026; Confirmed by `make regress`, 230 functions)
+
+| Lesson | Proved by |
+|---|---|
+| **A callee's return type matters even when the value is unused.** With `extern void func_001132B0(void *);` a caller that calls it as a statement kept a later value in `$v0`; the game uses `$v1` (why: a reading, gcc treats `$v0` as set by an `s32` call). `extern s32 ...` matches in that caller and in the six other callers | `func_001BE7E8` (the other callers: func_00195E88 func_00196CE0 func_00197368 func_0019A3E0 func_0019BDC0 func_001BE7E8 func_001BE830) |
+| **A callee called with different argument counts in one file** (a variadic-looking routine): declare it without a prototype, `extern s32 f();`; integer and pointer arguments compile the same | `func_001CB808`, `func_001E9D08` callers |
+| **A float passed to a `double` parameter** gives the game's `jal fptodp` between the float call and the callee: write the plain call with the prototype `(void *, double)` | `func_001BEF18` |
+
+### 2.16 Bulk pass over `text_001000C0` (ER-060 part 2, Sun 22 Nov 2026; Confirmed by `make regress`, 58 functions)
+
+| Lesson | Proved by |
+|---|---|
+| **A sibling-call wrapper's return type does not show in its own code**: `return g(x);` compiled as `j g` is the same for `s32` and `f32`. m2c guesses `s32`; a caller that reads `$f0` after calling it (or a `cvt.w.s` that the game lacks) shows it is `f32`. Fix the wrapper, its callee's extern and the caller together; no byte changes in the wrapper | `func_001314C8`, `func_00131508` (`f32`, `j func_001E3EC8`), `func_0012DA68`, `func_00130758` |
+| **A float passed through in `$f12`** works like the integer `$a0` of 2.10: the function never sets `$f12` before calling a callee that reads it, so give it an `f32` parameter and pass it on (no move is emitted) | `func_0012B6B0` (to `func_0012BAE0`) |
+
+### 2.17 Reloads after joins: `-fno-edge-lcm` (ER-069, Sun 22 Nov 2026; ruling 3.11)
+
+The first toolchain difference of 2.12 ("GCSE removes a reload the game keeps") is solved: it is this ee-gcc's
 **edge-based LCM** (`-fedge-lcm`, on by default; Cygnus, 27 Sep 1999), which deletes a partially redundant load
 after a join by copying the value on the other incoming edge. The game keeps those loads. `CFLAGS` now has
 `-fno-edge-lcm` (`docs/toolchain.md` 5.1); GCSE still runs, so func_0012F550 is unaffected. Evidence: notes folder
@@ -412,7 +427,7 @@ Parked functions this moves (all in files owned by other cards in wave 4; listed
 
 | Function | File | With the flag (masked compare) |
 |---|---|---|
-| func_0012EEB0 | `text_001000C0.c` | **MATCH** with ER-063's C unchanged; placing it needs the `(void)` clone func_0012F158 and its extern changed to `(float *, float *)`, passing both on (2.12; same `j`) |
+| func_0012EEB0 | `text_001000C0.c` | **MATCH** with ER-063's C unchanged; placing it needs the `(void)` clone func_0012F158 and its extern changed to `(float *, float *)`, passing both on (2.13; same `j`) |
 | func_0012EBB0 | `text_001000C0.c` | not re-tried (same wrap loops as func_0012EEB0) |
 | func_0012D600 | `text_001000C0.c` | 7 words, right size: `&m[8]` goes to `$s0` before `sqrtf` in the game, and the order of the first call's `$a0` / `$a1` setup |
 | func_00113C30 | `text_001000C0.c` | 80 words, right size: the register numbering in both arms (ER-063's note: an unused `float buf[16]` gives the 0x80 frame, dead code needs a ruling) |
@@ -422,7 +437,7 @@ Parked functions this moves (all in files owned by other cards in wave 4; listed
 
 **Seen, not understood:** func_00145D08 (`text_0013DBC0.c`) wraps `+0x190` of a loaded pointer: the game reloads
 and stores the field on every loop pass and copies the pointer to `$v0` for the second loop. Neither setting gives
-it in 4 source forms (with the flag `loop.c` keeps the field in a register in the loop, as func_00149330's in 2.8).
+it in 4 source forms (with the flag `loop.c` keeps the field in a register in the loop, as func_00149330's in 2.9).
 
 ## 3. Rulings (LuciDin)
 
