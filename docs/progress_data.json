@@ -11,7 +11,7 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 608,
+          "done": 611,
           "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
@@ -21,7 +21,7 @@
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 36900,
+          "done": 38228,
           "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
@@ -911,11 +911,11 @@
     {
       "code": "ER-068",
       "title": "census.py / split.py: non-func_ names, anonymous-constant takeover",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "folded into ER-077",
-      "notes": ""
+      "notes": "Sun 22 Nov 2026 with ER-077: census.py takes any identifier; 0 units of kind ?, totals 3,609 (commit c5f08f0)"
     },
     {
       "code": "ER-069",
@@ -992,11 +992,11 @@
     {
       "code": "ER-077",
       "title": "Anonymous double constants vs the INCLUDE_RODATA order check (with ER-068's split.py part)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "nothing (ruling 3.10 accepted)",
-      "notes": ""
+      "notes": "Sun 22 Nov 2026: split.py order check accepts a C function's anonymous constant (ruling 3.10, docs/build.md 3.2); 3 placed (func_001371C0, func_0014DF08, func_0014EEF0, 1,328 bytes), 3 jump-table functions parked on GCSE (recipes 2.13, ER-069); branch claude/beautiful-boyd-3c09f4"
     },
     {
       "code": "ER-078",

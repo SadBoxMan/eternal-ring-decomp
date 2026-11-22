@@ -284,7 +284,8 @@ these routines by name. Committed matches: `func_00145428`, `func_00148210` (`te
 | **A prototype narrower than the game's argument**: `func_0012F8C8`'s third parameter was `s16` (from m2c); the game passes a plain `lw` there, which an `s16` parameter would truncate. Widened to `s32`; the other caller's `lh` value compiles the same | `func_00148210` |
 | **Each branch's own call, not one call with a chosen pointer**: `if (a && g(...)) { f(p, A); return 1; } if (...) ...` lets gcc cross-jump the shared `jal f; li 1` tail with `$a0` / `$a1` set in each branch, as the game has; `fn = A; ... f(p, fn);` gives one setup | `func_001371C0` (masked MATCH only, see below) |
 
-Not proven: `func_001371C0` matches on the masked compare, but its double constant `D_00354718`
+Placed since (ER-077, 2.13): `func_001371C0`, `func_0014DF08`, `func_0014EEF0`. Before that, `func_001371C0`
+matched only on the masked compare: its double constant `D_00354718`
 (`(double)0.17453293f`, 10 degrees) is gcc's anonymous `.rodata` entry in C, and `tools/split.py`'s order check
 refuses dropping the `INCLUDE_RODATA` line (the C defines no symbol of that name). Placing it needs a decision on
 that check, or the file cut (ER-031) first. Same blocker, not tried: `func_0014DF08` (`D_00354A28`, `(double)0.69813174f`,
@@ -393,7 +394,39 @@ MATCHes of `tools/m2c_bulk.py --plain`, 10 more after aligning declarations, `fu
 | `func_0013C750` | the last tail call (`j` in the game, `jal` ours, above) + register choice in case 0 |
 | `func_0013D088` | one delay slot: the game's `beqz n, return` takes the epilogue's `ld $ra`, ours fills from the fall-through; then everything shifts (3 shapes) |
 | `func_0013FCF8` | GCSE hoists the `u16` reload of `+0x6E` above the table (2.11's toolchain difference; with `-fno-gcse`, diagnostic only, only one block's store order is left); its double `D_00354968` has `.align 3` now |
-| `func_0013AA28`, `func_0013BD90`, `func_0013DF90` | each reads a double constant from a standalone `INCLUDE_RODATA` (`D_00354800`, `D_00354848`, `D_00354928` / `D_00354930`): `tools/split.py`'s order check blocker of 2.10 (`func_001371C0`). Not drafted by hand |
+| `func_0013AA28`, `func_0013BD90`, `func_0013DF90` | the order-check blocker is gone (ER-077, ruling 3.10); drafted by hand in ER-077 and parked on GCSE (2.13) |
+
+### 2.13 Anonymous double constants (ER-077, Sun 22 Nov 2026; Confirmed by `make regress`, commits `2ed4058`, `78be147`)
+
+Ruling 3.10 is in `tools/split.py` (`docs/build.md` 3.2): a C function's float compared with a double constant
+that the split had as a standalone `D_` symbol may now drop that symbol's `INCLUDE_RODATA` line; gcc writes the
+constant anonymously in the same place. Placed: `func_001371C0` (`D_00354718`, ER-041's C), `func_0014DF08`
+(`D_00354A28`), `func_0014EEF0` (`D_00354A68` = 300.0), 1,328 bytes. Each split prints the symbols taken over.
+
+| Lesson | Proved by |
+|---|---|
+| **Write the double literal as the source had it; delete the `INCLUDE_RODATA` line and nothing else.** `fabs(x) > 0.69813174f` (a float literal promoted) gives `ld` of `(double)0.69813174f` from `.rodata`; `300.0f` is loaded from `.rodata` too, where 200.0 is built with `ori` / `dsll32` (2.10; reading, Unconfirmed: 300.0's high half `0x4072C000` needs three instructions) | `func_0014DF08`, `func_0014EEF0` |
+| **A clamp that reads the field three times** (`f = (f < -c) ? -c : (f > c) ? c : f;` with `f` the struct field itself, a CLAMP-macro shape) gives the game's `bc1tl` with the store of `-c` in the likely slot and `bc1fl` / `mov.s` for the upper bound; a local copy, an `if` / `else if` chain or a `lo` / `hi` pair gives other registers or 1 more word (5 shapes) | `func_0014DF08` |
+| **Stack vectors in declaration order**: four `float[4]` and a `float[16]` declared in the order the game's offsets use (0x00, 0x10, 0x20, 0x30, 0x40) matched first time | `func_0014EEF0` |
+| **Extern declarations above the first use**: `tools/place.py c` skips an extern line that the file already has, even when the file's copy sits below the placed function; add it to the placed block (an identical second declaration is legal C) | `func_0014EEF0` (`func_00131088`, `func_0014E608`) |
+
+**Seen in drafts only (Unconfirmed until a placement proves them; drafts in the dispatcher's notes `ER-077_c/`):**
+
+- **A `?:` with one double arm makes both arms double.** `w[1] += cond ? -r * 3.0f : r * 0.2;` gives the game's
+  `func_0013DF90` code: `fptodp(w[1])` before the test, then `dpadd` in both branches (the float arm converted).
+- **A byte variable read by absolute address** (`lui` / `lbu %lo`) needs `extern u8 D_001FF451[];`: a plain
+  `extern u8` is reached through `$gp` under `-G8` (`func_0013DF90`).
+- **A `static inline` max helper** (`return (b < a) ? a : b;`) gives `func_0013AA28`'s `bc1f` with the default in
+  the delay slot where `?:` and `if` forms give the inverted branch; whether the original had such a helper is
+  Unconfirmed (and not a ruled trick: it is ordinary C, but say so if it is ever used to place a function).
+
+**Parked (one-line causes):**
+
+| Function | Cause |
+|---|---|
+| `func_0013AA28` | GCSE (2.11): `a1 + 0x90` kept in a saved register across the switch because case 6 computes it too (one extra `sd` / `ld`); with `-fno-gcse` (diagnostic) 16 words left. Placing it also needs `_anon_takeovers` to accept `D_00354800`'s 8 zero bytes after the double (16-byte symbol; tried, reverted as unproven) |
+| `func_0013BD90` | GCSE (2.11): case 1 re-reads `*(u16 *)(E0 + 0xA8C)` after the `if` in the game, ours reuses the value on one path; with `-fno-gcse` that matches, the cases' shared tail (`6C = 0; 6E = N`) is still cross-jumped with the wrong case |
+| `func_0013DF90` | GCSE (2.11): the game re-reads `*(s8 *)(a0 + 8)` after `if (s != a0[8]) { a0[8] = s; ... }`, ours reuses it; with `-fno-gcse` 86 words left (init-block registers, a `ld` schedule) |
 
 ### 2.13 Bulk placement in `text_00150878` (ER-060, Sun 22 Nov 2026; Confirmed by `make regress`, 230 functions)
 

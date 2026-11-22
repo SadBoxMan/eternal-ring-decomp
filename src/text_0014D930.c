@@ -144,7 +144,38 @@ void func_0014DEE8(void *arg0, s32 arg1) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014DF08);
+extern void func_0012FAE8(void *, int, int, int, float);
+extern float func_00131608(float a, float b);
+extern s32 func_00131088(void *);
+extern void func_0014E0A8(char *);
+extern void func_0014E258(char *, char *);
+
+/* ER-077: by hand from the m2c draft. 0.69813174f is 40 degrees in radians; the fabs() compare is done in double,
+ * so its constant is gcc's anonymous .rodata double in place of D_00354A28 (ruling 3.10). The clamp reads the field
+ * three times (a CLAMP-macro shape; a local copy gives other registers). Names, types and offsets are Unconfirmed. */
+void func_0014DF08(char *a0, char *a1)
+{
+    *(int *)(a0 + 0x28) += 1;
+    (*(void (**)(char *, char *))(a0 + 0x3C))(a0, a1);
+    *(int *)(a0 + 0x2C) += 1;
+    (*(void (**)(char *, char *))(a0 + 0x38))(a0, a1);
+    *(int *)(a0 + 0x30) += 1;
+    (*(void (**)(char *, char *))(a0 + 0x40))(a0, a1);
+    func_0014E0A8(a1);
+    *(float *)(a1 + 0xA0) = func_00131608(*(float *)(a1 + 0xA0), *(float *)(a0 + 0x44));
+    if (fabs(*(float *)(a1 + 0xA0)) > 0.69813174f) {
+        *(float *)(a1 + 0xA0) = (*(float *)(a1 + 0xA0) < -0.69813174f) ? -0.69813174f
+                              : (*(float *)(a1 + 0xA0) > 0.69813174f) ? 0.69813174f
+                              : *(float *)(a1 + 0xA0);
+        *(float *)(a0 + 0x44) *= 0.5f;
+    }
+    *(float *)(a1 + 0xA4) = func_00131608(*(float *)(a1 + 0xA4), *(float *)(a0 + 0x48));
+    func_0012D388((s32)a1, *(float *)(a0 + 0x4C));
+    if (func_00131088(a0) != *(int *)(a0 + 0xCC)) {
+        func_0014E258(a0, a1);
+        func_0012FAE8(a0, 2, 0x7F, *(int *)a0 + 0x90, 1200.0f);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014E0A8);
 
@@ -180,5 +211,3 @@ void func_0014E2C8(char *a0) {
         *(int *)(p + 0x10) = 1;
     }
 }
-
-INCLUDE_RODATA("asm/nonmatchings/text_0014D930", D_00354A28);

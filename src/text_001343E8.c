@@ -121,7 +121,34 @@ INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00136F50);
 
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00137028);
 
-INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_001371C0);
+extern double fabs(double);
+extern float func_0012CE18(char *, char *);
+extern s32 func_001372E8(char *, float, float);
+extern void func_00131000(char *, void *);
+extern void func_00135FE0(void);
+extern void func_001360A0(void);
+extern void func_00136058(void);
+
+/* ER-077 (C by ER-041). 0.17453293f is 10 degrees in radians; the fabs() compare is done in double, so its
+ * constant is gcc's anonymous .rodata double in place of D_00354718 (ruling 3.10). Names and types are Unconfirmed. */
+s32 func_001371C0(char **a0)
+{
+    float ang = func_0012CE18((char *)a0, *a0 + 0x90);
+
+    if (fabs(ang) <= 0.17453293f && func_001372E8((char *)a0, 0.0f, -1.0f)) {
+        func_00131000((char *)a0, func_00135FE0);
+        return 1;
+    }
+    if (0.0f < ang && func_001372E8((char *)a0, -1.0f, 0.0f)) {
+        func_00131000((char *)a0, func_001360A0);
+        return 1;
+    }
+    if (func_001372E8((char *)a0, 1.0f, 0.0f)) {
+        func_00131000((char *)a0, func_00136058);
+        return 1;
+    }
+    return 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_001372E8);
 
@@ -154,7 +181,6 @@ INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_001379A0);
 
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00137A10);
 
-INCLUDE_RODATA("asm/nonmatchings/text_001343E8", D_00354718);
 INCLUDE_RODATA("asm/nonmatchings/text_001343E8", D_00354720);
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00137CE0);
 
