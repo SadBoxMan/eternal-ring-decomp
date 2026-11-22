@@ -340,7 +340,15 @@ INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F7F8);
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014FA18);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014FBA0);
+/* ER-085: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+void func_0014FBA0(void *arg0, f32 fparg0) {
+    void *temp_3 = *(void **)((char *)arg0 + 0x130);
+    *(s8 *)((char *)arg0 + 0xE) = 1;
+    *(f32 *)((char *)arg0 + 0x3C) = *(f32 *)temp_3;
+    *(f32 *)((char *)arg0 + 0x40) = *(f32 *)((char *)temp_3 + 4);
+    *(f32 *)((char *)arg0 + 0x44) = *(f32 *)((char *)temp_3 + 8);
+    *(f32 *)((char *)arg0 + 0x48) = fparg0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014FBD0);
 

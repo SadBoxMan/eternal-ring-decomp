@@ -241,7 +241,23 @@ void func_001462D8(void **arg0, s32 arg1, s32 arg2) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00146350);
+extern s32 D_0032FF40[];
+
+/* ER-085: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+void func_00146350(void **arg0, s32 arg1, s32 arg2) {
+    s32 *p;
+    u32 i;
+
+    if (arg2 == 1) {
+        func_0012F9C0(arg0, 5);
+    }
+    p = D_0032FF40;
+    for (i = 0; i < 3; i++) {
+        if (arg2 == *p++) {
+            func_0012FE48(arg0, 0x90, 3, (void *)0x17, (void *)(arg1 + 0xA0));
+        }
+    }
+}
 
 extern void func_0012C788(void *);
 extern void func_0012DF30(void *, s32, s32, void *, f32 *, f32 fparg0);
@@ -669,7 +685,36 @@ void func_00149920(void **arg0) {
     func_00131140((s8 *) arg0, func_00149978, func_00149978, func_00149978, func_00149978, NULL);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149978);
+extern f32 func_001302C8(void *);
+extern void func_00149AB8();
+extern f32 func_0012E7B0(f32, f32);
+extern s32 func_0012DA68(void *, s32, s32, f32, f32);
+
+/* ER-085: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+void func_00149978(void **arg0, void *arg1) {
+    f32 temp_f0;
+    f32 temp_f13;
+    s32 temp_2;
+
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        if ((*(f32 *)((char *)arg1 + 0x130) == 0.0f) || (func_001302C8(arg0) <= 0.08726647f)) {
+            func_00130FE0(arg0, func_00149AB8);
+            return;
+        }
+        *(f32 *)((char *)arg0 + 0x30) = *(f32 *)((char *)arg1 + 0xA4);
+        *(s32 *)((char *)arg0 + 0x10) = 0;
+        *(s16 *)((char *)arg0 + 0x6E) += 1;
+    }
+    if (func_0012F8C8((s8 *)arg0, 9, *(s16 *)((char *)arg0 + 0x6C), 6, 0, 0.3f) != 0) {
+        temp_f0 = func_00130378((char *)arg1 + 0x90, *(s32 *)((char *)arg0 + 0x130)) + 6.2831855f;
+        temp_f13 = func_0012E7B0((temp_f0 - ((f32) (s32) (temp_f0 / 6.2831855f) * 6.2831855f)) - 3.1415927f, *(f32 *)((char *)arg0 + 0x30));
+        temp_2 = *(s32 *)((char *)arg0 + 0x10) + 1;
+        *(s32 *)((char *)arg0 + 0x10) = temp_2;
+        if (func_0012DA68(arg0, temp_2, 0x28, *(f32 *)((char *)arg0 + 0x30), temp_f13) != 0) {
+            func_00131000((char *) arg0, func_00149AB8);
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00149AB8);
 
