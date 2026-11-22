@@ -179,6 +179,8 @@ python -I tools/m2c_bulk.py --list picks.txt                     one name per li
    [--plain]                                                     also write placeable plain C for each MATCH (6.2)
    [--tag ER-NNN]                                                task code for the plain comment (6.6)
    [--gcc-timeout 120] [--no-passthrough]                        gcc / ee-as kill time; skip the pass-through retry (6.6)
+   [--no-slot-move] [--no-const]                                 skip the tail-j slot rewrite / the const variant (6.10)
+python -I tools/sdata_consts.py [--all] [--names D_X ...]        census of the never-stored .sdata floats (6.10)
 python -I tools/m2c_bulk.py --rerun-diffs build/m2c_bulk/<label> --chunk 8 --plain    an earlier run's same-size DIFFs in small lists (6.6)
 ```
 
@@ -204,6 +206,7 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
    | `li.s $fN, 1.5e+03` (a `.lit4` load; `tools/split.py` writes them so) | `lwc1 $fN, (M2CLIT_44BB8000)`; the cleaner puts the literal back as `1500.0f` (shortest decimal giving the same float32 bits) | m2c cannot parse `li.s`: **every function with a `.lit4` float failed** before (e.g. `func_00145120`, `func_00145578`, `func_00145760`) |
    | `c1 0xC0004` | `sqrt.s $f0, $f12` | rabbitizer's R5900 square root (COP1 S funct 4, source in the `ft` field, `fs` 0); other `c1` words are flagged, not rewritten |
    | `.word 0x46001064 # cvt.w.s $f1, $f2` | `cvt.w.s $f1, $f2` | rabbitizer prints the R5900 `cvt.w.s` as a word with the instruction in a comment (422 sites in 241 functions of the game's asm); m2c then saw an unset `$f1` ("second half of f64") |
+   | `j func_X` with an instruction in its delay slot (ER-084) | `insn; j func_X; nop` (not for a `nop` slot or the stack pop `addiu $29, $29, N`, which m2c reads as the epilogue already; `--no-slot-move` turns it off) | m2c drops the delay slot of a tail `j`: func_001501D8's `daddu $a1, $zero, $zero` became `arg1`, func_00146EF0's `swc1` was left out (6.10). Safe: `j` reads no register |
 
 2. **m2c** (`-t mipsee-gcc-c --valid-syntax`, run natively from the m2c folder, default Twinblade's copy) with a
    context header. `--ctx`:
@@ -233,7 +236,14 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
      recipe form `extern T D_X[];` (`docs/decomp_recipes.md` 2.6); a section attribute in `src/` would need a ruling;
    - undeclared stack variables (`sp10`, a bare `sp` for a stack buffer m2c lost) are declared so the draft compiles,
      and listed in Notes (such drafts are unlikely to match);
-   - `M2C_ERROR(...)` stays (m2c's header makes it `0`): counted, and the row's class says so.
+   - `M2C_ERROR(...)` stays (m2c's header makes it `0`): counted, and the row's class says so;
+   - **byte offsets** (ER-097, 6.10): m2c prints pointer + offset with the raw byte count (its `evaluate.py`
+     `add_imm` / `handle_add_real`), which C scales by the pointer's element type. A `%hi` / `%lo` base in index
+     arithmetic (`(arg0 * 0x2C8) + &D_X`, `&D_X + 0x252`) that the draft declares itself becomes `extern char D_X[];`
+     (`&D_X` -> `D_X`, a read of its value -> `(*(T *)D_X)`); one that `src/` declares gets a `(char *)` cast on the
+     operand instead. A parameter or local `T *v` (element size 2, 4 or 8 known) in `v += N;` / `v - N` steps by
+     `N / sizeof(T)` elements (byte arithmetic through `char *` when N is not a multiple). Notes: `byte base: D_X`,
+     `N pointer step(s) in elements`.
 
 5. **Compile** with exactly the Makefile's `CC` / `CFLAGS` / `CPPFLAGS` / `AS` / `ASFLAGS` (`eematch.settings()`)
    into `obj/`, **compare** with `eematch.compare_function` (the cmpfunc check: relocation targets checked).
@@ -244,7 +254,11 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
      `M2C_UNK f(..) { ...; return g(..); }`. A call whose value is returned gets a frame and `jal`, a void tail call
      a sibling `j`; m2c gives the void form when it cannot tell that `$v0` is passed on;
    - **store order**: same size as the game's: try the other orders of each run of 2 or more plain top-level
-     assignments (every order up to 4 statements, else reversed; at most 24 compiles), kept only on a MATCH.
+     assignments (every order up to 4 statements, else reversed; at most 24 compiles), kept only on a MATCH;
+   - **const floats** (ER-101, 6.10): the draft compiled again with every `.sdata` float it reads that
+     `tools/sdata_consts.py` finds never stored declared `extern const` (also in its prototypes header), then the
+     store orders of that form; kept only on a MATCH (Notes: `const floats: D_X ...`). `--plain` declares those
+     `extern const` and says in the Plain column when the target file declares one without `const`.
 
 Columns of the table: function, file, address, instructions and size band (`tools/census.py` bands), m2c gave a
 draft, draft compiles, exact match, differing words, sizes, class (MATCH / diff / compile error / m2c failed /
@@ -598,7 +612,76 @@ func_00146350, func_00149978, func_00145918, func_00147CF8, func_0014CCD0: 12, p
 19 in all. A small store-order script (every order of N statements, cmpfunc per try; notes folder
 `ER-085_c/perm.py`) found func_00148360 and func_0014FBA0 in under 100 compiles each.
 
+### 6.10 Tail-j delay slots, byte offsets, const floats (ER-084 + ER-055, ER-097, ER-101, Sun 22 Nov 2026)
+
+Three changes in `tools/m2c_bulk.py` (6, steps 1, 4 and 6) and a new census tool, `tools/sdata_consts.py`. Nothing
+placed in `src/` by this card. Checked in worktree `C:\rs\wt\er084`; the reproductions set `src/text_0014E2E8.c` /
+`text_00145120.c` back to `a751ee2^` and `text_00150878.c` back to `9fbc9a3^` (before ER-080), split, ran the tool,
+and restored the files (never committed).
+
+**ER-084 + ER-055: the tail `j`'s delay slot.** m2c drops the instruction in the delay slot of a `j func_X`; the asm
+rewrite now writes `insn; j func_X; nop` (a `nop` slot and the stack pop are left alone).
+
+| Check | Before (`--no-slot-move`) | After |
+|---|---|---|
+| func_001501D8 (`a751ee2^`) | diff | **MATCH**, drafted `func_0012FB48(arg0, 0)` (plain: the old file's own `extern void func_001501D8(void);`, which ER-062 aligned by hand) |
+| func_00146EF0 (`a751ee2^`) | diff (the `swc1` missing) | **MATCH** (plain: `func_0012B238`'s old `(void)` clone prototype, ER-085's fix) |
+| func_0019C078, func_001C8920 (`9fbc9a3^`; 2 of ER-080's 4 slot cases) | diff | **plain MATCH** |
+
+**How often (ER-055)**, counted over the original ELF's code (every function, from the build's symbol sizes): 759
+tail `j` (to another function); slots: 578 stack pop, 41 `nop`, **140 other instructions in 139 functions** (`addiu` 57,
+`sw` 20, `daddu` 16, `lw` 11, `addu` 8, `sra` 7, `sb` 5, `and` 4, `sh` / `sd` / `swc1` / `lh` / `lwc1` 2 each, `lhu`
+/ `ori` 1). Of them still in asm on main: 83 slots in **82 functions** (of 2,045 `INCLUDE_ASM`). The bulk tables of
+6.1-6.9 are gone (`build/` is wiped by every regress), so the count is over the code, not the old tables.
+
+**ER-097: byte offsets** (the cleaning step in 6.4). m2c prints pointer + offset with the raw byte count (its
+`evaluate.py`: `add_imm` keeps the immediate, `handle_add_real` adds register and pointer), so a typed base or pointer
+is scaled by C. Rerun of ER-080's examples (`9fbc9a3^`, 10 functions, no hand edits):
+
+| Function | Shape | Result |
+|---|---|---|
+| func_00168358, func_0017CC28, func_001BFEB8 (card) | `(arg0 * N) + &D_X` -> `extern char D_X[];` | **plain MATCH** |
+| func_0019C078, func_001C8920 (card) | tail-j slot (ER-084) | **plain MATCH** |
+| func_0017D6F0 | `&D_X + 0x252` -> `extern char D_X[];` | **plain MATCH** |
+| func_001BBD40, func_001BCD68 | `var += 4` on an `s32 *` -> `var += 1` | **plain MATCH** |
+| func_001C1310 | `arg0 + 4` on an `s32 *` -> `arg0 + 1` | masked MATCH (context `none`); plain skipped: the draft declares `fptodp` (an ER-041 name), which the plain form does not take yet |
+| func_001BCF48 | byte base, but m2c's `*(sum)` loses the game's `lhu` width | diff (needs `*(u16 *)` by hand, as ER-080 did) |
+
+**ER-101: const `.sdata` floats.** `python -I tools/sdata_consts.py` scans every instruction of the original's
+`.text` ($gp-relative accesses with gp 0x00360B70, absolute `lui` pairs) and every aligned data word: 665 `.sdata` /
+`.sbss` symbols, 449 read by `lwc1`; **396 of the 445 `.sdata` floats are never stored and never have their address
+taken**, 45 more are never stored but sit within 0x40 bytes after an address-taken symbol (not used: a pointer could
+reach them; the window is a guess), 4 are stored; all 4 `.sbss` floats are stored. **The list does not tell the two
+kinds of recipes 2.21 apart**: func_00145918's `D_0035BCF0` / `D_0035BCF4`, func_00147CF8's `D_0035BD58` /
+`D_0035BD54` and func_00147F78's `D_0035BD40` (which must stay plain) are all never stored. So `const` is a variant
+(6, step 6): tried on a draft that does not match, kept only on a MATCH. Rerun over the five ER-054 files: tried on 36
+drafts, **no new match**; the three recipe functions stay diffs either way (their drafts are 4 / 4 / 1 instructions
+off for other reasons, which ER-085 fixed by hand). In text_001000C0 no draft reads one of these floats (that file
+uses `.lit4` literals).
+
+**A/B on main** (`src/` as on main f714a26, default context, `--plain`, par 4; main's tool against this one):
+
+| Files | Asm functions | Masked MATCH before -> after | Plain MATCH before -> after | Lost | Time |
+|---|---|---|---|---|---|
+| `text_00145120`, `text_0014A968`, `text_0014C840`, `text_0014D930`, `text_0014E2E8` | 111 | 0 -> **6** | 0 -> **5** | none | 216 / 212 s |
+| `text_001000C0` | 446 | 4 -> **17** | 2 -> **13** | none | 1,085 / 1,167 s |
+
+The 19 new masked MATCHes (16 plain): 17 by the slot move (func_001464A8, func_00148BB0, func_0014C630, func_0014D028,
+func_0014DEA0, func_0014F5F8, func_00128928, func_0012B1F0, func_0012B208, func_0012B218, func_0012CAD8,
+func_0012CAF0, func_0012E3B0, func_001329F0, func_00132CC0, func_001339F8, func_00134070: two of them with a store
+order), 2 by byte offsets (func_00101160, func_0012C7B8). Four that main's tool matched as well are still unplaced in
+text_001000C0 (func_0012F7E0, func_0012F808, func_0012F8A0, func_0012FEB8). Plain failures: func_0014DEA0,
+func_0012CAD8, func_00134070, func_0012F8A0 (the file's own address-taking extern, recipes 2.10); func_0012F808 is a
+plain MATCH that needs `func_0012B5F8` widened in the file. The drafts and both `results.md` are in the dispatcher's
+notes folder `ER-084_c/` (game code: not in git); nothing was placed.
+
 ## 7. Not verified
+
+- ER-084 / ER-097 / ER-101 (6.10): the slot move with a label on the delay-slot line (skipped by design, not met);
+  the byte rewrites on a base declared in `src/` (the `(char *)` cast path; not met in the reruns), on a register
+  added to a typed pointer (`v + i * 4`, not handled), and on struct-typed pointers (skipped); the census's lui
+  pairing is per function and keeps the last `lui` per register (a pairing across a branch can be wrong, which can
+  only add accesses). None of the 19 new matches is placed, so none is proven by `make regress` yet.
 
 - The tools were checked on the functions named above only; relocation types other than the five handled
   (`R_MIPS_26`, `HI16`, `LO16`, `GPREL16`, `LITERAL`) are reported as "unhandled" (none met yet).
