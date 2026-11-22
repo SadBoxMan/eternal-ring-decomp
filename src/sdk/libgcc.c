@@ -28,29 +28,29 @@ INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E82A8);
 
 INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E8348);
 
-INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E8588);
+INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", dpadd);
 
-INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E85E0);
+INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", dpsub);
 
-INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E8648);
+INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", dpmul);
 
-INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E88F0);
+INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", dpdiv);
 
 INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E8A58);
 
-INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E8B70);
+INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", dpcmp);
 
-INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E8BC0);
+INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", litodp);
 
-INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E8C78);
+INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", dptoli);
 
-INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E8D10);
+INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", dptoul);
 
 INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E8DB0);
 
 INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E8DE8);
 
-INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E8E18);
+INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", dptofp);
 
 INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E8E70);
 
@@ -80,4 +80,4 @@ INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E99A8);
 
 INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E99E0);
 
-INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", func_001E9A10);
+INCLUDE_ASM("asm/nonmatchings/sdk/libgcc", fptodp);

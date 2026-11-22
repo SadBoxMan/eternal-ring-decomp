@@ -10,7 +10,7 @@ INCLUDE_ASM("asm/nonmatchings/sdk/libm", func_001E40B8);
 
 INCLUDE_ASM("asm/nonmatchings/sdk/libm", func_001E41B8);
 
-INCLUDE_ASM("asm/nonmatchings/sdk/libm", func_001E42E0);
+INCLUDE_ASM("asm/nonmatchings/sdk/libm", sqrtf);
 
 INCLUDE_ASM("asm/nonmatchings/sdk/libm", func_001E43F8);
 
