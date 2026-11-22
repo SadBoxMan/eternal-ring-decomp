@@ -118,7 +118,23 @@ void func_00145258(void) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00145260);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00145428);
+extern s32 func_0012FB90(s32, char *, char *);
+extern void func_001CA018(float *, char *, char *);
+extern float func_0012CE18(char *, char *);
+extern s32 func_00131498(void);
+
+float func_00145428(char *a0, char *a1)
+{
+    float v[4];
+    float s;
+
+    if (func_0012FB90(0, a0, a1 + 0x90)) {
+        func_001CA018(v, a0 + 0x80, a1 + 0x90);
+        return (0.0f <= v[0] * *(float *)(a1 + 0x50) + v[2] * *(float *)(a1 + 0x58)) ? -1.0f : 1.0f;
+    }
+    s = (func_0012CE18(a0, a1 + 0x90) < 0.0) ? 1.0f : -1.0f;
+    return (func_00131498() < 0x1F) ? s : -s;
+}
 
 extern int func_00130780(char *);
 extern void func_00131000(char *, void *);
@@ -305,7 +321,7 @@ void func_00147700(void) {
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147708);
 
 extern void func_00130CE0(char *, float);
-extern s32 func_0012F8C8(s8 *, s32, s16, s32, s32, f32);
+extern s32 func_0012F8C8(s8 *, s32, s32, s32, s32, f32);
 extern s32 func_0012FC38(void **, s32, s32, s32);
 extern s32 func_0012F938(s32, s32);
 extern void func_00147708();
@@ -414,7 +430,35 @@ INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147F20);
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147F78);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00148210);
+extern float sqrtf(float);
+extern float func_00130378(char *, s32);
+extern void func_0012E820(char *, float, float);
+extern void func_00130B60(char *, float);
+extern float D_0035BD40;
+extern float D_0035BD50;
+
+s32 func_00148210(char *a0)
+{
+    float f;
+    char *p;
+
+    *(s32 *)(a0 + 0x2C) += 1;
+    p = *(char **)a0;
+    if (*(s32 *)(a0 + 0x28) != 2) {
+        *(s32 *)(a0 + 0x2C) = 0;
+        *(s32 *)(a0 + 0x28) = 2;
+        f = func_00130378(p + 0x90, *(s32 *)(a0 + 0x130)) + 6.2831855f;
+        *(float *)(a0 + 0x48) = f - (int)(f / 6.2831855f) * 6.2831855f - 3.1415927f;
+    } else {
+        func_0012E820(p + 0xA4, *(float *)(a0 + 0x48), 20.0f);
+        func_0012F8C8((s8 *)a0, *(s8 *)(a0 + 0xF), *(s32 *)(a0 + 0x2C), 6, 0, 0.3f);
+        if (sqrtf(*(float *)(a0 + 0x90) * *(float *)(a0 + 0x90) + *(float *)(a0 + 0x98) * *(float *)(a0 + 0x98)) <= D_0035BD50) {
+            return 1;
+        }
+    }
+    func_00130B60(a0, D_0035BD40);
+    return 0;
+}
 
 extern void func_00147F20(void *, float);
 

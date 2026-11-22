@@ -137,7 +137,20 @@ void func_0014D3F0(void) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D3F8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D510);
+extern s32 func_0012FB90(s32, char *, char *);
+extern void func_001CA018(float *, char *, char *);
+extern float func_0012CE18(char *, char *);
+
+float func_0014D510(char *a0, char *a1)
+{
+    float v[4];
+
+    if (func_0012FB90(0, a0, a1 + 0x90)) {
+        func_001CA018(v, a0 + 0x80, a1 + 0x90);
+        return (0.0f <= v[0] * *(float *)(a1 + 0x50) + v[2] * *(float *)(a1 + 0x58)) ? -1.0f : 1.0f;
+    }
+    return (func_0012CE18(a0, a1 + 0x90) < 0.0) ? 1.0f : -1.0f;
+}
 
 extern void func_00130CE0(char *, float);
 extern f32 D_0035BE7C;
