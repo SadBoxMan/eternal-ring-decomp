@@ -353,7 +353,13 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00153CD0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00153D10);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00153DA0);
+extern void func_00131000(char *, void *); extern void func_001539A8();
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_00153DA0(char *a0) {
+    if (*(s16 *)(a0 + 0x6E) == 0) { *(s16 *)(a0 + 0x74) = 0x1E; *(s16 *)(a0 + 0x6E) += 1; }
+    *(f32 *)(a0 + 0x94) += 0.5f;
+    if (*(s16 *)(a0 + 0x6C) > *(s16 *)(a0 + 0x74)) func_00131000(a0, func_001539A8);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00153DF8);
 
@@ -462,7 +468,25 @@ void func_00154B38(void **arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00154BD0);
+extern s32 func_0012F9C0(void **, s32);
+extern s32 func_0012F938(void *, s32);
+extern void func_00130CE0(char *, float);
+extern void func_00155820(); extern void func_00154DD8(); extern void func_00154CA8();
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_00154BD0(void **arg0, void *arg1) {
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        func_0012F9C0(arg0, 3);
+        *(s16 *)((char *)arg0 + 0x6E) += 1;
+    }
+    if (func_0012B7C0(arg0, 3, 9, *(s16 *)((char *)arg0 + 0x6C), 0xA, 0, 0.1f) != 0) {
+        if (func_0012F938(arg1, 9) != 0) {
+            func_00131140((char *)arg0, func_00155820, func_00154DD8, func_00154DD8, func_00154DD8, func_00154CA8);
+        }
+        if (*(u16 *)(*(char **)((char *)arg1 + 0xE0) + 0x8C) >= 0x28) {
+            func_00130CE0((char *)arg0, 20.0f);
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00154CA8);
 
@@ -884,7 +908,16 @@ void func_00159808(void *arg0) {
 void func_00159828(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00159830);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_00159830(char *a0) {
+    f32 d;
+    *(s8 *)(a0 + 2) = 0;
+    *(s32 *)(a0 + 0xC) = *(s32 *)(a0 + 0x50);
+    d = (f32)(*(s32 *)(a0 + 0x50) - *(s32 *)(a0 + 0x54));
+    *(f32 *)(a0 + 0x84) = (*(f32 *)(a0 + 0x84) - *(f32 *)(a0 + 0x40)) / d;
+    *(f32 *)(a0 + 0x88) = (*(f32 *)(a0 + 0x88) - *(f32 *)(a0 + 0x44)) / d;
+    *(f32 *)(a0 + 0x8C) = (*(f32 *)(a0 + 0x8C) - *(f32 *)(a0 + 0x48)) / d;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001598A8);
 
@@ -1116,7 +1149,21 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015D388);
 void func_0015D3E0(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015D3E8);
+extern f32 func_001E3EC8(f32); extern f32 func_001E3DE0(f32);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_0015D3E8(char *a0) {
+    f32 t, t2, t3;
+    *(s32 *)(a0 + 0xC) = *(s32 *)(a0 + 0x50);
+    t = *(f32 *)(a0 + 0x70) * func_001E3EC8(*(f32 *)(a0 + 0x24));
+    *(f32 *)(a0 + 0x74) = t * func_001E3DE0(*(f32 *)(a0 + 0x20));
+    *(f32 *)(a0 + 0x78) = *(f32 *)(a0 + 0x70) * func_001E3EC8(*(f32 *)(a0 + 0x20));
+    t2 = *(f32 *)(a0 + 0x70) * func_001E3DE0(*(f32 *)(a0 + 0x24));
+    t3 = t2 * func_001E3DE0(*(f32 *)(a0 + 0x20));
+    *(s8 *)(a0 + 2) = 1;
+    *(f32 *)(a0 + 0x84) = *(f32 *)(a0 + 0x4C);
+    *(s32 *)(a0 + 0x4C) = 0;
+    *(f32 *)(a0 + 0x7C) = t3;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015D480);
 
@@ -1165,7 +1212,25 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015E2C0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015E4B8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015E628);
+extern void func_0015E968(void *);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_0015E628(char *a0) {
+    f32 d; f32 h; s32 t;
+    t = *(s32 *)(a0 + 0x50);
+    h = *(f32 *)(a0 + 0x30);
+    d = (f32)(t - *(s32 *)(a0 + 0x54));
+    *(s32 *)(a0 + 0xC) = t;
+    *(f32 *)(a0 + 0x7C) = (*(f32 *)(a0 + 0x34) - h) / (f32)t;
+    *(f32 *)(a0 + 0x3C) = 1.0f;
+    *(f32 *)(a0 + 0x34) = h;
+    *(f32 *)(a0 + 0x38) = h;
+    *(f32 *)(a0 + 0x84) = (*(f32 *)(a0 + 0x84) - *(f32 *)(a0 + 0x40)) / d;
+    *(s32 *)(a0 + 0x68) = (s32)((*(f32 *)(a0 + 0x24) * 4096.0f) / 6.2831855f) & 0xFFF;
+    *(f32 *)(a0 + 0x88) = (*(f32 *)(a0 + 0x88) - *(f32 *)(a0 + 0x44)) / d;
+    *(f32 *)(a0 + 0x8C) = (*(f32 *)(a0 + 0x8C) - *(f32 *)(a0 + 0x48)) / d;
+    func_0015E968(a0);
+    *(s8 *)(a0 + 2) = 1;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015E728);
 
@@ -1174,7 +1239,24 @@ void func_0015E968(void *arg0) {
     *(f32 *)((char *)arg0 + 0x14) = (f32) ((f32) *(s32 *)((char *)arg0 + 0x58) - (*(f32 *)((char *)arg0 + 0x80) * *(f32 *)((char *)arg0 + 0x34)));
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015E988);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_0015E988(char *a0) {
+    f32 d; f32 h; s32 t;
+    t = *(s32 *)(a0 + 0x50);
+    h = *(f32 *)(a0 + 0x30);
+    d = (f32)(t - *(s32 *)(a0 + 0x54));
+    *(s32 *)(a0 + 0xC) = t;
+    *(f32 *)(a0 + 0x7C) = (*(f32 *)(a0 + 0x34) - h) / (f32)t;
+    *(f32 *)(a0 + 0x3C) = 1.0f;
+    *(f32 *)(a0 + 0x34) = h;
+    *(f32 *)(a0 + 0x38) = h;
+    *(f32 *)(a0 + 0x84) = (*(f32 *)(a0 + 0x84) - *(f32 *)(a0 + 0x40)) / d;
+    *(s32 *)(a0 + 0x68) = (s32)((*(f32 *)(a0 + 0x24) * 4096.0f) / 6.2831855f) & 0xFFF;
+    *(f32 *)(a0 + 0x88) = (*(f32 *)(a0 + 0x88) - *(f32 *)(a0 + 0x44)) / d;
+    *(f32 *)(a0 + 0x8C) = (*(f32 *)(a0 + 0x8C) - *(f32 *)(a0 + 0x48)) / d;
+    func_0015E968(a0);
+    *(s8 *)(a0 + 2) = 0;
+}
 
 void func_0015EA88(void) {
 }
@@ -1689,7 +1771,18 @@ void func_00168328(s32 arg0, s32 arg1, s32 arg2) {
     *(s32 *)((char *)D_01ADE948 + 0x18) = 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00168358);
+extern s32 D_01ADE948[]; extern s32 D_0035C504; extern s32 D_0035C508; extern char D_00342E80[];
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_00168358(s32 arg0, s32 arg1, s32 arg2) {
+    char *t;
+    *(s32 *)D_01ADE948 = D_0035C504;
+    t = D_00342E80 + arg0 * 0x2C8;
+    *(s32 *)((char *)D_01ADE948 + 4) = D_0035C508;
+    *(s32 *)((char *)D_01ADE948 + 0x1C) = arg2;
+    *(s32 *)((char *)D_01ADE948 + 8) = *(s16 *)(t + 8) - 0x10;
+    *(s32 *)((char *)D_01ADE948 + 0xC) = *(s16 *)(t + 0xA) + arg1 * 0x10;
+    *(s32 *)((char *)D_01ADE948 + 0x18) = 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001683B0);
 
@@ -1703,7 +1796,10 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00168E28);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00169020);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00169480);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+s32 func_00169480(s32 arg0) {
+    return (arg0 > 0) ? 0 : ((arg0 == 0) ? 1 : 2);
+}
 
 INCLUDE_RODATA("asm/nonmatchings/text_00150878", D_00354EA0);
 INCLUDE_RODATA("asm/nonmatchings/text_00150878", D_00354EC0);
@@ -2171,7 +2267,15 @@ s32 func_0017CC20(void) {
     return 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017CC28);
+extern char D_0034BFB0[];
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_0017CC28(f32 *arg0, s32 arg1, f32 s) {
+    f32 *p; f32 v;
+    p = (f32 *)(D_0034BFB0 + arg1 * 0x10);
+    v = p[0] * s; if (v > 255.0f) v = 255.0f; arg0[0] = v;
+    v = p[1] * s; if (v > 255.0f) v = 255.0f; arg0[1] = v;
+    v = p[2] * s; if (v > 255.0f) v = 255.0f; arg0[2] = v;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017CC98);
 
@@ -2210,7 +2314,11 @@ s32 func_0017D398(s32 arg0, void *arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D3B8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D3E8);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+u64 func_0017D3E8(char *arg0) {
+    u64 v = *(u8 *)(arg0 + 0x87);
+    return v >> 7;
+}
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_0017D3F8(void *arg0) {
@@ -2229,7 +2337,14 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D670);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D6B8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D6F0);
+extern char D_001FF8B0[];
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_0017D6F0(s32 arg0, void *arg1) {
+    *(s32 *)arg1 = arg0;
+    *(s16 *)((char *)arg1 + 8) = 0;
+    *(void **)((char *)arg1 + 4) = D_001FF8B0;
+    *(void **)((char *)arg1 + 0xC) = D_001FF8B0 + 0x252;
+}
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_0017D710(void *arg0, s32 arg1) {
@@ -2446,7 +2561,15 @@ void func_001833D0(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001833F0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001835E0);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001835E0(char *a0) {
+    *(f32 *)(a0 + 0x30) = 25.0f;
+    *(f32 *)(a0 + 0x38) = 1.0f;
+    *(f32 *)(a0 + 0x4C) = 0.1f;
+    *(s32 *)(a0 + 0x34) = 0;
+    *(s8 *)(a0 + 0x78) = 1;
+    *(s32 *)(a0 + 4) = 0xC8;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00183618);
 
@@ -2462,7 +2585,7 @@ void func_00183D78(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00183D88);
 
-extern s32 func_00162CB8(s32 *, s32);
+extern void func_00162CB8(s32 *, s32);
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00183E90(void *arg0) {
@@ -2598,7 +2721,14 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001883E8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00188AA8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00189198);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_00189198(char *a0) {
+    *(f32 *)(a0 + 0x30) = 25.0f;
+    *(f32 *)(a0 + 0x38) = 1.0f;
+    *(s32 *)(a0 + 4) = 0x12C;
+    *(s32 *)(a0 + 0x34) = 0;
+    *(s8 *)(a0 + 0x78) = 1;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001891C8);
 
@@ -2742,7 +2872,15 @@ void func_0018C540(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018C550);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018C730);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_0018C730(void *arg0) {
+    *(s32 *)((char *)arg0 + 4) = 2;
+    func_00162CB8(D_00248880, (s32)(arg0 + 0x10));
+    if (*(s32 *)((char *)arg0 + 0x14) <= 0) {
+        *(s32 *)((char *)arg0 + 0x14) = 1;
+    }
+    *(s8 *)((char *)arg0 + 0x78) = 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018C780);
 
@@ -3312,7 +3450,11 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0019BEC8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0019BFA0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0019C078);
+extern void func_001AB1C8(void *, s32);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_0019C078(void *arg0) {
+    func_001AB1C8(arg0, *(s32 *)((char *)arg0 + 4));
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0019C080);
 
@@ -3592,7 +3734,22 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AB1C8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AB410);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AB480);
+extern void func_0017CF10(void *, f32); extern void func_0017D328(void *); extern s32 func_001E9C70();
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001AB480(char *a0) {
+    f32 t;
+    func_0017CF10(a0, 96.0f);
+    func_0017D328(a0);
+    *(s32 *)(a0 + 0x14) = 0;
+    *(s32 *)(a0 + 0x18) = 0;
+    *(s8 *)(a0 + 0x78) = 0;
+    *(s32 *)(a0 + 4) = 0x258;
+    *(s32 *)(a0 + 0x10) = 0x258;
+    *(f32 *)(a0 + 0x60) = 0.7853982f - (f32)(func_001E9C70() & 0xFFFF) * 0.000015258789f * 1.5707964f;
+    t = (f32)(func_001E9C70() & 0xFFFF) * 0.000015258789f;
+    *(s32 *)(a0 + 0xC) &= 0xFFFEFFFF;
+    *(f32 *)(a0 + 0x64) = 3.1415927f - t * 6.2831855f;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AB540);
 
@@ -3686,17 +3843,35 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AEC58);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AEC70);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AED88);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001AED88(char *a0) {
+    *(f32 *)(a0 + 0x30) = 25.0f;
+    *(f32 *)(a0 + 0x38) = 1.0f;
+    *(s32 *)(a0 + 4) = 0x12C;
+    *(s32 *)(a0 + 0x34) = 0;
+    *(s8 *)(a0 + 0x78) = 1;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AEDB8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AEF18);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AEF90);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001AEF90(char *a0) {
+    *(f32 *)(a0 + 0x38) = 0.16f;
+    *(f32 *)(a0 + 0x3C) = 1.0f;
+    *(s32 *)(a0 + 4) = 0x78;
+    *(s32 *)(a0 + 0x34) = 0;
+    *(s8 *)(a0 + 0x78) = 1;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AEFC0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AF2E8);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001AF2E8(void *arg0) {
+    func_00162CB8(D_00248880, arg0 + 0x10);
+    *(s32 *)((char *)arg0 + 4) = *(s32 *)((char *)arg0 + 0x10);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001AF320);
 
@@ -3819,7 +3994,14 @@ void func_001B3E70(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B3E80);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B42B0);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001B42B0(char *a0) {
+    *(f32 *)(a0 + 0x38) = 0.16f;
+    *(f32 *)(a0 + 0x3C) = 1.0f;
+    *(s32 *)(a0 + 4) = 0x78;
+    *(s32 *)(a0 + 0x34) = 0;
+    *(s8 *)(a0 + 0x78) = 1;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B42E0);
 
@@ -3836,7 +4018,16 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B4570);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B4730);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B4BE8);
+extern void func_0017D900(void *, s32);
+extern void func_001B99B0(void *);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001B4BE8(char *arg0) {
+    func_00162CB8(D_00248880, (s32)(arg0 + 0x10));
+    *(s32 *)(arg0 + 4) = 2;
+    *(s32 *)(arg0 + 0x10) = 0;
+    func_001B99B0(arg0);
+    func_0017D900(arg0, 0);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B4C38);
 
@@ -3872,7 +4063,13 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B55E8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B5C68);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B5E68);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001B5E68(void *arg0) {
+    func_00162CB8(D_00248880, arg0 + 0x10);
+    *(s32 *)((char *)arg0 + 0x10) = 0;
+    *(s32 *)((char *)arg0 + 4) = 2;
+    func_0017D900(arg0, 0);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B5EB0);
 
@@ -3908,7 +4105,14 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B75E0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B75F8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B77B8);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001B77B8(char *a0) {
+    *(f32 *)(a0 + 0x38) = 0.16f;
+    *(f32 *)(a0 + 0x3C) = 1.0f;
+    *(s32 *)(a0 + 4) = 0x78;
+    *(s32 *)(a0 + 0x34) = 0;
+    *(s8 *)(a0 + 0x78) = 1;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B77E8);
 
@@ -4203,7 +4407,15 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BB750);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BBC00);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BBD40);
+extern s32 D_00202AD0[];
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001BBD40(void) {
+    u32 i;
+
+    for (i = 0; i < 12; i++) {
+        D_00202AD0[i] = 0;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BBD78);
 
@@ -4318,13 +4530,28 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCCF8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCD30);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCD68);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001BCD68(s32 *arg0, s32 arg1, s32 arg2) {
+    s32 i = arg1 - 1;
+
+    if (arg1 != 0) {
+        do {
+            *arg0 = arg2;
+            i--;
+            arg0++;
+        } while (i != -1);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCDA0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCE20);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCF48);
+extern char D_01B1F2B0[];
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+s32 func_001BCF48(s32 arg0) {
+    return *(u16 *)(D_01B1F2B0 + arg0 * 0xC4C) != 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCF68);
 
@@ -4688,7 +4915,14 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BFA90);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BFAC8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BFEB8);
+extern char D_002488C0[]; extern void func_00165080(s32, s32);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001BFEB8(char *arg0) {
+    char *t;
+    t = D_002488C0 + *(s32 *)(arg0 + 8) * 0x180;
+    if (*(u8 *)(t + 0x79) < 0x50U) { func_00165080(*(u8 *)(t + 0x79), 1); *(u8 *)(t + 0x79) = 0x50; }
+    *(s32 *)arg0 = 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BFF20);
 
@@ -4767,7 +5001,11 @@ float func_001C12D0(float a) {
     return (a * 3.14159274101257324219f) / 180.0f;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C1310);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001C1310(s32 *arg0) {
+    func_001BE0B0(arg0 + 1, (f32)(func_001E9C70() & 0xFFFF) / 65535.0f);
+    *arg0 = 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C1378);
 
@@ -5079,7 +5317,11 @@ s32 func_001C5120(s32 arg0, s32 arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C5188);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C53D0);
+extern void func_001D0010(s32);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001C53D0(void) {
+    func_001D0010(0);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C53D8);
 
@@ -5420,9 +5662,17 @@ s32 func_001C8900(void) {
     return 1;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C8920);
+extern void func_001C78A0(void *, s32 *, s32 *, s32 *, s32 *);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001C8920(void *arg0, s32 *arg1, s32 *arg2, s32 *arg3, s32 *arg4) {
+    func_001C78A0((char *)arg0 + 0x48, arg1, arg2, arg3, arg4);
+}
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C8928);
+extern void func_001C7988(void *arg0, s32 arg1);
+/* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.18); names, types and offsets are Unconfirmed readings. */
+void func_001C8928(void *arg0, s32 arg1) {
+    func_001C7988((char *)arg0 + 0x48, arg1);
+}
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_001C8930(void *arg0) {
