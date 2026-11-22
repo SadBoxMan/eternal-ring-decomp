@@ -1141,6 +1141,15 @@
       "model": "Opus, high (xhigh if it resists)",
       "waits_on": "text_001000C0 writer one at a time",
       "notes": ""
+    },
+    {
+      "code": "ER-094",
+      "title": "func_00126F00 with ee-as r4 (4 ld words left)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "text_001000C0 writer one at a time",
+      "notes": ""
     }
   ]
 }
