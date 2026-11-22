@@ -494,7 +494,7 @@ rerun, 17 by hand). Nothing compiler-steering.
 | Function | Size | Cause |
 |---|---|---|
 | func_00113C30 | 676 | **placed by ER-089 (2.23)**; was: 45 words: which variable gets `$a0` / `$a1` in the head and the loop (the game copies the loaded id from `$v0` into `$a1` at the join); the 0x80 frame needs an unused `float buf[16]` (nothing touches `sp+0..0x3F`): dead code, needs a ruling |
-| func_00113ED8 | 760 | **re-parked by ER-089 (2.23)**: cross-jumped found tails; was: same head as func_00113C30 and the same untouched 0x40 bytes of stack (unused buffer, ruling); not drafted further |
+| func_00113ED8 | 760 | **placed by ER-115 (2.25)**; re-parked by ER-089 (2.23): cross-jumped found tails; was: same head as func_00113C30 and the same untouched 0x40 bytes of stack (unused buffer, ruling); not drafted further |
 | func_00131D40 | 732 | wrap loops not promoted in the game (above); head and table call: register choice |
 | func_00126F00 | 476 | **placed by ER-094 (2.23)**: `extern const` vectors |
 | func_00120EF0 | 1,348 | **ER-091 (2.23): 71 words, right size, re-parked**; was: 265 of 337 words: the scratchpad constant hoisted in ours (above) and the `D_001FF390` base CSE; structure, struct copy and data match |
@@ -673,8 +673,8 @@ compiler-steering. Drafts of the parked two and the two helper scripts: notes fo
 
 | Function | Size | Cause |
 |---|---|---|
-| func_00113ED8 | 760 | right instructions, 4 words short: our post-reload cross-jumping merges the two `func_001C9F60` found tails (both blocks end `set $a1; call` at jump2, `-dS -dJ` dumps), the game keeps both; plus one `nop` before the game's loop top. 8 found-path forms tried |
-| func_00120EF0 | 1,348 | right size, 71 words: the store block after the struct copy (the game re-materializes `&D_002029D0` / `&D_00202A50` / `&D_001FF8B0` more often than our CSE; about 700 statement orders searched, struct forms worse) and a `rec` / bit-index saved-register swap |
+| func_00113ED8 | 760 | **placed by ER-115 (2.25)**: `goto found;` to a call after the loop (sibcall USE stops the cross-jump), record pointer in `k`; was: right instructions, 4 words short: our post-reload cross-jumping merges the two `func_001C9F60` found tails (both blocks end `set $a1; call` at jump2, `-dS -dJ` dumps), the game keeps both; plus one `nop` before the game's loop top. 8 found-path forms tried |
+| func_00120EF0 | 1,348 | **re-parked by ER-116 (2.25)**, 72 words with three regions fixed; was: right size, 71 words: the store block after the struct copy (the game re-materializes `&D_002029D0` / `&D_00202A50` / `&D_001FF8B0` more often than our CSE; about 700 statement orders searched, struct forms worse) and a `rec` / bit-index saved-register swap |
 
 ### 2.24 The five small game files, round 3 (ER-100, Sun 22 Nov 2026; Confirmed by `make regress`, 31 functions)
 
@@ -705,6 +705,37 @@ words) match only with `-fstrict-aliasing`, as a diagnostic (ruling 3.6 forbids 
 above stores of other types and keeps those stores in source order; 120 orders and more were tried for each. This is
 the same family as 2.22's func_0013F288 / func_0013AA28. Not attempted: func_00146598, func_00145578 (79 words) and
 the 86 drafts whose size differs.
+
+### 2.25 `text_001000C0` round 2: cross-jumped tails, ER-084's plain matches (ER-112 + ER-115 + ER-116, Sun 22 Nov 2026; Confirmed by `make regress`)
+
+ER-112's share in this file: the 17 plain MATCHes of ER-084's A/B run (notes `ER-084_c/`), each rechecked with
+`cmpfunc` on this branch and placed (944 bytes, commit `9527f54`). A fresh `m2c_bulk.py --plain --list` run on the 17
+names harvested no signatures (`0 harvested signatures`; the list form does not harvest the file's callees) and gave 9
+MATCHes, so the ER-084 drafts were used. Three needed the file's declarations aligned: `func_0012B5F8`'s third
+parameter widened from `u8` to `s32` (func_0012F808 passes its own `arg1` there; func_0012F838 / func_0012F870 still
+match), `func_00134070` declared with one parameter (its asm never reads `$a1`), `func_0012F8A0` declared `s32` with an
+`s32` second parameter (it returns `func_0012B6B0`'s value; `src/text_0013DBC0.c` still declares the old prototype,
+same code there). func_00113ED8 (ER-115, 760 bytes, commit `8196aa8`) by hand. ruling 3.13's `buf[16]` as in
+func_00113C30; nothing else compiler-steering.
+
+| Lesson | Proved by |
+|---|---|
+| **A call in tail position outside any loop keeps a `(use (const_int 0))` after it** when Cygnus' sibling-call pass refuses the sibcall (here for the 3.13 frame; 2.24), and that USE stops jump2's cross-jumping (`jump.c` `find_cross_jump` compares insn codes: USE against CALL_INSN fails). A call inside a loop statement is never a sibcall candidate and gets no USE, so two identical `call; jump epilogue` tails inside loops are merged (only the call and the `$a1` add must match). The game's func_00113ED8 keeps both `func_001C9F60` found tails: its first found path is `goto found;` to the call after its do-while (`found: func_001C9F60(...); return;`). The game's lone `nop` before the loop top was the compiler's own `.align 3` on the loop label, back in place once the 3 words of the tail returned | func_00113ED8 (func_00113C30's end call shows the same USE in `-dR` dumps) |
+| **Order of passes after reload**: sched2 runs before jump2's cross-jump (`toplev.c`), so cross-jump sees the final instruction order without delay slots; a jump2 merge cannot be undone by statement order alone | func_00113ED8 (`-dS -dg -dJ -dR` dumps) |
+| **Global allocation inherits preferences through deaths** (`global.c` `expand_preferences`): a pseudo set in the insn where another dies takes over its hard-register preferences if they do not conflict. In func_00113ED8 the part index (`$a1`, from `func_001C9B18(a2, id)`) passes `$a1` to the product, to the record pointer, then to whichever record field load carries the pointer's death after sched1, so the loop count took `$a1` (game `$a0`) or the loads came in the wrong order (sched1 prefers the load with the death, `INSN_REG_WEIGHT`). Holding the record pointer in `k` (the vertex count, `$v0` in the game too) makes it conflict with the count, so the preference stops: 2 words to MATCH. Recipes 2.23's variable reuse again | func_00113ED8 |
+| **ER-084's drafts and the file's declarations**: an address-taking extern (`void f(s8 *, s32)` for a callback) or a narrowed callee parameter blocks a plain MATCH; read the callee's asm for the real parameters and return | func_0012CAD8, func_00134070, func_0012F8A0, func_0012F808 |
+
+**Seen only in masked compares (Unconfirmed until a placement proves them), func_00120EF0:** call arguments read
+from a record before a store to the scratchpad must be read into locals first (`w1 = ...0x118; w0 = ...0x114;
+SPR->hit = 0; f(..., w0, w1, len)`): with `-fno-strict-aliasing` the store blocks the loads otherwise, and this also
+gives `obj` the game's `$a1`; `byte = &(g = &D_001FF390)->bits[i / 8];` gives the game's `g + 0x140` first; the
+`x219` read first in the compare gives the game's `bnel` operand order.
+
+**Parked (one-line cause; drafts and notes in the notes folder `ER-115_116_c/`):**
+
+| Function | Size | Cause |
+|---|---|---|
+| func_00120EF0 | 1,348 | right size, 72 words (the three fixes above in): `rec` / `bit` saved registers swap (global-alloc priority `bit` 2·6/19 = 0.632 against `rec` 5·47/358 = 0.656: the `w0` / `w1` copies lengthen `bit`'s range); the `&D_001FF890` `%hi` temp and the `lhu` / `lb` temps take `$v1` / `$v0` swapped; the store block after the struct copy, where the game re-materializes `%hi` of `D_002029D0` / `D_00202A50` / `D_001FF8B0` (reading: reload rematerializing unallocated HIGH pseudos, so register pressure; 1,500 statement orders plateau at 71-73 words, struct forms 115+) |
 
 ## 3. Rulings (LuciDin)
 
@@ -796,7 +827,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23) |
+| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23), func_00113ED8 (ER-115, 2.25) |
 
 ### 3.14 ER-100: an address-taken local that only stops a sibling call (Sun 22 Nov 2026, 16:40 Eastern, LuciDin in the ER-100 session)
 
