@@ -503,8 +503,8 @@ Final grades (stability over the 5 variants of section 2, same rules) on the gam
 27 Weak (88 windows)**, against ER-017's 22 / 10 / 24 (56). All 22 Strong windows of 4.1 stay open (S22 narrows to
 `0x001CA8D8`, 9.5); the 7 cut seams stay Strong and exact. Changes to the lists of 4.1-4.3:
 
-- **Up**: M3 0x0013F4C0-0x0013F580 Medium -> Strong (5/5); Weak 0x001CB218-0x001CB750 -> Strong at `0x001CB528` (but
-  see 9.7: its `.bss` cut is out of order with S22's).
+- **Up**: M3 0x0013F4C0-0x0013F580 Medium -> Strong (5/5); Weak 0x001CB218-0x001CB750 -> Strong at `0x001CB528` (9.9:
+  its `.bss` cut is in order with S22's; the 9.7 note was an artefact of the tool's order check).
 - **Lost** (now shut): **M9 0x0019B9B0-0x0019BA90** (a real inversion: `func_0019E590`, right of the window, uses
   `.rodata` `D_00355CE0`, which lies below 15 labels used by the functions before it; spimdisasm shows the
   reference); Weak `0x00187BD8-0x00189200` and `0x001CBBC0-0x001CBE90` (the latter already downgraded by `.bss` in
@@ -594,12 +594,13 @@ one splat label in the cut range):
 | 3 | S22 `0x001CA8D8` | `text_001CA0F0` (game-unk) | Strong 5/5, `.bss` decides (9.5) | none / none / none / 0x01B72600 | cut-ready |
 | 4 | `0x001388E8`, `0x0013A410`, `0x0013B748`, `0x0013C510`, `0x0013DBC0` | `text_001343E8` (338 functions, S1 to S9) | new Strong, exact, 5/5 | every section passes in both views; `.rodata` 0x00354750 / 0x003547D0 / 0x00354830 / 0x00354850 / 0x00354910 and `.sdata` 0x0035BA08 / 0x0035BA68 / 0x0035BAB0 / 0x0035BAC8 / 0x0035BB08, all pinned; `.data` 0x0032FE68 at `0x001388E8` | cut together; the best next batch |
 | 5 | `0x00151800`, `0x00152970`, `0x00153FD0`, `0x00154A70`, `0x00155C98` (windows of 2-3) | `text_00150878` (1,542 functions) | new Strong 4-5/5 | pinned in `.sdata` (0x0035BF64, 0x0035BFDC, 0x0035C070, 0x0035C0CC, 0x0035C0E8) and mostly in `.rodata` / `.data`; the first and the last candidates of every window both pass | data does not choose the start inside each window: cut at a first candidate only with a ruling, or wait for matching |
-| 6 | `0x001C4F68` | `text_00150878` (save / load) | new Strong, exact, 5/5 | 0x00356940 / 0x0035C3C8 / 0x0034D008, pinned | `.bss` fails in the whole-file view: check before cutting |
-| 7 | `0x0017C0C8`, `0x0017C500` | `text_00150878` | new Strong, exact, 5/5 | the 0x0017C0C8-0x0017C500 file uses no data | open by the scan, but data says nothing |
+| 6 | `0x001C4F68` | `text_00150878` (save / load) | new Strong, exact, 5/5 | 0x00356940 / 0x0035C3C8 / 0x0034D008 / 0x01B31A00, pinned | **keep (9.9)**: the `.bss` failure is one COMMON-tail label (`D_01B7BA00`); cut-ready |
+| 7 | `0x0017C0C8`, `0x0017C500` | `text_00150878` | new Strong, exact, 5/5 | the 0x0017C0C8-0x0017C500 file uses no data | open by the scan, but data says nothing; with the far filter the `.rodata` / `.sdata` / `.sbss` still pass, `.data` fails in the whole-file view (9.9) |
+| 8 | `0x001CB528` | `text_001CA0F0` (game-unk), after S22 | Strong, exact, 5/5, `.bss` only (+ 1 `.sbss` label) (9.9) | none / none / none / 0x01B73440 (`.bss`, pinned), in order with S22's 0x01B72600 | **keep (9.9)**; cut together with S22; same caveat as S22 (`.bss` is the only evidence) |
 
 Not ready: `0x00112E18` (the whole-file view binds through first-file globals `D_0035B838` / `D_0035B83C`,
 `D_001FF240` / `D_001FF280`; 4 local `.data` inversions); `0x001583F0` (whole-file view fails in every section);
-`0x001CB528` (its `.bss` cut lies below S22's: out of link order if both are cut); ER-017's multi-function windows S2,
+ER-017's multi-function windows S2,
 S4-S8, S10, S11, S13, S14, S18, S19 (data still does not decide the start).
 
 ### 9.8 Not verified, Unconfirmed and Unofficial (ER-023)
@@ -613,7 +614,64 @@ S4-S8, S10, S11, S13, S14, S18, S19 (data still does not decide the start).
   the libraries' `.bss` are COMMON; the four new windows in the first stretch (they need `.bss` as primary evidence).
 - The far-filter gaps and the grade thresholds are our choices; the result hardly moves for gap scales 0.5x to 4x
   (game open boundaries 618-638 with `.bss` secondary, SDK unchanged; measured before `.bss` became primary).
-- The `--cuts` check does not apply the far filter, so its whole-file views still show far-label inversions (S21's
-  157 `.data` pairs all come from `D_001F666C`).
+- ~~The `--cuts` check does not apply the far filter~~: it does since ER-053 (9.9; `--cuts-far 0` gives the old view).
 - Sections 1-8 above describe ER-017 / ER-022 and are not rewritten; where they differ, section 9 is current.
 - Unofficial: "cfb", "far filter", "together / boundary / either", and the evidence names of section 2.
+
+### 9.9 Seam tool round 2 (ER-053, Sun 22 Nov 2026)
+
+ER-053 (Sonnet 5.5, medium) made `tools/seams.py --cuts` use the far-label filter, reran the check on every Strong
+window, and gave verdicts on `0x001C4F68` and `0x001CB528`. Read-only: nothing was cut; only the tool and this doc
+changed. Inputs as in 9 (`build/seams/final.csv` from `--stability`: 44 Strong windows, 78 candidate starts).
+
+**Tool changes.** (1) `--cuts` applies the scan's far-label filter (`--cuts-far 1`, default; `--cuts-far 0` = ER-022 /
+ER-023 view): per section and view, only the address cluster around the median of all labels the two files use counts
+(same gaps as the scan, 9.1). (2) New cut sets: `final` (every Strong window of `final.csv`, all its candidates, all
+windows' first candidates as cuts) and `solo` (each candidate alone on top of the 7 cut seams and the census seams:
+the strictest view, where one side is a long uncut stretch). (3) `--cut-set list` / `final` sort the tested starts by
+address before the link-order check (the check compared seams in command-line order; see `0x001CB528` below). (4) The
+whole-file line names the offending labels (`inv-L>`: L labels above the lowest R label). (5) `--cuts-no-common`
+leaves the `.bss` labels from `0x01B7B900` (the COMMON tail of 9.5) out.
+
+```
+.venv\Scripts\python.exe tools/seams.py --stability                      # writes build/seams/final.csv
+.venv\Scripts\python.exe tools/seams.py --cuts --cut-set final            # or solo; --cuts-far 0 / --cuts-no-common
+```
+
+**Verdicts that change with the far filter** (primary = `.rodata` / `.sdata` / `.data`, both views; `.bss` second):
+
+| Candidate | Without filter | With filter |
+|---|---|---|
+| S21 `0x001C8EE0` (any base) | `.data` 8 inversions (`D_001F666C`) | passes; `.data` pinned at 0x0034D1B8, as 9.5 |
+| S20 `0x00150878` (cut seam; 7-cut base) | `.sdata` / `.data` far inversions (8.1) | passes |
+| `0x001583F0`, `0x001583F8` | fails all sections (9.7 "not ready") | passes (both bases) |
+| `0x001124E8`, `0x00112E18` | fails | passes only with all Strong windows cut (`final`); **still fails `solo`**: the first file's globals `D_0035B838` / `D_0035B83C`, `D_001FF240` / `D_001FF280` bind (they stay "not ready") |
+| the five windows after S20 (`0x00151800` ... `0x00155C98`), `0x001C4DF8`, `0x001C4F68` (`solo`) | primary fails in the whole-file view | primary passes (their `.bss` in 9.9 below) |
+| `0x001635E0`-`0x001636A0` (3 candidates) | fails | **still fails** `.data`: one label (`D_0034C310`) above the lowest right-hand label; the local view is clean; not cut-ready |
+| S1 `0x001343E8` (cut seam) | fails | still fails the whole-file view (`.sdata` `D_0035BF1C`, `.data` far labels); local view clean as 8.1 |
+| `0x0017C0C8`, `0x0017C500` | fails | `.data` still fails whole-file (4 labels `0x00349680`-`0x0034C310`); `.bss` fails only through `D_01B7BA00` (COMMON tail) |
+| S22 `0x001CA8B0` (ER-022's old start) | `.bss` no | unchanged; the real start is `0x001CA8D8` (9.5), which passes |
+
+No cut seam (S1, S9, S12, S15, S16, S17, S20) loses a verdict; of the 78 candidates, 75 pass and 3 fail (`0x001635E0` window) with the
+filter in `final` (70 and 8 without), and the link order of the data cuts is in order for every set. No Strong window is demoted by this change;
+`0x001583F0` and S21 are the ones released.
+
+**`0x001C4F68`: keep Strong, cut-ready.** `.rodata` 0x00356940, `.sdata` 0x0035C3C8, `.data` 0x0034D008 pinned, no
+binding, no inversion in either view. The `.bss` failure of the whole-file view (21 left / 2 right labels, 2 inversions)
+is **one label**: `D_01B7BA00`, used only by `func_001640C8` in the left file. It lies above the libraries' `.bss`
+run (0x01B73EC0-0x01B7B8E0), in the 9.5 COMMON tail, so it is not any game file's own run: an extern use of a global,
+like the far labels. With the tail left out (`--cuts-no-common`) `.bss` is clean (20 / 2 / 0 / 0) and pinned at
+0x01B31A00 (`D_01B31A00`, used from `func_001C5F40`); the local view is clean either way. Unconfirmed: that the tail
+labels are COMMON (9.5). The file's neighbours are as in 9.5 (S21 and the save / load stretch from 0x001C4DF8).
+
+**`0x001CB528`: keep Strong, cut with S22.** The "`.bss` cut lies below S22's" in 9.4 / 9.7 came from the order check
+running in command-line order (the starts were listed `001CB528` before `001CA8D8`). By address S22's `.bss` cut range
+is 0x01B325D1-0x01B72600 (`D_01B72600`, used by `func_001CAA58` to `func_001CB500`, all left of the seam) and
+`0x001CB528`'s is 0x01B72701-0x01B73440 (`D_01B72700`, used by `func_001CB268`, then `D_01B73440`, used by
+`func_001CB528`): in order, one label each, no binding or inversion (`.sbss`: one right-hand label, none left). Same
+caveat as S22: `.bss` is its only data evidence, and `D_01B73440` could be a global defined earlier (Unconfirmed);
+5/5 stable. No window lies in a shared-string cluster.
+
+**Not verified:** nothing was cut or built, so no data split was tested; the COMMON-tail reading; the five windows after
+S20 stay uncut by LuciDin's ruling (ER-052: wait for matching), and the filter changes nothing about which candidate opens
+each. The scan's own K = 40 grades were not re-run (they did not change: `final.csv` still 44 / 17 / 27).

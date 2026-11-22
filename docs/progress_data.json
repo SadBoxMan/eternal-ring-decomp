@@ -776,11 +776,11 @@
     {
       "code": "ER-053",
       "title": "Seam tool round 2 (far filter in --cuts, two verdicts)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Sonnet, medium",
       "waits_on": "nothing (tools/seams.py only)",
-      "notes": ""
+      "notes": "Seam tool round 2: --cuts far filter, final/solo cut sets, --cuts-no-common; 0x001C4F68 keep (bss fail = COMMON-tail label D_01B7BA00), 0x001CB528 keep (order claim was a tool artefact); docs/game_seams.md 9.9"
     },
     {
       "code": "ER-054",

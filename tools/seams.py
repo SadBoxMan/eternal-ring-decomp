@@ -55,6 +55,9 @@ restores ER-017 / ER-022's settings (their results reproduce exactly). Also: --r
 rate on the census seams), --validate-asm (references against spimdisasm's asm), --stability (final grades over the
 5 variants, final.csv), --jt (jump-table alignment constraints, jt.csv), --icalls (indirect call edges; off),
 --no-calls, --probe ADDR (referencers of data labels), --syms PATH (symbols ELF copy).
+ER-053 (docs/game_seams.md 9.9): --cuts applies the far-label filter (--cuts-far, default 1), new cut sets final / solo
+(the Strong windows of final.csv, all candidates), --cuts-no-common (COMMON-tail .bss labels out), starts tested in
+address order, offending labels printed (inv-L>).
 """
 from __future__ import annotations
 
@@ -646,7 +649,27 @@ def stability(args, rows, windows):
     print("final grades (stability over %d variants): %s" % (len(VARIANTS), dict(cnt)))
 
 
-def data_cuts(rows, refs, span_ok, dsyms, out_csv, cut_set="all", extra=()):
+COMMON_LO = 0x01B7B900   # first .bss label of the COMMON tail (docs/game_seams.md 9.5; Unconfirmed that they are COMMON)
+
+
+def far_keep(U, s):
+    """ER-053: the labels of the address cluster around the median of the sorted list U (consecutive gaps up to
+    FAR_GAP[s]); the same rule the boundary scan uses (ER-023), so --cuts and the scan agree. Returns (kept set, n
+    dropped)."""
+    if not FAR_GAP or not U:
+        return set(U), 0
+    m = len(U) // 2
+    lo_k, hi_k = m, m
+    g_ = FAR_GAP[s]
+    while lo_k > 0 and U[lo_k] - U[lo_k - 1] <= g_:
+        lo_k -= 1
+    while hi_k + 1 < len(U) and U[hi_k + 1] - U[hi_k] <= g_:
+        hi_k += 1
+    return set(U[lo_k:hi_k + 1]), len(U) - (hi_k - lo_k + 1)
+
+
+def data_cuts(rows, refs, span_ok, dsyms, out_csv, cut_set="all", extra=(), cut_far=True, final_csv=None,
+              no_common=False):
     """ER-022: for each Strong window and each candidate start in it, put the text cuts at the census seams plus
     every Strong seam (the others at their window's first candidate) and check, per data section, that the labels
     used by the files on either side of the cut are in link order: every label of the file before lies below every
@@ -671,6 +694,8 @@ def data_cuts(rows, refs, span_ok, dsyms, out_csv, cut_set="all", extra=()):
                 a0, a1 = (lo, hi) if mode == "full" else (max(lo, c - STEP_K), min(hi, c + STEP_K))
                 L, R, both = [], [], []
                 for lab in span_ok[s]:
+                    if no_common and s == ".bss" and lab >= COMMON_LO:
+                        continue        # ER-053: the COMMON tail is global, its order is not tied to files
                     fs = refs[s][lab]
                     inl = any(a0 <= i < c for i in fs)
                     inr = any(c <= i < a1 for i in fs)
@@ -682,10 +707,19 @@ def data_cuts(rows, refs, span_ok, dsyms, out_csv, cut_set="all", extra=()):
                         R.append(lab)
                 L.sort()
                 R.sort()
+                nfar = 0
+                if cut_far and FAR_GAP:
+                    # ER-053: the scan's far-label filter: only the address cluster around the median of all the labels
+                    # used by the two files counts (a label far from both files' data runs is a global of another file)
+                    keep_, nfar = far_keep(sorted(L + R + both), s)
+                    L = [x for x in L if x in keep_]
+                    R = [x for x in R if x in keep_]
+                    both = [x for x in both if x in keep_]
                 inv = sum(bisect.bisect_left(R, x) for x in L)   # pairs (l, r) with l > r
                 ok = not both and inv == 0
-                rec = {"nL": len(L), "nR": len(R), "both": len(both), "inv": inv, "ok": ok,
-                       "maxL": L[-1] if L else None, "minR": R[0] if R else None, "ex_both": both[:3]}
+                rec = {"nL": len(L), "nR": len(R), "both": len(both), "inv": inv, "ok": ok, "far": nfar,
+                       "maxL": L[-1] if L else None, "minR": R[0] if R else None, "ex_both": both[:3],
+                       "ex_inv": [x for x in L if R and x > R[0]][-4:], "minR_": R[0] if R else None}
                 if L and R and L[-1] < R[0]:
                     e = L[-1] + max(dsize.get(L[-1], 1), 1)
                     rec["cut_lo"] = e
@@ -702,6 +736,25 @@ def data_cuts(rows, refs, span_ok, dsyms, out_csv, cut_set="all", extra=()):
     elif cut_set == "fixed":
         tested = [(n_, w) for n_, w in enumerate(STRONG, 1) if w[0] == w[1]]
         base = sorted({idx[a] for a in CENSUS_CUTS} | {idx[w[0]] for _, w in tested})
+    elif cut_set == "final":
+        # ER-053: every Strong window of the final grades (<out>/final.csv from --stability), all candidate starts
+        wins = []
+        with open(final_csv) as fh:
+            for rr in csv.DictReader(fh):
+                if rr["final_grade"] == "Strong":
+                    wins.append((int(rr["first_candidate_start"], 16), int(rr["last_candidate_start"], 16)))
+        tested = [("W%08X" % w[0], w) for w in wins]
+        base = sorted({idx[a] for a in CENSUS_CUTS} | {idx[a] for _, a in CUT_STARTS} | {idx[w[0]] for w in wins})
+    elif cut_set == "solo":
+        # ER-053: every Strong window of final.csv, each candidate tested alone on top of the 7 cut seams and the
+        # census seams (the strictest view: the neighbouring files are the long uncut stretches; ER-023 / 9.7's view)
+        wins = []
+        with open(final_csv) as fh:
+            for rr in csv.DictReader(fh):
+                if rr["final_grade"] == "Strong":
+                    wins.append((int(rr["first_candidate_start"], 16), int(rr["last_candidate_start"], 16)))
+        tested = [("W%08X" % w[0], w) for w in wins]
+        base = sorted({idx[a] for a in CENSUS_CUTS} | {idx[a] for _, a in CUT_STARTS})
     elif cut_set == "list":
         # ER-023: the given starts on top of the cut seams (each tested with the others in place)
         tested = [("X%08X" % a, (a, a)) for a in extra]
@@ -709,6 +762,7 @@ def data_cuts(rows, refs, span_ok, dsyms, out_csv, cut_set="all", extra=()):
     else:
         tested = [(n_, (a, a)) for n_, a in CUT_STARTS]
         base = sorted({idx[a] for a in CENSUS_CUTS} | {idx[a] for _, a in CUT_STARTS})
+    tested = sorted(tested, key=lambda t: t[1][0])      # ER-053: link order = address order (--cut-starts may be unsorted)
     out = []
     for n_, (f, l_) in tested:
         cands = [i for i in range(idx[f], idx[l_] + 1)]
@@ -738,7 +792,7 @@ def data_cuts(rows, refs, span_ok, dsyms, out_csv, cut_set="all", extra=()):
             w.writerow(row)
     # link order: the data cut ranges of consecutive tested seams must not overlap backwards (per section)
     order_bad = []
-    for s in secs:
+    for s in (secs if cut_set != "solo" else ()):       # solo: each candidate has its own base, no common order
         prev = None
         for o in out:
             rf = o["res"][(s, "full")]
@@ -762,6 +816,9 @@ def data_cuts(rows, refs, span_ok, dsyms, out_csv, cut_set="all", extra=()):
                 t += " [local %08X..%08X n=%d]" % (rl["cut_lo"], rl["cut_hi"], rl["ncand"])
             if rf["both"]:
                 t += " both:" + ",".join("%08X" % x for x in rf["ex_both"])
+            if rf["inv"]:
+                # ER-053: the L labels above the lowest R label (the offending side of the inversions)
+                t += " inv-L>%08X:" % rf["minR_"] + ",".join("%08X" % x for x in rf["ex_inv"])
             bits.append(t)
         print("%-4s %08X (%d) prim=%s bss=%s  %s" % (o["seam"], o["start"], o["ncands"],
                                                     "OK" if o["prim_ok"] else "NO", "ok" if o["sec_ok"] else "no",
@@ -778,8 +835,12 @@ def main() -> int:
     ap.add_argument("--cuts", action="store_true", help="ER-022: data cut per section at the Strong windows")
     ap.add_argument("--cuts-out", default=None, help="CSV for --cuts (default <out>/cuts_<cut-set>.csv)")
     ap.add_argument("--cut-starts", nargs="*", default=(), help="ER-023: starts for --cut-set list (hex)")
-    ap.add_argument("--cut-set", default="all", choices=("all", "fixed", "cut", "list"),
+    ap.add_argument("--cut-set", default="all", choices=("all", "fixed", "cut", "list", "final", "solo"),
                     help="text cuts assumed by --cuts: all Strong windows, the 1-function ones, or CUT_STARTS")
+    ap.add_argument("--cuts-far", type=int, default=1, choices=(0, 1),
+                    help="ER-053: apply the far-label filter in --cuts (default 1; needs --far; 0 = ER-022 / ER-023 view)")
+    ap.add_argument("--cuts-no-common", action="store_true",
+                    help="ER-053: --cuts leaves the .bss labels from 0x01B7B900 (the COMMON tail, 9.5) out")
     ap.add_argument("--region", default="game", choices=("game", "all"),
                     help="ER-023: functions scanned: the game region (default) or all of .text after crt0 (SDK too)")
     ap.add_argument("--tracker", default="cfb", choices=("linear", "cf", "cfb"),
@@ -1236,7 +1297,8 @@ def main() -> int:
         print("   %08X %s %r" % (a_, s_, t[:80]))
     if args.cuts:
         data_cuts(rows, refs, span_ok, dsyms, args.cuts_out or os.path.join(OUT_DIR, "cuts_%s.csv" % args.cut_set),
-                  args.cut_set, [int(x, 16) for x in args.cut_starts])
+                  args.cut_set, [int(x, 16) for x in args.cut_starts], bool(args.cuts_far),
+                  os.path.join(OUT_DIR, "final.csv"), args.cuts_no_common)
     if args.md:
         print()
         print("| # | First function of the new file lies in | Funcs | .rodata block | Pad | Kind | Grade | "
