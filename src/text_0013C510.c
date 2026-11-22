@@ -33,7 +33,7 @@ extern int func_00130780(char *);
 extern s32 func_0012FC38(void **, s32, s32, s32);
 
 /* ER-072 / ER-078: jump table (5 entries) by hand from the m2c draft; the explicit `return;` at the end gives the
-   game's sibling `j func_0012F9C0` (recipes 2.18). A state handler (a reading); state 2 switches on
+   game's sibling `j func_0012F9C0` (recipes 2.22). A state handler (a reading); state 2 switches on
    func_00130780's result. Names, types and offsets Unconfirmed. */
 void func_0013C750(void **arg0, char *arg1) {
     char *p = (char *)arg0;

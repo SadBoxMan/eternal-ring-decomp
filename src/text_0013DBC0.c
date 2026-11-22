@@ -419,7 +419,7 @@ extern f32 D_0035BB68;
 extern f32 D_0035BB6C;
 
 /* ER-072 / ER-087: jump table (5 entries) by hand from the m2c draft; case 0 takes -D_0035BB68 into a local first
-   (recipes 2.18). A state handler (a reading) on the state at +0x6E: copies
+   (recipes 2.22). A state handler (a reading) on the state at +0x6E: copies
    a position from arg1's +0xE0 object, turns it (func_001C9F60 / func_001C9FE8) while +0x30 decays, then raises +0x30
    to at most 50 (degrees) for func_0013FF70. Names, types and offsets Unconfirmed. */
 void func_0013FCF8(char *arg0, char *arg1) {

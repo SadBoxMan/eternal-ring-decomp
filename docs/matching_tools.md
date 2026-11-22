@@ -411,6 +411,11 @@ hand versions are in recipes 2.13.
 `cmpfunc` limit seen again: a `%lo` of a function address (`.text`-relative) whose `%hi` sits in another block is
 "no HI16 before it" (8 functions here); all proven by `make regress`.
 
+**Rerun (ER-078, Sun 22 Nov 2026; ee-as r3, `-fno-edge-lcm`).** `--plain --tag ER-078` over the same five files (148 asm
+functions left, 141 harvested signatures, 145 s at `--par 4`, label `er078`): 141 compile, 3 masked MATCH, all placed
+(func_00138BE0 after aligning the file's extern, func_001390F8, func_0013CA60 by the pass-through retry); 7 same-size
+DIFFs of 1-2 words, all ER-072's near misses (`docs/decomp_recipes.md` 2.22 for the hand work).
+
 ### 6.5 `text_00150878` (ER-060 part 1, Sun 22 Nov 2026)
 
 `--plain` over the whole file (1,448 `INCLUDE_ASM` functions; default `harvest` context, 1,628 harvested

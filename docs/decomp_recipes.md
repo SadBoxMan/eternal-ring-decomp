@@ -358,9 +358,9 @@ MATCHes of `tools/m2c_bulk.py --plain`, 10 more after aligning declarations, `fu
 
 | Function | Cause |
 |---|---|
-| `func_0013C750` | the last tail call (`j` in the game, `jal` ours, above) + register choice in case 0 |
-| `func_0013D088` | one delay slot: the game's `beqz n, return` takes the epilogue's `ld $ra`, ours fills from the fall-through; then everything shifts (3 shapes) |
-| `func_0013FCF8` | GCSE hoists the `u16` reload of `+0x6E` above the table (2.12's toolchain difference; with `-fno-gcse`, diagnostic only, only one block's store order is left); its double `D_00354968` has `.align 3` now |
+| ~~`func_0013C750`~~ | **placed by ER-078 (2.22: an explicit `return;` at the end)**; was: the last tail call (`j` in the game, `jal` ours, above) + register choice in case 0 |
+| `func_0013D088` | (ER-078: the slot comes from an `s32` return; now parked on aliasing, 2.22); was: one delay slot: the game's `beqz n, return` takes the epilogue's `ld $ra`, ours fills from the fall-through; then everything shifts (3 shapes) |
+| ~~`func_0013FCF8`~~ | **placed by ER-087 (2.22)**; was: GCSE hoists the `u16` reload of `+0x6E` above the table (2.12's toolchain difference; with `-fno-gcse`, diagnostic only, only one block's store order is left); its double `D_00354968` has `.align 3` now |
 | `func_0013AA28`, `func_0013BD90`, `func_0013DF90` | the order-check blocker is gone (ER-077, ruling 3.10); drafted by hand in ER-077 and parked on GCSE (2.14) |
 
 ### 2.14 Anonymous double constants (ER-077, Sun 22 Nov 2026; Confirmed by `make regress`, commits `2ed4058`, `78be147`)
@@ -393,7 +393,7 @@ constant anonymously in the same place. Placed: `func_001371C0` (`D_00354718`, E
 |---|---|
 | `func_0013AA28` | GCSE (2.12): `a1 + 0x90` kept in a saved register across the switch because case 6 computes it too (one extra `sd` / `ld`); with `-fno-gcse` (diagnostic) 16 words left. Placing it also needs `_anon_takeovers` to accept `D_00354800`'s 8 zero bytes after the double (16-byte symbol; tried, reverted as unproven) |
 | `func_0013BD90` | GCSE (2.12): case 1 re-reads `*(u16 *)(E0 + 0xA8C)` after the `if` in the game, ours reuses the value on one path; with `-fno-gcse` that matches, the cases' shared tail (`6C = 0; 6E = N`) is still cross-jumped with the wrong case |
-| `func_0013DF90` | GCSE (2.12): the game re-reads `*(s8 *)(a0 + 8)` after `if (s != a0[8]) { a0[8] = s; ... }`, ours reuses it; with `-fno-gcse` 86 words left (init-block registers, a `ld` schedule) |
+| ~~`func_0013DF90`~~ | **placed by ER-087 (2.22: -fno-edge-lcm, ee-as r4, init store order)**; was: GCSE (2.12): the game re-reads `*(s8 *)(a0 + 8)` after `if (s != a0[8]) { a0[8] = s; ... }`, ours reuses it; with `-fno-gcse` 86 words left (init-block registers, a `ld` schedule) |
 
 ### 2.15 Bulk placement in `text_00150878` (ER-060, Sun 22 Nov 2026; Confirmed by `make regress`, 230 functions)
 
@@ -600,6 +600,45 @@ Parked by ER-085 (one-line causes; C in the dispatcher's notes folder `ER-085_c/
 | func_00149EE8, func_0014A500 | twins, 8 bytes long: case 1's block layout (our `sh 0x6C` is cross-jumped into case 2's tail; func_00149EE8's `else` call becomes a sibling `j`); 24 store orders each; need `func_00131140` as `s32` and `func_0014A948(arg0)` |
 | func_0014D3F8 | 13 words: the angle constant chosen by the `200.0f` tests lands in `$f1`, the game's in `$f0` (shared with `-200.0f`); 3 branch shapes, 4 expression shapes, all 120 declaration orders |
 | func_001459A8, func_001485A8, func_00146598, func_0014A0B8, func_00146DF8, func_0014B528 | not attempted (jump tables / 2-11 instructions off / 57-182 words) |
+
+### 2.22 ER-031's five files, round 2 (ER-078 + ER-087, Sun 22 Nov 2026; Confirmed by `make regress`, 11 functions)
+
+11 placed in `text_001388E8` / `0013C510` / `0013DBC0`, 2,820 bytes, commits `01a795c`, `1351c2c`, `cd3a1ec`, `053ae27`,
+`b071688` (branch `claude/wizardly-allen-6330f3`; `make regress` (-j4) green after each and after merging main with
+ee-as r4): 3 plain MATCHes of `m2c_bulk.py --plain --tag ER-078` over the five files (148 asm functions, label
+`er078`, 3 masked MATCH), 5 of ER-072's 9 near misses, and the jump-table functions func_0013C750, func_0013FCF8,
+func_0013DF90 (6, 7 and 8 of the 11). Jump tables still open: func_0013AA28, func_0013BD90, func_0013D088.
+
+| Lesson | Proved by |
+|---|---|
+| **An explicit `return;` as a void function's last statement gives a sibling `j` for the call before it.** func_0013C750's last case ends `if (x == 0x14) { func_0012F9C0(arg0, 4); return; } } break; }`; the game has the epilogue and `j func_0012F9C0`, then a second epilogue for the `break` paths. Without a statement after the `switch` the call block falls into the epilogue (`jal` + one shared epilogue, 3 words short); with `return;` after the `switch` gcc keeps a jump to the return label after the call and makes it a sibling call. ER-072's probe reading (2.13: "needs a jump to the epilogue after the call") is this | func_0013C750 |
+| **A negated global taken into a local first** (`n = -D_0035BB68;` before a run of copies, `... = n;` last) gives the game's early `lwc1` / `neg.s` with the constant kept in its own FPR while `$f0` / `$f1` carry the copies; then the five stores in game order came from a search over all 120 orders (2.20). The same search without the local (ER-069, 120 orders) had not matched | func_0013FCF8 (case 0) |
+| **A value-returning function whose `$v0` is live at the epilogue** fills a `beqz`'s slot from the epilogue (`ld $ra`) where a void one fills it from the fall-through: func_0013D088 is `s32` (the file's prototype already said so) and has no `return` value (ruling 3.4's shape); 4 bytes short as `void`, right size as `s32` | func_0013D088 (masked compare only, parked below) |
+| **A callee that returns `s32` stops a cross-jump** (2.15, 2.20 again): with `void func_0013C468` the game's `li $v1, 5; sh $0, 0x6C; sh $v1, 0x6E` tail became `$v0` in ours and was merged with the other cases' `6C = 0; 6E = N` tails; `s32` gives `$v1` and the game's layout | func_0013BD90 (masked compare of the tails, parked below) |
+| **m2c drops a constant in a tail `j`'s slot** (2.20) also in two-instruction wrappers: `j func_0012FB48; addiu $a1, 1` is `func_0012FB48(arg0, 1)` with the pass-through `arg0` (2.10); the callee's file prototype was `(void)` and the already placed clone `func_0013F280` passes both on (2.13) | func_0013E758, func_001449D0, func_0013F258 |
+
+**Seen in probes and diagnostics only (Unconfirmed; evidence in the dispatcher's notes `ER-078_087_c/README.md`):**
+
+- **Struct field access lets a global scalar's load move above a store through the struct.** A scratch probe with the
+  build's flags: `*(float *)(a0 + 0x30) = ...; ... G ...` keeps `G`'s load after the store; the same with `S *a0;
+  a0->x30` loads `G` first (gcc 2.95's fixed-scalar / varying-struct rule in `alias.c`; reading). This is likely why
+  main's 2.21 `extern const float` works, and suggests the original source used struct types.
+- **Pointer arguments scheduled as if they did not alias.** func_0013D088's last 4-12 words (an `arg1 + 0xA4` float
+  against `arg0` floats) match only with `-fargument-noalias(-global)`; func_0013F288 matches and func_0013AA28 goes
+  9 -> 5 words with `-fstrict-aliasing`, which ruling 3.6's func_0013DBC0 forbids. The whole ELF built with
+  `-fargument-noalias` is 8 bytes longer (first moved function func_00144308; not traced). Diagnostics only, nothing
+  adopted.
+
+**Parked (one-line causes; C in the dispatcher's notes folder `ER-078_087_c/`):**
+
+| Function | Cause |
+|---|---|
+| func_0013D088 | right size; 12 words, all `arg1 + 0xA4` accesses ordered against `arg0`'s fields (above); `extern const` floats fixed the `$gp` loads |
+| func_0013AA28 | 9 words: case 2's `+0x30 + D_0035BA94` sum register (`$f2` in the game), two type-based reorders (above); `const` only for D_0035BA9C / D_0035BAA0 (all five const is worse); still needs `_anon_takeovers` widened for `D_00354800` (16 bytes) |
+| func_0013BD90 | tails fixed (`s32 func_0013C468`); about 150 words: `p` in `$v1` (game `$v0`), case 2's vector setup and `cvt` order, case 5's `sqrtf` schedule, 8 bytes short (separate `p` locals: 125 words, 4 short) |
+| func_001431A0 | 2 words: the tail's `daddu $a0, $s1` before `sw $0, 0x2C($s1)` in the game (8 shapes); block 1 needs `func_00131000` as `s32` (2.18) |
+| func_0013F288 | 2 words: `addiu $v0, 0xA0` before `lw 0xE4` in the game (7 shapes; matches with the `-fstrict-aliasing` diagnostic) |
+| func_00145D08 | not re-tried: the open shape of 2.17 / 2.18 (loops on a field of a loaded pointer are not promoted in the game) |
 
 ## 3. Rulings (LuciDin)
 
