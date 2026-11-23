@@ -1553,7 +1553,7 @@
       "status": "Queued",
       "track": "port",
       "model": "Opus xhigh/high",
-      "waits_on": "",
+      "waits_on": "ER-142",
       "notes": ""
     },
     {
@@ -1580,7 +1580,7 @@
       "status": "Queued",
       "track": "port",
       "model": "Opus, medium",
-      "waits_on": "",
+      "waits_on": "ER-037",
       "notes": ""
     },
     {
