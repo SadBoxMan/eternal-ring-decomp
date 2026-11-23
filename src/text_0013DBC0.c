@@ -525,15 +525,47 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013FAC8);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013FBB8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013FBF8);
+extern s32 func_0012B890(void *, s32, s32, s16, s32, s32, f32);
+extern s32 func_0014FF58(void **arg0, s32 arg1);
+extern void func_00140250(void *, void *);
+extern void func_0012DC10(s32, s32, s32, s32, void *);
+void func_0013F580(void);
+extern s32 D_0032FEA0[];
+extern f32 D_0035BB60;
+extern f32 D_0035BB64;
+
+/* ER-165: from the m2c draft by hand, stores in offset order; the 0x20-byte local is one f32 [8] (two vectors);
+   names, types and offsets are Unconfirmed readings. */
+void func_0013FBF8(void **arg0, void *arg1) {
+    f32 s[8];
+    f32 t;
+    char *p;
+
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        *(f32 *)((char *)arg0 + 0x94) = -D_0035BB60;
+    }
+    func_0012B890(arg0, 1, 3, *(s16 *)((char *)arg0 + 0x6C), 4, 0, 0.4f);
+    if (func_0014FF58(arg0, 3) != 0) {
+        func_00131000((char *)arg0, func_0013F580);
+    }
+    func_001C9B18(s, (void *)(*(s32 *)((char *)arg1 + 0xE0) + 0xE90));
+    t = *(f32 *)((char *)arg0 + 0x94);
+    s[1] += t;
+    *(f32 *)((char *)arg0 + 0x94) = t * D_0035BB64;
+    func_00140250(arg1, s);
+    p = *(char **)((char *)arg0 + 0x130);
+    s[4] = *(f32 *)p;
+    s[5] = s[1] - 100.0f;
+    s[6] = *(f32 *)(p + 8);
+    s[7] = 0.0f;
+    func_0012DC10((s32)arg1, 0x17, 0x16, (s32)&s[4], D_0032FEA0);
+}
 
 INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354938);
 INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354940);
 extern void func_001C9F60(void *, void *, void *);
 extern void func_001C9FE8(void *, void *, void *);
-extern void func_00140250(void *, void *);
 extern s32 func_0012B540(void *, s32, s8, s32);
-extern s32 func_0012B890(void *, s32, s32, s16, s32, s32, f32);
 extern s32 func_0013FF70(void *, void *, f32);
 extern f32 D_0035BB68;
 extern f32 D_0035BB6C;
@@ -1373,7 +1405,6 @@ void func_001449D0(void *arg0) {
     func_0012FB48(arg0, 1);
 }
 
-extern s32 func_0014FF58(void **arg0, s32 arg1);
 extern f32 func_00144D18(void *arg0, s32 arg1);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
