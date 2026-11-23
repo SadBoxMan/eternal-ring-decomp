@@ -31,6 +31,9 @@ For each function (named, read from a list file, or every INCLUDE_ASM function o
    `p[N] = x` and per field-type sub-run, permuted orders inside blocks too (--store-limit), ruling 3.14 also with
    the first locals, a register added to a typed pointer written in bytes (--no-reg-bytes), and a retry with callees
    widened to take the argument registers the function passes on untouched (--no-untouched)
+4e. ER-172 narrow parameters: a parameter the game narrows at entry (`andi $d, $aN, 0xFFFF` / 0xFF, or an `sll` +
+   `sra` / `srl` pair by 16 / 24) typed u16 / u8 / s16 / s8 and m2c's masks of it dropped, then the store orders of
+   that form; kept only on a MATCH (--no-narrow)
 (ER-130: src/ declarations whose type is a file-local typedef are left out of m2c's context, which otherwise fails
    to parse; --plain uses, adopts or leaves out the target file's own extern for the function. ER-114: --plain
    writes the GOFAST soft-double calls m2c names (fptodp, dpadd, ...) as plain double C, recipes 2.11. ER-160: --plain
@@ -1427,6 +1430,106 @@ def packer_variant(c_text: str, name: str) -> str | None:
     return c_text[:start] + body
 
 
+# --- ER-172: narrow parameters ---------------------------------------------------------------------------------
+
+NARROW_VARIANT = True       # --no-narrow turns the ER-172 variant off
+NARROW_TYPES = {("andi", 0xFFFF): "u16", ("andi", 0xFF): "u8", ("sra", 16): "s16", ("srl", 16): "u16",
+                ("sra", 24): "s8", ("srl", 24): "u8"}
+WIDE_INT_TYPES = {"s32", "u32", "int", "unsigned int", "signed int", "M2C_UNK", "M2C_UNK32", "s16", "u16", "s8",
+                  "u8", "s64", "u64", "long", "unsigned long"}
+
+
+def _imm(s: str) -> int | None:
+    try:
+        return int(s, 0)
+    except ValueError:
+        return None
+
+
+def game_entry_narrows(name: str) -> dict[int, str]:
+    """ER-172 (recipes 2.18: a `u16` parameter is narrowed once on entry): {argument register: narrow type} for each
+    argument register ($a0-$t3) the game's function narrows before writing it and before its first jump or branch:
+    `andi $d, $aN, 0xFFFF` -> u16 (0xFF -> u8); `sll $d, $aN, 16` then `sra` / `srl $e, $d, 16` -> s16 / u16 (24:
+    s8 / u8). The first narrowing of each register counts."""
+    out: dict[int, str] = {}
+    written: set[int] = set()
+    shifted: dict[int, tuple[int, int]] = {}        # sll destination -> (argument register, shift)
+    for op, ops in asm_insns(name):
+        if op in ("j", "jal", "jr", "jalr") or BRANCH_OP_RE.match(op):
+            break
+        w, _r = reg_effects(op, ops)
+        regs = [GPR_RE.fullmatch(o) for o in ops]
+        new_shift = None
+        if len(ops) == 3 and regs[0] and regs[1]:
+            d, s, k = int(regs[0][1]), int(regs[1][1]), _imm(ops[2])
+            if op == "andi" and 4 <= s <= 11 and s not in written and (op, k) in NARROW_TYPES:
+                out.setdefault(s, NARROW_TYPES[(op, k)])
+            elif op == "sll" and 4 <= s <= 11 and s not in written and k in (16, 24):
+                new_shift = (d, (s, k))
+            elif op in ("sra", "srl") and s in shifted and shifted[s][1] == k:
+                out.setdefault(shifted[s][0], NARROW_TYPES[(op, k)])
+        for r in w:
+            shifted.pop(r, None)
+        if new_shift:
+            shifted[new_shift[0]] = new_shift[1]
+        written |= w
+    return out
+
+
+def _narrow_forms(v: str, t: str) -> list[str]:
+    """Regexes for the expressions that narrow `v` to type `t` as m2c writes them (removed once `v` has type t)."""
+    bits = {"u16": 16, "s16": 16, "u8": 24, "s8": 24}[t]
+    sh = rf"(?:0x{bits:X}|{bits})"
+    # the shift pair: unsigned (srl) only with an unsigned cast; signed (sra) with a signed cast or none (v is s32)
+    cast = r"\(\s*(?:u32|unsigned int)\s*\)\s*" if t[0] == "u" else r"(?:\(\s*(?:s32|int)\s*\)\s*)?"
+    one = rf"{cast}\(\s*{v}\s*<<\s*{sh}\s*\)\s*>>\s*{sh}(?!\w)"
+    # a bare form only as a whole operand (call argument, right side, return value): `a + v & 0xFFFF` is not v's
+    whole = (r"(?:(?<=[(,=])|(?<=\breturn))(\s*)", r"(?=\s*[),;])")      # group 1: the space kept
+    forms = [rf"\(\s*{one}\s*\)", whole[0] + one + whole[1], rf"\(\s*{t}\s*\)\s*\(\s*{v}\s*\)",
+             rf"\(\s*{t}\s*\)\s*{v}\b"]
+    if t[0] == "u":
+        mask = "0xFFFF" if t == "u16" else "0xFF"
+        forms = [rf"\(\s*{v}\s*&\s*{mask}\s*\)", rf"{whole[0]}\b{v}\s*&\s*{mask}{whole[1]}"] + forms
+    return forms
+
+
+def narrow_variant(c_text: str, name: str) -> tuple[str, list[str]] | None:
+    """ER-172 (recipes 2.18; func_0012FCA0, func_0012FD70, func_0012FE48 in matching_tools 6.18): where the game
+    narrows an argument register at entry, the draft's parameter `argN` of a wider (or other) integer type gets that
+    type (u16 / s16 / u8 / s8) and the body's narrowings of it as m2c writes them (`argN & 0xFFFF`, `(s16) argN`, the
+    shift pair) become plain `argN`. m2c types the parameter `s32` and writes the mask at each use, so gcc masks at
+    the use instead of once at entry. Returns (text, ["arg1 u16", ...]) or None when nothing changes."""
+    narrows = game_entry_narrows(name)
+    if not narrows:
+        return None
+    m = SIG_RE.search(c_text)
+    while m and m[2] != name:
+        m = SIG_RE.search(c_text, m.end())
+    if not m:
+        return None
+    parts = _split_top(m[3]) if m[3].strip() not in ("", "void") else []
+    new_parts, used = [], []
+    swaps: list[tuple[str, str]] = []
+    for p in parts:
+        pm = re.fullmatch(r"\s*(.*?)\s*\b(arg([0-7]))\s*", p)
+        t = narrows.get(int(pm[3]) + 4) if pm else None
+        if t and " ".join(pm[1].split()) in WIDE_INT_TYPES and " ".join(pm[1].split()) != t:
+            new_parts.append(f"{t} {pm[2]}")
+            used.append(f"{pm[2]} {t}")
+            swaps.append((pm[2], t))
+        else:
+            new_parts.append(p.strip())
+    if not swaps:
+        return None
+    body = c_text[m.end():]
+    for v, t in swaps:
+        for form in _narrow_forms(v, t):
+            body = re.sub(form, lambda mo, v=v: ((mo[1] or "") if mo.re.groups else "") + v, body)
+    ret = " ".join(m[1].split())
+    head = (ret + name if ret.endswith("*") else f"{ret} {name}") + f"({', '.join(new_parts)}) {{"
+    return c_text[:m.start()] + head + body, used
+
+
 def store_variants(c_text: str):
     """Offset orders first (ER-124: at most 3 compiles), then the permutations of store_orders. Yields (note, text)."""
     if STORE_SORT:
@@ -1522,6 +1625,31 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
                 at.notes.append("OR terms in parameter order (packer)")
             else:
                 at.notes.append("packer order tried, no closer")
+    # ER-172: parameters the game narrows at entry typed u16 / s16 / u8 / s8 (then the store orders of that form);
+    # kept only on a MATCH, else the variants below start from the draft as it was
+    if not res.match and NARROW_VARIANT:
+        nv = narrow_variant(c_text, name)
+        if nv:
+            alt, used = nv
+            r0 = compile_compare(name, addr, alt, c_path.with_suffix(".narrow.c"), out, game)[0]
+            tries = [(r0, alt, "")]
+            if r0 and not r0.match and r0.game_size == r0.our_size:
+                for k, (note, alt2) in enumerate(store_variants(alt)):
+                    if k >= STORE_LIMIT:
+                        break
+                    r3 = compile_compare(name, addr, alt2, c_path.with_suffix(f".narrow.ord{k}.c"), out, game)[0]
+                    tries.append((r3, alt2, note))
+                    if r3 and r3.match:
+                        break
+            hit = next(((r, t, nt) for r, t, nt in tries if r and r.match), None)
+            if hit:
+                res, c_text = hit[0], hit[1]
+                at.files["c"] = c_text
+                at.notes.append("narrow parameter: " + ", ".join(used) + (f"; {hit[2]}" if hit[2] else ""))
+            else:
+                best = min((r for r, _t, _n in tries if r), default=None, key=_off)
+                at.notes.append("narrow parameter tried (" + ", ".join(used) + "), no match" + (
+                    f" (best: {diff_class(best)}, {sum(not w.ok for w in best.words)} words)" if best else ""))
     if not res.match and res.game_size == res.our_size:
         for k, (note, alt) in enumerate(store_variants(c_text)):
             res2, _msg2 = compile_compare(name, addr, alt, c_path.with_suffix(f".ord{k}.c"), out, game)
@@ -2526,6 +2654,9 @@ def main() -> int:
                          "saved-register slot; ER-147)")
     ap.add_argument("--no-packer", action="store_true",
                     help="skip the packer variant (a run of 3+ ORed terms flattened into parameter order; ER-151)")
+    ap.add_argument("--no-narrow", action="store_true",
+                    help="skip the narrow-parameter variant (a parameter the game narrows at entry, andi 0xFFFF / "
+                         "0xFF or an sll + sra / srl pair, typed u16 / u8 / s16 / s8; ER-172)")
     ap.add_argument("--no-untouched", action="store_true",
                     help="skip the untouched-args retry (callees widened to take the argument registers the function "
                          "passes on untouched; ER-147)")
@@ -2546,8 +2677,9 @@ def main() -> int:
     args = ap.parse_args()
     sys.stdout.reconfigure(line_buffering=True)
     global GCC_TIMEOUT, TAG, SLOT_MOVE, CONST_VARIANT, STORE_SORT, SIBCALL_314, FRAME_FIX, PACKER_VARIANT, \
-        UNTOUCHED_RETRY, REG_BYTES, STORE_LIMIT
+        UNTOUCHED_RETRY, REG_BYTES, STORE_LIMIT, NARROW_VARIANT
     FRAME_FIX = not args.no_frame
+    NARROW_VARIANT = not args.no_narrow
     PACKER_VARIANT = not args.no_packer
     UNTOUCHED_RETRY = not args.no_untouched
     REG_BYTES = not args.no_reg_bytes
