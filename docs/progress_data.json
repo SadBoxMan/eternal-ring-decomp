@@ -1508,7 +1508,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, high",
-      "waits_on": "ER-117",
+      "waits_on": "one writer for text_00150878.c",
       "notes": ""
     },
     {
@@ -1878,6 +1878,15 @@
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "ER-172",
+      "notes": ""
+    },
+    {
+      "code": "ER-176",
+      "title": "tools/ordersearch.py round 2 (variants, restarts)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
       "notes": ""
     }
   ]
