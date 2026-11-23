@@ -905,7 +905,21 @@ void func_00157708(void *arg0, s32 arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00157718);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00157760);
+extern s32 D_001FF340[];
+extern void func_00130180(void *, void *, void *);
+
+/* ER-113: by hand from the m2c draft (local sized from the game's frame; float stores in offset order); names and types Unconfirmed. */
+void func_00157760(void *arg0, void *arg1) {
+    s32 buf[4];
+
+    *(s16 *)((char *)arg0 + 0x64) = 0x7530;
+    func_001C9B18((s32)((char *)arg1 + 0x90), (char *)arg0 + 0x80);
+    *(f32 *)((char *)arg1 + 0xB0) = 1.0f;
+    *(f32 *)((char *)arg1 + 0xB4) = 1.0f;
+    *(f32 *)((char *)arg1 + 0xB8) = 1.0f;
+    *(s32 *)((char *)arg1 + 0xBC) = 0;
+    func_00130180(buf, arg1, D_001FF340);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001577C0);
 
@@ -1032,7 +1046,30 @@ void func_001585B8(void *arg0) {
     *(s32 *)((char *)arg0 + 0x30) = (s32) *(s32 *)((char *)arg0 + 0xC);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001585C8);
+extern float func_00111480(float *, char *);
+extern void func_001CA018(void *, void *, void *);
+extern void func_001D73D0(void *, void *);
+extern void func_001CA048(void *, void *, f32);
+
+/* ER-113: by hand from the m2c draft (local sized from the game's frame; one variable for the difference and the scaled result (recipes 2.28)); names and types Unconfirmed. */
+void func_001585C8(void *arg0) {
+    f32 v[4];
+    f32 r;
+    f32 d;
+    f32 w;
+    char *p = (char *)arg0 + 0x10;
+
+    r = func_00111480((float *)D_001FF340, p);
+    d = *(f32 *)((char *)arg0 + 8);
+    if (r < d) {
+        w = d - r;
+        w = (*(f32 *)((char *)arg0 + 4) * w) / d;
+        func_001CA018(v, D_001FF340, p);
+        func_001D73D0(v, v);
+        func_001CA048(v, v, w);
+        func_001C9FE8(D_001FF340, D_001FF340, v);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00158680);
 
@@ -1654,8 +1691,6 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001608F0);
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00160AE8);
 
 extern void func_001E9B0C(void *, s32, s32);
-extern float func_00111480(float *, char *);
-extern void func_001CA018(void *, void *, void *);
 extern s32 func_001E9C70();
 
 /* ER-096: by hand from ER-080's draft; the two sin products are separate temporaries (one shared temporary swaps
@@ -3017,7 +3052,6 @@ u16* func_0017D0B8(s32 *arg0) {
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D108);
 
 extern char D_0034C0D0[];
-extern s32 D_001FF340[];
 extern f32 D_001FF474[];
 
 /* ER-080: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
@@ -3026,7 +3060,22 @@ void func_0017D290(void) {
     *(f32 *)((char *)D_0034C0D0 + 4) = (f32) D_001FF474[0];
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D2D0);
+extern s32 *func_00111348(void *, void *, f32);
+
+/* ER-113: by hand from the m2c draft (local sized from the game's frame; the NULL arm first gives the game's bnel); names and types Unconfirmed. */
+void func_0017D2D0(void *arg0) {
+    s32 buf[4];
+    s32 *t;
+
+    if (((u32) (*(s32 *)((char *)arg0 + 0xC) & 0x300) >> 8) == 1) {
+        t = func_00111348((char *)arg0 + 0x50, buf, *(f32 *)(*(char **)((char *)arg0 + 0x74) + 0x14));
+        if (t == NULL) {
+            *(s32 **)((char *)arg0 + 0x20) = NULL;
+        } else {
+            *(s32 **)((char *)arg0 + 0x20) = t;
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D328);
 
@@ -3934,7 +3983,24 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00192D30);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00192E18);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00192EE8);
+extern float D_001F0380[];
+extern float D_001FF180[];
+extern void func_001C9F60(void *, void *, void *);
+extern void func_001D7450(void *, float *);
+
+/* ER-113: by hand from the m2c draft (a 16-float local sized from the game's frame; stores in offset order); names and types Unconfirmed. */
+void func_00192EE8(void *arg0, f32 arg1) {
+    f32 m[16];
+    s32 i;
+
+    i = (s32) ((arg1 * 4096.0f) / 6.2831855f) & 0xFFF;
+    *(f32 *)((char *)arg0 + 0) = D_001F0380[i + 0x400];
+    *(f32 *)((char *)arg0 + 4) = D_001F0380[i];
+    *(s32 *)((char *)arg0 + 8) = 0;
+    *(s32 *)((char *)arg0 + 0xC) = 0;
+    func_001D7450(m, D_001FF180);
+    func_001C9F60(arg0, m, arg0);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00192F88);
 
@@ -3946,7 +4012,19 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00193230);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00193300);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00193440);
+/* ER-113: by hand from the m2c draft (twin of func_00192EE8); names and types Unconfirmed. */
+void func_00193440(void *arg0, f32 arg1) {
+    f32 m[16];
+    s32 i;
+
+    i = (s32) ((arg1 * 4096.0f) / 6.2831855f) & 0xFFF;
+    *(f32 *)((char *)arg0 + 0) = D_001F0380[i + 0x400];
+    *(f32 *)((char *)arg0 + 4) = D_001F0380[i];
+    *(s32 *)((char *)arg0 + 8) = 0;
+    *(s32 *)((char *)arg0 + 0xC) = 0;
+    func_001D7450(m, D_001FF180);
+    func_001C9F60(arg0, m, arg0);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001934E0);
 
@@ -4589,7 +4667,6 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A4E18);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A4EA0);
 
-extern float D_001F0380[];
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_001A5360(void *arg0, void *arg1) {
     s32 temp_2;
@@ -7031,7 +7108,15 @@ s32 func_001C89D8(s32 arg0) {
     return func_001C8080(arg0 + 0x48);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C89F8);
+void func_001C8920(void *arg0, s32 *arg1, s32 *arg2, s32 *arg3, s32 *arg4);
+
+/* ER-113: by hand from the m2c draft (the game's 0x20 frame holds the four words at sp+0..0xC (m2c drafted sp[64])); names and types Unconfirmed. */
+s32 func_001C89F8(void *arg0) {
+    s32 v[4];
+
+    func_001C8920(arg0, &v[0], &v[1], &v[2], &v[3]);
+    return v[1] + v[3];
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C8A30);
 
@@ -7098,7 +7183,17 @@ s32 func_001C8D30(void) {
     return 1;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C8D58);
+extern void func_001C8460(void *, void *);
+
+/* ER-113: by hand from the m2c draft (local sized from the game's frame; the first parameter is unused (the game reads $a1)); names and types Unconfirmed. */
+s32 func_001C8D58(void *arg0, void *arg1) {
+    s64 buf[4];
+
+    func_001C8460(D_0034D0B0, buf);
+    *(s64 *)((char *)arg1 + 8) = buf[0];
+    *(s64 *)((char *)arg1 + 0x10) = buf[1];
+    return 1;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C8DA0);
 
