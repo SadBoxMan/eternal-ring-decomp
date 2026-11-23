@@ -1140,7 +1140,7 @@
       "track": "decomp",
       "model": "Opus, high (xhigh if it resists)",
       "waits_on": "text_001000C0 writer one at a time",
-      "notes": "Parked 23 Nov 2026 at 5 words, same size (1,654/1,659 words equal): a sched2 class/dependent-count tie (+0x16DC, 3 words) and a local-alloc v0/v1 choice (+0x195C/+0x1970, 2 words); no jump table (compare tree); draft in notes ER-093_c; recipes 2.37"
+      "notes": "Parked 23 Nov 2026 at 3 words, same size: a sched2 class/dependent-count tie (+0x16DC); the v0/v1 spot solved by func_00113238 returning s32 in the caller's view (needs a ruling to place); no jump table (compare tree); draft in notes ER-093_c; recipes 2.37"
     },
     {
       "code": "ER-094",

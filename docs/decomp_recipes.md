@@ -1135,7 +1135,7 @@ ER-163 (commit `39b555e`, branch `er-093-text-001000c0`, worktree `C:\rs\wt\er09
 func_001D03E0 `void` like `text_00150878.c` (2.35); its five calls in the file (func_00104300 and four in
 func_001124E8) compile to the same bytes. Confirmed by `make regress`.
 
-**func_00119FE0 (ER-093, 6,636 bytes, 1,659 instructions): parked at 5 words, same size as the game.** By hand from
+**func_00119FE0 (ER-093, 6,636 bytes, 1,659 instructions): parked at 3 words, same size as the game** (5 at first; the 2-word spot fell to 2.36's lesson, below). By hand from
 the asm with ER-073's m2c draft as a map (the draft did not compile: `M2C_BREAK` on the `% 5` divide check, and m2c
 cannot read `li.s`; `m2c_bulk.py` gets past both). It is func_0011BB90's big sibling (2.23): the same D_001FF390 view
 work area, counters and matrix tail, plus the DualShock 2 pressure bytes of the pad buffer D_001F6590 (8..0x13,
@@ -1161,7 +1161,7 @@ Seen only in masked compares (Unconfirmed until a placement proves them):
 | **Statement order inside `switch` cases** decides the schedule of independent loads: one order shared by all four cases (`pA8up, pA8dn, pB4dn, pB4up, pA0dn, pB0up, pA0up, pB0dn`) found by a hill-climb from m2c's order plus one swap (`swperm.py`, 219 compiles, about 50 s) | the switch's 39 differing words -> 0 (56 -> 17 overall) |
 | **Store order of five float stores into a struct global**: the game's offset order (`x90 .. xA4`), found by trying all 120 orders | 10 -> 5 words |
 
-**The 5 words left (two spots, both tie-breaks in known families):**
+**The words left (two spots at parking time; the second is solved in the draft):**
 
 - **+0x16DC, 3 words** (`sw $s4, 0x74($v0)` against `lui $a1, %hi(D_001FF890)` after the second `func_0017D968`
   call): in sched2 both have priority 11 and issue in the same cycle; `rank_for_schedule` picks the store first
@@ -1169,12 +1169,12 @@ Seen only in masked compares (Unconfirmed until a placement proves them):
   cost 0 by `ADJUST_COST`), and it has 5 dependents against 1. The game issues the `lui` first. Same family as
   func_001C8758 / func_001B34F8 (2.35: dependent-count ties). 24 statement orders, struct / pointer spellings of the
   store, no `ret` variable: no change.
-- **+0x195C / +0x1970, 2 words** (`lw $v0, 0xFC($s1)` / `lbu $a1, 3($v0)` for the first `func_00113ED8` call):
+- **+0x195C / +0x1970, 2 words, solved in the draft with 2.36's lesson** (`lw $v0, 0xFC($s1)` / `lbu $a1, 3($v0)` for the first `func_00113ED8` call):
   local-alloc gives the `D.fc` pseudo the first free register `$v0`, the game `$v1` (the second call matches with
   `$v0`); no copy suggestion applies (`find_free_reg`, numeric `REG_ALLOC_ORDER`), so the game must have had
   something live in `$v0` there that our RTL lacks. Same family as func_00124BE8 / func_00120EF0 / func_001C4838
   (`$v0` / `$v1` swaps). 12 spellings (types of `fc` and `D_0035B8CC`, index forms like func_0011C858's
-  `D_0035B8CC + idx * 32`, temporaries) and 200 random declaration orders: no change.
+  `D_0035B8CC + idx * 32`, temporaries) and 200 random declaration orders: no change. **Cause found after ER-158's 2.36:** with func_00113238 declared `s32` in the caller's view, the preceding call becomes a call_value that takes `$v0`, and the `D.fc` pseudo gets `$v1` as in the game (3 words left). The game's func_00113238 leaves nothing meaningful in `$v0` (its matched definition is `void`), so the original caller most likely saw an implicit / K&R `int` declaration (a reading, Unconfirmed). Placing this needs a ruling first: the definition in the same file would have to become `s32` with no `return` (ruling 3.4's shape, but a new function and not a tail-call case). Declaring each other `void` callee `s32` in turn does not move the +0x16DC spot.
 
 **Scripts** (notes `ER-093_c/tools/`, paths are this card's worktree): `sc.py` (compile + register-blind aligned diff,
 relocations masked from the asm file's `%hi` / `%lo` / `gp_rel` / `li.s` lines), `try.py` (one line per variant, par
