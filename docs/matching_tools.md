@@ -833,7 +833,45 @@ no regress while they ran, it wipes `build/`), 24 functions, 22 matched; each wa
 file and placed here. A whole-file check (`cmpfunc` on every C function of the file) after each declaration change
 caught all prototype clashes before `make regress`.
 
+### 6.15 `text_00150878` rerun with ER-114's tool (ER-137 + ER-113, Mon 23 Nov 2026)
+
+Worktree `C:\rs\wt\er113`, branch `er-113-text-00150878`, from main `b95ea9a`. Runs and drafts (game code, not in
+git): `C:\rs\wt\er113_runs\` (`er137`, `er113all` (10 GB with the objects), `er113re`, the hand files in `hand\`,
+`place\`).
+
+| Run | Command | Functions | Result | Time |
+|---|---|---|---|---|
+| `er137` | `m2c_bulk.py --plain --tag ER-137 --gcc-timeout 30` on ER-114's nine names | 9 | **9 masked / 9 plain MATCH** (func_00162108, func_00165080 with ruling 3.14; func_00164948 flagged: the file's extern to align) | 7 s |
+| `er113all` | `m2c_bulk.py --plain --tag ER-113 --file text_00150878 --par 4 --gcc-timeout 30` | 1,086 (1,085 harvested signatures) | **12 masked / 12 plain MATCH**; 731 compile; same size 162 (1-2 words 1, 3-8 18, 9+ 143); size differs 557 | 1,740 s |
+| `er113re` | `--rerun-diffs <er113all>\results.json --chunk 8` (21 chunks) | 162 | **0 MATCH**, none closer (161 same size, 1 size differs) | 298 s |
+
+- All 21 plain MATCHes placed (9 + 12; 10 of the 12 new ones are tail-`j` slot moves, ER-084). func_00175D90's
+  draft drops a pass-through: the game leaves `$a1` untouched for `func_001E9D78`, which func_00165F68 calls with two
+  arguments, so it was placed as `(s32 arg0, s32 arg1)` passing `arg1` on (the draft's one-argument call conflicted
+  with func_00165F68's declaration in the same file).
+- **Lists of 8 add nothing now that the context parses**: `er113re` gave the same drafts as the file-wide harvest
+  (as ER-125 found for `text_001000C0`, 6.13). ER-098's small lists were worth it only because the shared context was
+  broken then (6.12).
+- **Ruling 3.14 on ER-098's 72 'size -1 instr' drafts** (`C:\rs\wt\er098_runs\er098all`; a scratch script calling
+  `m2c_bulk.sibcall_variant` on the old drafts, include paths rewritten to the copied run): 68 still asm; only 2 have
+  the shape (our sibling `j`, the game's `jal`): func_001635F8 (41 words with `(void)&arg0`) and func_00166838 (28):
+  **no match**. The other 66 were one instruction short for other reasons; the tail-`j` slot move (ER-084) took
+  func_001635E0, func_001766D0 and func_0017CD10 of them as plain MATCHes in `er113all`.
+- **15 more by hand** from the `er113all` near misses (recipes 2.31): the GS register packers (9 + 3), func_00152548,
+  func_001A7CA8, func_001C20B0.
+- Placed by this card: **36 functions, 2,520 bytes** (ER-137 9 / 576, bulk 12 / 660, hand 15 / 1,284). `make regress`
+  PASS after each of four batches and after merging main (ELF unchanged).
+- Left in the file: **1,059 `INCLUDE_ASM`**; by the `er113all` draft: same size 148 (1-2 words 1: func_001C4838;
+  3-8 words 12: func_001540C0, func_001636A0, func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001B34F8,
+  func_001BE9C0, func_001C56F0, func_001C6F90, func_001C8600, func_001C8700, func_001C8758; 9+ words 135), size
+  differs 556, no compile or no draft 355. Parked causes: recipes 2.31 and 2.25.
+
 ## 7. Not verified
+
+- ER-137 / ER-113 (6.15): the 66 'size -1' drafts of ER-098 without the ruling 3.14 shape were not classified one
+  by one (the tail-`j` slot move is the likely cause for some, Unconfirmed for the rest). func_00175D90's second
+  parameter is read from the game's untouched `$a1` and func_00165F68's two-argument call (`func_001E9D78` looks like a
+  string copy: Unconfirmed, not named).
 
 - ER-130 / ER-124 / ER-121 / ER-114 (6.12): none of the new plain MATCHes is placed, so none is proven by `make
   regress`; the A/B runs used the tool before the per-attempt pass-through change (that change only adds attempts;
