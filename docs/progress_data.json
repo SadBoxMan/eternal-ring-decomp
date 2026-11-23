@@ -1649,11 +1649,11 @@
     {
       "code": "ER-150",
       "title": "Ruling: do-while(0) sibcall blocker (func_0014E450)",
-      "status": "Waiting",
+      "status": "Done",
       "track": "decomp",
       "model": "LuciDin, then Opus medium",
       "waits_on": "ruling",
-      "notes": ""
+      "notes": "Ruled 23 Nov: do-while(0) not accepted (3.17); func_0014E450 parked"
     }
   ]
 }

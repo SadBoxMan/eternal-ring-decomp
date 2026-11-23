@@ -1024,5 +1024,11 @@ Standing rulings; each applies until LuciDin changes it.
 |---|---|
 | **Accepted, narrowly** (first ruled "not accepted" at about 18:45, reversed after the explanation) | `volatile` only on reads and writes of memory-mapped hardware register addresses (EE timers, DMA, GIF / VIF, GS privileged registers and the like: e.g. func_00178C60's busy-wait on `0x1000A000` / `0x10003020`), where the game's code re-reads the register each time as the hardware changes it. It states a fact about the location, as Sony's own register access macros do (Unconfirmed until checked against an SDK header). Each use carries a comment naming this ruling. **Never on ordinary variables**: `volatile` keep-alives that only force a load or store stay forbidden. LuciDin: the goal stays a true 100% decomp as in Twinblade (3.1); every use of the narrow rulings (3.13-3.16) is listed here so it can be reviewed later. Used so far: func_001116D0, func_001116E0 (ER-125, 2.29: EE Timer 0 count `0x10000000`) |
 
+### 3.17 ER-150: `do { ... } while (0)` that only stops a sibling call (Mon 23 Nov 2026, about 12:05 Eastern, LuciDin in the DISP-03 session)
+
+| Ruling | Item |
+|---|---|
+| **Not accepted** | Wrapping calls in `do { ... } while (0)` only so the compiler keeps a `jal` instead of a sibling `j` (func_0014E450, case 4; recipes 2.24 / 2.30). Park such functions; a ruling-3.14 form (an address-taken local) may be tried where it fits. |
+
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker): park such functions with a
 one-line cause and ask.
