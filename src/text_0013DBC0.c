@@ -807,7 +807,31 @@ void func_001416A8(void) {
 void func_001416B0(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_001416B8);
+extern void func_00142860(void *, void *);
+void func_00142600(void *arg0);
+void func_00142608(s8 *arg0, s32 arg1);
+void func_00142668(s8 *arg0, s32 arg1);
+void func_001426D0(void *arg0, s32 arg1);
+void func_00142718(void *arg0, void *arg1);
+void func_00142770(void);
+void func_00141748(s8 *arg0);
+
+/* ER-159: by hand from m2c; names, types and offsets are Unconfirmed readings. The callback stores are written 0xC4
+   first, then the game's order (recipes 2.34's setters). */
+void func_001416B8(s8 *arg0) {
+    *(s32 *)(arg0 + 0x48) = 0;
+    *(s32 *)(arg0 + 0x4C) = 0;
+    func_00142860(arg0, *(void **)arg0);
+    *(void (**)(s8 *, s32))(arg0 + 0xC4) = func_00142608;
+    *(void (**)(s8 *, s32))(arg0 + 0xC8) = func_00142608;
+    *(void (**)(s8 *, s32))(arg0 + 0xF8) = func_00142668;
+    *(void (**)(void *, void *))(arg0 + 0xC0) = func_00142718;
+    *(void (**)(void))(arg0 + 0xD8) = func_00142770;
+    *(f32 *)(arg0 + 0xE4) = 2250000.0f;
+    *(void (**)(void *))(arg0 + 0xE0) = func_00142600;
+    *(void (**)(void *, s32))(arg0 + 0xCC) = func_001426D0;
+    func_00131000(arg0, func_00141748);
+}
 
 extern void func_001417E8(void **);
 
@@ -900,7 +924,6 @@ void func_001426D0(void *arg0, s32 arg1) {
 }
 
 extern void func_0012B238(void);
-extern void func_00142860(void *, void *);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00142718(void *arg0, void *arg1) {
