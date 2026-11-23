@@ -182,7 +182,20 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00101CC0);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00101DC8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00101ED0);
+extern void *D_0035B87C;
+extern void *D_0035B880;
+extern void *func_00111B58(s32, s32, s32);
+
+/* ER-125: from an m2c draft (the two early stores are in the game too). buf: ruling 3.13 (an unused local that only
+   sizes the 0x90 frame; any size from 0x71 to 0x80 bytes gives it, size and type Unconfirmed). Names Unconfirmed. */
+void func_00101ED0(void) {
+    char buf[0x80]; /* ruling 3.13: sizes the frame only */
+
+    D_0035B87C = D_0035B878;
+    D_0035B880 = D_0035B878;
+    D_0035B87C = func_00111B58(0, (s32)((char *)D_0035B878 + 0x100000), 0);
+    D_0035B880 = (char *)D_0035B878 + 0x108880;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00101F20);
 
@@ -619,7 +632,34 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00112160);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001122E8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001124E8);
+extern s32 D_0035B8E4;
+extern char D_002C48C0[];
+extern char D_002748C0[];
+extern void func_001CEF98(void *, s32, s32, s32, s32, s32, s32, s32);
+extern void func_001CF2C0(void *, void *);
+
+/* ER-125: from an m2c draft by hand (the local is 0x60 bytes, not m2c's 64 words: Unconfirmed reading, an image
+   transfer packet); alternates two VRAM layouts on a flag. Names and types Unconfirmed. */
+void func_001124E8(s32 arg0) {
+    u64 pk[12];
+
+    if (D_0035B8E4 != 0) {
+        func_001CEF98(pk, 0x3C20, 1, 0, 0, 0, 0x40, 0x20);
+        func_001D03E0(0);
+        func_001CF2C0(pk, D_002C48C0 + (arg0 << 13));
+        func_001CEF98(pk, 0x2340, 8, 0, 0, 0, 0x200, 0x20);
+        func_001D03E0(0);
+        func_001CF2C0(pk, D_002748C0 + (arg0 << 16));
+    } else {
+        func_001CEF98(pk, 0x3C00, 1, 0, 0, 0, 0x40, 0x20);
+        func_001D03E0(0);
+        func_001CF2C0(pk, D_002C48C0 + (arg0 << 13));
+        func_001CEF98(pk, 0x2240, 8, 0, 0, 0, 0x200, 0x20);
+        func_001D03E0(0);
+        func_001CF2C0(pk, D_002748C0 + (arg0 << 16));
+    }
+    D_0035B8E4 = D_0035B8E4 == 0;
+}
 
 INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354140);
 INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354150);
@@ -644,7 +684,24 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00113110);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001131C0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00113238);
+/* ER-125: from an m2c draft by hand (the count is a plain int loaded from a u16, so no andi in the loop); clears the
+   word at 0x7C of each 0xA0-byte record. Names and types Unconfirmed. */
+void func_00113238(char *arg0, s8 arg1) {
+    s32 n;
+    s32 *p;
+
+    *(s8 *)(*(char **)(arg0 + 0xE4) + 0x101) = arg1;
+    *(s16 *)(*(char **)(arg0 + 0xE4) + 0x102) = 0;
+    n = *(u16 *)(arg0 + 4);
+    if (n != 0) {
+        p = (s32 *)(*(char **)(arg0 + 0xE0) + 0x7C);
+        do {
+            *p = 0;
+            n--;
+            p += 40;
+        } while (n != 0);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00113288);
 
@@ -2027,7 +2084,15 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012CF90);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D138);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D2D8);
+extern void func_001CA0C0(void *, void *);
+
+/* ER-125: from an m2c draft by hand (the local is four floats, not m2c's 64 words). Names and types Unconfirmed. */
+void func_0012D2D8(void *arg0, void *arg1) {
+    f32 v[4];
+
+    func_001CA018(v, arg1, D_001FF340);
+    func_001CA0C0(arg0, v);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D318);
 
@@ -2175,7 +2240,6 @@ s32 func_0012DA68(void **arg0, s32 arg1, s32 arg2, f32 fparg0, f32 fparg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012DAF8);
 
-extern void func_001CA0C0(void *, void *);
 extern void func_001CA078(void *, void *, void *);
 
 /* ER-137: drafted with m2c (tools/m2c_bulk.py --plain, stores in offset order); names, types and offsets are
@@ -2199,7 +2263,21 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012DC10);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012DDA0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012DF30);
+extern void func_0012DDA0(void *, s32, s32, void *, f32 *, f32);
+
+/* ER-125: from an m2c draft by hand (the local is four floats, not m2c's 64 words): converts four angles from degrees
+   to radians and passes them on. Names and types Unconfirmed. */
+void func_0012DF30(void *arg0, s32 arg1, s32 arg2, void *arg3, f32 *arg4, f32 arg5) {
+    f32 r[4];
+    f32 *d = r;
+    s32 i = 3;
+
+    do {
+        i--;
+        *d++ = (*arg4++ * 3.1415927f) / 180.0f;
+    } while (i >= 0);
+    func_0012DDA0(arg0, arg1, arg2, arg3, r, arg5);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012DF90);
 
