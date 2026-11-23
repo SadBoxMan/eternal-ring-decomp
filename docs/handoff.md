@@ -14,7 +14,9 @@ to return to the dispatcher. **ARCHIVE-READY** (LuciDin, Mon 23 Nov 2026): when 
 session (work committed, completion message sent, questions answered), send the dispatcher one short message
 "ER-NNN ready to archive" with what is committed and anything left uncommitted; the dispatcher then archives it. (7) PORT RUNS (LuciDin, Sun 22 Nov 2026): keep the recompiled exe's console window
 hidden; if it cannot be hidden, put it on the secondary monitor with the game window. Game windows: secondary monitor,
-muted.
+muted. **CAPTURES** (LuciDin, Mon 23 Nov 2026): new capture data (GS / frame captures, RAM
+dumps, recordings) goes to `E:\Claude\Project Ringsmith\captures\` (one subfolder per kind, e.g. `gs\`), never into git; the older `C:\rs\captures\`
+files (incl. the memory card `cards\p.ps2` the run scripts use) stay until moved on LuciDin's word.
 (8) TWO REPOSITORIES (ER-110, Sun 22 Nov 2026): the decomp and every project doc are in
 `C:\Users\lukea\Claude\Projects\Project Ringsmith\Decomp` (remote `origin` = eternal-ring-decomp); the port is in
 `...\Project Ringsmith\Recomp` (remote `origin` = ringsmith, GPL-3.0): `tools/recomp/`, `docs/recomp_spike.md`,
