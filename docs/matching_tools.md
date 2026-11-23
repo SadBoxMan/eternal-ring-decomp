@@ -1046,7 +1046,7 @@ more in these files, 6.13 / 6.15):
 | `text_001000C0` | 392 | **6 / 6**: func_00115038, func_0012C938, func_0012D318, func_00130180 (frame), func_0012C9D8 (frame; its definition takes the file's own prototype), func_00111700 (return-wrapper form: an older step; ER-125 had it parked as a prologue tie) | | | 690 s |
 | `text_00150878` | 1,047 | **9 / 9**: func_0017D7F0, func_0018CA20, func_0019E438, func_001A24A8, func_001AF6A0, func_001AFB30 (frame, two with offset order after it), func_001C87E0 (untouched-args retry: `func_001DB898` widened to 3), func_00154CA8 (ruling 3.14 `(void)&arg0` and a permuted order; the definition takes the file's prototype), func_001524F8 (plain draft) | 1 / 13 / 135 | 531 | 2,423 s |
 
-func_00130DF0 matched at `9f76d66^` but not on main (its context differs there). None placed. The tool is slower again
+func_00130DF0 matched at `9f76d66^` but not on main (its context differs there). None placed by this card; ER-164 placed func_00111700 and func_001524F8, ER-171 the other 13 (recipes 2.39; still all MATCH when redrafted at 81b6239). ER-171's whole-file reruns at 81b6239 (labels `er171c0`, `er171s0`, 1,062 / 2,434 s): `text_001000C0` 386 functions, 1 new plain MATCH (func_00133F28, ruling 3.14, placed); `text_00150878` 1,037 functions, 0. The tool is slower again
 (text_00150878: 2,423 s against ER-113's 1,740 s with the tool before this card; other sessions were loading the
 machine for both, so the share of the new variants is not measured).
 

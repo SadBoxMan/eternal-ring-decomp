@@ -1198,6 +1198,21 @@ func_001524F8, func_001C4838, func_00111700); 24 declarations in 11 files change
 Not compiler-steering: no new ruling form beyond 3.19 (asked and accepted in this card) and one use of 3.14
 (func_0013F3B0, drafted with it by `m2c_bulk.py`).
 
+### 2.39 Round 3's plain MATCHes placed: frame arrays as typed locals (ER-171, Mon 23 Nov 2026; Confirmed by `make regress`, 14 functions)
+
+Branch `er-171-place-13` (worktree `C:\rs\wt\er171`), commits `6f14ea4`, `e77f775`. 14 functions, 2,636 bytes:
+`text_001000C0` func_00115038, func_0012C938, func_0012C9D8, func_0012D318, func_00130180, func_00133F28;
+`text_00150878` func_0017D7F0, func_0018CA20, func_0019E438, func_001A24A8, func_001AF6A0, func_001AFB30,
+func_001C87E0, func_00154CA8. Drafts (game code, not in git) and scratch: `C:\rs\wt\er171_runs\`.
+
+| Lesson | Proved by |
+|---|---|
+| **`m2c_bulk.py`'s frame-sized `s32 sp[N]` splits into typed locals with the same bytes**: one `f32 [4][4]` per 16-word block passed to a matrix routine, one `f32 [4]` per vector, declared in the order the blocks sit in the frame (lowest first); `sp[k] = 0` on a vector's w becomes `v[3] = 0.0f` (still `sw $zero`). No ruling 3.13 local was needed in any of the 11 | the 11 frame drafts |
+| **Size an out-parameter from the callee's asm, not from the frame**: func_0017D670 writes one float through `$a1` (`swc1 $f0, 0($s0)`), so its callers take `f32 h;` and `&h`; the 16-byte frame block m2c saw is the stack alignment (the frame rounds to 16 either way) | func_0018CA20, func_001AFB30, func_001A24A8 |
+
+Not compiler-steering beyond ruling 3.14 (func_00154CA8, func_00133F28, both drafted with it by `m2c_bulk.py`).
+Names `v`, `m`, `r`, `a`, `b`, `c`, `h` are Unofficial.
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1294,7 +1309,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32); by ER-154: func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.34); by ER-153: func_001636A0 (`(void)&buf` on ruling 3.13's array, 2.35); by ER-164: func_0013F3B0 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.38) |
+| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32); by ER-154: func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.34); by ER-153: func_001636A0 (`(void)&buf` on ruling 3.13's array, 2.35); by ER-164: func_0013F3B0 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.38); by ER-171: func_00154CA8, func_00133F28 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.39) |
 
 ### 3.15 ER-095: a 16-byte aligned float vector type (Sun 22 Nov 2026, about 17:35 Eastern, LuciDin in the DISP-03 session)
 
