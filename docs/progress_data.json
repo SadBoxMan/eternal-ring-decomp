@@ -1510,6 +1510,24 @@
       "model": "Opus, high",
       "waits_on": "ER-117",
       "notes": ""
+    },
+    {
+      "code": "ER-135",
+      "title": "Recomp: picture shake on logos and movies",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-136",
+      "title": "Recomp: freeze after Start in the opening FMV",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
