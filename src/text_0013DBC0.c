@@ -328,9 +328,44 @@ void func_0013EFF8(s8 *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F068);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F128);
+extern void func_0013F260(s32 *);
+extern void func_0013F288(void *, s32, f32 fparg0);
 
 void func_0013F280(void *arg0, s32 arg1);
+/* ER-154: drafted with m2c (tools/m2c_bulk.py --plain), fixed by hand; names, types and offsets are Unconfirmed readings. */
+void func_0013F128(s32 *arg0, void *arg1) {
+    f32 temp_f0;
+    f32 temp_f20;
+    f32 temp_f21;
+    f32 temp_f2;
+    s32 temp_16;
+    s32 temp_17;
+    void *temp_2;
+
+    *(s16 *)((char *)arg0 + 0x5C) = 0;
+    if (*(s8 *)((char *)arg0 + 0xF) != 0) {
+        temp_f20 = 0.3f;
+        temp_16 = func_0012E568(0x2A, 0x3C);
+        temp_17 = func_0012E568(0x2A, 0x3C);
+        temp_f21 = func_0012E320(arg0 + 8, arg0 + 10, temp_16, -0xA, 0x32);
+        temp_f0 = func_0012E320(arg0 + 9, arg0 + 11, temp_17, -0xA, 0x32);
+        temp_2 = *(void **)((char *)arg1 + 0xE0);
+        temp_f2 = -temp_f0;
+        *(f32 *)((char *)temp_2 + 0x1634) = (f32) -temp_f21;
+        *(f32 *)((char *)temp_2 + 0x194) = temp_f21;
+        *(f32 *)((char *)temp_2 + 0x234) = temp_f0;
+        *(f32 *)((char *)temp_2 + 0x2D4) = temp_f2;
+        func_0013F288(arg1, 2, temp_f20);
+        func_0013F288(arg1, 4, temp_f20);
+        func_0013F288(arg1, 3, temp_f20);
+        func_0013F288(arg1, 0x23, temp_f20);
+        func_0013F260(arg0);
+    } else {
+        func_0013F280(arg0, 0);
+    }
+    func_0012B218(arg0, 1);
+}
+
 
 /* ER-078: by hand (m2c ignores a tail j's delay slot): passes its object on with 1. Names Unconfirmed. */
 void func_0013F258(void *arg0) {
@@ -352,13 +387,26 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F288);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F2D8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F318);
+extern void func_0013F368(s8 *arg0);
+extern void func_0013F3A0(void *arg0);
+extern void func_0013F3B0(void *, s32);
+
+void func_0013F360(void);
+/* ER-154: drafted with m2c (tools/m2c_bulk.py --plain), fixed by hand; names, types and offsets are Unconfirmed readings. */
+void func_0013F318(s8 *arg0) {
+    *(u8 *)((char *)arg0 + 0x5A) = (u8) (*(u8 *)((char *)arg0 + 0x5A) | 2);
+    *(s8 *)((char *)arg0 + 0xF) = 0;
+    *(void (**)(s8 *))((char *)arg0 + 0xC4) = func_0013F368;
+    *(void (**)(s8 *))((char *)arg0 + 0xC8) = func_0013F368;
+    *(void (**)(void *))((char *)arg0 + 0xF8) = func_0013F3A0;
+    *(void (**)(void *, s32))((char *)arg0 + 0xCC) = func_0013F3B0;
+    func_00131000(arg0, func_0013F360);
+}
 
 void func_0013F360(void) {
 }
 
 extern s32 func_0012FA68(void *);
-void func_0013F360(void);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); the pass-through arg0 to func_0012FA68 written out by hand.
    Names, types and offsets are Unconfirmed readings. */
