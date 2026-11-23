@@ -1049,6 +1049,65 @@ func_00130DF0 matched at `9f76d66^` but not on main (its context differs there).
 (text_00150878: 2,423 s against ER-113's 1,740 s with the tool before this card; other sessions were loading the
 machine for both, so the share of the new variants is not measured).
 
+### 6.19 Return-type sweep over the game's `src/` files (ER-164 + ER-156, Mon 23 Nov 2026)
+
+Worktree `C:\rs\wt\er164`, branch `er-164-return-types`, main `e7f5a42`. Lessons in `docs/decomp_recipes.md` 2.38,
+ruling 3.19. Three scripts, our code only, outside the repo in `C:\rs\wt\er164_runs\` (candidates for `tools/`):
+
+| Script | What it does |
+|---|---|
+| `rtscan.py <dis.txt> <src>` | reads `ee-objdump -d build/SLUS_200.15.syms.elf` and every `src/*.c`: for each function, how many game call sites read `$v0` / `$f0` before writing it (straight line after the `jal`, stopping at a join), whether the callee writes `$v0` / `$f0` in the last 6 instructions before its `jr $ra`, the return type of its C definition, and every declaration with its type; prints the declarations whose register class (void / GPR / FPR) differs |
+| `declflip.py [--weak]` | for each such declaration, a scratch copy of the file with every declaration of that callee set to the real type, then `eematch` compares each placed caller in it (2 s for the whole list) |
+| `flip.py <draft.c> <func>` | on an m2c draft: each callee prototype tried as `void`, `s32`, `f32`, one change at a time, greedy for 3 rounds, best kept |
+
+**The list** (register class of the return value; "readers" = game call sites that read the register after the call):
+
+| Function | Real type | Evidence | Declared otherwise in (before ER-164) | Done |
+|---|---|---|---|---|
+| func_0012FAE8 | `s32` | asm: ends `lbu $v0, 0x79($s0)` (recipes 2.32) | `text_0013C510`, `text_0013DBC0`, `text_00145120`, `text_0014D930`, `text_00150878` (`void`) | changed (ER-156; `text_0013C510` too, same bytes) |
+| func_0012D568 | `float` | C definition returns `len` | `text_0014A968` | changed |
+| func_00130A88 | `float` | C definition returns `r` | `text_0013DBC0`, `text_00145120` | changed |
+| func_00130AD0 | `float` | C definition returns `r` | `text_0014A968` | changed |
+| func_00130B60 | `f32` | C definition; 3 readers of `$f0` | `text_00150878` | changed |
+| func_00130BF8 | `f32` | asm: the `sqrt.s` / `sqrtf` result stays in `$f0`; 1 reader (func_0014BA78) | `text_001388E8`, `text_0013A410`, `text_0014E2E8` | changed |
+| func_0012E820 | `float` | asm: ends `mov.s $f0, $f4; jr $ra` (recipes 2.36) | `text_0014C840`, `text_0014E2E8` | changed |
+| func_0012F5F8 | `s32` | asm; 4 readers (func_0012F1D8, func_0012F2F0, func_0012F418, ...) | `text_00150878` | changed |
+| func_0012F8A0 | `s32` | C pass-through of func_0012B6B0; 1 reader (func_00133A60) | `text_0013DBC0` | changed |
+| func_0012F8C8 | `s32` | C pass-through of func_0012B890; 75 readers | `text_00150878` | changed |
+| func_00131140 | `s32` | asm; 39 readers | `text_0013DBC0`, `text_001000C0` | changed |
+| func_00111C10 | `s32` | asm: ends `move $v0, $a1`; 2 readers (func_00116450) | `text_001000C0` | changed |
+| func_00158AD8 | `s32` (a pointer, Unconfirmed) | asm: ends `move $v0, $s0`; 12 readers | `text_001000C0` | changed |
+| func_00131020 | `void *` | C definition returns `r`; 9 readers | `text_00145120` | changed |
+| func_001CC848 | `s32` | C definition returns -1 / 0 | `text_00150878` | changed |
+| func_00130CE0 | `s32` in its definition | C pass-through of func_0012DAF8; **0 of 108** game call sites read `$v0` | all 11 declaring files (`void`) | **kept `void`**: `s32` breaks func_001397E0 (2 words), func_0013B840 (2), func_001486F0 (4), func_0014A500 (3), func_0014B528 (66), func_0014C968 (3), func_001535A8 (3) |
+| func_00111480 | `f32` | asm; 35 readers of `$f0` | `text_001000C0` (`s32`) | **kept `s32`**: `f32` breaks func_001306C0 (5 words) |
+| func_00101238 | `void` in its definition | C word copy, leaves loop garbage in `$v0` | - | **declared `s32` in `text_00150878`** for func_001C4838 (ruling 3.19) |
+| func_00131000, func_00130FE0, func_0014FE10, func_0012FA68, func_001C1560 | `s32` in their definitions, a reading | C pass-throughs (a tail `j` either way, so the definition does not show a return type); 0 readers in 140 / 7 / 1 / 7 / 2 call sites | `void` in 14 / 3 / 4 / 2 / 1 files | left `void` (neutral in every placed caller; no game caller uses a value) |
+| func_00113238, func_0012E3B0, func_001307A0, func_001321D8, func_001321E8 | `void` | C definitions | `s32` in `text_00150878` / `text_0014E2E8` | left (neutral in placed callers; func_00113238 is ER-093's ruling question for func_00119FE0, recipes 2.37) |
+| func_001D0010 | Unconfirmed | a syscall stub (`li $v1, 43; syscall`); the one "reader" reads `$v0` after a second syscall | `text_00150878` | left `void` |
+
+Weak cases (`declflip.py --weak`: the callee writes `$v0` / `$f0` just before `jr $ra`, but no game caller reads it; the
+write may be scratch, so these are not evidence of a return type): 39 declarations, all left `void`. `void` is required
+(the caller saw `void`) for func_0012B1B8 in `text_0014A968` (func_0014BF48, 6 words) and `text_00150878`
+(func_00153FD0, 6), func_001BCD30 (func_001BBEB8, 10), func_001C1880 (func_001772E8, 3), func_00101270
+(func_00101160, 6); the rest are neutral.
+
+**Near misses rerun:** `m2c_bulk.py --plain --tag ER-164 --label er164 --par 4 --gcc-timeout 30` with `--file` for the
+14 owned files other than `text_001000C0` (1,259 functions, 49 min; copied to `C:\rs\wt\er164_runs\er164\`): 877
+compile, **2 plain MATCH** (func_0013F3B0 with ruling 3.14, func_001524F8; both new since the declarations of
+func_0012FAA8 / func_0012E820 changed), same size 3 at 1-2 words, 10 at 3-8, 168 at 9+. `flip.py` on all 103 same-size
+drafts at 16 words or fewer: **1 MATCH** (func_001C4838: func_001C9B18 set to `void`, its real type, while func_00101238 kept the draft's
+harvested `int`; placed with ruling 3.19), 102
+unchanged, so the remaining near misses are not return-type cases.
+
+`text_001000C0` (free after ER-093 was merged): `--file text_001000C0 --label er164b` (392 functions, 9 min; copied to
+`C:\rs\wt\er164_runs\er164b\`): **1 plain MATCH** (func_00111700, the return-wrapper form; its callee func_00111740
+declared `s32`), 23 same-size drafts at 16 words or fewer, `flip.py` on all 23: no change.
+
+Placed by this card: **4 functions, 732 bytes** (func_0013F3B0 184, func_001524F8 80, func_001C4838 408,
+func_00111700 60). `make regress` PASS after each batch and after merging main.
+
+
 ## 7. Not verified
 
 - ER-138 / ER-147 / ER-151 / ER-160 (6.18): none of the new plain MATCHes is placed, so none is proven by `make
