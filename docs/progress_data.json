@@ -1136,11 +1136,11 @@
     {
       "code": "ER-093",
       "title": "func_00119FE0 by hand (6,636 bytes)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high (xhigh if it resists)",
       "waits_on": "text_001000C0 writer one at a time",
-      "notes": ""
+      "notes": "Parked 23 Nov 2026 at 3 words, same size: a sched2 class/dependent-count tie (+0x16DC); the v0/v1 spot solved by func_00113238 returning s32 in the caller's view (needs a ruling to place); no jump table (compare tree); draft in notes ER-093_c; recipes 2.37"
     },
     {
       "code": "ER-094",
@@ -1766,11 +1766,11 @@
     {
       "code": "ER-163",
       "title": "text_001000C0: func_001D03E0 extern void",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "23 Nov 2026 with ER-093: func_001D03E0 declared void in text_001000C0.c, same bytes, commit 39b555e; recipes 2.37"
     },
     {
       "code": "ER-164",
