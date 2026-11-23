@@ -1771,6 +1771,33 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-164",
+      "title": "Return-type sweep over src/ (+ ER-156)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-165",
+      "title": "text_0013DBC0: func_00143230 + func_00140A20 + func_00140C18",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-166",
+      "title": "tools/var.py from ER-158",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
