@@ -4636,7 +4636,15 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A75D0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A7BD0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A7CA8);
+/* ER-113: by hand from the m2c draft (the early return gives the game's bnel); names and types Unconfirmed. */
+s32 func_001A7CA8(void *arg0) {
+    s32 *p = *(s32 **)((char *)arg0 + 0x20);
+    if (p == NULL) {
+        return -1;
+    }
+    func_001C9B18((s32)((char *)arg0 + 0x50), (void *)(*p + 0x90));
+    return 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A7CE0);
 
@@ -6262,7 +6270,12 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C1CA8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C1E38);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C20B0);
+extern s32 func_001E34A8(s32, s32, void *, void *, void *);
+/* ER-113: by hand from the m2c draft (base-pointer local, recipes 2.25); names and types Unconfirmed. */
+s32 func_001C20B0(void) {
+    char *g = (char *)D_001FEC00;
+    return func_001E34A8(*(s32 *)(g + 0x1C), *(s32 *)(g + 0x20), g + 0x14, g + 0x18, g + 0x4C0);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C20E8);
 
