@@ -94,11 +94,11 @@
           "id": "m-rec-funcs",
           "phase": "Step 1: static recompile",
           "name": "Functions recompiled",
-          "done": 3359,
+          "done": 3370,
           "total": 3606,
           "unit": "functions",
           "source": "ER-008 spike, ER-004 census",
-          "notes": "ER-008 spike with PS2Recomp e563698 on our split's 3,606 boundaries: 3,359 recompiled, 247 bound to runtime HLE stubs, 0 unhandled instructions. Recompiled is not verified correct."
+          "notes": "ER-102 + ER-103 (23 Nov): 3,370 recompiled, 239 bound to HLE stubs, 0 unhandled (ER-074 added the 3 data-labelled blocks; ER-103 moved 11 libvu0 functions from HLE to recompiled)"
         },
         {
           "id": "m-rec-hle",
@@ -623,11 +623,11 @@
     {
       "code": "ER-036",
       "title": "Recomp: fix confirmed opcode bugs (sqrt.s, cvt.w.s, vf0, 128-bit mask)",
-      "status": "Queued",
+      "status": "In progress",
       "track": "recomp",
       "model": "Opus, medium",
       "waits_on": "one recomp card at a time; not beside ER-044",
-      "notes": ""
+      "notes": "Started 23 Nov 12:15 (sqrt.s ft, cvt.w.s truncation, 128-bit masking)"
     },
     {
       "code": "ER-037",
@@ -1253,11 +1253,11 @@
     {
       "code": "ER-106",
       "title": "Toolchain research: the original compiler's alias model (ruling 3.6 interplay)",
-      "status": "Queued",
+      "status": "In progress",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "nothing; adoption needs LuciDin's ruling",
-      "notes": ""
+      "notes": "Started 22 Nov 16:09; idle since 17:30 with 2 uncommitted changes in C:\\rs\\wt\\er106, no report yet"
     },
     {
       "code": "ER-107",
