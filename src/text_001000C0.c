@@ -3649,7 +3649,29 @@ void func_001339F8(s8 *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00133A60);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00133F28);
+extern float func_0012E820(char *, float, float);
+extern s32 func_0012D9B8(void *, f32);
+
+/* ER-171: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_00133F28(void *arg0, s32 arg1) {
+    f32 temp_f1;
+
+    (void)&arg0; /* ruling 3.14 */
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        func_0012FB48(arg0, 1);
+        func_0012FAA8(arg0);
+        *(f32 *)((char *)arg0 + 0x94) = 0.0f;
+        *(f32 *)((char *)arg0 + 0xB0) = (f32) 0.3f;
+        *(s16 *)((char *)arg0 + 0x6E) = (s16) ((u16) *(s16 *)((char *)arg0 + 0x6E) + 1);
+    } else {
+        func_0012E820(arg1 + 0xA0, -1.5707963f, 15.0f);
+        temp_f1 = *(f32 *)((char *)arg0 + 0x94) + *(f32 *)((char *)arg0 + 0xB0);
+        *(f32 *)((char *)arg0 + 0x94) = temp_f1;
+        if (func_0012D9B8(arg0, temp_f1) != 0) {
+            func_001321E8(arg0);
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00133FC0);
 
