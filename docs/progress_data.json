@@ -1798,6 +1798,15 @@
       "model": "Sonnet, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-167",
+      "title": "func_00119FE0 round 2 (ruling needed for func_00113238 s32)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, xhigh",
+      "waits_on": "LuciDin's ruling; ER-162",
+      "notes": ""
     }
   ]
 }
