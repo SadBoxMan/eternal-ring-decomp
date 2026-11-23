@@ -1095,7 +1095,7 @@ dispatcher's notes folder `ER-132_152_153_c/` (our C only).
 
 ### 2.36 ER-154's files: the `x94 + xB0` shape and the near misses (ER-158 + ER-159, Mon 23 Nov 2026; Confirmed by `make regress`)
 
-Branch `er-158-nine-files` (worktree `C:s\wt\er158`). Scratch and run files (our C only) in `C:s\wt\er158_runs\`.
+Branch `er-158-nine-files` (worktree `C:\rs\wt\er158`). Scratch and run files (our C only) in `C:\rs\wt\er158_runs\`.
 
 | Lesson | Proved by |
 |---|---|

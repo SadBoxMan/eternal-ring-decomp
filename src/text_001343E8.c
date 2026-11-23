@@ -42,7 +42,20 @@ void func_00134618(void *arg0, s32 arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00134690);
 
-INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_001346D0);
+extern s32 func_00111660(void *);
+
+/* ER-159: Unofficial type for func_001346D0's object: a word array at 0x10 (element count Unconfirmed). */
+typedef struct {
+    s32 unk0[4];
+    s32 unk10[1];
+} Count346D0;
+
+/* ER-159: by hand from m2c; names, types and offsets are Unconfirmed readings. The array as a struct member gives the
+   game's `addiu base, 0x10; addu base, index` (recipes 2.35); every pointer-sum spelling is a word shorter. */
+s32 func_001346D0(Count346D0 *arg0, void *arg1) {
+    arg0->unk10[func_00111660(arg1)]++;
+    return 1;
+}
 
 extern void func_001321D8(void *arg0);
 
@@ -75,7 +88,7 @@ INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00135158);
 extern s32 func_0012B890(void **arg0, s32 arg1, s32 arg2, s32 arg3, s16 arg4, s32 arg5, f32 fparg0);
 extern s32 func_0012B930(char *, s32, s32, s32, s16, s32, f32);
 extern float func_00130D00(char *, float);
-extern void func_00131140(char *, void *, void *, void *, void *, void *);
+extern s32 func_00131140(char *, void *, void *, void *, void *, void *);
 extern void func_00134BB0(s8 *, void *);
 extern void func_00134DB0(s8 *, void *);
 extern void func_00134958(void **, void *);
@@ -406,7 +419,29 @@ void func_001375E8(s8 *arg0) {
     func_00131140(arg0, func_001374C8, NULL, func_00137658, func_00137750, func_00137428);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00137658);
+extern s32 func_0012E568(s32, s32);
+void func_001377C8(s8 *, void *);
+
+/* ER-159: by hand from m2c; names, types and offsets are Unconfirmed readings. The call written in each arm keeps the
+   x74 store and the x6E counter in separate blocks for the first scheduling pass (the arms are merged afterwards, the
+   game's `jal; nop`); one call after the if / else lets the counter's load move above the store. */
+void func_00137658(void **arg0) {
+    char *a = (char *)arg0;
+
+    if (*(s16 *)(a + 0x6E) == 0) {
+        if (*(u16 *)(a + 4) == 0x3F) {
+            *(s16 *)(a + 0x74) = func_0012E568(0xA, 0x1E);
+        } else {
+            *(s16 *)(a + 0x74) = func_0012E568(0x32, 0x50);
+        }
+        *(s16 *)(a + 0x6E) += 1;
+    }
+    func_0012F8C8(arg0, 0, *(s16 *)(a + 0x6C), 0x5A, 1, 0.08f);
+    func_001378D8((s8 *)a, *(f32 *)(a + 0x14C) - 1.0f);
+    if (func_00131140(a, func_001374C8, func_001375E8, 0, func_00137750, func_00137428) == 0 && *(s16 *)(a + 0x6C) >= *(s16 *)(a + 0x74)) {
+        func_00131000(a, func_001377C8);
+    }
+}
 
 /* ER-154: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00137750(s8 *arg0) {
