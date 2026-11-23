@@ -1931,7 +1931,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Sonnet, medium",
-      "waits_on": "ER-171",
+      "waits_on": "none",
       "notes": ""
     },
     {
@@ -1941,6 +1941,24 @@
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "LuciDin's ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-183",
+      "title": "text_001000C0 near misses after round 3 (func_0012FEE0 + 13)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-184",
+      "title": "text_00150878 near misses after round 3 (11)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
       "notes": ""
     }
   ]
