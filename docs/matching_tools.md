@@ -809,6 +809,30 @@ was wiped by a regress before it was copied out, its two drafts were rewritten b
   compile 113. Parked causes: recipes 2.29.
 - `make regress` PASS after every batch (ELF unchanged, 3,606 functions match).
 
+### 6.14 The five ER-054 files rerun with ER-114's tool (ER-120, Mon 23 Nov 2026)
+
+`m2c_bulk.py --plain --tag ER-120 --gcc-timeout 30 --par 4` over each of the five files (labels `er120_text_*`, 74 asm
+functions, 109 s in all) and the same 74 in lists of 8 (`--list ... --chunk 8`, label `er120_chunk8`, 159 s): every
+draft compiles (harvest context 66 / 79 signatures), **0 masked MATCH** both ways, as ER-114's A/B (6.12) found. Only
+3 drafts were the right size (func_00145FE8, func_0014C840, func_0014D930: other cards), so `--rerun-diffs` had nothing
+to take and ER-125's `$sp` scan (6.13) does not apply here. Runs copied out to `C:\rs\wt\er120_runs\` (game code, not in
+git). All 52 placed functions came from these drafts by hand (recipes 2.30); the drafts' usual faults: a lost
+pass-through `$a0` / `$a1`, split statements, `goto` blocks, `M2C_UNK sp[64]` locals.
+
+| File | Asm before | Placed | Left |
+|---|---|---|---|
+| `text_00145120` | 34 | 24 | 10: func_00145D08, func_00147708, func_001486F0, func_0014A238 (parked); func_001469B8, func_001494A0, func_00147100 (not tried); func_00145FE8, func_00146598, func_00147F78 (ER-122) |
+| `text_0014A968` | 12 | 11 | 1: func_0014BD70 (parked) |
+| `text_0014C840` | 8 | 5 | 3: func_0014D1E0 (parked); func_0014C840 (ER-118); func_0014D3F8 (ER-122) |
+| `text_0014D930` | 3 | 2 | 1: func_0014D930 (ER-118) |
+| `text_0014E2E8` | 17 | 10 | 7: func_0014E450 (ruling question), func_0014FC68, func_0014FA18, func_0014F328 (parked); func_0014E608, func_0014EAD0, func_0014F7F8 (not tried) |
+| total | 74 | 52 | 22 |
+
+Fan-out: three helper agents worked in scratch files only (unique file stems: the compare tool keys its objects by stem;
+no regress while they ran, it wipes `build/`), 24 functions, 22 matched; each was rechecked, its externs aligned with the
+file and placed here. A whole-file check (`cmpfunc` on every C function of the file) after each declaration change
+caught all prototype clashes before `make regress`.
+
 ## 7. Not verified
 
 - ER-130 / ER-124 / ER-121 / ER-114 (6.12): none of the new plain MATCHes is placed, so none is proven by `make

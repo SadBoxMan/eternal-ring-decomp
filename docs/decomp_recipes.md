@@ -872,6 +872,48 @@ with ER-114's tool, `docs/matching_tools.md` 6.13). Rulings used: 3.13 (func_001
 | func_00130B18 | 72 | 8 words: our float temporaries are `$f0`-`$f2`, the game's `$f1`-`$f3` (also with `f32` parameters) |
 | func_001033F0, func_00103470, func_00112638, func_00112CC8 | | string literals ("TEXT0.PSS", "Cannot Read MI2 File\n", ...): a function that defines `.rodata` data is not verified yet (2.5); the drafts are frame-only or register-order near misses otherwise |
 
+### 2.30 The five small game files, round 5 (ER-120, Mon 23 Nov 2026; Confirmed by `make regress`, 52 functions)
+
+52 placed in `text_00145120` (24), `text_0014A968` (11), `text_0014C840` (5), `text_0014D930` (2) and `text_0014E2E8`
+(10), 14,520 bytes; `make regress` (-j4) green after each batch and after merging main. Branch `er-120-five-files`,
+worktree `C:\rs\wt\er120`, commits `4443a18`, `67f010f`, `111d5c1`. The fixed `m2c_bulk.py --plain --tag ER-120` (6.12) over the five files (74 asm functions,
+labels `er120_text_*`) and again in lists of 8 (`er120_chunk8`) gave **no MATCH**: every draft compiled, only 3 were
+the right size (all three belong to other cards: func_00145FE8 ER-122, func_0014C840 / func_0014D930 ER-118). All
+52 came from the drafts by hand, 30 here and 22 by three helper agents working in scratch files (each one checked here,
+its declarations aligned with the file, and placed). Runs (game code, not in git): `C:\rs\wt\er120_runs\`.
+
+| Lesson | Proved by |
+|---|---|
+| **The m2c drafts of these state machines are usually right in content and wrong in shape**: most "size -N" drafts had lost a pass-through `$a0` / `$a1` (the callee takes the caller's own argument: func_00148FF8, func_001475E0, func_0014A238's `func_0014A948`), split one statement in two, or kept `goto`s. Written as `switch (*(s16 *)(p + 0x6E))` with fall-through cases, `+= 1` and early returns, most matched within a few tries | most of the round |
+| **Store order: ascending offsets again** (2.25), pointer stores first and a byte store last; where not, a permutation (permg) found it. Sometimes the game's emitted order is the reverse of the source order (func_00147F20's `0xE` then `0xF`; func_0014E0A8's `0x234` before `0x194`) | func_001498D8, func_00147F20, func_0014E0A8, func_00145120 |
+| **A callee's real return type moves later temporaries** (2.15 again): `func_0012FAA8` is `s32` (its definition in `text_001000C0`); `func_0012FB48` is `void`; `func_00130B60` returns `f32`; `func_00130BF8` returns a float (its result is compared) | func_0014C3F8, func_00147DE0, func_001488A0, func_0014BA78 |
+| **A float parameter before the last int** in a prototype changes the argument setup order (2.21 again). `func_00145FA8`'s definition reordered to `(void *, f32, s32, f32)` (same bytes, no other caller); `text_0014A968` now declares `func_0012B890` as `(..., s16, f32, s32)` like `text_00145120` (all 51 C functions of the file still match) | func_00145260, func_0014AAA8 |
+| **Locals loaded together**: `f32 k = D; f32 x = p->a; f32 y = p->b; p->a = x * k; p->b = y * k;` gives the game's two loads before both stores; separate temporaries per arm (`a = p->48; r = a - k ... b = p->4C; q = b + k`) give its registers | func_001493F8, func_00149700 |
+| **`extern const` for never-stored `.sdata` floats** (2.21) only where the game hoists the load above a store: `D_0035BDB8` / `D_0035BDBC` (not `D_0035BDC0`), `D_0035BED0` / `D_0035BEE8` / `D_0035BEEC` (the census lists these three as near an address-taken symbol: Unconfirmed) | func_001493F8, func_0014EC58 |
+| **A 64-bit flag cleared with the complement of the flag set**: `&= ~((u64)0x8000 << 35)` builds the game's `lui 0xFFFB; ori; dsll; ori; dsll; ori` | func_0014AAA8, func_0014AFA8 |
+| **An explicit empty `case 0:` beside the default** (ruling 3.9) gives a compare tree `==1, <2, <5` for a switch on a call result; `case 3: case 4: default:` sizes a 5-entry jump table | func_00149170, func_001475E0 |
+| **Helper findings**: two identical call tails written in each arm (jump2 merges them; one call with locals does not schedule the same: func_0014B688); an explicit trailing `return;` turns the last call into the game's tail `j` (2.22: func_0014CA60, func_00147DE0, func_00147A28); a function that returns its callee's value must be `void` with a plain call when the game has a tail `j` (func_0014E7A8); `i` used after a loop gives the unfolded `+0x50` index (func_00150658); the degree-to-radian expression written at each use (2.26: func_0014DC98) | helper agents A, B, C |
+| **Ruling 3.14 twice** (the call after a nested `if` is `jal` + epilogue in the game, frame without locals) and **ruling 3.13 twice** (helper B: `s32 buf[4]` sizing a 0x40 / 0x50 frame) | func_00148FF8, func_00147018; func_0014C658, func_0014CF60 |
+| **`a > b` rather than `b < a`** swaps the two loads of a compare (`lh 0x6C` before `lh 0x74`) | func_001475E0, func_00145260, func_0014CD88 |
+
+Parked (one-line causes; C in the scratch folder, not in git):
+
+| Function | Cause |
+|---|---|
+| func_00147708 | 3 words: `x94 + D_0035BD58` ties the sum to the constant's register (game: the field's); 5 expression shapes; the ER-100 FP-tie family |
+| func_0014FC68 | 3 words: the game loads `0x6E` above a float store through `arg1`, which `-fno-strict-aliasing` code should not allow: the ER-118 family |
+| func_0014E450 | 4 words (helper C): case 2's `sw $0, 0x90` against the `D_0035BEC8` load (720 store orders); and it needs `do { ... } while (0)` around case 4's two calls to stop the sibling call (recipes 2.24: a call in a loop statement): **ruling question**, reading (Unconfirmed) a macro; also `func_0014F2E0`'s float before its last int |
+| func_00145D08 | 19 words (helper A; 32 with pi / 2pi in locals, both loops right): the game copies the pointer to `$v0` for the second wrap loop (`daddu $v0, $a1` in the `bc1f` slot); 10 loop shapes |
+| func_0014BD70 | 30 words: case 1's loads of `v[0]` / `v[2]` before the fields, and the `-1 / 1 / 0` select's registers (`movn` / `movz` on the constant-1 register) |
+| func_001486F0 | `func_0012C578`'s 5th argument: 16 bytes (`-x70, 1.0, -x78, 0`) written to the outgoing stack area with no pointer register; a struct (plain or 16-aligned vector) goes by reference in our build, varargs promotes to double. The other caller (func_0014B688) passes four words in registers: the callee's prototype is open |
+| func_0014A238 | the game keeps `%hi(func_0014A3B0)` in a saved register (`$s0` / `$s3`) across four calls for two `func_00131140` calls; ours rematerialises it (4 more saved registers in the game's frame) |
+| func_0014FA18 | the table pointer chosen by `0xF` is stored to the stack and reloaded (`sw` / `lw 0x10($sp)`): an address-taken or volatile local, not tried |
+| func_0014D1E0, func_0014F328 | (clones) several 16-float matrices in overlapping stack slots (block-scoped temporaries); not tried in depth |
+| func_001469B8, func_001494A0, func_0014E608 (jump tables), func_00147100, func_0014EAD0, func_0014F7F8 | not attempted (time); drafts in `C:\rs\wt\er120_runs\` |
+
+Not this card: func_0014C840, func_0014D930 (ER-118), func_00145FE8, func_00146598, func_00147F78, func_0014D3F8 (ER-122).
+C of the parked ones: notes `ER-120_c/` in the dispatcher's notes folder (game code, not in git).
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
