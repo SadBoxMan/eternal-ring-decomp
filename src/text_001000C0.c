@@ -205,7 +205,7 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001032D8);
 
 extern s32 func_001C4FF0(char *, s32, s32, s32);
 extern void func_00164760(void);
-extern void func_00111C10(s32, s32);
+extern s32 func_00111C10(s32, s32);
 extern s32 D_0035B868;
 
 /* ER-149: by hand from the m2c draft; the string is its own .rodata (D_00354080). Names and types are Unconfirmed readings. */
@@ -635,7 +635,14 @@ s32 func_001116E0(void) {
     return D_0035B89C * 60000 + *(volatile s32 *)0x10000000; /* ruling 3.16: hardware register */
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00111700);
+extern s32 func_00100EC0(s32, s32);
+extern s32 func_00111740(s32 *, s32);
+
+/* ER-164: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+s32 func_00111700(s32 arg0, s32 arg1, s32 arg2) {
+    func_00100EC0(arg0, arg1);
+    return func_00111740((s32 *) arg1, arg2);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00111740);
 
@@ -698,7 +705,6 @@ INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354170);
 INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354180);
 INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354190);
 INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_003541A0);
-extern s32 func_00100EC0(s32, s32);
 extern s32 func_001126A0(s32, s32, s32);
 extern s32 func_00112D30(s32, s32, s32);
 
@@ -1691,7 +1697,7 @@ extern const Vec4 D_003543C0;
 extern const Vec4 D_003543B0;
 extern const Vec4 D_00354390;
 extern s32 func_001E9C70();
-extern void func_00158AD8(s32, s32, void *, void *, void *, void *);
+extern s32 func_00158AD8(s32, s32, void *, void *, void *, void *);
 
 /* ER-094: ER-063's draft; the three vector constants are const (they sit in .rodata): only then does the scheduler
    issue each copy's %lo load before its +8 load, as the game does. Names, types and offsets are Unconfirmed
@@ -3475,7 +3481,7 @@ extern float func_0012CE18(char *, char *);
 extern float func_00130D00(char *, float);
 extern s32 func_0012F900(char *, s32, s32, s16, s32, f32);
 extern void func_0012D3B8(char *, float, float);
-extern void func_00131140(char *, void *, void *, void *, void *, void *);
+extern s32 func_00131140(char *, void *, void *, void *, void *, void *);
 
 /* ER-035. A state handler (a reading): on its first frame (+0x6E == 0) sets step 0.08 and limit 1.5; leaves through
    func_0012F900 (state 0, 8) when func_00130D00 gives more than 20 degrees; otherwise picks state 10 or 11 from the

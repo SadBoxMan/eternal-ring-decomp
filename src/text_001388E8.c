@@ -323,7 +323,7 @@ void func_00139640(void *arg0) {
 
 extern void func_00130848(s8 **, f32);
 extern f32 func_00130AD0(s8 *, f32, f32);
-extern void func_00130BF8(char *, f32);
+extern f32 func_00130BF8(char *, f32);
 extern f32 D_0035BA18;
 extern f32 D_0035BA1C;
 extern f32 D_0035BA20;
