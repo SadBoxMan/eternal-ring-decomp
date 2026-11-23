@@ -125,7 +125,29 @@ void func_0013B268(s8 *arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013A410", func_0013B2B0);
+extern void func_00130BF8(char *, f32);
+extern float func_0012E820(char *, float, float);
+extern s32 func_0012FAA8(void *);
+extern s32 func_0012D9B8(void *, f32);
+extern void func_001321E8(char *);
+
+/* ER-158: by hand from ER-154's draft; names, types and offsets are Unconfirmed readings. The callees' return types
+   (func_0012FAA8 s32, func_0012E820 float, both read from the game) give the game's $v1 counter and $f1 sum. */
+void func_0013B2B0(s8 *arg0, s32 arg1) {
+    if (*(s16 *)(arg0 + 0x6E) == 0) {
+        *(f32 *)(arg0 + 0x94) = 0.0f;
+        *(f32 *)(arg0 + 0xB0) = 0.35f;
+        func_0012FAA8(arg0);
+        *(s16 *)(arg0 + 0x6E) += 1;
+    }
+    func_00130BF8(arg0, 0.95f);
+    func_0012F8C8(arg0, 0x14, *(s16 *)(arg0 + 0x6C), 0xA, 0, 0.2f);
+    func_0012E820((char *)arg1 + 0xA0, 3.1415927f, 15.0f);
+    *(f32 *)(arg0 + 0x94) += *(f32 *)(arg0 + 0xB0);
+    if (func_0012D9B8(arg0, *(f32 *)(arg0 + 0x94)) != 0) {
+        func_001321E8(arg0);
+    }
+}
 
 extern void func_0013B170(void *, void *);
 extern void func_0013B218(s8 *arg0);

@@ -88,7 +88,7 @@ INCLUDE_DATA("asm/nonmatchings/text_0013DBC0", D_0032FEC0);
 INCLUDE_DATA("asm/nonmatchings/text_0013DBC0", D_0032FEE0);
 INCLUDE_DATA("asm/nonmatchings/text_0013DBC0", D_0032FEF0);
 
-extern void func_0013E760(void);
+extern void func_0013E760(s8 *, s32);
 extern void func_0013E678(void *, void *);
 extern void func_0013E758(void *);
 extern void func_0013DCF0(void);
@@ -276,7 +276,31 @@ void func_0013E758(void *arg0) {
     func_0012FB48(arg0, 1);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E760);
+extern s32 func_0012FAA8(void *);
+extern float func_0012E820(char *, float, float);
+extern s32 func_0012D9B8(void *, f32);
+extern s32 func_0013E838(void *);
+void func_0013F468(void *);
+
+/* ER-158: by hand from ER-154's draft; names, types and offsets are Unconfirmed readings. The callees' return types
+   (func_0012FAA8 s32, func_0012E820 float, both read from the game) give the game's $v1 counter and $f1 sum. */
+void func_0013E760(s8 *arg0, s32 arg1) {
+    if (*(s16 *)(arg0 + 0x6E) == 0) {
+        *(s8 *)(arg0 + 0xD) = 0;
+        *(f32 *)(arg0 + 0x94) = 0.0f;
+        *(f32 *)(arg0 + 0xB0) = 0.2f;
+        func_0012FAA8(arg0);
+        *(s16 *)(arg0 + 0x6E) += 1;
+    }
+    func_0012E820((char *)arg1 + 0xA0, -1.5707963f, 15.0f);
+    *(f32 *)(arg0 + 0x94) += *(f32 *)(arg0 + 0xB0);
+    if (func_0012D9B8(arg0, *(f32 *)(arg0 + 0x94)) != 0) {
+        func_001321E8(arg0);
+        if (func_0013E838(arg0) != 0) {
+            func_0013F468(*(void **)(arg0 + 0xE8));
+        }
+    }
+}
 
 extern void func_0012FAE8(void *, int, int, int, float);
 
@@ -326,7 +350,23 @@ void func_0013EFF8(s8 *arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F068);
+/* ER-158: by hand from ER-154's draft; names, types and offsets are Unconfirmed readings. The callees' return types
+   (func_0012FAA8 s32, func_0012E820 float, both read from the game) give the game's $v1 counter and $f1 sum. */
+void func_0013F068(s8 *arg0, s32 arg1) {
+    if (*(s16 *)(arg0 + 0x6E) == 0) {
+        *(s8 *)(arg0 + 0xF) = 0;
+        *(f32 *)(arg0 + 0x94) = 0.0f;
+        *(f32 *)(arg0 + 0xB0) = 0.5f;
+        func_0012FAA8(arg0);
+        *(s16 *)(arg0 + 0x6E) += 1;
+    }
+    func_0012F8C8(arg0, 2, *(s16 *)(arg0 + 0x6C), 5, 0, 0.4f);
+    func_0012E820((char *)arg1 + 0xA0, -1.5707963f, 15.0f);
+    *(f32 *)(arg0 + 0x94) += *(f32 *)(arg0 + 0xB0);
+    if (func_0012D9B8(arg0, *(f32 *)(arg0 + 0x94)) != 0) {
+        func_001321E8(arg0);
+    }
+}
 
 extern void func_0013F260(s32 *);
 extern void func_0013F288(void *, s32, f32 fparg0);
@@ -463,11 +503,9 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013FBF8);
 
 INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354938);
 INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354940);
-extern void func_0012FAA8(void *);
 extern void func_001C9F60(void *, void *, void *);
 extern void func_001C9FE8(void *, void *, void *);
 extern void func_00140250(void *, void *);
-extern void func_0012E820(char *, float, float);
 extern s32 func_0012B540(void *, s32, s8, s32);
 extern s32 func_0012B890(void *, s32, s32, s16, s32, s32, f32);
 extern s32 func_0013FF70(void *, void *, f32);

@@ -1093,6 +1093,16 @@ dispatcher's notes folder `ER-132_152_153_c/` (our C only).
 | func_001C4838 | 4 words: `0x8000` / `1` in `$v0` / `$v1` swapped; the `1` is a QImode pseudo (size 1), so local-alloc ranks it below the SImode `0x8000` (8 spellings of the store) |
 | func_0018B8A8 | 7 words: the float read first moves the `lwc1`; the registers then differ (720 orders of each of two shapes) |
 
+### 2.36 ER-154's files: the `x94 + xB0` shape and the near misses (ER-158 + ER-159, Mon 23 Nov 2026; Confirmed by `make regress`)
+
+Branch `er-158-nine-files` (worktree `C:s\wt\er158`). Scratch and run files (our C only) in `C:s\wt\er158_runs\`.
+
+| Lesson | Proved by |
+|---|---|
+| **An ignored return value still steers register choice: declare the callee's real return type.** The call insn sets `$v0` (or `$f0`) even when the caller drops the value, so local-alloc gives the next pseudo the second register. The `x94 + xB0` shape (2.34's parked three): with `func_0012E820` declared `float` (it ends `mov.s $f0, $f4; jr $ra` in the game) the later `x94` load and the sum take the game's `$f1`, `xB0` takes `$f0`; with `func_0012FAA8` declared `s32` (its placed C) the `x6E` counter after the call takes the game's `$v1`. The file's `void` declarations gave `$f0` / `$v0`. No spelling of the sum could fix it (ER-154's 8 tries) | func_0013B2B0, func_0013E760, func_0013F068 |
+
+**File declarations changed** (each proven by `make regress`): `text_0013DBC0` `func_0012FAA8` `void` -> `s32`, `func_0012E820` `void` -> `float` (moved above func_0013E760; the later callers unchanged), `func_0013E760` `(void)` -> `(s8 *, s32)`.
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
