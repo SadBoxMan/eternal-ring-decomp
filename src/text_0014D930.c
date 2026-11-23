@@ -77,7 +77,40 @@ void func_0014DAC8(char *a0, char *a1)
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014DC98);
+extern f32 D_0035BE9C;
+extern f32 D_0035BEA0;
+extern s32 func_0012FB90(s32, char *, char *);
+float func_001304C8(char *a0, char *a1, float s);
+
+/* ER-120: by hand from the m2c draft (helper agent); names, types and offsets are Unconfirmed readings. */
+void func_0014DC98(char *arg0, char *arg1) {
+    f32 v;
+    f32 lim;
+    f32 r;
+
+    if (*(s8 *)(arg0 + 8) == 0) {
+        *(s8 *)(arg0 + 8) += 1;
+    }
+    if (func_0012FB90(0, arg0, arg1 + 0x90) != 0) {
+        f32 f = func_001304C8(arg1, arg0 + 0x80, D_0035BEA0 * 3.1415927f / 180.0f);
+        func_0012EAB8((f32 *)(arg0 + 0x48), f, D_0035BE9C * 3.1415927f / 180.0f);
+        return;
+    }
+    lim = D_0035BE90 * 3.1415927f / 180.0f;
+    *(f32 *)(arg0 + 0x48) *= D_0035BEA4;
+    v = *(f32 *)(arg0 + 0x48);
+    if (lim <= v) {
+        r = v;
+    } else if (v <= -lim) {
+        r = v;
+    } else {
+        r = lim;
+        if (v < 0.0f) {
+            r = -lim;
+        }
+    }
+    *(f32 *)(arg0 + 0x48) = r;
+}
 
 extern f32 D_0035BEA8;
 extern f32 D_0035BEAC;
@@ -182,7 +215,29 @@ void func_0014DF08(char *a0, char *a1)
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014E0A8);
+extern f32 func_0012E320(s32 *, s32 *, s32, s32, s32);
+extern int D_0035B810;
+extern s32 D_0035BEB8;
+extern s32 D_0035BEBC;
+extern s32 D_0035BEC0;
+extern f32 D_0035BEC4;
+
+/* ER-120: by hand from the m2c draft (store order by search); names, types and offsets are Unconfirmed readings. */
+void func_0014E0A8(char *arg0) {
+    char *p;
+    f32 f;
+
+    if (D_0035BEC0 != D_0035B810) {
+        D_0035BEC4 = func_0012E320(&D_0035BEB8, &D_0035BEBC, 0x14, -0x32, 0x28);
+        D_0035BEC0 = D_0035B810;
+    }
+    p = *(char **)(arg0 + 0xE0);
+    f = D_0035BEC4;
+    *(f32 *)(p + 0x374) = f;
+    *(f32 *)(p + 0x2D4) = f;
+    *(f32 *)(p + 0x234) = -f;
+    *(f32 *)(p + 0x194) = -f;
+}
 
 void func_0014E118(void) {
 }
