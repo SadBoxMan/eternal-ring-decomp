@@ -1645,6 +1645,15 @@
       "model": "Opus, high",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-150",
+      "title": "Ruling: do-while(0) sibcall blocker (func_0014E450)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "LuciDin, then Opus medium",
+      "waits_on": "ruling",
+      "notes": ""
     }
   ]
 }
