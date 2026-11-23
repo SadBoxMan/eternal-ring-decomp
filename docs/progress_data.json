@@ -1553,7 +1553,7 @@
       "status": "Queued",
       "track": "port",
       "model": "Opus xhigh/high",
-      "waits_on": "ER-142",
+      "waits_on": "LuciDin starts the xhigh design session",
       "notes": ""
     },
     {
@@ -1885,6 +1885,15 @@
       "title": "tools/ordersearch.py round 2 (variants, restarts)",
       "status": "Queued",
       "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-177",
+      "title": "GS capture compare tool",
+      "status": "Queued",
+      "track": "recomp",
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
