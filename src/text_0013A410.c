@@ -125,7 +125,7 @@ void func_0013B268(s8 *arg0) {
     }
 }
 
-extern void func_00130BF8(char *, f32);
+extern f32 func_00130BF8(char *, f32);
 extern float func_0012E820(char *, float, float);
 extern s32 func_0012FAA8(void *);
 extern s32 func_0012D9B8(void *, f32);

@@ -1009,7 +1009,7 @@ void func_00147100(char *arg0, char *arg1) {
 }
 
 extern s32 func_0012C190(char *);
-extern void func_00131020(char *, s32, void *, void *);
+extern void *func_00131020(char *, s32, void *, void *);
 extern void func_001475E0();
 
 /* ER-120: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
@@ -1952,7 +1952,7 @@ void func_001496E8(void *arg0, f32 fparg0, f32 fparg1, f32 fparg2, f32 fparg3) {
     *(f32 *)((char *)arg0 + 0x44) = fparg3;
 }
 
-extern void func_00130A88(char *, float *, float);
+extern float func_00130A88(char *, float *, float);
 
 /* ER-120: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
 void func_00149700(void *arg0, s32 arg1) {
@@ -2004,7 +2004,7 @@ void func_001497D0(void **arg0, char *arg1, s32 arg2) {
 }
 
 extern void func_0012FB48(void *, s32);
-extern void func_0012FAE8(void *, int, int, int, float);
+extern s32 func_0012FAE8(void *, int, int, int, float);
 
 /* ER-064: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00149880(s32 *arg0, s32 arg1, f32 fparg0) {

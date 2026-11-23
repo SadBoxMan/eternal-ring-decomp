@@ -182,7 +182,7 @@ void func_0014DEE8(void *arg0, s32 arg1) {
     }
 }
 
-extern void func_0012FAE8(void *, int, int, int, float);
+extern s32 func_0012FAE8(void *, int, int, int, float);
 extern float func_00131608(float a, float b);
 extern s32 func_00131088(void *);
 extern void func_0014E0A8(char *);

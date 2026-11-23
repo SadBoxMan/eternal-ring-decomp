@@ -366,7 +366,7 @@ s32 func_0013D550(void **a0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013D5D0);
 
-extern void func_0012FAE8(void *, int, int, int, float);
+extern s32 func_0012FAE8(void *, int, int, int, float);
 extern void func_0013D828(void *);
 extern s32 func_0013D838(void *, void *);
 extern s32 func_0012E568(s32, s32);

@@ -146,7 +146,7 @@ void func_0014CC68(void **arg0) {
 
 extern void func_0014D8F8(void *, s32);
 extern void func_0014D5F0();
-extern void func_0012E820(char *, float, float);
+extern float func_0012E820(char *, float, float);
 extern s32 func_0012B7C0(void **, u32, s32, s32, s16, s32, f32 fparg0);
 extern f32 D_0035BE3C;
 
