@@ -1837,11 +1837,11 @@
     },
     {
       "code": "ER-171",
-      "title": "Place round 3's 15 plain MATCHes (text_001000C0, text_00150878)",
+      "title": "Place round 3's 13 plain MATCHes (text_001000C0, text_00150878)",
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-164",
+      "waits_on": "none",
       "notes": ""
     },
     {
@@ -1860,6 +1860,24 @@
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-174",
+      "title": "ER-164's return-type scripts into tools/",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-175",
+      "title": "m2c_bulk: callee return types from call sites",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-172",
       "notes": ""
     }
   ]
