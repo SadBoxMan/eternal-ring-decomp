@@ -1487,11 +1487,11 @@
     {
       "code": "ER-132",
       "title": "func_00178C60 (volatile ruling first)",
-      "status": "Waiting",
+      "status": "Queued",
       "track": "decomp",
       "model": "Opus, high",
-      "waits_on": "ruling",
-      "notes": "Parked: ruling 3.16 (LuciDin 22 Nov): no volatile on hardware-register reads"
+      "waits_on": "",
+      "notes": "Ruling 3.16 (LuciDin 22 Nov): volatile accepted narrowly for hardware-register reads"
     },
     {
       "code": "ER-133",

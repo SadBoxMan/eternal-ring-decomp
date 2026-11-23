@@ -942,11 +942,11 @@ Standing rulings; each applies until LuciDin changes it.
 |---|---|
 | **Accepted, narrowly** | `__attribute__((aligned(16)))` on a 4-float vector type (func_00158DC0: `typedef struct { f32 v[4]; } __attribute__((aligned(16))) Vec4A;` for `D_00354D70`), as a data layout: Sony's libvu0.h declares `sceVu0FVECTOR` as `float[4]` with `aligned (16)`, so the original source plausibly used such a type. Not for steering code generation; any other attribute needs its own ruling. Each use carries a comment naming this ruling. (A plain two-`s64` struct also matched; the float vector is the kept reading, Unconfirmed.) Used so far: func_00158DC0 (ER-095, 2.25) |
 
-### 3.16 ER-132: volatile reads of hardware registers (Sun 22 Nov 2026, about 18:45 Eastern, LuciDin in the DISP-03 session)
+### 3.16 ER-132: volatile reads and writes of hardware registers (Sun 22 Nov 2026, about 18:50 Eastern, LuciDin in the DISP-03 session)
 
 | Ruling | Item |
 |---|---|
-| **Not accepted** | `volatile` reads of memory-mapped hardware registers (func_00178C60's busy-wait on `0x1000A000` / `0x10003020`, `text_00150878`). LuciDin: "I want reads stable, not volatile." Functions that only match with `volatile` are parked with that cause. |
+| **Accepted, narrowly** (first ruled "not accepted" at about 18:45, reversed after the explanation) | `volatile` only on reads and writes of memory-mapped hardware register addresses (EE timers, DMA, GIF / VIF, GS privileged registers and the like: e.g. func_00178C60's busy-wait on `0x1000A000` / `0x10003020`), where the game's code re-reads the register each time as the hardware changes it. It states a fact about the location, as Sony's own register access macros do (Unconfirmed until checked against an SDK header). Each use carries a comment naming this ruling. **Never on ordinary variables**: `volatile` keep-alives that only force a load or store stay forbidden. LuciDin: the goal stays a true 100% decomp as in Twinblade (3.1); every use of the narrow rulings (3.13-3.16) is listed here so it can be reviewed later. |
 
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker): park such functions with a
 one-line cause and ask.
