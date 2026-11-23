@@ -694,7 +694,17 @@ void func_00140978(s8 *arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140A20);
+/* ER-165: by hand from the asm; names, types and offsets are Unconfirmed readings. */
+void func_00140A20(char *arg0) {
+    char *t = *(char **)(arg0 + 0xE8);
+
+    if (!(*(u8 *)(t + 0x5A) & 0x40)) {
+        *(u8 *)(t + 0x5A) |= 0x40;
+        *(s64 *)(t + 0x70) |= 0x2000000000000LL;
+        func_00131000(t, *(void **)(t + 0xCC));
+        func_001321E8(arg0);
+    }
+}
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 s32 func_00140A90(void *arg0, void *arg1) {
@@ -722,7 +732,37 @@ void func_00140B88(s8 *arg0, void *arg1) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140C18);
+extern f32 func_00130B60(void *, float);
+/* ER-165: both floats before the ints. The EABI passes them in $f12 / $f13 whatever their place in the list, so the
+   registers are the same as for the definition's (void **, s32, s32, f32, f32) in text_001000C0 (an m2c reading), but
+   gcc loads the argument registers in parameter order, and only this order gives the game's (x30, pi, then x6C in the
+   jal slot). The definition and the five other placed calls (text_00145120, text_0014A968) compile to the same bytes
+   with it. Placed with this prototype on LuciDin's go (Mon 23 Nov 2026); aligning the other files is a follow-up. */
+extern s32 func_0012DA68(void *, f32, f32, s32, s32);
+extern f32 D_0035BB90;
+void func_00140DD8(s8 *arg0);
+
+/* ER-165: from ER-158's draft by hand; names, types and offsets are Unconfirmed readings. */
+void func_00140C18(s8 **arg0, void *arg1) {
+    char *a = (char *)arg0;
+    char *b = (char *)arg1;
+
+    if (*(s16 *)(a + 0x6E) == 0) {
+        f32 d;
+        *(s8 *)(a + 0xF) = 1;
+        d = D_0035BB90;
+        *(f32 *)(a + 0x48) = *(f32 *)(b + 0x94) - 200.0f;
+        func_00130848(arg0, -d);
+        *(f32 *)(a + 0x30) = *(f32 *)(b + 0xA4);
+        *(s16 *)(a + 0x6E) += 1;
+    }
+    func_00130B60(arg0, 0.9999f);
+    func_0012F8C8((s8 *)arg0, 1, *(s16 *)(a + 0x6C), 0xA, 1, 0.1f);
+    func_0012E820(b + 0xA0, -0.7853982f, 20.0f);
+    if (func_0012DA68(a, *(f32 *)(a + 0x30), 3.1415927f, *(s16 *)(a + 0x6C), 0x1E) != 0) {
+        func_00131000(a, func_00140DD8);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140D00);
 
@@ -740,7 +780,6 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140E00);
 extern void func_0012DAF8(s32 *, void *, f32 fparg0);
 extern f32 func_00130AD0(s8 *, f32 fparg0, f32 fparg1);
 extern f32 D_0035BB8C;
-extern f32 D_0035BB90;
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00140F10(s8 *arg0, s32 arg1) {
