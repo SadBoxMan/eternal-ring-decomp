@@ -1708,6 +1708,15 @@
       "model": "Sonnet, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-157",
+      "title": "Scan: functions with migrated .rodata strings",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
