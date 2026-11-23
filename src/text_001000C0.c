@@ -306,7 +306,7 @@ extern s32 D_0035B890;
 extern s32 D_00202C50[];
 extern s32 D_00202B60[];
 extern s32 func_001CFAD8(s32 *, s32, s32, s16);
-extern s32 func_001D03E0(s32);
+extern void func_001D03E0(s32); /* ER-163: syscall 0x64 stub (FlushCache: Unconfirmed name), void as in text_00150878.c */
 extern s32 func_001CEB88(s32 *, s32);
 extern s32 D_00202B00[];
 
