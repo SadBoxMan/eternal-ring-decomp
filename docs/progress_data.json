@@ -1491,7 +1491,7 @@
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "ruling",
-      "notes": ""
+      "notes": "Parked: ruling 3.16 (LuciDin 22 Nov): no volatile on hardware-register reads"
     },
     {
       "code": "ER-133",
