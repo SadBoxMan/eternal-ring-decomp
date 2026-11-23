@@ -296,7 +296,7 @@ void func_00139450(void **arg0) {
 INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139488);
 
 extern float func_00130378(char *, s32);
-extern void func_0012E820(char *, float, float);
+extern float func_0012E820(char *, float, float);
 extern f32 D_0035BA30;
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
@@ -321,7 +321,58 @@ void func_00139640(void *arg0) {
     *(s32 *)((char *)arg0 + 0x20) = 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139650);
+extern void func_00130848(s8 **, f32);
+extern f32 func_00130AD0(s8 *, f32, f32);
+extern void func_00130BF8(char *, f32);
+extern f32 D_0035BA18;
+extern f32 D_0035BA1C;
+extern f32 D_0035BA20;
+extern f32 D_0035BA24;
+extern f32 D_0035BA28;
+extern f32 D_0035BA2C;
+
+/* ER-159: by hand from m2c; names, types and offsets are Unconfirmed readings. `state = 1` after the call (the game
+   fills the jal slot with it); the two closing stores are written x1C then x20 (the game stores x20 first). */
+s32 func_00139650(s8 *arg0, s32 arg1) {
+    s32 state;
+    s32 count;
+    s32 mode;
+    s32 ret;
+
+    ret = 0;
+    state = *(s32 *)(arg0 + 0x1C);
+    mode = (*(s8 *)(arg0 + 0xC) != 0) ? 0xF : 1;
+    count = *(s32 *)(arg0 + 0x20) + 1;
+    switch (state) {
+    case 0:
+        func_00130848((s8 **)arg0, D_0035BA20);
+        state = 1;
+    case 1:
+        func_00139560(arg0, arg1, 20.0f);
+        func_00130AD0(arg0, D_0035BA24, D_0035BA28);
+        if (func_0012F8C8(arg0, mode, count, (s16)D_0035BA18, 0, D_0035BA1C) != 0) {
+            if (*(u16 *)(*(char **)(arg1 + 0xE0) + 0x26C) == 0x1E) {
+                state = 2;
+            }
+        }
+        break;
+    case 2:
+        func_00139560(arg0, arg1, 50.0f);
+        func_00130BF8(arg0, D_0035BA2C);
+        if (func_0012F938((void *)arg1, mode) != 0) {
+            func_0012F9C0((void **)arg0, 4);
+            state = 0;
+            func_0012F9C0((void **)arg0, 5);
+            count = 0;
+            ret = 1;
+            *(u8 *)(arg0 + 0xC) ^= 1;
+        }
+        break;
+    }
+    *(s32 *)(arg0 + 0x1C) = state;
+    *(s32 *)(arg0 + 0x20) = count;
+    return ret;
+}
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_001397D0(void *arg0) {
@@ -329,7 +380,64 @@ void func_001397D0(void *arg0) {
     *(s32 *)((char *)arg0 + 0x20) = 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_001397E0);
+extern f32 func_001E3DE0(f32);
+extern f32 func_001E3EC8(f32);
+extern void func_00130CE0(char *, float);
+extern f32 func_00130B60(void *, float);
+float func_001399B8(char *a0, char *a1, float f);
+void func_00139C28(void **arg0, s32 arg1, s32 arg2);
+extern f32 D_0035BA38;
+extern f32 D_0035BA3C;
+extern f32 D_0035BA40;
+extern f32 D_0035BA44;
+extern f32 D_0035BA48;
+
+/* ER-159: by hand from m2c; names, types and offsets are Unconfirmed readings. func_0012E820 declared float (as the
+   game returns it) and func_00130CE0 void (as the file has it) give the game's registers; the constant 1.5707964f
+   written inline in both calls (a temp moves its load ahead of the x48 load). */
+s32 func_001397E0(s8 *arg0, s8 *arg1) {
+    s32 state;
+    s32 count;
+    s32 ret;
+
+    ret = 0;
+    state = *(s32 *)(arg0 + 0x1C);
+    count = *(s32 *)(arg0 + 0x20) + 1;
+    switch (state) {
+    case 0:
+        *(f32 *)(arg0 + 0x48) = func_001399B8(arg0, arg1, (D_0035BA38 * 3.1415927f) / 180.0f);
+        state = 1;
+    case 1:
+        func_0012E820(arg1 + 0xA4, *(f32 *)(arg0 + 0x48), 8.0f);
+        if (func_0012F8C8(arg0, 0xE, count, (s16)D_0035BA3C, 0, 0.3f) != 0) {
+            state += 1;
+            count = 0;
+            *(f32 *)(arg0 + 0x90) = -func_001E3DE0(1.5707964f - *(f32 *)(arg0 + 0x48)) * D_0035BA40;
+            *(f32 *)(arg0 + 0x98) = -func_001E3EC8(1.5707964f - *(f32 *)(arg0 + 0x48)) * D_0035BA40;
+        }
+        break;
+    case 2:
+        func_00130B60(arg0, D_0035BA44);
+        func_0012E820(arg1 + 0xA4, *(f32 *)(arg0 + 0x48), 20.0f);
+        if (count >= 0x19) {
+            state = 3;
+        }
+        break;
+    case 3:
+        func_00130B60(arg0, D_0035BA48);
+        func_00130CE0(arg0, 15.0f);
+        if (count >= 0x22) {
+            state = 0;
+            count = 0;
+            ret = 1;
+        }
+        break;
+    }
+    *(s32 *)(arg0 + 0x1C) = state;
+    *(s32 *)(arg0 + 0x20) = count;
+    func_00139C28((void **)arg0, 0x19, 0x21);
+    return ret;
+}
 
 extern float func_0012CE18(char *, char *);
 extern float func_00130258(char *);
@@ -461,9 +569,6 @@ void func_00139E70(s8 *arg0) {
 }
 
 extern int func_00131140(char *, void *, void *, void *, void *, void *);
-extern void func_00130CE0(char *, float);
-extern void func_00130848(s8 **, f32);
-extern f32 func_00130AD0(s8 *, f32, f32);
 extern void func_0013A050();
 extern void func_0013A1A0();
 extern f32 D_0035BA5C;

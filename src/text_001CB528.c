@@ -43,7 +43,16 @@ INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CC348);
 
 INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CC6A0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CC848);
+/* ER-159: by hand from m2c; names, types and offsets are Unconfirmed readings. The game stores arg1's low byte raw and
+   sign-extends only the call's copy, so arg1 is a full word here (an `s8` parameter is extended on entry). */
+s32 func_001CC848(s32 arg0, s32 arg1) {
+    char *p = (char *)D_0035C554 + (arg0 << 5);
+    *(s8 *)(p + 0x1A) = arg1;
+    if (func_001CB808(1, 0x90, (s8)arg1, 0, *(s32 *)(p + 8), *(s32 *)(p + 0xC), *(s32 *)(p + 0x14)) != *(s32 *)(p + 0x14)) {
+        return -1;
+    }
+    return 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CC8B0);
 
@@ -108,7 +117,11 @@ INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CD5C8);
 
 INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CD620);
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CD680);
+/* ER-159: by hand from m2c; names, types and offsets are Unconfirmed readings. `arg0 << 4` gives the game's
+   `addu $v0, base, index`; m2c's `arg0 * 0x10` in one expression sums the other way round. */
+s32 func_001CD680(s32 arg0, s16 arg1) {
+    return func_001CB808(1, 0x1060, *(s32 *)((char *)D_0035C554 + (arg0 << 4) + 0x20C), arg1);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CD6B8);
 
