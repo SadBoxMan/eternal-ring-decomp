@@ -181,6 +181,9 @@ python -I tools/m2c_bulk.py --list picks.txt                     one name per li
    [--gcc-timeout 120] [--no-passthrough]                        gcc / ee-as kill time; skip the pass-through retry (6.6)
    [--no-slot-move] [--no-const]                                 skip the tail-j slot rewrite / the const variant (6.10)
    [--no-store-sort] [--no-ruling-314]                           skip the offset-order store variant / the ruling 3.14 variant (6.12)
+   [--no-frame] [--no-packer] [--no-untouched] [--no-reg-bytes]  skip frame-sized locals / the packer order / the untouched-args
+                                                                 retry / register byte arithmetic (6.17)
+   [--store-limit 48]                                            most permuted store orders compiled per draft (6.17)
 python -I tools/sdata_consts.py [--all] [--names D_X ...]        census of the never-stored .sdata floats (6.10)
 python -I tools/m2c_bulk.py --rerun-diffs build/m2c_bulk/<label> --chunk 8 --plain    an earlier run's same-size DIFFs in small lists (6.6)
 ```
@@ -250,6 +253,11 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
      `N pointer step(s) in elements`. A dereferenced sum with such a base (`*((arg0 * 0xC4C) + D_X)`) gets m2c's type
      back as `*(T *)(...)`; where m2c had none (`M2C_UNK`), the width of the function's only non-stack memory access
      in the asm, if it has exactly one (ER-114, func_001BCF48: `lhu` -> `u16`; Notes `byte base: D_X (deref as u16)`).
+     **A register added to such a pointer** (ER-138; m2c's `handle_add_real` prints the raw register too): `v + i` /
+     `v - i` / `i + v` with `i` a declared integer becomes `(T *)((char *)v + i)`; `v + (x * N)` / `v + (x << k)`
+     becomes an element count when N is a multiple of `sizeof(T)` (`v + x` when equal), else the byte form. m2c's
+     stack area `sp` counts as such a pointer (an `M2C_UNK` array: func_0012EAF8's `var_2 + sp`, a byte count, was
+     scaled by 4). Notes: `N register offset(s) on a typed pointer in bytes`; `--no-reg-bytes` turns it off.
 
 5. **Compile** with exactly the Makefile's `CC` / `CFLAGS` / `CPPFLAGS` / `AS` / `ASFLAGS` (`eematch.settings()`)
    into `obj/`, **compare** with `eematch.compare_function` (the cmpfunc check: relocation targets checked).
@@ -259,21 +267,60 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
    - **return-wrapper**: ours shorter than the game's and the draft is `void f(..) { ...; g(..); }`: try
      `M2C_UNK f(..) { ...; return g(..); }`. A call whose value is returned gets a frame and `jal`, a void tail call
      a sibling `j`; m2c gives the void form when it cannot tell that `$v0` is passed on;
+   - **frame-sized locals** (ER-147, before the store orders; `--no-frame`): when the draft has m2c's stack locals
+     (`M2C_UNK sp[64]`, `spXX` variables), one array sized from the game's frame takes their place: `M2C_UNK
+     sp[L / 4];` with L the offset of the lowest callee-saved register slot in the game's prologue (`sd` / `sw` /
+     `sq` of `$s0`-`$s7`, `$fp`, `$ra`, `swc1` of `$f20`+, before the first jump or branch), or the whole frame when
+     nothing is saved; `&spXX` -> `&sp[XX / 4]`, `spXX` -> `sp[XX / 4]` (another scalar type T: `(*(T *)&sp[XX / 4])`).
+     Skipped when an `spXX` is an array or lies outside L. Kept when it matches or comes no further off (size, then
+     words), and is then the draft the later variants start from (Notes: `locals sized from the game's frame (0xL
+     bytes)`; the Plain column reminds to give the array the type the code reads: a part never read would be ruling
+     3.13's unused local);
+   - **packer order** (ER-151, `--no-packer`): every return / assignment right side and call argument that is a run
+     of 3 or more ORed terms, each reading a parameter, is written as the flat list in parameter order (`a1 | a2 <<
+     k2 | ...`, recipes 2.31); terms without a parameter, or an operator weaker than `|` outside parentheses, leave
+     the expression alone. Kept as the frame fix is (Notes: `OR terms in parameter order (packer)`);
    - **store order**: same size as the game's: first (ER-124) each run of 2 or more consecutive
-     `M2C_FIELD(base, T *, off) = rhs;` lines at one indentation (inside blocks too) sorted by offset, in three modes
-     (offset order, bytes last, bytes first; runs that read a field they write or call a function are left alone; at
-     most 3 compiles); then the other orders of each run of 2 or more plain top-level assignments (every order up to
-     4 statements, else reversed; at most 24 compiles); kept only on a MATCH (Notes: `store order by offset (asc)` /
-     `store order permuted`);
+     `M2C_FIELD(base, T *, off) = rhs;` lines at one indentation (inside blocks too; ER-138: also `*p = x;` at offset
+     0 and `p[N] = x;` at N times the element size, for a parameter, local or `extern T D_X[];` of known element type)
+     sorted by offset, in three modes (offset order, bytes last, bytes first; runs that read a field they write, or
+     `*p` / `p[N]` of a pointer they store through, or call a function are left alone); then (ER-160) for runs made of
+     2-3 sub-runs of one field type, each sub-run sorted or left as it is, every combination (at most 7: func_001359C0
+     sorts its five function pointers and keeps its two floats as they are); then the other orders of each run of 2 or
+     more plain assignments at one indentation (ER-147: inside if-blocks and loops too, as func_0012FF78; every order
+     up to 4 statements, else reversed; at most 24 per run and `--store-limit` (48) per draft); kept only on a MATCH
+     (Notes: `store order by offset (asc)` / `(by type)` / `store order permuted`);
    - **ruling 3.14** (ER-121): when our build of the draft has a sibling `j` (read from the compiled `.s`) and the
      game's function has no `j` out of itself, `(void)&arg0; /* ruling 3.14 */` after the declarations (the first
-     parameter; none when the function has none), then the store orders of that form; kept only on a MATCH (Notes:
-     `ruling 3.14 (void)&arg0`, else `ruling 3.14 tried, no match (best: ...)`; the Plain column says the ruling is
-     used, for the list in recipes 3.14);
+     parameter), then (ER-138) the same with each of the first 3 locals declared at the top of the body (8- and 16-bit
+     locals skipped: ER-100 found such a local goes to the stack), each followed by the store orders of that form (at
+     most `--store-limit` in all); kept only on a MATCH (Notes: `ruling 3.14 (void)&g`, else `ruling 3.14 tried (arg0,
+     g, ...), no match (best: ...)`; the Plain column says the ruling is used, for the list in recipes 3.14);
    - **const floats** (ER-101, 6.10): the draft compiled again with every `.sdata` float it reads that
      `tools/sdata_consts.py` finds never stored declared `extern const` (also in its prototypes header), then the
      store orders of that form; kept only on a MATCH (Notes: `const floats: D_X ...`). `--plain` declares those
      `extern const` and says in the Plain column when the target file declares one without `const`.
+
+7. **Retries with a widened callee** (after the context fallbacks of step 3, on drafts that do not match):
+   - **pass-through** (ER-066, 6.7; `--no-passthrough`): a same-size draft whose call arguments sit one register
+     higher in the game is drafted again with the callee's prototype widened by a leading `void *`;
+   - **untouched argument registers** (ER-147, `--no-untouched`): from the game's asm, the calls (before the first
+     `jal`) to which the function hands an argument register (`$a0`-`$t3`) it never wrote and which the callee's own
+     asm reads (a straight scan, one level of the callee's own callees); each such callee is widened with trailing
+     `s32` parameters up to the highest register it reads (a `void` return becomes `M2C_UNK`: such wrappers often
+     return the callee's value, and `return g(..)` does not compile against a void `g`), and the two best compiled
+     attempts are drafted again. m2c drops the argument when the callee's context prototype is too short (a narrow
+     `src/` prototype wins over the harvested one). A non-matching retry is kept when it is closer (Notes:
+     `untouched-args retry: <prototype>`); `--plain` flags a file line narrower than the widened one, as for the
+     pass-through retry. Floating-point arguments (`$f12`+) are not looked at.
+
+8. **`--plain` declaration checks** (6.12, ER-160): the target file's own declaration of the function counts in
+   either form, `extern T f(..);` or a plain prototype line `T f(..);` (func_0013E818's `void func_0013E818(void *);`
+   was missed before: the plain file compiled, the placed file did not). When the plain drafts of one file declare a
+   name in different ways (`extern s32 D_0035C554;` against `extern void *D_0035C554;` in text_001CB528), each form in
+   turn (the most used first) is put into the other drafts, which are compiled again; the first form every draft
+   matches with is written into all of them (Plain column: `one declaration for the file: ...`), else each such row
+   names the clash.
 
 Columns of the table: function, file, address, instructions and size band (`tools/census.py` bands), m2c gave a
 draft, draft compiles, exact match, differing words, sizes, class (MATCH / diff / compile error / m2c failed /
@@ -921,7 +968,82 @@ func_00139650, func_001397E0, func_0013CD68, func_0013CE28, func_001CA8B0 (not t
 `text_001343E8` (recipes 2.5, waits on the S3 cut): func_00134F70, func_00135DC0, func_00137CE0. `text_001C9B18` (VU0)
 not run.
 
+### 6.17 Frame-sized locals, packers, untouched arguments, wider store orders, plain checks (ER-138 + ER-147 + ER-151 + ER-160, Mon 23 Nov 2026)
+
+Changes in `tools/m2c_bulk.py` (6, steps 4, 6, 7, 8); nothing placed in `src/`. Worktree `C:\rs\wt\er138`, branch
+`er-138-m2c-bulk-3`. The reproductions set `src/` files back to old states in the worktree, split, ran main's tool
+(copied aside as `tools/_m2c_bulk_main.py`, never committed) and this one with the same arguments (`--plain --tag
+ER-138 --gcc-timeout 30 --par 4`), and restored the files. States: `text_001000C0` at `9f76d66^` (before all of
+ER-125's placements; the card named `2d4eea2^`, which already has 8 of them, func_0012FF78 and func_0012F540 among
+them), `text_00150878` at `b18d16a^` (before ER-113's packers), `text_0013DBC0` / `text_001343E8` / `text_001CB528` at
+`058fece` (before ER-154), `text_0014A968` at `554b0ee^` (before ER-100's func_0014B528). Runs and drafts (game code,
+not in git): `C:\rs\wt\er138_runs\`.
+
+**The card's examples** (41 functions in one list; labels `a_main` / `b1`, 56 / 55 s):
+
+| Item | Examples | Main's tool | This tool |
+|---|---|---|---|
+| ER-147 frame-sized locals | ER-125's 13 `sp[64]` functions | 0 MATCH (4-16 words, mostly the 0x100-byte frame) | **9 plain MATCH** (func_0012C190, func_0012C718, func_0012FB90, func_0012D2D8, func_0012DF30, func_0012EB60, func_0012CB08, func_0012CBF8 (0x90: three arrays as one), func_001124E8); 4 left at 2-4 words with the frame right: func_0012FCA0, func_0012FD70, func_0012FE48 (`u16` parameter: m2c's `arg1 & 0xFFFF` puts the `andi` at the call, the game at entry), func_001307A0 (m2c dropped the `v[1] = 0.0f` store) |
+| ER-147 store order inside an if | func_0012FF78 | 3 words | **plain MATCH** (`store order permuted`: 0x14, 0x30, 0x10) |
+| ER-147 untouched argument registers | func_0012F540, func_0012FE10 | 3 / 7 words | **both plain MATCH** (func_0012F418 widened to 4 parameters, func_0012C500 to 5 and `M2C_UNK`, then the return-wrapper form) |
+| ER-151 packer order | the nine func_001C6880 wrappers (func_001C68D0 ... func_001C6CE8) | 5-23 words each | **9 plain MATCH**; func_001C67D0 (recipes 2.31's tenth row) is a size difference, untouched |
+| ER-160 offset order | func_001359C0 | 6 words | **plain MATCH** (`by type`) |
+| ER-160 non-extern prototype | func_0013E818 (file: `void func_0013E818(void *);`) | plain MATCH, placement then failed | plain MATCH, flagged: the file's line differs and must be aligned (ER-154 changed it to `(s32 *)`) |
+| ER-160 data extern clash | text_001CB528's 10 plain MATCHes (5 drafts `extern s32 D_0035C554`, 2 `extern void *`) | printed only | **one form for the file**: every draft matches with `extern s32 D_0035C554;`, their plain files use it (ER-154 kept `void *` and wrote the sums `(char *)D_0035C554 + ...`: same bytes) |
+| ER-138 ruling 3.14 with a local | func_0014B528 | `(void)&arg0` tried, no match (70 words: the draft is far off) | `(void)&arg0`, `(void)&temp_f0` tried, no match. Scratch check on ER-100's finished C with its `(void)&g;` taken out (`t314.py`): `(void)&arg0`, `(void)&t` and `(void)&g` each MATCH, so the locals add a form but this function did not need one |
+
+Why the offset-order variant missed func_001359C0 (ER-160): its run of seven stores mixes five function pointers
+(0xC8, 0xC0, 0xC4, 0xCC, 0xD8) and two floats (0xE4, 0xB4); the game's C sorts the pointers and keeps the floats in
+m2c's order, while the variant sorted the whole run (0xB4 first). The new `by type` mode sorts each sub-run of one
+field type or leaves it, in every combination.
+
+**Whole files, old states** (main's tool -> this tool):
+
+| Files | Asm functions | Masked MATCH | Plain MATCH | Lost | Same size 1-2 / 3-8 / 9+ | Size differs | Time |
+|---|---|---|---|---|---|---|---|
+| `text_001000C0` (`9f76d66^`) | 423 | 0 -> **18** | 0 -> **18** | none | 2 / 27 / 45 -> 6 / 24 / 43 | 236 -> 219 | 595 / 787 s |
+| `text_0013DBC0`, `text_001343E8`, `text_001CB528` (`058fece`) | 214 | 50 -> **56** | 49 -> **54** | none | 2 / 15 / 32 -> 2 / 18 / 31 | 105 -> 97 | 450 / 382 s |
+
+- Main's tool on `text_001000C0` at `9f76d66^` gives exactly ER-125's `er125file` table (0 MATCH, 310 compile, 2 / 27 /
+  45 same size, 236 size differs), so the old state is the one ER-125 worked from.
+- The 18 in `text_001000C0`: 15 by the frame fix (three of them with a permuted store order after it), func_0012F540 and
+  func_0012FE10 by the untouched-args retry, func_0012FF78 by the order inside its if-block. Of non-matches, 20 came
+  closer and 3 went farther (func_0012EAF8: m2c's `var_2 + sp` was scaled by 4, a wrong draft that happened to have
+  the game's size; written in bytes it is one instruction short).
+- The 6 in the ER-154 files: func_00144020, func_00144100, func_001386E8 (frame), func_001359C0 (by type),
+  func_001387C0 (permuted order), func_001417E8 (ruling 3.14 after the untouched-args retry; its plain form does not
+  compile: the file declares `func_00131140` `void` and the draft tests its value).
+- Notes over the two runs: frame fix kept on 116 drafts, register offsets written in bytes on 14, untouched-args
+  retry kept on 10. No new match came from the register rewrite alone.
+- New plain MATCHes still `INCLUDE_ASM` on main, not placed (each file has its owner): `text_001000C0` func_00115038,
+  func_0012C938, func_0012C9D8, func_0012D318, func_00130180, func_00130DF0; `text_0013DBC0` func_00144020,
+  func_00144100; `text_001343E8` func_001386E8.
+
+**This tool on main** (`src/` as on main `c194d93`, labels `M_c0`, `M_s0`; no A run: main's tool had found nothing
+more in these files, 6.13 / 6.15):
+
+| File | Asm functions | Masked / plain MATCH | Same size 1-2 / 3-8 / 9+ | Size differs | Time |
+|---|---|---|---|---|---|
+| `text_001000C0` | 392 | **6 / 6**: func_00115038, func_0012C938, func_0012D318, func_00130180 (frame), func_0012C9D8 (frame; its definition takes the file's own prototype), func_00111700 (return-wrapper form: an older step; ER-125 had it parked as a prologue tie) | | | 690 s |
+| `text_00150878` | 1,047 | **9 / 9**: func_0017D7F0, func_0018CA20, func_0019E438, func_001A24A8, func_001AF6A0, func_001AFB30 (frame, two with offset order after it), func_001C87E0 (untouched-args retry: `func_001DB898` widened to 3), func_00154CA8 (ruling 3.14 `(void)&arg0` and a permuted order; the definition takes the file's prototype), func_001524F8 (plain draft) | 1 / 13 / 135 | 531 | 2,423 s |
+
+func_00130DF0 matched at `9f76d66^` but not on main (its context differs there). None placed. The tool is slower again
+(text_00150878: 2,423 s against ER-113's 1,740 s with the tool before this card; other sessions were loading the
+machine for both, so the share of the new variants is not measured).
+
 ## 7. Not verified
+
+- ER-138 / ER-147 / ER-151 / ER-160 (6.17): none of the new plain MATCHes is placed, so none is proven by `make
+  regress`. The register byte rewrite gave no match on its own (14 drafts changed, among them func_0012EAF8, which it
+  makes correct C and one instruction short); its `i + v` form and the `<<` form were not met. The packer variant was
+  run on the ten recipe 2.31 functions only, not on a whole file; the ruling 3.14 locals on func_0014B528 only (a
+  scratch copy of the finished C); `*p = x` / `p[N] = x` offset order on no example that needed it. The frame size
+  is read from the prologue before the first jump or branch, and outgoing stack arguments (calls with more than 8
+  arguments) are not allowed for: such a frame would be sized wrong (the variant is then just not kept). The
+  untouched-args scan is a straight line through the asm (branches ignored), looks at calls before the first `jal`
+  only, one callee level deep, integer registers only, and needs the callee's own asm (a callee already in C keeps its
+  definition's prototype, which is right by construction). The per-file declaration unification tries the forms the
+  drafts already have; it does not invent another (such as ER-154's `void *` with `(char *)` casts).
 
 - ER-137 / ER-113 (6.15): the 66 'size -1' drafts of ER-098 without the ruling 3.14 shape were not classified one
   by one (the tail-`j` slot move is the likely cause for some, Unconfirmed for the rest). func_00175D90's second
@@ -931,15 +1053,15 @@ not run.
 - ER-130 / ER-124 / ER-121 / ER-114 (6.12): none of the new plain MATCHes is placed, so none is proven by `make
   regress`; the A/B runs used the tool before the per-attempt pass-through change (that change only adds attempts;
   func_0012F900 rerun alone with the final tool). The type filter of the context keeps a declaration only when every
-  type word is a basic type (a typedef from `include/` would also be left out; none met). The offset sort handles
-  `M2C_FIELD` stores only (not `*p = x` or array stores). The ruling 3.14 variant takes the first parameter only
-  (ER-100 also used a local, func_0014B528's `g`); the soft-double rewrite was checked on func_001C1310 only
+  type word is a basic type (a typedef from `include/` would also be left out; none met). (The offset sort's
+  `M2C_FIELD`-only limit and the ruling 3.14 variant's first-parameter-only limit were lifted by ER-138, 6.17.) The
+  soft-double rewrite was checked on func_001C1310 only
   (`fptodp`); `dpcmp` and the arithmetic forms are untested. The deref width needs exactly one non-stack memory
   access in the function.
 
 - ER-084 / ER-097 / ER-101 (6.10): the slot move with a label on the delay-slot line (skipped by design, not met);
   the byte rewrites on a base declared in `src/` (the `(char *)` cast path; not met in the reruns), on a register
-  added to a typed pointer (`v + i * 4`, not handled), and on struct-typed pointers (skipped); the census's lui
+  added to a typed pointer (handled since ER-138, 6.17), and on struct-typed pointers (skipped); the census's lui
   pairing is per function and keeps the last `lui` per register (a pairing across a branch can be wrong, which can
   only add accesses). None of the 19 new matches is placed, so none is proven by `make regress` yet.
 
