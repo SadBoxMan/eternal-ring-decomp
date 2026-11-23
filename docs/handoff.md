@@ -55,7 +55,9 @@ Written Tue 17 Nov 2026, 11:52 Eastern, by the setup session.
   `claude/*` branches stay local), ringsmith `main` aaae66f..cffeaf4 (fast-forward). Later pushes: LuciDin's yes in
   that session and the same check, as before. Push 2, Sun 22 Nov 2026, 17:50 Eastern (DISP-03, LuciDin's yes in the DISP-03
   session): eternal-ring-decomp `main` 1361528..a375f83 (33 commits, 15 source / doc files, no binary or game data);
-  ringsmith unchanged at cffeaf4 (nothing new committed; ER-102 + ER-103's work in progress stays local).
+  ringsmith unchanged at cffeaf4 (nothing new committed; ER-102 + ER-103's work in progress stays local). Push 3, Mon 23 Nov 2026, 12:17 Eastern (DISP-03, LuciDin's yes for after the current cards):
+  eternal-ring-decomp 937cbc0..48fa4e2 (64 commits), ringsmith cffeaf4..98b7f3c (4 commits: ER-102 + ER-103, ER-030, ER-104); history
+  checked (source / doc files only, no binary or large blobs).
 - **The port repository is GPL-3.0 and holds the local PS2Recomp patches** (LuciDin, Sun 22 Nov 2026; settles ER-019's
   licence question). Whether "GPL-3.0-only" or "-or-later" is not decided (open; `LICENSE` is the plain GPL-3.0 text).
 
