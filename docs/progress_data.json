@@ -1847,11 +1847,11 @@
     {
       "code": "ER-172",
       "title": "m2c_bulk u16-parameter variant",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Mon 23 Nov 2026: m2c_bulk.py narrow-parameter variant (u16/s16/u8/s8, --no-narrow); A/B at 9f76d66^: func_0012FCA0/FD70/FE48 plain MATCH, text_001000C0 19 -> 22, none lost; func_001CB388 MATCH on main (not placed). Commits 887bba3, merge 536387a; matching_tools 6.20"
     },
     {
       "code": "ER-173",
