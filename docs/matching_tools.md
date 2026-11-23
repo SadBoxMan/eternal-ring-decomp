@@ -859,11 +859,21 @@ git): `C:\rs\wt\er113_runs\` (`er137`, `er113all` (10 GB with the objects), `er1
   func_001635E0, func_001766D0 and func_0017CD10 of them as plain MATCHes in `er113all`.
 - **15 more by hand** from the `er113all` near misses (recipes 2.31): the GS register packers (9 + 3), func_00152548,
   func_001A7CA8, func_001C20B0.
-- Placed by this card: **36 functions, 2,520 bytes** (ER-137 9 / 576, bulk 12 / 660, hand 15 / 1,284). `make regress`
-  PASS after each of four batches and after merging main (ELF unchanged).
-- Left in the file: **1,059 `INCLUDE_ASM`**; by the `er113all` draft: same size 148 (1-2 words 1: func_001C4838;
+- **m2c's `M2C_UNK sp[64]` (ER-125's tip, 6.13): 7 more.** The scan for same-size DIFFs whose `!!` lines all
+  mention `$sp` found one here (func_001C89F8); 494 drafts of the still-asm functions declare an m2c stack array
+  (`M2C_UNK sp[...]`), 223 of them compile, 23 same size. By hand,
+  sizing the local from the game's frame (the lowest saved-register slot) and then the usual fixes: func_001C89F8,
+  func_001C8D58, func_0017D2D0, func_00157760, func_00192EE8 / func_00193440, func_001585C8 (796 bytes). A scratch
+  script did the same over the 203 other compiling drafts with exactly `sp[64]` (frame size, then
+  `m2c_bulk.offset_orders`): **no match
+  on its own**; func_001585C8 went from 16 to 4 words and then matched by hand. So the frame fix is necessary but
+  rarely enough: in this file most such drafts also differ in size (187 of the 203).
+- Placed by this card: **43 functions, 3,316 bytes** (ER-137 9 / 576, bulk 12 / 660, hand 22 / 2,080). `make regress`
+  PASS after each of five batches and after merging main (ELF unchanged).
+- Left in the file: **1,052 `INCLUDE_ASM`**; by the `er113all` draft: same size 141 (1-2 words 1: func_001C4838;
   3-8 words 12: func_001540C0, func_001636A0, func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001B34F8,
-  func_001BE9C0, func_001C56F0, func_001C6F90, func_001C8600, func_001C8700, func_001C8758; 9+ words 135), size
+  func_001BE9C0, func_001C56F0, func_001C6F90, func_001C8600, func_001C8700, func_001C8758; 9+ words 128, among them
+  func_001C2FC8, now 1 word: recipes 2.31), size
   differs 556, no compile or no draft 355. Parked causes: recipes 2.31 and 2.25.
 
 ## 7. Not verified
