@@ -1690,6 +1690,15 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-155",
+      "title": "Recomp: unaligned-128 counter rerun",
+      "status": "Waiting",
+      "track": "port",
+      "model": "Sonnet, medium",
+      "waits_on": "speed work",
+      "notes": ""
     }
   ]
 }
