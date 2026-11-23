@@ -2140,7 +2140,25 @@ s32 func_0012DA68(void **arg0, s32 arg1, s32 arg2, f32 fparg0, f32 fparg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012DAF8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012DB88);
+extern void func_001CA0C0(void *, void *);
+extern void func_001CA078(void *, void *, void *);
+
+/* ER-137: drafted with m2c (tools/m2c_bulk.py --plain, stores in offset order); names, types and offsets are
+   Unconfirmed readings. */
+void func_0012DB88(char *arg0, f32 *arg1, f32 *arg2) {
+    char *v = arg0 + 0x20;
+
+    *(f32 *)(arg0 + 0x20) = arg1[0] - arg2[0];
+    *(s32 *)(arg0 + 0x24) = 0;
+    *(f32 *)(arg0 + 0x28) = arg1[2] - arg2[2];
+    *(s32 *)(arg0 + 0x2C) = 0;
+    func_001CA0C0(v, v);
+    *(s32 *)(arg0 + 0x10) = 0;
+    *(f32 *)(arg0 + 0x14) = 1.0f;
+    *(s32 *)(arg0 + 0x18) = 0;
+    *(s32 *)(arg0 + 0x1C) = 0;
+    func_001CA078(arg0, arg0 + 0x10, v);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012DC10);
 
@@ -2486,7 +2504,13 @@ s32 func_0012F8C8(void **arg0, s32 arg1, s32 arg2, s16 arg3, s32 arg4, f32 fparg
     return func_0012B890(arg0, 0, arg1 & 0xFF, arg2, arg3, arg4, fparg0);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012F900);
+extern s32 func_0012B930(char *, s32, s32, s32, s16, s32, f32);
+
+/* ER-137: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings.
+   The float in $f12 passes through untouched to func_0012B930 (the callers in this file pass 0.1f; Unconfirmed). */
+s32 func_0012F900(char *arg0, s32 arg1, s32 arg2, s16 arg3, s32 arg4, f32 arg5) {
+    return func_0012B930(arg0, 0, arg1, arg2, arg3, arg4, arg5);
+}
 
 extern s32 func_0012BA30(void *, s32, s32);
 
@@ -3115,7 +3139,7 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00132F80);
 
 extern float func_0012CE18(char *, char *);
 extern float func_00130D00(char *, float);
-extern void func_0012F900(char *, int, int, int, int, float);
+extern s32 func_0012F900(char *, s32, s32, s16, s32, f32);
 extern void func_0012D3B8(char *, float, float);
 extern void func_00131140(char *, void *, void *, void *, void *, void *);
 
