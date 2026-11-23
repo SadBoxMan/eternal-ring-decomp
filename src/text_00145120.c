@@ -246,7 +246,7 @@ extern s32 func_0012B7C0(void **, u32, s32, s32, s16, s32, f32 fparg0);
 extern s32 func_0012F9C0(void **, s32);
 extern void func_00130848(s8 **, f32);
 extern s32 func_0012F938(s32, s32);
-extern void func_00130BF8(char *, f32);
+extern f32 func_00130BF8(char *, f32);
 extern void func_00145260();
 extern s32 func_00145F70(void **arg0, void *arg1);
 extern f32 D_0035BCDC;
@@ -669,10 +669,79 @@ void func_00146888(char *arg0, char *arg1) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_001469B8);
+extern f32 D_0035BCFC;
+extern f32 D_0035BD00;
+extern f32 D_0035BD04;
+extern const f32 D_0035BD08;
+extern const f32 D_0035BD0C;
+extern float func_0012D7C0(char *a0, float a, float max);
+extern f32 func_00130B60(char *, float);
+
+void func_001469B8(char *arg0, char *arg1) {
+    s32 flag;
+    u16 v;
+
+    flag = 0;
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        if (func_0012FB90(0, arg0, arg1 + 0x90) != 0 && func_0012FB90(0, arg0, *(char **)(arg0 + 0x130)) != 0) {
+            func_00130FE0(arg0, func_00146888);
+            return;
+        }
+        *(s32 *)(arg0 + 0x10) = 0;
+        *(s16 *)(arg0 + 0x6E) = 1;
+    case 1:
+        flag = 1;
+        func_0012D7C0(arg0, D_0035BD00, D_0035BD00);
+        *(s16 *)(arg0 + 0x6E) = 2;
+        *(f32 *)(arg0 + 0x30) = D_0035BD08;
+        *(s16 *)(arg0 + 0x6C) = 0;
+    case 2:
+        if (func_0012F8C8((s8 *)arg0, 8, *(s16 *)(arg0 + 0x6C), 4, 1, 0.4f) != 0) {
+            v = *(u16 *)(*(char **)(arg1 + 0xE0) + 0x8C);
+            if (v == 3) {
+                *(s16 *)(arg0 + 0x6E) = v;
+                *(f32 *)(arg0 + 0x30) = D_0035BD0C;
+            }
+        }
+        break;
+    case 3:
+        if (*(u16 *)(*(char **)(arg1 + 0xE0) + 0x8C) == 0xA) {
+            flag = 1;
+            func_0012D7C0(arg0, D_0035BD04, D_0035BD04);
+            *(s16 *)(arg0 + 0x6E) = 4;
+            *(f32 *)(arg0 + 0x30) = D_0035BD08;
+        }
+    case 4:
+        if (*(u16 *)(*(char **)(arg1 + 0xE0) + 0x8C) == 0x14) {
+            *(f32 *)(arg0 + 0x30) = D_0035BD0C;
+            if (func_0012FB90(0, arg0, arg1 + 0x90) != 0) {
+                *(s16 *)(arg0 + 0x6C) = 0;
+                *(s16 *)(arg0 + 0x6E) = 5;
+            }
+        }
+        if (*(u16 *)(*(char **)(arg1 + 0xE0) + 0x8C) == 0x1A) {
+            *(s16 *)(arg0 + 0x6E) = 1;
+        }
+        break;
+    case 5:
+        if (func_0012F8C8((s8 *)arg0, 0xA, *(s16 *)(arg0 + 0x6C), 4, 0, 0.4f) != 0) {
+            func_00131000(arg0, func_00146888);
+        }
+        break;
+    }
+    *(s32 *)(arg0 + 0x10) += 1;
+    func_00130B60(arg0, *(f32 *)(arg0 + 0x30));
+    if (flag != 0) {
+        if (*(void **)(arg0 + 0xBC) != func_00146C20 || (s32)D_0035BCFC < *(s32 *)(arg0 + 0x10)) {
+            func_00131140(arg0, func_00146C20, func_00146C20, 0, func_00146888, 0);
+        }
+    } else {
+        func_00130CE0(arg0, 20.0f);
+    }
+}
 
 extern f32 D_0035BD10;
-extern f32 func_00130B60(char *, float);
 extern void func_00146DF8(char *);
 
 /* ER-120: by hand from the m2c draft (helper agent); names, types and offsets are Unconfirmed readings. */
@@ -754,7 +823,7 @@ void func_00146EF0(void *arg0, void *arg1) {
 }
 
 extern s32 func_0014FF38(void *arg0, s32 arg1);
-extern void func_001469B8(s32 *, void *);
+extern void func_001469B8(char *, char *);
 
 /* ER-064: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00146F10(s8 *arg0) {
@@ -830,14 +899,118 @@ void func_00147018(s8 *arg0, s32 arg1) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147100);
+extern s32 D_0035B828;
+extern const f32 D_0035BD38;
+extern f32 D_0035BD44;
+extern f32 D_0035BD48;
+extern f32 D_0035BD4C;
+extern u32 func_0012E750(s32 arg0, s32 arg1);
+s32 func_00147EC0(void *arg0);
+extern void func_00147F20(void *, float);
+extern void func_00147F78(char *, f32);
+s32 func_00148210(char *a0);
+void func_00148330(char *a0);
+extern void func_001474C8();
+extern void func_00147A28();
+
+void func_00147100(char *arg0, char *arg1) {
+    s32 buf[4];
+    f32 f;
+
+    *(s32 *)(arg0 + 0x1C) += 1;
+    *(s32 *)(arg0 + 0x20) -= 1;
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        if (*(u16 *)(arg0 + 4) != 0x1F) {
+            func_00130FE0(arg0, func_001474C8);
+            break;
+        }
+        func_00130848((s8 **)arg0, 0.0f);
+        *(s8 *)(arg0 + 8) = 0;
+        *(s32 *)(arg0 + 0x18) = 0;
+        *(s32 *)(arg0 + 0x1C) = 0;
+        *(s32 *)(arg0 + 0x20) = func_0012E568(0xF0, 0x168);
+        *(f32 *)(arg0 + 0x30) = D_0035BD38;
+        if (func_00131498() >= 0x33) {
+            func_00147F20(arg0, 1.0f);
+        } else {
+            func_00147F20(arg0, -1.0f);
+        }
+        *(s16 *)(arg0 + 0x6E) = 1;
+    case 1:
+        *(s16 *)(arg0 + 0x6C) = 0;
+        *(s32 *)(arg0 + 0x14) = 0;
+        *(s32 *)(arg0 + 0x10) = func_0012E568(0x1E, 0x78);
+        *(s16 *)(arg0 + 0x6E) = 2;
+    case 2:
+        func_00147F78(arg0, *(f32 *)(arg0 + 0x30));
+        if (*(s32 *)(arg0 + 0x1C) >= 0x79) {
+            if (func_00130780(arg0) == 0 || func_00130780(arg0) == 2) {
+                *(s16 *)(arg0 + 0x6E) = 3;
+                break;
+            }
+        }
+        if ((*(u8 *)(arg0 + 0x78) & 1) && *(s32 *)(arg0 + 0x14) >= 0x3D) {
+            if (++*(s32 *)(arg0 + 0x18) >= 0x1E) {
+                *(s16 *)(arg0 + 0x6E) = 3;
+                break;
+            }
+        }
+        *(s32 *)(arg0 + 0x14) += 1;
+        *(s32 *)(arg0 + 0x20) -= 1;
+        if (func_0012C098(arg1 + 0x90, 0x12C, 0x64) != 0) {
+            if (func_00147EC0(arg0) != 0
+                && ((s32)D_0035BD44 == *(s16 *)(arg0 + 0x6C) || (s32)D_0035BD48 == *(s16 *)(arg0 + 0x6C))) {
+                if (!(D_0035B828 & 0x20)) {
+                    f = 0.0f;
+                    if (D_0035B828 & 0x80) {
+                        f = -1.0f;
+                    }
+                } else {
+                    f = 1.0f;
+                }
+                if (*(f32 *)(arg0 + 0x4C) * f > 0.0f && func_00131498() <= (s32)D_0035BD4C) {
+                    *(s16 *)(arg0 + 0x6E) = 3;
+                    break;
+                }
+            }
+            if (--*(s32 *)(arg0 + 0x10) < 0) {
+                *(s16 *)(arg0 + 0x6E) = 3;
+            }
+        } else {
+            if (*(s32 *)(arg0 + 0x14) >= 0x1F) {
+                *(s16 *)(arg0 + 0x6E) = 3;
+            }
+        }
+        break;
+    case 3:
+        if (*(s32 *)(arg0 + 0x20) < 0) {
+            if (*(f32 *)(arg0 + 0x30) == 0.0f) {
+                *(f32 *)(arg0 + 0x30) = D_0035BD38;
+            } else {
+                *(f32 *)(arg0 + 0x30) = 0.0f;
+            }
+            *(s32 *)(arg0 + 0x20) = func_0012E568(0x12C, 0x1A4);
+        }
+        if (func_00148210(arg0) != 0 && func_00131140(arg0, func_00147850, 0, func_00147A28, 0, 0) == 0) {
+            func_0012E750((s32)buf, (s32)(arg1 + 0x90));
+            if (buf[2] > 0 && *(s32 *)(arg0 + 0x18) < 0x1E && *(f32 *)(arg0 + 0x4C) * (f32)buf[0] > 0.0f
+                && func_00131498() < 0x14) {
+                func_00147F20(arg0, *(f32 *)(arg0 + 0x4C));
+                *(s8 *)(arg0 + 8) = 0;
+            } else {
+                func_00148330(arg0);
+                *(s8 *)(arg0 + 8) = 1;
+            }
+            *(s16 *)(arg0 + 0x6E) = 1;
+        }
+        break;
+    }
+}
 
 extern s32 func_0012C190(char *);
 extern void func_00131020(char *, s32, void *, void *);
-extern void func_00147F20(void *, float);
-extern void func_00147F78(char *, f32);
 extern void func_001475E0();
-extern void func_00147A28();
 
 /* ER-120: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
 void func_001474C8(char *arg0) {
@@ -860,7 +1033,6 @@ void func_001474C8(char *arg0) {
     }
 }
 
-extern void func_001474C8();
 
 /* ER-120: by hand from the m2c draft (ruling 3.9: case 3 and 4 beside the default for the 5-entry jump table); names, types and offsets are Unconfirmed readings. */
 void func_001475E0(char *arg0) {
@@ -893,7 +1065,38 @@ void func_001475E0(char *arg0) {
 void func_00147700(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147708);
+extern f32 D_0035BD3C;
+extern const f32 D_0035BD58;
+extern const f32 D_0035BD60;
+extern f32 D_0035BD64;
+
+void func_00147708(char *arg0) {
+
+    *(u8 *)(arg0 + 0x5A) |= 8;
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        func_00130CE0(arg0, 4.0f);
+        func_00130848((s8 **)arg0, -D_0035BD64);
+        *(s16 *)(arg0 + 0x6C) = 0;
+        *(s16 *)(arg0 + 0x6E) += 1;
+        *(f32 *)(arg0 + 0x94) = -D_0035BD60;
+    case 1:
+        func_0012F8C8((s8 *)arg0, 0x11, *(s16 *)(arg0 + 0x6C), 6, 0, 0.3f);
+        func_00130BF8(arg0, D_0035BD3C);
+        *(f32 *)(arg0 + 0x94) += D_0035BD58;
+        if (func_0012D9B8(arg0, *(f32 *)(arg0 + 0x94)) != 0) {
+            *(s16 *)(arg0 + 0x6C) = 0;
+            *(s16 *)(arg0 + 0x6E) += 1;
+        }
+        break;
+    case 2:
+        if (func_0012F8C8((s8 *)arg0, 0x12, *(s16 *)(arg0 + 0x6C), 0x1E, 0, 0.2f) != 0) {
+            *(u8 *)(arg0 + 0x5A) &= 0xF7;
+            func_00131000(arg0, func_00147018);
+        }
+        break;
+    }
+}
 
 extern s32 func_0012F938(s32, s32);
 extern s32 func_0012F7E0(s32, s32, s32);
@@ -1021,7 +1224,6 @@ void func_00147A28(char *arg0, char *arg1) {
     return;
 }
 
-extern const f32 D_0035BD58;
 extern const f32 D_0035BD54;
 
 /* ER-085: by hand from the m2c draft; the .sdata floats read as const (recipes 2.18); names, types and offsets are Unconfirmed readings. */
@@ -1084,7 +1286,6 @@ void func_00147EB8(void) {
     func_0014FE10();
 }
 
-extern s32 D_0035B828;
 
 /* ER-054: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 s32 func_00147EC0(void *arg0) {
@@ -1266,13 +1467,55 @@ void func_001485A8(char *arg0, char *arg1) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_001486F0);
+extern void func_001485A8();
+extern s32 func_0012C578(char *, s32, s32, s32);
+
+void func_001486F0(char *arg0, char *arg1) {
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        func_00130CE0(arg0, 20.0f);
+        if (func_0012B890((void **)arg0, 1, 0xA, *(s16 *)(arg0 + 0x6C), 0x14, 0.25f, 0) != 0 && func_0012BA30(arg1, 1, 0xA) != 0) {
+            func_0012F9C0((void **)arg0, 4);
+            *(s32 *)(arg0 + 0x10) = func_0012E568(4, 6);
+            *(s16 *)(arg0 + 0x6C) = -1;
+            *(s16 *)(arg0 + 0x6E) += 1;
+            *(s32 *)(arg0 + 0x14) = 0;
+        }
+        break;
+    case 1:
+        func_00130CE0(arg0, 40.0f);
+        if (--*(s32 *)(arg0 + 0x14) > 0) {
+            break;
+        }
+        {
+            f32 s[4]; /* ruling 3.18: stores the game makes, never read */
+
+            s[0] = -*(f32 *)(arg1 + 0x70);
+            s[1] = 1.0f;
+            s[2] = -*(f32 *)(arg1 + 0x78);
+            *(s32 *)&s[3] = 0;
+            func_0012C578(arg0, 0x96, 1, 3);
+        }
+        if (--*(s32 *)(arg0 + 0x10) <= 0) {
+            *(s16 *)(arg0 + 0x6C) = 0;
+            *(s16 *)(arg0 + 0x6E) += 1;
+        } else {
+            *(s32 *)(arg0 + 0x14) = func_0012E568(4, 7);
+        }
+        break;
+    case 2:
+        if (*(s16 *)(arg0 + 0x6C) >= 0x14) {
+            func_00131000(arg0, func_001485A8);
+            *(s32 *)(arg0 + 0x2C) = func_0012E568(0x5A, 0x96);
+        }
+        break;
+    }
+}
 
 extern f32 D_0035BD84;
 extern f32 D_0035BD88;
 extern f32 D_0035BD8C;
 extern f32 func_00130B60(char *, f32);
-extern void func_001485A8();
 
 /* ER-120: by hand from the m2c draft (helper agent); names, types and offsets are Unconfirmed readings. */
 void func_001488A0(char *arg0) {
@@ -1631,7 +1874,75 @@ void func_00149498(void) {
     func_0012FA68();
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_001494A0);
+extern f32 D_0035BDA8;
+extern f32 D_0035BDAC;
+extern f32 D_0035BDB0;
+extern f32 D_0035BDB4;
+extern f32 func_001314C8(s32 arg0, s32 arg1);
+
+void func_001494A0(char *arg0, char *arg1) {
+    f32 k;
+    f32 t;
+    u16 v;
+    char *q;
+
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        func_00149880((s32 *)arg0, 1, 1300.0f);
+        *(s16 *)(arg0 + 0x6E) += 1;
+    case 1:
+        k = 0.9f;
+        func_00130B60(arg0, k);
+        *(f32 *)(arg0 + 0x48) *= k;
+        *(f32 *)(arg0 + 0x4C) *= k;
+        if (func_0012F8C8((s8 *)arg0, 2, *(s16 *)(arg0 + 0x6C), 0x1E, 1, 0.4f) != 0) {
+            if (*(s16 *)(arg0 + 0x6C) >= 0x5B) {
+                *(s16 *)(arg0 + 0x6E) += 1;
+            }
+        }
+        break;
+    case 2:
+        func_001496E8(arg0, D_0035BDA8, D_0035BDAC, D_0035BDB0, D_0035BDB4);
+        *(s16 *)(arg0 + 0x6C) = 0;
+        *(s16 *)(arg0 + 0x6E) += 1;
+    case 3:
+        v = *(u16 *)(*(char **)(arg1 + 0xE0) + 0x8C);
+        if (v == 0 || v == 0x10 || v == 0x20) {
+            func_001497D0((void **)arg0, arg1, 0);
+        }
+        func_00149700(arg0, (s32)arg1);
+        if (*(s16 *)(arg0 + 0x6C) >= 0x123) {
+            *(s16 *)(arg0 + 0x6C) = 0;
+            *(s16 *)(arg0 + 0x6E) += 1;
+        }
+        break;
+    case 4:
+        k = 0.8f;
+        func_00130B60(arg0, k);
+        *(f32 *)(arg0 + 0x48) *= k;
+        *(f32 *)(arg0 + 0x4C) *= k;
+        if (*(s16 *)(arg0 + 0x6C) < 0xA) {
+            t = func_001314C8(*(s16 *)(arg0 + 0x6C), 0xA) + 1.0f;
+            q = *(char **)(arg1 + 0xFC);
+            *(f32 *)(arg1 + 0xB0) = *(f32 *)(q + 0x20) * t;
+            *(f32 *)(arg1 + 0xB4) = *(f32 *)(q + 0x24) * t;
+            *(f32 *)(arg1 + 0xB8) = *(f32 *)(q + 0x28) * t;
+        } else {
+            *(u8 *)(arg0 + 0x5A) |= 4;
+            func_0012FB48(arg0, 1);
+            func_0012C360(arg0, 0x95, 2, (s32)(arg1 + 0x90), arg1 + 0xA0);
+            *(s16 *)(arg0 + 0x6C) = 0;
+            *(s16 *)(arg0 + 0x6E) += 1;
+        }
+        break;
+    case 5:
+        if (*(s16 *)(arg0 + 0x6C) >= 0x1F) {
+            func_001321E8(arg0);
+            return;
+        }
+        break;
+    }
+}
 
 /* ER-054: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_001496E8(void *arg0, f32 fparg0, f32 fparg1, f32 fparg2, f32 fparg3) {
@@ -1946,7 +2257,40 @@ void func_0014A0B8(void **arg0, char *arg1) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_0014A238);
+extern f32 func_0012C020(void *);
+extern f32 func_0012CE88(void *, s32);
+extern void func_0012D3B8(char *, float, float);
+extern void func_0014A948(int **a0);
+extern f32 D_0035BDD0;
+extern f32 D_0035BDD4;
+extern void func_0014A708();
+
+void func_0014A238(void **arg0, char *arg1) {
+    char *p = (char *)arg0;
+    f32 f;
+    f32 k;
+    (void)&arg0; /* ruling 3.14 */
+
+    if (*(s16 *)(p + 0x6E) == 0) {
+        func_0014A948((int **)arg0);
+        *(s16 *)(p + 0x6E) += 1;
+    }
+    func_00130CE0(p, 10.0f);
+    if (func_00131140(p, func_0014A3B0, 0, 0, 0, 0) == 0) {
+        if (func_0012FB90(0, p, *(char **)arg0 + 0x90) != 0) {
+            f = func_0012C020(arg0);
+        } else {
+            f = func_0012CE88(arg0, 0);
+        }
+        k = 0.25f;
+        func_0012B890(arg0, 1, 0xA, *(s16 *)(p + 0x6C), 0xA, k, 1);
+        func_0012B890(arg0, 0, 0xB, *(s16 *)(p + 0x6C), 0xA, k, 0);
+        func_0012D3B8(arg1, f * D_0035BDD0, -D_0035BDD4);
+        if (func_0012BA30(arg1, 0, 0xB) != 0) {
+            func_00131140(p, func_0014A3B0, func_0014A708, func_0014A708, func_0014A708, func_00149EE8);
+        }
+    }
+}
 
 /* ER-100: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
 void func_0014A3B0(void **arg0, void *arg1) {
@@ -1977,8 +2321,6 @@ void func_0014A3B0(void **arg0, void *arg1) {
     func_00130CE0((char *)arg0, 10.0f);
 }
 
-extern void func_0014A948(int **a0);
-extern void func_0014A708();
 
 /* ER-100: by hand; names, types and offsets are Unconfirmed readings. The address-taken local only stops the
    sibling call (ruling 3.14: the game has jal where plain C gives a tail j). */
