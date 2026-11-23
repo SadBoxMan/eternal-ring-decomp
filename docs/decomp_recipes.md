@@ -177,9 +177,9 @@ function's own literals, jump tables and strings come from its C now.
 | **No jump table in C in `text_001343E8` yet.** Its `.rodata` starts at 0x003546D8 (8-aligned), and a gcc table would make the object 16-aligned and move it. Park such functions there ("jump table in text_001343E8: needs the file cut", one line) until the file is cut where its real files meet (S3 waits for matching, LuciDin 22 Nov 2026). Since ER-051 that file ends at `0x001388E8`; the five files cut after it (`text_001388E8` ... `text_0013DBC0`) start 16-aligned and take C jump tables | the alignment rule (`docs/build.md` 3.2); func_0013D4D0 (ER-031, `text_0013C510`: 13-entry table 0..12, explicit `case 0:` / `case 12:` beside `default` give the 0-based range, since gcc indexes from the lowest case) |
 | **Variables in owned `.sdata` / `.data`** can be read through `extern` in the same file (the INCLUDE_SDATA definition and gcc's `$gp` access agree) | `func_00150818` reads `D_0035BF20` (built and checked in `48f781a`) |
 
-Not verified yet: a matched function that **defines** data itself (a string literal, a `static` variable, an
-initialised global) in an owned run. The mechanism allows it (drop the INCLUDE line, define the symbol in C at the
-right place), but no such function is placed yet, so the order rules of gcc's data output are not confirmed here.
+**String literals: verified (ER-149, 2.32).** A C function's string literal lands in the file's owned `.rodata` at the
+function's place (gcc's `.rdata`, 8-byte aligned): ER-060's func_00100EE0 (`"\\ERDATA.BIN;1"`) was the first, ER-149
+placed four more. Still not verified here: a function-local `static` or an initialised global defined in C.
 
 ### 2.6 FP compares with the patched assembler (ER-026, Thu 19 Nov 2026; Confirmed by `make regress`)
 
@@ -870,7 +870,7 @@ with ER-114's tool, `docs/matching_tools.md` 6.13). Rulings used: 3.13 (func_001
 | func_0012D9B8 | 96 | 4 words: the game schedules the `0.0f <= f` compare above the `sh` of 0x5C; 5 statement orders and types |
 | func_0012E428 | 96 | 7 words: the game's NULL test falls through to `b` with the zero in its slot; 6 spellings of the root walk (a `static` helper inlines smaller) |
 | func_00130B18 | 72 | 8 words: our float temporaries are `$f0`-`$f2`, the game's `$f1`-`$f3` (also with `f32` parameters) |
-| func_001033F0, func_00103470, func_00112638, func_00112CC8 | | string literals ("TEXT0.PSS", "Cannot Read MI2 File\n", ...): a function that defines `.rodata` data is not verified yet (2.5); the drafts are frame-only or register-order near misses otherwise |
+| func_001033F0, func_00103470, func_00112638, func_00112CC8 | | **placed by ER-149 (2.32)**; was: string literals ("TEXT0.PSS", "Cannot Read MI2 File\n", ...): a function that defines `.rodata` data was not verified yet (2.5) |
 
 ### 2.30 The five small game files, round 5 (ER-120, Mon 23 Nov 2026; Confirmed by `make regress`, 52 functions)
 
@@ -942,6 +942,48 @@ hand), `91803bf` (7 with m2c's `sp[64]`). Runs: `docs/matching_tools.md` 6.15. E
 | func_0018B8A8 | 7 words: the game loads the `D_002488A0` float before the first store; none of the 720 orders of the six stores does |
 | func_001C2FC8 | 1 word: `addu $v0, $v0, $s0` against the game's `addu $v0, $s0, $v0` for the `D_001FEC00[idx + 0x118]` address (frame fixed with `char buf[0x80]`); 8 spellings of the index (`char *` / `s32 *` base, array or pointer sum, either operand first) |
 | func_001C56F0 | not tried: it calls `func_001C6158`, `func_001C7328`, `func_001C8648` with an argument, but the file defines them `(void)` |
+
+### 2.32 `text_001000C0`: string literals, a stub's parameters, func_00124BE8 by hand (ER-149 + ER-071, Mon 23 Nov 2026; Confirmed by `make regress`, 4 functions)
+
+4 placed (480 bytes), commit `fa319b4` (its message says 424 bytes and credits the `"\\ERDATA.BIN;1"` proof to
+func_00100EC0; it is 480 bytes and func_00100EE0), branch `er-149-text-001000c0` (worktree `C:\rs\wt\er149`). Ruling 3.13 for func_001033F0 and
+func_00103470 (`s32 buf[40]`: 0xC0 / 0xD0 frames, nothing reads `sp+0..0x9F`). Nothing else compiler-steering. No
+`tools/split.py` change was needed.
+
+| Lesson | Proved by |
+|---|---|
+| **A string literal in C needs nothing special.** splat had migrated each function's own string into its asm file (no `INCLUDE_RODATA` line), and gcc emits the literal into the object's `.rodata` (`.rdata`, `.align 3`) while compiling that function, so it lands at the same offset: the `.asciz ""` pads spimdisasm shows after `"TEXT0.PSS"` are only that 8-byte alignment. Two strings in one function come out in the order of first use | func_001033F0, func_00103470 (`"TEXT1.PSS"`, `"STAFF.PSS"`), func_00112638, func_00112CC8 (and ER-060's func_00100EE0) |
+| **Strings of 8 bytes or less (with the NUL) go to `.sdata`**, not `.rodata` (`-G8`; tested: `"abcdefg"` in `.sdata`, `"abcdefgh"` in `.rdata`, both still `lui` / `addiu`). `text_001000C0`'s `.sdata` is shared asm, so such a function cannot be placed there until that run is owned (Confirmed by compile only; no such function placed) | scratch compile |
+| **The parameters of a stub callee pick the caller's saved registers.** func_00100EC0 only returns 1 (an unused 0x80 frame), so its parameters cannot be read from its body. Passing it `arg0, arg1` (already in `$a0` / `$a1`: no move) gives `arg1` four references, so global allocation takes it first and it gets `$s0` as in the game; with `arg0` alone `arg2` / `arg3` win (priority 2/7 against 3/11, `-dg` dump); all four arguments fix the registers but reorder the prologue copies. The parameter list is Unconfirmed | func_00112638, func_00112CC8 |
+
+**func_00124BE8 (ER-071, 1,860 bytes): parked at 7 words, right size.** Draft and notes: notes folder
+`ER-149_071_c/` (`func_00124BE8_7words.c`; scratch variants `C:\rs\wt\er149_runs\er071s\`). m2c
+(`m2c_bulk.py --plain --list`) gave a draft that did not compile (an `sp+0x14` local it never declared); by hand from
+the asm, 378 -> 7 words. Seen only in masked compares (Unconfirmed until a placement proves them):
+
+- **Records indexed by a shifted id: an array of records, not char arithmetic.** `D_0035B8EC[id - 200].x3C` on a
+  0x100-byte record type gives the game's `sll 8` + `lui/ori -0xC800` (gcc distributes the constant out of an array
+  index); `ptr + (id - 200) * 0x100 + 0x3C` keeps `(id - 200) << 8`. Likewise `D_00210F30[i].x8 = 0` keeps the field
+  offset in the `sh` (record size 0x30) where char arithmetic folds `+8` into the `%lo`. Layouts Unofficial.
+- **A pointer chain read twice** (`*(s32 *)(*(char **)(obj + 0xFC) + 0x30)` before and after a join, no pointer
+  variable) gives the game's `daddu $a2, $v1` copy: GCSE's PRE reuses the first `obj + 0xFC` load, and the field load
+  stays because PRE runs one pass (the two addresses are different registers when it hashes them).
+- **`field += d * k`** re-reads the field, and PRE turns the second read into a copy of the first load (`mov.s $f2, $f0`).
+- **A variable reused for the result keeps the saved copy.** The angle blend `t = a; a -= cur; if (pi < a) a = a - pi -
+  cur; else if (a < -pi) a = t + 2pi - cur;` gives the game's `mov.s $f3, $f1` and the difference in `a`'s own
+  register; a separate `d = a - cur` (all 32 spellings of copies), an inline helper and nested inline helpers do not
+  (CSE and copy propagation remove the copy whenever the original is not overwritten). The fold subtracts pi, not 2 pi:
+  that is what the game computes (a reading: an original slip; Unconfirmed).
+- **A global read into a local before a store** (`k = D_0035B824;` ahead of `*(u16 *)(obj + 2) |= 1;`) gives the game's
+  load order: gcc cannot move the load above a store that may alias it (`-fno-strict-aliasing`), and the order at
+  allocation time decides the registers of the whole block.
+- **An index kept in the pointer variable** (`c = (s8 *)(id - 200); base = D_0021E730; ... c += (s32)base;`) gives the
+  game's `addu $a0, $a0, $v1` (index register = result); four separate increment blocks are cross-jumped into one by
+  jump2, which the game does not do (its first block keeps its own copy).
+- **Still open (the 7 words):** the `%hi` temporaries and the base of the three counter tables take `$v0` in ours and
+  `$v1` in the game, which never reuses the register of the preceding `slt` result there; about 30 forms (types,
+  statement and declaration order, `base[i]`, per-branch pointers, split pointer variables) leave it. Same family as
+  func_00120EF0's `%hi` registers (2.27).
 
 ## 3. Rulings (LuciDin)
 
@@ -1033,7 +1075,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23); three by ER-100 (2.24); func_001668E0, func_001668A8 (ER-095, 2.25: `char buf[0x80]`); func_00113ED8 (ER-115, 2.27); func_001198C0, func_00101ED0 (ER-125, 2.29) |
+| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23); three by ER-100 (2.24); func_001668E0, func_001668A8 (ER-095, 2.25: `char buf[0x80]`); func_00113ED8 (ER-115, 2.27); func_001198C0, func_00101ED0 (ER-125, 2.29); func_001033F0, func_00103470 (ER-149, 2.32) |
 
 ### 3.14 ER-100: an address-taken local that only stops a sibling call (Sun 22 Nov 2026, 16:40 Eastern, LuciDin in the ER-100 session)
 
