@@ -1834,6 +1834,33 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-171",
+      "title": "Place round 3's 15 plain MATCHes (text_001000C0, text_00150878)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-164",
+      "notes": ""
+    },
+    {
+      "code": "ER-172",
+      "title": "m2c_bulk u16-parameter variant",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-173",
+      "title": "Whole-file reruns with m2c_bulk round 3",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
