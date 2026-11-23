@@ -1528,6 +1528,24 @@
       "model": "Opus, high",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-137",
+      "title": "Place ER-114's new plain MATCHes",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-138",
+      "title": "m2c_bulk round 3 (optional)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
