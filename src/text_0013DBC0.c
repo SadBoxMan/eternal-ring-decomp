@@ -506,7 +506,41 @@ void func_0013F468(void *arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F4C0);
+extern void func_0012F978(void *, s32, s8);
+void func_0013F580(void);
+void func_0013FA88(void *arg0);
+void func_0013FAC8(void *, s32);
+void func_0013FBF8(void **arg0, void *arg1);
+void func_0013FCF8(char *arg0, char *arg1);
+
+/* ER-165: from the m2c draft by hand: seven 0xA0-byte records' flag at +0x88 set (from +0xAA0), callbacks stored in
+   the first matching order of 120. Names (`one`, `off`), types and offsets are Unconfirmed / Unofficial readings. */
+void func_0013F4C0(char *arg0) {
+    s32 i;
+    s32 off;
+    s8 one;
+
+    one = 1;
+    off = 0xAA0;
+    i = 6;
+    do {
+        i -= 1;
+        (*(char **)(*(char **)arg0 + 0xE0))[off + 0x88] = one;
+        off += 0xA0;
+    } while (i >= 0);
+    *(s8 *)(*(char **)(*(char **)arg0 + 0xE0) + 0xF88) = 1;
+    func_0012F978(*(void **)arg0, 0x1A, 2);
+    *(s32 *)(arg0 + 0x90) = 0;
+    *(s32 *)(arg0 + 0x94) = 0;
+    *(s32 *)(arg0 + 0x98) = 0;
+    *(s32 *)(arg0 + 0x9C) = 0;
+    *(void **)(arg0 + 0xC0) = func_0013FA88;
+    *(void **)(arg0 + 0x164) = func_0013FAC8;
+    *(void **)(arg0 + 0xC4) = func_0013FBF8;
+    *(void **)(arg0 + 0xC8) = func_0013FBF8;
+    *(void **)(arg0 + 0xCC) = func_0013FCF8;
+    func_00131000(arg0, func_0013F580);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F580);
 
@@ -529,7 +563,6 @@ extern s32 func_0012B890(void *, s32, s32, s16, s32, s32, f32);
 extern s32 func_0014FF58(void **arg0, s32 arg1);
 extern void func_00140250(void *, void *);
 extern void func_0012DC10(s32, s32, s32, s32, void *);
-void func_0013F580(void);
 extern s32 D_0032FEA0[];
 extern f32 D_0035BB60;
 extern f32 D_0035BB64;
