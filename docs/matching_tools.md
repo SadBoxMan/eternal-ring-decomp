@@ -921,6 +921,24 @@ func_00139650, func_001397E0, func_0013CD68, func_0013CE28, func_001CA8B0 (not t
 `text_001343E8` (recipes 2.5, waits on the S3 cut): func_00134F70, func_00135DC0, func_00137CE0. `text_001C9B18` (VU0)
 not run.
 
+### 6.17 ER-154's 3-8 word list by hand (ER-158 + ER-159, Mon 23 Nov 2026)
+
+Worktree `C:\rs\wt\er158`, branch `er-158-nine-files`, main `c194d93`. ER-154's run folders were gone, so the 12 ER-159
+functions were drafted again: `m2c_bulk.py --plain --tag ER-159 --label er159 --par 4 --gcc-timeout 30 <12 names>`
+(32 s, 12 compile, 0 MATCH; copied to `C:\rs\wt\er158_runs\er159\`). Of the 15 functions (3 of ER-158, 12 of ER-159),
+**13 placed** by hand (recipes 2.36), 2 parked (func_00143230, func_00140C18: 3-4 words). `make regress` PASS after
+each batch.
+
+- **A small variant script did most of the work**: `C:\rs\wt\er158_runs\tools\var.py <template.c> <variants.txt>`
+  substitutes `@KEY@` markers from blocks separated by `----` and runs `cmpfunc` on each, one line per variant (size and
+  words differing). Not in the repo (outside it, our code only); a candidate for `tools/` if another card wants it.
+- **`cmpfunc --cflags=-fno-schedule-insns`** (the `=` form: a value starting with `-` is refused otherwise) told
+  sched1 from register choice in two cases (func_00137658, func_00143230); `gcc -S -da` dumps (`.regmove`, `.sched`,
+  `.lreg`) showed the cause in func_00143230 and func_00140C18. Experiments only.
+- Left in the nine files after this card: 217 - 13 = **204 asm**; same-size 3-8 words now func_00143230, func_00140C18.
+- Bash heredocs on this machine eat backslashes (`\\` -> `\`, and `C:\rs` became a carriage return in a doc line once):
+  write doc text with the Edit / Write tools, not `python - <<EOF` replacements.
+
 ## 7. Not verified
 
 - ER-137 / ER-113 (6.15): the 66 'size -1' drafts of ER-098 without the ruling 3.14 shape were not classified one

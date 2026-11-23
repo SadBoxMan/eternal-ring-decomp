@@ -1044,9 +1044,9 @@ written `(char *)D_0035C554 + ...` (same bytes).
 
 | Function | Cause |
 |---|---|
-| func_0013B2B0, func_0013E760, func_0013F068 | 3-5 words, one shape in three functions: `x94 += xB0` then `func_0012D9B8(arg0, x94)`; the game loads `x94` into `$f1`, `xB0` into `$f0` and sums into `$f1`; ours sums into `$f0` (8 spellings on func_0013B2B0: `+=`, operand order, a temp, the sum inside the call; `xB0 + x94` gets the loads right, 3 words left) |
-| func_00137658 | 4 words: the game stores `x74` (a call's result) before loading `x6E` for its increment; ours loads first (`+= 1`, `++` and m2c's form) |
-| func_001CD680 | 4 words: `D_0035C554 + arg0 * 16` summed into `$v0` with `$ra` saved after the shift in the game; 2 spellings of the sum |
+| func_0013B2B0, func_0013E760, func_0013F068 | **Placed by ER-158 (2.36: the callees' return types).** 3-5 words, one shape in three functions: `x94 += xB0` then `func_0012D9B8(arg0, x94)`; the game loads `x94` into `$f1`, `xB0` into `$f0` and sums into `$f1`; ours sums into `$f0` (8 spellings on func_0013B2B0: `+=`, operand order, a temp, the sum inside the call; `xB0 + x94` gets the loads right, 3 words left) |
+| func_00137658 | **Placed by ER-159 (2.36: the call in both arms).** 4 words: the game stores `x74` (a call's result) before loading `x6E` for its increment; ours loads first (`+= 1`, `++` and m2c's form) |
+| func_001CD680 | **Placed by ER-159 (2.36: `arg0 << 4`).** 4 words: `D_0035C554 + arg0 * 16` summed into `$v0` with `$ra` saved after the shift in the game; 2 spellings of the sum |
 
 ### 2.35 `text_00150878` hard ones 2: struct arrays, `?:` returns, arguments the callee reads, a syscall stub (ER-152 + ER-153 + ER-132, Mon 23 Nov 2026; Confirmed by `make regress`, 5 functions)
 
@@ -1092,6 +1092,42 @@ dispatcher's notes folder `ER-132_152_153_c/` (our C only).
 | func_001BE9C0 | 4 words (was 8): the `D_001FF340[0]` store first gives the game's `$v0` / `$v1`; then `sw $0` falls after the `swc1` (720 orders, base-pointer spellings) |
 | func_001C4838 | 4 words: `0x8000` / `1` in `$v0` / `$v1` swapped; the `1` is a QImode pseudo (size 1), so local-alloc ranks it below the SImode `0x8000` (8 spellings of the store) |
 | func_0018B8A8 | 7 words: the float read first moves the `lwc1`; the registers then differ (720 orders of each of two shapes) |
+
+### 2.36 ER-154's files: the `x94 + xB0` shape and the near misses (ER-158 + ER-159, Mon 23 Nov 2026; Confirmed by `make regress`)
+
+13 functions placed in seven files, 2,508 bytes (ER-158: 3, 560 bytes; ER-159: 10, 1,948 bytes), branch
+`er-158-nine-files` (worktree `C:\rs\wt\er158`), commits `4486a32` (ER-158), `16928e2`, `e977c6e`, `87901ad` (ER-159).
+Fresh drafts (ER-154's run folder was gone): `m2c_bulk.py --plain --tag ER-159 --label er159` on the 12 ER-159
+functions (32 s; 12 compile, 0 MATCH). Scratch, drafts, a variant-trial script (`tools/var.py`: one template, many
+substitutions, cmpfunc on each) and two RTL dumps are in `C:\rs\wt\er158_runs\` (our C only). Nothing
+compiler-steering: no ruling form used.
+
+| Lesson | Proved by |
+|---|---|
+| **An ignored return value still steers register choice: declare the return type the caller saw.** The call insn sets `$v0` (or `$f0`) even when the caller drops the value, so local-alloc gives the next pseudo the second register. The `x94 + xB0` shape (2.34's parked three): with `func_0012E820` declared `float` (it ends `mov.s $f0, $f4; jr $ra` in the game) the later `x94` load and the sum take the game's `$f1`, `xB0` takes `$f0`; with `func_0012FAA8` declared `s32` (its placed C) the `x6E` counter after the call takes the game's `$v1`. The file's `void` declarations gave `$f0` / `$v0`. No spelling of the sum could fix it (ER-154's 8 tries). **It cuts both ways**: in func_001397E0, `func_00130CE0` (placed as `s32`) must stay `void` as the file declares it, or the `count >= 0x22` test moves from the game's `$v0` to `$v1`; so the type to use is the one the game's caller behaves as if it saw, which is usually but not always the callee's own | func_0013B2B0, func_0013E760, func_0013F068, func_001397E0 |
+| **A call written in both arms of an `if` / `else` keeps a store and a later load apart in sched1**: func_00137658's `x74 = func_0012E568(a, b)` with `a, b` chosen by the `if` (m2c's form, ER-154's tries) lets sched1 hoist the `x6E` counter load above the `x74` store; `x74 = func_0012E568(0xA, 0x1E)` / `x74 = func_0012E568(0x32, 0x50)` in each arm gives the game's store-then-load (the arms are merged after reload: the game's shared `jal; nop`). Found by compiling with `-fno-schedule-insns` (experiment only) | func_00137658 |
+| **`arg0 << 4` is not `arg0 * 0x10` inside one address expression**: `*(s32 *)((char *)D_0035C554 + (arg0 << 4) + 0x20C)` gives the game's `addu $v0, base, index` (and the `sll` before `sd $ra`); `* 0x10` sums the other way round. A base-pointer local also matches; the file writes its other sums `<< 5` | func_001CD680 |
+| **A byte parameter stored raw and narrowed only for a call is a full word**: the game stores `arg1`'s low byte (`sb`) from a plain copy and sign-extends only the call's copy; an `s8` parameter is extended on entry (2 words). `s32 arg1` with `(s8)arg1` in the call matches (the caller in `text_00150878` already declares `(s32, s32)`) | func_001CC848 |
+| **A struct with an array member at the offset** (2.35 again, now for a counter array): `arg0->unk10[func_00111660(arg1)]++` gives the game's `addiu base, 0x10; addu base, index`; every pointer-sum and `s32 *` index spelling is one word shorter (7 tried) | func_001346D0 |
+| **Global word array indexed, not m2c's byte offset**: `D_01B31D80[12] = arg0[0]` (and a `char *` base local, or a struct) keeps one `%lo(D_01B31D80)` base; m2c's `*(s32 *)((char *)&D_01B31D80 + 0x30)` makes a second base at +0x30 (6 words) | func_001CA8B0 |
+| **m2c sized a 16-byte local 256** (`M2C_UNK sp[64]`): `f32 v[4]` gives the game's 0x40 frame; nothing else differed | func_0013CD68 |
+| **Stores at a join come out in the reverse of their C order**: func_00139650 writes `x1C` then `x20` and the game stores `x20` first (filled into the branches' delay slots); `state = 1` written after the call goes into the `jal` slot as in the game | func_00139650 |
+| Recipes 2.34 again: `s16` counters written `x += 1; if (x >= N)` (func_0013CE28, both counters); callback stores written `0xC4` first, then the game's order (func_001416B8: the first of 8 positions tried); a constant written inline twice instead of a temp (func_001397E0: a temp moves its `li.s $f20` ahead of the `x48` load) | func_0013CE28, func_001416B8, func_001397E0 |
+
+**File declarations changed** (each proven by `make regress`): `text_0013DBC0` `func_0012FAA8` `void` -> `s32`,
+`func_0012E820` `void` -> `float` (moved above func_0013E760; the later callers unchanged), `func_0013E760` `(void)` ->
+`(s8 *, s32)`; `text_001343E8` `func_00131140` `void` -> `s32` (its type in most other files; func_00137658 tests its
+result; the file's other callers unchanged); `text_001388E8` `func_0012E820` `void` -> `float` (func_00139560
+unchanged). Unofficial names added: the type `Count346D0` (func_001346D0's object: a word array at 0x10, element count
+Unconfirmed) and the locals `state`, `count`, `mode`, `ret` in func_00139650 / func_001397E0. `D_01B31D80` is read
+as a word array (Unconfirmed).
+
+**Parked (one-line causes; scratch in `C:\rs\wt\er158_runs\s\`, game code not in git):**
+
+| Function | Cause |
+|---|---|
+| func_00143230 | 3 words (was 8): the game copies the `xEC` pointer to `$a0` before the `x64` store and loads `xCC` through `$a0` after it. RTL dump: regmove rewrites the `xCC` load to use `$a0`, so the pointer dies at the copy; sched1's tie (equal priority and register weight, then insn order) keeps the store first and local-alloc ties the pointer to `$a0` (no copy). Reading `xCC` first gets the game's registers, the load then stays before the store (3 words). 29 spellings (temps, comma forms, struct type, callee and own return types). func_00140A20 (unplaced) has the same shape |
+| func_00140C18 | 4 words (was 8): reading `D_0035BB90` into a local before the `x48` store fixed the first block; left: the `func_0012DA68` call loads `x6C` first (an `s16` argument is precomputed into a pseudo, RTL dump), the game loads `x30` first and puts the `lh` in the `jal` slot. A float-first prototype gets 3 words but contradicts func_0012DA68's definition `(void **, s32, s32, f32, f32)`; `s16`, `u16`, `s32` argument types and casts tried |
 
 ## 3. Rulings (LuciDin)
 
