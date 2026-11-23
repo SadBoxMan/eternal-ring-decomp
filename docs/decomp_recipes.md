@@ -1126,8 +1126,8 @@ as a word array (Unconfirmed).
 
 | Function | Cause |
 |---|---|
-| func_00143230 | 3 words (was 8): the game copies the `xEC` pointer to `$a0` before the `x64` store and loads `xCC` through `$a0` after it. RTL dump: regmove rewrites the `xCC` load to use `$a0`, so the pointer dies at the copy; sched1's tie (equal priority and register weight, then insn order) keeps the store first and local-alloc ties the pointer to `$a0` (no copy). Reading `xCC` first gets the game's registers, the load then stays before the store (3 words). 29 spellings (temps, comma forms, struct type, callee and own return types). func_00140A20 (unplaced) has the same shape |
-| func_00140C18 | 4 words (was 8): reading `D_0035BB90` into a local before the `x48` store fixed the first block; left: the `func_0012DA68` call loads `x6C` first (an `s16` argument is precomputed into a pseudo, RTL dump), the game loads `x30` first and puts the `lh` in the `jal` slot. A float-first prototype gets 3 words but contradicts func_0012DA68's definition `(void **, s32, s32, f32, f32)`; `s16`, `u16`, `s32` argument types and casts tried |
+| func_00143230 | **Cause corrected by ER-165 (2.39): a sched1 priority difference from the store -> load dependence under `-fno-strict-aliasing`, not a tie; matches with the `-fstrict-aliasing` diagnostic.** 3 words (was 8): the game copies the `xEC` pointer to `$a0` before the `x64` store and loads `xCC` through `$a0` after it. RTL dump: regmove rewrites the `xCC` load to use `$a0`, so the pointer dies at the copy; sched1's tie (equal priority and register weight, then insn order) keeps the store first and local-alloc ties the pointer to `$a0` (no copy). Reading `xCC` first gets the game's registers, the load then stays before the store (3 words). 29 spellings (temps, comma forms, struct type, callee and own return types). func_00140A20 (unplaced) has the same shape |
+| func_00140C18 | **Placed by ER-165 (2.39: `func_0012DA68` declared `(void *, f32, f32, s32, s32)`, LuciDin's go).** 4 words (was 8): reading `D_0035BB90` into a local before the `x48` store fixed the first block; left: the `func_0012DA68` call loads `x6C` first (an `s16` argument is precomputed into a pseudo, RTL dump), the game loads `x30` first and puts the `lh` in the `jal` slot. A float-first prototype gets 3 words but contradicts func_0012DA68's definition `(void **, s32, s32, f32, f32)`; `s16`, `u16`, `s32` argument types and casts tried |
 
 ### 2.37 `text_001000C0`: func_00119FE0 by hand, a syscall stub's caller (ER-093 + ER-163, Mon 23 Nov 2026)
 
@@ -1197,6 +1197,44 @@ func_001524F8, func_001C4838, func_00111700); 24 declarations in 11 files change
 
 Not compiler-steering: no new ruling form beyond 3.19 (asked and accepted in this card) and one use of 3.14
 (func_0013F3B0, drafted with it by `m2c_bulk.py`).
+
+### 2.39 `text_0013DBC0`: the pointer-copy shape, a floats-first prototype, a fresh bulk run (ER-165, Mon 23 Nov 2026; Confirmed by `make regress`, 8 functions)
+
+8 functions placed in `text_0013DBC0`, 1,448 bytes, branch `er-165-0013dbc0` (worktree `C:\rs\wt\er165`), commits
+`b16b38b` (func_00140A20, func_00140C18), `a134f36` (func_00142C38, func_00144020, func_00144100, func_001417E8),
+`8191658` (func_0013FBF8), `0a87911` (func_0013F4C0). Fresh drafts: `m2c_bulk.py --plain --tag ER-165 --file
+text_0013DBC0 --label er165` (68 functions, 146 s; 66 compile, 4 masked / 3 plain MATCH, the fourth after aligning a
+declaration). Scratch, drafts, RTL dumps and the scripts below are in `C:\rs\wt\er165_runs\` (our C only): `var.py`
+(ER-158's, with a `CF` env var passed to `cmpfunc`), `varp.py` (the same, 4 compiles at a time, sorted by words
+differing), `reorder.py` (permute a callee's arguments at every call and rewrite its externs), `cmpall.sh` (cmpfunc on
+every C function of a file or scratch copy), `flagbuild.py` (a diagnostic whole-ELF build with other CFLAGS, then
+func_check). Ruling 3.14 once (func_001417E8, drafted by the tool); one prototype placed on LuciDin's go (below).
+
+| Lesson | Proved by |
+|---|---|
+| **The argument registers are loaded in parameter order, so a prototype's int / float order shows in the caller**: EABI puts the floats in `$f12` / `$f13` wherever they sit in the list, but gcc moves the arguments into their registers in parameter order (an `s16` argument converted early is combined into its move, which keeps the move's place). The game's `lwc1 $f12; ...; li.s $f13; ...; lh $a1` (the `lh` in the `jal` slot) needs `func_0012DA68` as `(void *, f32, f32, s32, s32)`; the definition's m2c order `(void **, s32, s32, f32, f32)` and `text_0014A968`'s `(void *, f32, s32, s32, f32)` leave 4 / 3 words. The definition and the five other placed calls (`text_00145120` x4, `text_0014A968` x1) compile to the same bytes with the floats-first order (`reorder.py` + `cmpall.sh`: 101 / 101 and 52 / 52), so it fits all the evidence; aligning the definition and the other two files is a follow-up. Placed on LuciDin's go (Mon 23 Nov 2026) | func_00140C18 |
+| **ER-158's "sched1 tie" in func_00143230 is a priority difference** (`-fsched-verbose-6`): regmove rewrites the `xCC` load to use `$a0`, the copy of the pointer for the call; under `-fno-strict-aliasing` the `sh` through the pointer and the `lw` through `$a0` have different base registers, so `true_dependence` keeps a store -> load dependence of cost 2: store priority 6, copy 5, the store goes first and the pointer dies at the copy. With `-fstrict-aliasing` (diagnostic only) the `s16` store and the pointer load are in different alias sets: no dependence, the store drops to priority 2, the copy goes first and the plain C matches. The same shape matches with the build's flags where the stores wait on something else (func_00140A20: an `ld` / `or` chain), so the copy is scheduled first anyway | func_00140A20 (placed); func_00143230 (parked) |
+| **The callee's return type again (2.36)**: func_001417E8's counter after `func_0012F9C0` takes the game's `$v1` only with `extern s32 func_0012F9C0` (it ends `jal func_00165170; jr $ra`, passing that value back; `text_0013C510` and `text_00145120` already declare it `s32`); the file's `void` gave `$v0`. The file's other caller is unchanged | func_001417E8 |
+| **A frame array m2c sized from the frame, typed as the code reads it**: func_00144020's 0x80 bytes are two 4x4 float matrices (`f32 m[2][16]`: one filled by `func_001D7820`, its row 3 by `func_001C9B18`, the other by `func_0012EAF8`); func_00144100's 16 bytes are `f32 v[4]`. Both match in m2c's `s32` form too; the float reading is kept (Unofficial layout) | func_00144020, func_00144100 |
+| **Stores into a stack vector in offset order** (the first of 24 orders that matches; m2c's order leaves 5 words) | func_0013FBF8 |
+| **The value stored in a loop held in a local set before the counters**: func_0013F4C0's `li $a2, 1` comes before `li $a1, 0xAA0` in the game and the address sums `off + base`: `one = 1; off = 0xAA0; i = 6; do { ... base[off + 0x88] = one; ... }` matches; a literal `1` puts the `li` after (2 words), `*(s8 *)(base + off + 0x88)` sums the other way round (1 word). Callbacks then in the first matching order of 120 (`0xC0, 0x164, 0xC4, 0xC8, 0xCC`) | func_0013F4C0 |
+
+**Evidence for ER-106 (diagnostics only, nothing adopted):** a whole-ELF build with `-O2 -G8 -fstrict-aliasing
+-fno-edge-lcm` (`flagbuild.py`, main `81b6239`) differs in **3 of 3,606 functions** (func_0012DB88 in `text_001000C0`,
+func_00192EE8 and func_00193440 in `text_00150878`; not traced), and **func_0013DBC0, ruling 3.6's reason, is
+identical** in its current C. Under strict aliasing these parked functions match as plain C: func_00143230;
+func_0013F288 (ER-078's draft); func_001431A0 when its `x44` is read as a pointer (`(s32)*(void **)(arg0 + 0x44)`:
+func_00142920 stores callbacks at 0x40 / 0x44; as `s32` it stays 2 words, the same type as the `s32` store at 0x2C).
+Note in the dispatcher's notes folder: `ER-165_strict_aliasing.md`.
+
+**Parked (one-line causes; scratch in `C:\rs\wt\er165_runs\s\`, game code not in git):**
+
+| Function | Cause |
+|---|---|
+| func_00143230 | 13 words as natural C (3 with `xCC` read first): the store -> load dependence above; matches with the `-fstrict-aliasing` diagnostic (the ER-106 family). 6 more spellings tried here (`const` on the load, struct with a `const` member, `const` struct pointer, struct type, `volatile` store: all 13 words) |
+| func_00140698 | **matches in two forms, both waiting on a ruling (LuciDin: park, Mon 23 Nov 2026)**: the game keeps two angles in memory at `sp+0x40` / `+0x44` in a 0xB0 frame (0x60 bytes of locals, the rest never read). (a) `f32 buf[16]; f32 a[2]; f32 buf2[4];` (two ruling-3.13 pads, 3.13 twice in one function); (b) m2c's `f32 sp[24]` with `sp[16]` / `sp[17]` read. Scalars give a smaller frame (72 words); `buf[16]` + `a[2]` alone 14 words. Also needed: the two clamps written `if (x < a) r = -a; else if (a < x) r = a; else r = x;` with one result variable each (2.23) |
+| func_00143358 | 8 words: the second `func_00143F18` store (`0xC4`) moves up next to `0xC8` in ours (its value dies there); the game stores it last, in the tail `j` slot. All 720 orders of the six callback stores, the two stores' 110 positions, chain / copy / local forms tried |
+| func_0013F288, func_001431A0 | ER-107's (above); not placed |
 
 ## 3. Rulings (LuciDin)
 
@@ -1294,7 +1332,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32); by ER-154: func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.34); by ER-153: func_001636A0 (`(void)&buf` on ruling 3.13's array, 2.35); by ER-164: func_0013F3B0 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.38) |
+| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32); by ER-154: func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.34); by ER-153: func_001636A0 (`(void)&buf` on ruling 3.13's array, 2.35); by ER-164: func_0013F3B0 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.38); by ER-165: func_001417E8 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.39) |
 
 ### 3.15 ER-095: a 16-byte aligned float vector type (Sun 22 Nov 2026, about 17:35 Eastern, LuciDin in the DISP-03 session)
 
