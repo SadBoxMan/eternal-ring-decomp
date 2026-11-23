@@ -264,7 +264,7 @@ s32 func_0014D068(void **arg0, s32 arg1) {
 
 extern void func_0012B218(void *, int);
 extern void func_0014D138(void *, void *);
-extern void func_0014D1E0(void *, float);
+extern void func_0014D1E0(char *, f32);
 extern void func_0014D8D0(void *, int);
 
 /* ER-015 (drafted with m2c, compared with tools/cmpfunc.py, placed with tools/place.py). Field meanings,
@@ -304,7 +304,43 @@ void func_0014D138(void *arg0, void *arg1) {
     func_0012C788(arg1);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D1E0);
+extern void func_001CA0C0(void *, void *);
+extern void func_001CA078(void *, void *, void *);
+extern void func_001D7778(float *, float *, float);
+extern void func_001C9EE8(float *, float *, char *);
+extern void func_0012EAF8(void *, f32 (*)[4]);
+extern void func_0012EEB0(float *, float *);
+extern float D_001F5780[];
+
+void func_0014D1E0(char *arg0, f32 arg1) {
+    f32 m[4][4];
+    f32 b[4][4];
+    f32 r[4][4];
+    f32 v[4];
+    f32 out[4];
+    s32 i;
+
+    func_0012C788(arg0);
+    v[0] = *(f32 *)(arg0 + 0x70);
+    v[1] = 0.0f;
+    v[2] = *(f32 *)(arg0 + 0x78);
+    v[3] = 0.0f;
+    func_001CA0C0(m[2], v);
+    m[1][0] = 0.0f;
+    m[1][1] = 1.0f;
+    m[1][2] = 0.0f;
+    m[1][3] = 0.0f;
+    func_001CA078(m, m[1], m[2]);
+    func_001D7778(r[0], D_001F5780, arg1);
+    func_001C9EE8(m[0], m[0], (char *)r);
+    func_0012EAF8(b, (f32 (*)[4])(*(char **)(arg0 + 0xE0) + 0x320));
+    func_001C9EE8(m[0], b[0], (char *)m);
+    func_0012EEB0(out, m[0]);
+    for (i = 0; i < 4; i++) {
+        func_0012E820(*(char **)(arg0 + 0xE0) + 0xFF0 + i * 4, out[i], 1.0f);
+        func_0012E820(*(char **)(arg0 + 0xE0) + 0xCD0 + i * 4, out[i], 1.0f);
+    }
+}
 
 extern s32 func_00150070(void **arg0, s32 arg1, s32 arg2);
 

@@ -447,7 +447,7 @@ void func_0014B688(char *arg0, void *arg1) {
 }
 
 extern int func_00130780(char *);
-extern s32 func_0014BD70(s8 *, s32, s32);
+extern s32 func_0014BD70(char *, char *, s32);
 extern void func_0014B898();
 extern void func_0014BD50(void *);
 extern void func_0014BD60(void *);
@@ -460,7 +460,7 @@ void func_0014B7C0(s8 *arg0, s32 arg1) {
         func_0014BD60(arg0);
         *(s16 *)(arg0 + 0x6E) += 1;
     case 1:
-        if (func_0014BD70(arg0, arg1, 1) == 0) {
+        if (func_0014BD70((char *)arg0, (char *)arg1, 1) == 0) {
             break;
         }
         switch (func_00130780((char *)arg0)) {
@@ -617,7 +617,73 @@ void func_0014BD60(void *arg0) {
     *(s32 *)((char *)arg0 + 0x28) = 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014BD70);
+extern void func_001CA018(float *, char *, char *);
+extern void func_001CA0C0(float *, float *);
+extern void func_0012D568(char *, f32);
+extern f32 D_0035BDF0;
+extern const f32 D_0035BDF4;
+extern f32 D_0035BDF8;
+
+s32 func_0014BD70(char *arg0, char *arg1, s32 arg2) {
+    f32 v[4];
+    s32 ret = 0;
+    u16 k;
+    s32 n;
+
+    func_00130378(arg1 + 0x90, *(s32 *)(arg0 + 0x130));
+    func_001CA018(v, *(char **)(arg0 + 0x130), arg1 + 0x90);
+    v[1] = 0.0f;
+    func_001CA0C0(v, v);
+    n = *(s32 *)(arg0 + 0x28) + 1;
+    k = *(u16 *)(*(char **)(arg1 + 0xE0) + 0x8C);
+    *(s32 *)(arg0 + 0x28) = n;
+    func_0012B7C0((void **)arg0, 3, 1, n, 8, 1, 0.3f);
+    switch (*(s32 *)(arg0 + 0x24)) {
+    case 0:
+        *(s32 *)(arg0 + 0x24) = 1;
+    case 1:
+        func_00130CE0(arg0, 5.0f);
+        {
+            f32 m = D_0035BDF0;
+            f32 a = v[0] * m;
+            f32 b = v[2] * m;
+
+            *(f32 *)(arg0 + 0x90) += a;
+            *(f32 *)(arg0 + 0x98) += b;
+        }
+        func_0012D568(arg0 + 0x90, D_0035BDF4);
+        *(s32 *)(arg0 + 0x24) = 2;
+        break;
+    case 2:
+        if (k == 1) {
+            ret = 1;
+        }
+        if (k == 0x10) {
+            ret = -1;
+        }
+        if (ret != 0) {
+            *(s32 *)(arg0 + 0x24) = 3;
+        }
+        break;
+    case 3:
+        func_00130CE0(arg0, 10.0f);
+        {
+            f32 m = D_0035BDF8;
+            f32 x = *(f32 *)(arg0 + 0x90);
+            f32 y = *(f32 *)(arg0 + 0x98);
+
+            *(f32 *)(arg0 + 0x90) = x * m;
+            *(f32 *)(arg0 + 0x98) = y * m;
+        }
+        if (k == 7 || k == 0x15) {
+            *(s32 *)(arg0 + 0x24) = 1;
+        }
+        break;
+    }
+    *(f32 *)(arg1 + 0x90) += *(f32 *)(arg0 + 0x90);
+    *(f32 *)(arg1 + 0x98) += *(f32 *)(arg0 + 0x98);
+    return ret;
+}
 
 void func_0014BF40(void) {
 }
