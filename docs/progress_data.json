@@ -632,11 +632,11 @@
     {
       "code": "ER-037",
       "title": "Recomp opcode test harness (PCSX2 PINE vs recomp)",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, high",
-      "waits_on": "LuciDin's yes for PCSX2 runs",
-      "notes": ""
+      "waits_on": "done",
+      "notes": "Done Mon 23 Nov 2026 (Recomp 1273c8d; recomp_opcodes.md section 7). Harness tools/recomp/optest: 34 kernels + vf0 thread test, 564 cases, PCSX2 2.5.185 int + rec vs recomp, bitwise. F1 operand / F2 / F3 / F4 agree with PCSX2; F5-F8 confirmed; new N1-N6. Blind A/B: the cvt.w.s fix mended the attack animations. Method C not built (follow-up)."
     },
     {
       "code": "ER-038",
