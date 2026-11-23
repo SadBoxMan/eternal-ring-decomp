@@ -895,8 +895,8 @@ copied out of `build/` after each run), hand files `C:\rs\wt\er154_scratch\`.
   (`place.py` copies the plain file's externs; drop the ones the file already declares, and move a declaration the file
   has only below the function up, as `place.py` does for identical lines). And the Plain column's hint for
   func_00144B28 ("file declares func_0012F8C8 narrower") was wrong: the cause was the wrapper's return type (recipes
-  2.33). Possible tool follow-ups: check non-`extern` prototypes and data externs in the plain step.
-- **19 more by hand** from the near-miss list (recipes 2.33), most in minutes: 6 getters of one shape, 3 counters of
+  2.34). Possible tool follow-ups: check non-`extern` prototypes and data externs in the plain step.
+- **19 more by hand** from the near-miss list (recipes 2.34), most in minutes: 6 getters of one shape, 3 counters of
   one shape, 4 store orders (searches over 24 / 120), 3 branch / load orders, 2 pass-through / float-sixth prototypes,
   func_00144B28.
 - Placed by this card: **76 functions, 7,676 bytes**. `make regress` PASS after every file and after merging main.
@@ -916,7 +916,7 @@ copied out of `build/` after each run), hand files `C:\rs\wt\er154_scratch\`.
 
 By the `er154_<file>` draft. The two 1-2 word ones are ER-107's func_0013F288 / func_001431A0 (left alone, with
 func_0013D088, func_0013AA28, func_0013BD90). 3-8 words: func_0013E760, func_0013F068, func_0013B2B0, func_00137658,
-func_001CD680 (parked, recipes 2.33); func_00140C18, func_001416B8, func_00143230, func_001346D0, func_001CC848,
+func_001CD680 (parked, recipes 2.34); func_00140C18, func_001416B8, func_00143230, func_001346D0, func_001CC848,
 func_00139650, func_001397E0, func_0013CD68, func_0013CE28, func_001CA8B0 (not tried). Jump tables left in
 `text_001343E8` (recipes 2.5, waits on the S3 cut): func_00134F70, func_00135DC0, func_00137CE0. `text_001C9B18` (VU0)
 not run.
