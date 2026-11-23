@@ -77,7 +77,40 @@ void func_0014DAC8(char *a0, char *a1)
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014DC98);
+extern f32 D_0035BE9C;
+extern f32 D_0035BEA0;
+extern s32 func_0012FB90(s32, char *, char *);
+float func_001304C8(char *a0, char *a1, float s);
+
+/* ER-120: by hand from the m2c draft (helper agent); names, types and offsets are Unconfirmed readings. */
+void func_0014DC98(char *arg0, char *arg1) {
+    f32 v;
+    f32 lim;
+    f32 r;
+
+    if (*(s8 *)(arg0 + 8) == 0) {
+        *(s8 *)(arg0 + 8) += 1;
+    }
+    if (func_0012FB90(0, arg0, arg1 + 0x90) != 0) {
+        f32 f = func_001304C8(arg1, arg0 + 0x80, D_0035BEA0 * 3.1415927f / 180.0f);
+        func_0012EAB8((f32 *)(arg0 + 0x48), f, D_0035BE9C * 3.1415927f / 180.0f);
+        return;
+    }
+    lim = D_0035BE90 * 3.1415927f / 180.0f;
+    *(f32 *)(arg0 + 0x48) *= D_0035BEA4;
+    v = *(f32 *)(arg0 + 0x48);
+    if (lim <= v) {
+        r = v;
+    } else if (v <= -lim) {
+        r = v;
+    } else {
+        r = lim;
+        if (v < 0.0f) {
+            r = -lim;
+        }
+    }
+    *(f32 *)(arg0 + 0x48) = r;
+}
 
 extern f32 D_0035BEA8;
 extern f32 D_0035BEAC;
