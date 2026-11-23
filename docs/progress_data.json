@@ -644,7 +644,7 @@
       "status": "Queued",
       "track": "recomp",
       "model": "Opus, medium",
-      "waits_on": "ER-037",
+      "waits_on": "none",
       "notes": ""
     },
     {
@@ -1806,6 +1806,33 @@
       "track": "decomp",
       "model": "Opus, xhigh",
       "waits_on": "LuciDin's ruling; ER-162",
+      "notes": ""
+    },
+    {
+      "code": "ER-168",
+      "title": "Opcode harness method C: game leaf functions",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-169",
+      "title": "Hardware reference for opcode edges (ps2autotests)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "LuciDin's yes to fetch",
+      "notes": ""
+    },
+    {
+      "code": "ER-170",
+      "title": "N5: StartThread / SleepThread return values",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "",
       "notes": ""
     }
   ]
