@@ -995,7 +995,24 @@ void func_00115000(char *a0) {
     *(float *)(a0 + 0xCC) += D_001F0380[(D_0035B810 & 0x3F) * 0x40] * 4.0f;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00115038);
+void func_0010CD98(void *arg0, s32 arg1, s32 arg2);
+extern void func_0010CA48(void *);
+extern s32 func_001CEC80(s32, s32);
+extern void func_00107BF8(s32, s32, s32, s32);
+
+/* ER-171: drafted with m2c (tools/m2c_bulk.py --plain), frame array split into typed locals; names, types and offsets are Unconfirmed readings. */
+void func_00115038(void *arg0) {
+    f32 a[4][4];
+    f32 b[4][4];
+    f32 c[4][4];
+
+    func_001D75C8((s32)c, D_001FF200);
+    c[3][2] += 5e+03f;
+    func_0010CD98(arg0, (s32)a, (s32)b);
+    func_0010CA48(arg0);
+    func_001CEC80(0, 0);
+    func_00107BF8(*(s32 *)((char *)arg0 + 0x134), (s32)c, (s32)a, (s32)b);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001150C8);
 
@@ -2126,13 +2143,42 @@ void func_0012C7B8(f32 *arg0, f32 *arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012C8D0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012C938);
+extern void func_0012C778(char *);
+extern void func_0012CAD8(void *, void *, int);
+extern void func_0012EAF8(void *, f32 (*)[4]);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012C9D8);
+/* ER-171: drafted with m2c (tools/m2c_bulk.py --plain), frame array split into typed locals; names, types and offsets are Unconfirmed readings. */
+void func_0012C938(s32 arg0, s32 arg1, s32 arg2, void *arg3) {
+    f32 r[4][4];
+    f32 m[4][4];
+    f32 v[4];
+
+    v[3] = 0.0f;
+    v[1] = *(f32 *)((char *)arg3 + 4);
+    v[0] = -*(f32 *)arg3;
+    v[2] = -*(f32 *)((char *)arg3 + 8);
+    func_0012C778((char *)arg1);
+    func_0012CAD8(m, (void *)arg1, arg2);
+    func_0012EAF8(r, m);
+    func_001C9F60((void *)arg0, r, v);
+}
+
+/* ER-171: drafted with m2c (tools/m2c_bulk.py --plain), frame array split into typed locals; names, types and offsets are Unconfirmed readings. */
+void func_0012C9D8(float *arg0, void *arg1, s32 arg2, void *arg3) {
+    f32 m[4][4];
+    f32 v[4];
+
+    func_0012C778(arg1);
+    func_0012CAD8(m, arg1, arg2);
+    v[3] = 0.0f;
+    v[1] = *(f32 *)((char *)arg3 + 4);
+    v[0] = -*(f32 *)arg3;
+    v[2] = -*(f32 *)((char *)arg3 + 8);
+    func_001C9F60(arg0, m, v);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012CA68);
 
-extern void func_0012CAD8(void *, void *, int);
 
 /* ER-112: drafted with m2c (tools/m2c_bulk.py --plain); the file's prototype kept (casts as its other callers of
    func_001D75C8); names, types and offsets are Unconfirmed readings. */
@@ -2159,7 +2205,6 @@ void func_0012CB08(void *arg0, void *arg1, void *arg2, s32 arg3) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012CB70);
 
-extern void func_0012EAF8(void *, f32 (*)[4]);
 
 /* ER-125: from an m2c draft by hand: two 4x4 float matrices and a vector (m2c read one 64-word array and words at
    0x30 / 0x40 / 0x80); the matrix's last row is passed on. Declared in this order for the game's stack layout.
@@ -2216,7 +2261,21 @@ void func_0012D2D8(void *arg0, void *arg1) {
     func_001CA0C0(arg0, v);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D318);
+/* ER-171: drafted with m2c (tools/m2c_bulk.py --plain), frame array split into typed locals; names, types and offsets are Unconfirmed readings. */
+void func_0012D318(s8 *arg0, void *arg1) {
+    f32 r[4];
+    f32 v[4];
+    s8 *temp_16;
+
+    v[3] = 0.0f;
+    v[1] = *(f32 *)((char *)arg1 + 4);
+    v[0] = -*(f32 *)arg1;
+    v[2] = -*(f32 *)((char *)arg1 + 8);
+    func_0012C778(arg0);
+    func_001C9F60(r, arg0 + 0x50, v);
+    temp_16 = arg0 + 0x90;
+    func_001C9FE8(temp_16, temp_16, r);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D388);
 
@@ -2225,7 +2284,6 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D3B8);
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D3E8);
 
 extern float sqrtf(float);
-extern void func_0012C778(char *);
 
 /* ER-063. a0+0x90 (a vector, reading) is moved by d (x and z negated) through the matrix at (*a0)+0x50, then clamped
    to length max (func_0012D568 inline); returns the length. Names and types Unconfirmed. */
@@ -2946,7 +3004,19 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130120);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130150);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130180);
+/* ER-171: drafted with m2c (tools/m2c_bulk.py --plain), frame array split into typed locals; names, types and offsets are Unconfirmed readings. */
+void func_00130180(void *arg0, s8 *arg1, void *arg2) {
+    f32 r[4][4];
+    f32 v[4];
+
+    v[3] = 0.0f;
+    v[1] = *(f32 *)((char *)arg2 + 4);
+    v[0] = -*(f32 *)arg2;
+    v[2] = -*(f32 *)((char *)arg2 + 8);
+    func_0012C778(arg1);
+    func_0012EAF8(r, (f32 (*)[4])(arg1 + 0x50));
+    func_001C9F60(arg0, r, v);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001301F8);
 
@@ -3579,7 +3649,29 @@ void func_001339F8(s8 *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00133A60);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00133F28);
+extern float func_0012E820(char *, float, float);
+extern s32 func_0012D9B8(void *, f32);
+
+/* ER-171: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_00133F28(void *arg0, s32 arg1) {
+    f32 temp_f1;
+
+    (void)&arg0; /* ruling 3.14 */
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        func_0012FB48(arg0, 1);
+        func_0012FAA8(arg0);
+        *(f32 *)((char *)arg0 + 0x94) = 0.0f;
+        *(f32 *)((char *)arg0 + 0xB0) = (f32) 0.3f;
+        *(s16 *)((char *)arg0 + 0x6E) = (s16) ((u16) *(s16 *)((char *)arg0 + 0x6E) + 1);
+    } else {
+        func_0012E820(arg1 + 0xA0, -1.5707963f, 15.0f);
+        temp_f1 = *(f32 *)((char *)arg0 + 0x94) + *(f32 *)((char *)arg0 + 0xB0);
+        *(f32 *)((char *)arg0 + 0x94) = temp_f1;
+        if (func_0012D9B8(arg0, temp_f1) != 0) {
+            func_001321E8(arg0);
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00133FC0);
 
