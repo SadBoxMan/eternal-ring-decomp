@@ -16,6 +16,7 @@ placed in `src/` and `make regress` green.**
 | `tools/eematch.py` | the shared code (Makefile settings, compile, object reader, compare, report) |
 | m2c (`mipsee` target) | first drafts from splat's asm (section 5); not in this repo, run from Twinblade's copy |
 | `tools/m2c_bulk.py` | m2c in bulk (ER-050): draft, clean, compile and compare many functions, per-function result table (section 6) |
+| `tools/ordersearch.py` | register-blind score and diff; statement-order search (permute, hill-climb, switch cases, declarations, groups); gcc scheduler dumps (ER-117, section 8) |
 
 ## 1. The loop
 
@@ -184,6 +185,7 @@ python -I tools/m2c_bulk.py --list picks.txt                     one name per li
    [--no-frame] [--no-packer] [--no-untouched] [--no-reg-bytes]  skip frame-sized locals / the packer order / the untouched-args
                                                                  retry / register byte arithmetic (6.18)
    [--store-limit 48]                                            most permuted store orders compiled per draft (6.18)
+   [--no-narrow]                                                 skip the narrow-parameter variant (6.20)
 python -I tools/sdata_consts.py [--all] [--names D_X ...]        census of the never-stored .sdata floats (6.10)
 python -I tools/m2c_bulk.py --rerun-diffs build/m2c_bulk/<label> --chunk 8 --plain    an earlier run's same-size DIFFs in small lists (6.6)
 ```
@@ -290,6 +292,14 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
      more plain assignments at one indentation (ER-147: inside if-blocks and loops too, as func_0012FF78; every order
      up to 4 statements, else reversed; at most 24 per run and `--store-limit` (48) per draft); kept only on a MATCH
      (Notes: `store order by offset (asc)` / `(by type)` / `store order permuted`);
+   - **narrow parameters** (ER-172, 6.20; `--no-narrow`): where the game narrows an argument register (`$a0`-`$t3`)
+     before writing it and before its first jump or branch (`andi $d, $aN, 0xFFFF` -> `u16`, `0xFF` -> `u8`; `sll $d,
+     $aN, 16` then `sra` / `srl $e, $d, 16` -> `s16` / `u16`, by 24 -> `s8` / `u8`; recipes 2.18: a `u16` parameter is
+     narrowed once on entry), the draft's parameter `argN` of another integer type gets that type, and m2c's narrowings
+     of it in the body (`argN & 0xFFFF` / `0xFF`, `(u16) argN`, the shift pair; a bare one only as a whole operand)
+     become plain `argN`; then the store orders of that form (at most `--store-limit`). Tried on a draft that does not
+     match yet (after the frame and packer fixes), kept only on a MATCH (Notes: `narrow parameter: arg1 u16`, else
+     `narrow parameter tried (arg1 u16), no match (best: ...)`); the variants below start from the draft as it was;
    - **ruling 3.14** (ER-121): when our build of the draft has a sibling `j` (read from the compiled `.s`) and the
      game's function has no `j` out of itself, `(void)&arg0; /* ruling 3.14 */` after the declarations (the first
      parameter), then (ER-138) the same with each of the first 3 locals declared at the top of the body (8- and 16-bit
@@ -1107,6 +1117,31 @@ declared `s32`), 23 same-size drafts at 16 words or fewer, `flip.py` on all 23: 
 Placed by this card: **4 functions, 732 bytes** (func_0013F3B0 184, func_001524F8 80, func_001C4838 408,
 func_00111700 60). `make regress` PASS after each batch and after merging main.
 
+### 6.20 Narrow parameters (ER-172, Mon 23 Nov 2026)
+
+Change in `tools/m2c_bulk.py` (6, step 6: **narrow parameters**, `--no-narrow`); nothing placed in `src/`. Worktree
+`C:\rs\wt\er172`, branch `er-172-m2c-u16`. A/B as in 6.18: main's tool copied aside (`tools/_m2c_bulk_main.py`,
+never committed) against this one, same arguments (`--plain --tag ER-172 --gcc-timeout 30 --par 4`). Runs and drafts
+(game code, not in git): `C:\rs\wt\er172_runs\`.
+
+Why: m2c types the parameter `s32` and writes `arg1 & 0xFFFF` where it is used, so gcc puts the `andi` at the call;
+the game's source had a `u16` parameter, which gcc narrows once in the prologue (recipes 2.18, func_001320B8). The
+game's asm shows the narrowing before the first jump or branch, so the variant reads the type from there; it changes
+only a parameter's type (no ruling needed) and is kept only on a MATCH.
+
+| Run (state) | Functions | Main's tool | This tool | Lost | Time A / B |
+|---|---|---|---|---|---|
+| ER-147's 16 `text_001000C0` examples (`9f76d66^`) | 16 | 13 MATCH; func_0012FCA0 / func_0012FD70 / func_0012FE48 2 / 2 / 4 words | **16 MATCH**, the three plain MATCH (`narrow parameter: arg1 u16`, after the frame fix); func_001307A0 (a dropped store) is 2 words off in both | none | 32 / 33 s |
+| whole `text_001000C0` (`9f76d66^`) | 423 | 19 masked / 19 plain MATCH; same size 1-2 / 3-8 / 9+: 6 / 24 / 42; size differs 219 | **22 / 22**; 4 / 23 / 42; 219 | none | 953 / 1,094 s |
+| every function on main (`3f36447`) whose asm narrows at entry (30, list `narrow_main.txt`) | 30 | 0 MATCH | **1 MATCH: func_001CB388** (`text_001CA8D8`, `u16 arg2`, plain MATCH; still `INCLUDE_ASM` on main) | none | 161 / 164 s |
+
+- Main's tool now gives 19 MATCHes at `9f76d66^` where 6.18 had 18: func_00133F28 is new in both A and B (not from this
+  card; most likely the other `src/` files changed m2c's context since `c194d93`: not checked). Only the three examples changed rows between A and B.
+- In the asm of the split (1,710 functions at `9f76d66^`, 1,679 on main) 36 / 30 functions narrow an argument
+  register at entry; the variant compiled on 17 of `text_001000C0`'s drafts (one compile each, plus store orders on a
+  same-size result). Not kept but closer with it (it is kept only on a MATCH): func_001CB300 27 -> 1 word (`arg2`,
+  `arg3`, `arg4` `u16`), func_0012B7C0 15 -> 4, func_0012C578 / func_0012C630 9 -> 7, func_0012C500 16 -> 14.
+- The B run on the whole file took 15% longer than A (other sessions were loading the machine; not measured apart).
 
 ## 7. Not verified
 
@@ -1160,3 +1195,121 @@ func_00111700 60). `make regress` PASS after each batch and after merging main.
   left alone. The timeout's job-object kill was checked on `func_00179B30` only (Windows); outside Windows the
   tool kills the driver only (not tested). Why small lists matched 4 more drafts for ER-062 is still not traced
   (no new match from them in ER-064).
+
+## 8. `tools/ordersearch.py`: register-blind score, order search, gcc dumps (ER-117, Mon 23 Nov 2026)
+
+Written by ER-117 (Opus 5.5, medium). One tool for the near-miss work that several cards did with one-off scripts in
+the notes folders. It builds on `tools/eematch.py` (the same compile and compare as `tools/cmpfunc.py`, in process),
+runs candidates in parallel (`--par`, default 4) and is deterministic: candidates are scored in a fixed order, ties
+keep the earlier one (as written first), random orders come from `--seed` (default 1), so a run gives the same
+result at any `--par` (checked: a climb at `--par 1` and `--par 4` wrote the same log). It needs no model or tokens:
+it is a plain script.
+
+```
+python -I tools/ordersearch.py score  a.c [b.c ...] [--func F] [--diff] [--regs] [--drift]
+python -I tools/ordersearch.py perm   a.c [--lines A-B] [--before X,Y ...] [--samples N] [--all]
+python -I tools/ordersearch.py climb  a.c [--lines A-B ...] [--before X,Y ...] [--range LO:HI] [--metric noreg]
+python -I tools/ordersearch.py switch a.c [--lines A-B] [--key REGEX] [--search climb|all]
+python -I tools/ordersearch.py decl   a.c [--lines A-B] [--samples N]
+python -I tools/ordersearch.py group  a.c --prefixes 'col.,uv.,v[,q['
+python -I tools/ordersearch.py sub    a.c OLD NEW [OLD NEW ...] [-o out.c]
+python -I tools/ordersearch.py dump   a.c [--passes sched|all] [--verbose 6]
+```
+
+`--help` on the tool and on each mode lists every option. The function is the one `func_XXXXXXXX` the file defines,
+or `--func` (and `--addr` for a name that is not an address). The input file is never changed.
+
+| Mode | Job | Replaces |
+|---|---|---|
+| `score` | compile, compare, then the **register-blind count** `equal E/G`: E of the game's G instructions line up with ours (difflib) once registers, branch targets, callee names and `lui` immediates are masked, and relocated immediates are masked (ours from our relocations; the game's from the `%hi(` / `%lo(` / `gp_rel` / `li.s` lines of the function's splat asm file). `--diff` prints the differing runs with game offsets, `--regs` keeps registers, `--drift` prints where the ours / game offset changes. Several files: one line each, in parallel | ER-093 `sc.py`, `try.py`, `drift.py`; ER-132 `normlib.py`, `regions.py`, `adiff.py`, `shifts.py`, `var.py`'s score; ER-123 `sdiff2.py`, `cmp.sh`; ER-089 `cv.py` |
+| `perm` | every order of one block of lines, or `--samples N` random orders (the first as written) when there are more than `--max` (default 8! = 40,320); `--before X,Y` keeps line X before line Y; `--all` goes on after the first MATCH and lists every matching order | ER-089 `lineperm.py`; the `perm.py` of ER-085, ER-123, ER-132 and ER-093 |
+| `climb` | steepest ascent over single-line moves (every line to every other place), block by block (each `--lines` / marker block in turn), passes over all blocks until none improves (`--rounds`, default 20) | ER-123 `climb.py`; ER-132 `climb2.py` (its per-range score: `--range`) |
+| `switch` | one statement order shared by every `case` of a switch: lines whose `--key` (default: the left side of `x = ...;`) is found once in every case are reordered together; other lines (`break;`) keep their place | ER-093 `swperm.py` (`climb` / `all`) |
+| `decl` | random orders of the local declarations (default block: after the function's opening `{` up to the first blank line; 200 samples) | ER-093 `declperm.py` |
+| `group` | sort each run of lines starting with one of `--prefixes` by prefix, for every order of the prefixes | ER-132 `reorder.py`, `reorder2.py` |
+| `sub` | apply `OLD NEW` string replacements (variable reuse, types, spellings; `\n` allowed) to a copy, then `score` it | ER-132 `var.py`; ER-158's `var.py` (one substitution set per call) |
+| `dump` | gcc dumps with the Makefile's `CC` / `CFLAGS` / `CPPFLAGS`: `-dS -dR -fsched-verbose-6` (default) or `-da` (every pass), into `<stem>_dump/` | ER-123 / ER-132 `dump.sh` |
+
+ER-085's `perm.py` (DISP-02's notes folder, `ER-085_c/`: every order of a statement list between a head and a tail
+file, serial, stops at the first MATCH) and the `perm.py` of ER-123, ER-132 and ER-093 (the same with constraints or
+`@@PERM@@` templates, 4 threads) are all covered by `perm`. Other order scripts in the notes folders
+(`perm_stores.py` of ER-080 / ER-095, `permg.py` of ER-100 / ER-120) were not read for this tool.
+
+**Blocks.** `--lines A-B` (1-based, inclusive, file line numbers; repeat it for several `climb` blocks), or mark the
+lines in the file: a line `/*ORDER*/` before the block and a line `/*END*/` after it (several pairs for `climb`). The
+lines are moved as whole lines, so put one statement on each.
+
+**Scores** (tuples, lower is better): `words` (default) = (size differs, differing words in `--range LO:HI` game
+offsets or in all, differing words); `noreg` = (size differs, game instructions not equal register-blind, differing
+words). A size difference always ranks below any same-size candidate.
+
+**Output.** Candidates are compiled from `--out` (default `<input dir>/<stem>_os/`) under unique names and deleted
+(`--keep` keeps them); `best.c` is the best candidate so far, `match.c` the first MATCH, `log.txt` every improvement
+with a header line (time, mode, file, function, metric, seed, par). Exit 0 when a MATCH was found (`score`: when
+every file matches), 1 otherwise, 2 on a bad input or a compile error. Keep inputs outside `build/` (regress wipes
+it); a draft's quoted `#include "hdr.h"` is found because the input's folder is on the include path.
+
+**What register-blind masks** (as ER-093's `sc.py`, line for line): registers (`$v0` -> `R`), branch targets
+(`. + 4 + (...)` -> `L`), callee names (`F`), every `lui` immediate (`HI`), and the immediate of a relocated word
+(`LO`). With no splat asm file (a placed function), the game's words are masked where ours has a relocation, which is
+right only where the two line up; the score line says so.
+
+### 8.1 Proofs (Mon 23 Nov 2026)
+
+- **func_0011BB90's store order reproduces.** Extracted with `tools/place.py extract` (plus the file's `G390`
+  typedef; MATCH as extracted). `perm --lines 82-87 --all` over the six stores after the `memset` (`v[3]`, `xC4`,
+  `x80`, `x88`, `x90`, `x94`): **3 MATCH orders of 720** (28 s), as ER-092 recorded (2.23). The three keep `x88`,
+  `x90`, `x94` last in that order and differ in where `v[3]` falls among `xC4`, `x80`. From the reversed order (40
+  words differ): `climb` reached MATCH in 91 compiles (4 s), also with `--metric noreg` and with
+  `--range 0x40:0x60`; `perm` from the reversed order found the same 3 orders.
+- **The register-blind score agrees with the script that made it.** func_00119FE0's parked draft
+  (`ER-093_c/func_00119FE0_3words.c`, DISP-04's notes folder): ER-093's `sc.py` (copied, only its worktree paths
+  changed) gives `3 word(s) differ | equal 1658/1659 (ours 1659)`, `score` gives the same line, and the `--diff`
+  output is identical line for line; with registers kept (`sc.py ... full` against `--regs`) also identical.
+- Also run: `switch` on the same draft from its own order keeps it (3 words, 44 compiles); from an alphabetical
+  order of the eight pressure lines it climbed from a size mismatch to 34 words and stopped (a local optimum; ER-093
+  climbed from m2c's order). `decl`, `group`, `sub` and multi-file `score` ran on func_0011BB90. `dump`'s `.s` equals
+  the normal compile's apart from the `.file` line.
+
+### 8.2 gcc dumps: reading a scheduler tie
+
+Use `ordersearch.py dump a.c` (or by hand: the Makefile's `CC -B<GCC_DIR>/ -O2 -G8 -fno-strict-aliasing
+-fno-edge-lcm -Iinclude -S` plus the flags below; the dump files land beside the `.c`, named `<file>.c.<pass>`).
+
+| Flag (this gcc's spelling) | Writes |
+|---|---|
+| `-da` | every pass: `.rtl .jump .cse .addressof .gcse .loop .cse2 .bp .flow .combine .regmove .sched .lreg .greg .flow2 .sched2 .jump2 .mach .dbr` (the files seen for func_0011BB90) |
+| `-dS` / `-dR` | only `.sched` (first scheduler, before register allocation) / `.sched2` (after reload) |
+| `-fsched-verbose-6` | the schedulers' working, into those two files (with a dash: this cc1 refuses `-fsched-verbose=6`) |
+
+In `.sched` / `.sched2` each block has a dependence table (`insn code bb dep prio cost blockage units : ...`): `dep`
+counts the insns it waits on, `prio` is its priority, and the list after `:` is the insns that depend on it (its
+forward dependences). Then the cycle-by-cycle log: `Ready list (t = N): ...` and `--> scheduling insn <<<K>>>`. In
+the logs read for this section, the insn issued first is the **last** one printed in the ready list.
+
+When two insns are ready together, `rank_for_schedule` (`haifa-sched.c` in `C:\rs\toolchain\src-lf\ee\gcc`) decides,
+in this order:
+
+1. higher `INSN_PRIORITY`;
+2. first scheduler only (before reload): the smaller register-pressure contribution (`INSN_REG_WEIGHT`; recipes
+   2.35, func_001C8600);
+3. interblock only: in-block before interblock, useful before speculative, more probable first;
+4. the class against the last scheduled insn: 3 = independent of it or latency 1, 2 = anti / output dependent, 1 =
+   data dependent with a longer latency; the higher class goes first (2.37, func_00119FE0 +0x16DC: class 3 against 2);
+5. more forward dependences first (the `:` list; 2.35's func_001C8758, func_001B34F8);
+6. original insn order (`INSN_LUID`).
+
+Statement order reaches a tie directly only at step 6 (and through priorities and dependences, indirectly). A tie
+decided at steps 2 to 5 needs different insns (types, temporaries, where a value dies), which `sub` tries one set at
+a time.
+
+### 8.3 Not verified
+
+- `group` and `sub` were only checked to run and score (no case where they found an improvement); `decl` on a
+  matching function only (it stops at the as-written MATCH).
+- `switch` on ER-093's switch only; a `default:` label and cases with nested blocks were not met.
+- The register-blind fallback for functions with no splat asm file (the game masked at our relocations) was run on
+  func_0011BB90 only; where the code does not line up it can mask the wrong game words.
+- `--range` counts differing words by game offset; with a size difference the offsets drift and the range means less.
+- ER-132's `normlib.py` masking (negative offsets, `addiu -0x...`, zero offsets) is not reproduced: `score` follows
+  `sc.py`, which masks from the asm file instead, so ER-132's `731 / 902` figures are not comparable with it.

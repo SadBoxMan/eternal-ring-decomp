@@ -1352,11 +1352,11 @@
     {
       "code": "ER-117",
       "title": "Generic statement-order search tool",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Mon 23 Nov 2026 (commit 0b0c6a8, branch er-117-search-tools): tools/ordersearch.py (score/perm/climb/switch/decl/group/sub/dump), docs/matching_tools.md 8; proofs: func_0011BB90 3 of 720 store orders, func_00119FE0 draft 1658/1659 = sc.py"
     },
     {
       "code": "ER-118",
@@ -1508,7 +1508,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, high",
-      "waits_on": "ER-117",
+      "waits_on": "one writer for text_00150878.c",
       "notes": ""
     },
     {
@@ -1553,7 +1553,7 @@
       "status": "Queued",
       "track": "port",
       "model": "Opus xhigh/high",
-      "waits_on": "ER-142",
+      "waits_on": "LuciDin starts the xhigh design session",
       "notes": ""
     },
     {
@@ -1577,11 +1577,11 @@
     {
       "code": "ER-142",
       "title": "Recomp: GS capture and replay benchmark",
-      "status": "Queued",
+      "status": "Done",
       "track": "port",
       "model": "Opus, medium",
       "waits_on": "ER-037",
-      "notes": ""
+      "notes": "Done 23 Nov 2026 (Recomp 9144ab1): patch 14 er142_gs_capture (PS2X_GS_CAPTURE, F9), replay tool er142_gs_replay; gameplay frame replays to the live VRAM SHA-256 every time, 9/9 frames equal, ~75 ms/replay (30 ms drawing + 43 ms latches)"
     },
     {
       "code": "ER-143",
@@ -1847,11 +1847,11 @@
     {
       "code": "ER-172",
       "title": "m2c_bulk u16-parameter variant",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Mon 23 Nov 2026: m2c_bulk.py narrow-parameter variant (u16/s16/u8/s8, --no-narrow); A/B at 9f76d66^: func_0012FCA0/FD70/FE48 plain MATCH, text_001000C0 19 -> 22, none lost; func_001CB388 MATCH on main (not placed). Commits 887bba3, merge 536387a; matching_tools 6.20"
     },
     {
       "code": "ER-173",
@@ -1877,7 +1877,52 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-172",
+      "waits_on": "none",
+      "notes": ""
+    },
+    {
+      "code": "ER-176",
+      "title": "tools/ordersearch.py round 2 (variants, restarts)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-177",
+      "title": "GS capture compare tool",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-178",
+      "title": "Controllers: PS (HID, USB + Bluetooth) and Xbox (XInput) pads",
+      "status": "In progress",
+      "track": "port",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-179",
+      "title": "text_001CA8D8: func_001CB388 + func_001CB300",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-180",
+      "title": "m2c_bulk round 4 (keep narrowing; with ER-175)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
       "notes": ""
     }
   ]
