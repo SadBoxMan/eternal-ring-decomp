@@ -1699,6 +1699,15 @@
       "model": "Sonnet, medium",
       "waits_on": "speed work",
       "notes": ""
+    },
+    {
+      "code": "ER-156",
+      "title": "func_0012FAE8 s32 in four files",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
