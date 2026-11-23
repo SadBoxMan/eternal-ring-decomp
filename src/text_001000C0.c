@@ -579,9 +579,18 @@ void func_001116A8(void) {
     *(s32 *)0x10000010 |= 0x400;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001116D0);
+/* ER-125: from an m2c draft; 0x10000000 is the EE's Timer 0 count register (T0_COUNT), so volatile (ruling 3.16).
+   Names Unconfirmed. */
+void func_001116D0(void) {
+    D_0035B89C = 0;
+    *(volatile s32 *)0x10000000 = 0; /* ruling 3.16: hardware register */
+}
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001116E0);
+/* ER-125: from an m2c draft; reads the EE's Timer 0 count register (T0_COUNT, 0x10000000), so volatile (ruling 3.16).
+   Names Unconfirmed. */
+s32 func_001116E0(void) {
+    return D_0035B89C * 60000 + *(volatile s32 *)0x10000000; /* ruling 3.16: hardware register */
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00111700);
 
@@ -960,7 +969,15 @@ void func_001198B0(void) {
 void func_001198B8(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001198C0);
+extern void func_0010F768();
+
+/* ER-125: a wrapper with a 0x120 frame and a jal. buf: ruling 3.13 (an unused local that only sizes the frame;
+   any size from 0x101 to 0x110 bytes gives the game's frame, the size and type are Unconfirmed). */
+void func_001198C0(void) {
+    char buf[0x110]; /* ruling 3.13: sizes the frame only */
+
+    func_0010F768();
+}
 
 void func_001198E0(void) {
 }
@@ -1794,7 +1811,25 @@ s32 func_0012B6B0(void **arg0, s32 arg1, s32 arg2, s32 arg3, f32 fparg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012B7C0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012B890);
+/* ER-125: drafted with m2c (tools/m2c_bulk.py --plain), the 0xFF store made u8 by hand; names, types and offsets are
+   Unconfirmed readings. */
+s32 func_0012B890(void **arg0, s32 arg1, s32 arg2, s32 arg3, s16 arg4, s32 arg5, f32 fparg0) {
+    s32 b;
+    char *p;
+
+    b = arg2 & 0xFF;
+    if (arg3 >= arg4) {
+        if (*(u8 *)((char *)*arg0 + arg1 + 0x148) != b) {
+            return func_0012B540(*arg0, arg1, b, arg5);
+        }
+        return 1;
+    }
+    func_0012BAE0(*arg0, arg1, b, fparg0);
+    *(u8 *)((char *)*arg0 + arg1 + 0x148) = 0xFF;
+    p = *arg0;
+    *(u8 *)(p + 0x147) &= ~(1 << arg1);
+    return 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012B930);
 
@@ -2199,7 +2234,16 @@ s32 func_0012E568(s32 arg0, s32 arg1) {
     return arg0 + (func_001E9C70() % (s32) (temp_17 + 1));
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012E5C0);
+/* ER-125: from an m2c draft by hand (the draft's copy of lo into a second variable moved its move above the s1
+   save); returns lo plus a random step up to hi - lo, negated half the time (reading Unconfirmed). */
+s32 func_0012E5C0(s32 lo, s32 hi) {
+    s32 d = hi - lo;
+
+    if (d != 0) {
+        lo += func_001E9C70() % (d + 1);
+    }
+    return (func_001E9C70() % 100 > 49) ? lo : -lo;
+}
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 f32 func_0012E640(f32 fparg0, f32 fparg1) {
@@ -2426,7 +2470,14 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012F2F0);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012F418);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012F540);
+extern void func_0012F418(s32, s32, void *, s32);
+extern char D_0035B9A0[];
+
+/* ER-125: from an m2c draft by hand (its first two arguments pass through; the table is an unsized array, so not
+   $gp-relative); names and types Unconfirmed. */
+void func_0012F540(s32 arg0, s32 arg1) {
+    func_0012F418(arg0, arg1, D_0035B9A0, 0);
+}
 
 /* ER-035. Steps *p by +step when a0 & a1 and by -step when a0 & a2 (button bits, a reading), then clamps it to
    [lo, hi], or wraps it to the other end when wrap is set; returns the sign of the change made (truncated to int).
@@ -2611,7 +2662,17 @@ void func_0012FF38(s32 arg0, s32 arg1) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012FF78);
+/* ER-125: from an m2c draft by hand: the three field stores in the order 0x14, 0x30, 0x10 give the game's schedule
+   (offset order and the other four orders do not); names and types Unconfirmed. */
+void func_0012FF78(s32 arg0, s32 arg1, s32 arg2, f32 arg3) {
+    char *p = func_0017D968(0x14, arg0, arg0, 0, 0);
+
+    if (p != NULL) {
+        *(s32 *)(p + 0x14) = arg2;
+        *(f32 *)(p + 0x30) = arg3;
+        *(s32 *)(p + 0x10) = arg1;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012FFD8);
 
@@ -2809,7 +2870,16 @@ s32 func_00131000(char *arg0, void *arg1) {
     return func_0012E3C8(arg0, arg1, 0);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00131020);
+extern s32 func_00131498(void);
+
+/* ER-125: from an m2c draft by hand (the compare written as < with the operands of the ?: in that order gives the
+   game's movz); names and types Unconfirmed. */
+void* func_00131020(char *arg0, s32 arg1, void *arg2, void *arg3) {
+    void *r = (func_00131498() < arg1) ? arg2 : arg3;
+
+    func_0012E3C8(arg0, r, 0);
+    return r;
+}
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 s32 func_00131088(void *arg0) {
