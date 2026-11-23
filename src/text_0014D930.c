@@ -182,7 +182,29 @@ void func_0014DF08(char *a0, char *a1)
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014D930", func_0014E0A8);
+extern f32 func_0012E320(s32 *, s32 *, s32, s32, s32);
+extern int D_0035B810;
+extern s32 D_0035BEB8;
+extern s32 D_0035BEBC;
+extern s32 D_0035BEC0;
+extern f32 D_0035BEC4;
+
+/* ER-120: by hand from the m2c draft (store order by search); names, types and offsets are Unconfirmed readings. */
+void func_0014E0A8(char *arg0) {
+    char *p;
+    f32 f;
+
+    if (D_0035BEC0 != D_0035B810) {
+        D_0035BEC4 = func_0012E320(&D_0035BEB8, &D_0035BEBC, 0x14, -0x32, 0x28);
+        D_0035BEC0 = D_0035B810;
+    }
+    p = *(char **)(arg0 + 0xE0);
+    f = D_0035BEC4;
+    *(f32 *)(p + 0x374) = f;
+    *(f32 *)(p + 0x2D4) = f;
+    *(f32 *)(p + 0x234) = -f;
+    *(f32 *)(p + 0x194) = -f;
+}
 
 void func_0014E118(void) {
 }

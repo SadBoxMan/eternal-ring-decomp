@@ -300,7 +300,15 @@ s32 func_0014F210(void *arg0) {
     return func_00131088(arg0) == (s32) func_0014E3E8;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_0014F240);
+/* ER-120: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+s32 func_0014F240(void *arg0) {
+    s32 t = func_00131088(arg0);
+
+    if (t == (s32)func_0014E450 || t == *(s32 *)((char *)arg0 + 0xCC) || t == (s32)func_0014F1D8) {
+        return 2;
+    }
+    return 1;
+}
 
 extern s32 func_0012B890(void **, s32, s32, s32, s16, s32, f32);
 
@@ -588,9 +596,23 @@ void func_00150220(void *arg0, void *arg1) {
     *(f32 *)((char *)arg0 + 0x48) = (f32) *(f32 *)((char *)arg1 + 8);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_00150240);
+extern s32 func_00131470(void *, s32);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_00150280);
+/* ER-120: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+s8 func_00150240(void *arg0) {
+    if (func_00131470(arg0, 0x11) == 0) {
+        return 0;
+    }
+    return *(s8 *)(*(char **)((char *)arg0 + 0xE8) + 0xF);
+}
+
+/* ER-120: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+s32 func_00150280(void *arg0) {
+    if (func_00131470(arg0, 0x11) == 0) {
+        return 0;
+    }
+    return *(s16 *)(*(char **)((char *)arg0 + 0xE8) + 0x64) < 1;
+}
 
 extern void func_00150658(void *, void *);
 extern s32 func_001503C0(s8 *arg0);

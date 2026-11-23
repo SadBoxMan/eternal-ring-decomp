@@ -709,7 +709,26 @@ s32 func_00147EC0(void *arg0) {
     return var_2;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147F20);
+/* ER-120: by hand from the m2c draft (stores in offset order); names, types and offsets are Unconfirmed readings. */
+void func_00147F20(void *arg0, float f) {
+    s8 a, b;
+
+    *(s32 *)((char *)arg0 + 0x28) = 0;
+    *(s32 *)((char *)arg0 + 0x2C) = 0;
+    *(f32 *)((char *)arg0 + 0x4C) = f;
+    if (f == 1.0f) {
+        b = 0xC;
+        a = 0xD;
+    } else if (f == -1.0f) {
+        b = 0xE;
+        a = 0xF;
+    } else {
+        b = 1;
+        a = 0xD;
+    }
+    *(s8 *)((char *)arg0 + 0xE) = b;
+    *(s8 *)((char *)arg0 + 0xF) = a;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00147F78);
 
@@ -933,7 +952,23 @@ void func_00148D28(char *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00148DB8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00148EE8);
+extern void func_001321E8(char *);
+
+/* ER-120: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+void func_00148EE8(char *arg0, char *arg1) {
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        *(u8 *)(arg1 + 0x147) &= 0xFE;
+        *(u16 *)(arg0 + 0x74) = 0x1E;
+        *(s16 *)(arg0 + 0x6E) += 1;
+        break;
+    case 1:
+        if ((s16)(*(u16 *)(arg0 + 0x74) -= 1) < 0) {
+            func_001321E8(arg0);
+        }
+        break;
+    }
+}
 
 extern const f32 D_0035BD98;
 extern const f32 D_0035BD9C;
@@ -1067,7 +1102,20 @@ void func_00149880(s32 *arg0, s32 arg1, f32 fparg0) {
     func_0012FAE8(arg0, arg1, 0x7F, *arg0 + 0x90, fparg0);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_001498D8);
+extern void func_00149C10(void *, void *);
+extern void func_00149C18(void **);
+extern void func_00149C60(void *);
+extern void func_00149920(void **);
+
+/* ER-120: by hand from the m2c draft (store order by search); names, types and offsets are Unconfirmed readings. */
+void func_001498D8(char *arg0) {
+    *(void **)(arg0 + 0xC0) = func_00149C10;
+    *(void **)(arg0 + 0xC4) = func_00149C18;
+    *(void **)(arg0 + 0xC8) = func_00149C18;
+    *(void **)(arg0 + 0xCC) = func_00149C60;
+    *(u8 *)(arg0 + 0x5A) |= 8;
+    func_00131000(arg0, func_00149920);
+}
 
 extern void func_00149978(void **, void *);
 

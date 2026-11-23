@@ -295,7 +295,11 @@ s32 func_0014D890(void *arg0) {
     return func_001312D0(arg0, (s32) func_0014CA60, (s32) func_0014CA60, (s32) func_0014CD88, (s32) func_0014CD88, (s32) func_0014CD88);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014C840", func_0014D8D0);
+/* ER-120: by hand from the m2c draft (the s8 parameter is an int: no re-extension in the game); names and types are Unconfirmed readings. */
+void func_0014D8D0(void *arg0, int arg1) {
+    *(char *)(*(char **)((char *)arg0 + 0xE0) + 0x4E8) = arg1;
+    *(char *)(*(char **)((char *)arg0 + 0xE0) + 0x448) = arg1;
+}
 
 /* ER-054: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_0014D8E8(void *arg0, s32 arg1) {
