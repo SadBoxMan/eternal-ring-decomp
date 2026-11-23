@@ -107,6 +107,59 @@ The dispatcher is pinned. After start_session and detach_session, file each card
 - "Ringsmith Assets" `cg-d09c277b-8fcc-4b4e-b4f6-928cb158929c`: asset rips; they begin after the recomp is complete
   (LuciDin, 17 Nov 2026).
 
+## STATE FOR A FRESH DISPATCHER (DISP-03 -> DISP-04, Mon 23 Nov 2026, 13:40 Eastern)
+
+**Where the project is.** Decomp: **1,135 / 3,609 functions matched (115,268 bytes)**, every one proven by `make regress`
+(ruling 3.1). Rulings now 3.1-3.18: since DISP-02, 3.14 (address-taken local that only blocks a sibcall), 3.15 (aligned(16)
+4-float vector type), 3.16 (`volatile` only on hardware-register reads / writes; first ruled no, then accepted narrowly),
+3.17 (no `do { } while (0)` sibcall blocker), 3.18 (unused local whose stores the game makes). LuciDin: the goal stays a true
+100% decomp as in Twinblade; every use of the narrow rulings (3.13-3.18) is listed in recipes 3 for a later review.
+`tools/m2c_bulk.py` (ER-084, ER-114): tail-`j` slot moves, byte bases, own-extern handling, offset-order stores, 3.14 variant,
+GOFAST names; its m2c context was silently broken 22 Nov 17:04 to 23 Nov 03:28 (ER-092's `G390` typedef), now fixed and warned.
+Recipes section 2 runs 2.1-2.34 (renumber on merge). Port target **60 FPS** (roadmap).
+**Repos (ER-110, 22 Nov):** `Project Ringsmith{BS}Decomp` (eternal-ring-decomp; all docs) and `Project Ringsmith{BS}Recomp` (ringsmith,
+GPL-3.0, 13 local patches in `patches/`); the parent folder is not a git repo (its CLAUDE.md imports Decomp's). Pushed 23 Nov 12:17
+(Decomp de596dc, Recomp 98b7f3c); since then **not pushed**: Decomp from de596dc, Recomp 3135af4 (ER-036). A push needs a new yes.
+**Recomp / port:** logos, all movies (ER-030), title, NEWGAME cutscene, gameplay from a PCSX2 save (ER-099) with 3D models
+(ER-102 / ER-103); opcode fixes (ER-036: attack animations now right); 12-15 FPS (ER-104: VU1 interpreter 33 ms + GS CPU
+renderer 24 ms of 65 ms per frame); no sound. Not playable yet (`ms10`).
+
+**Running.** ER-132 + ER-152 + ER-153 (`text_00150878` hard ones 2, Opus high, `local_e21489cd-0d73-4fc8-a571-e1a7acc99a92`,
+worktree `C:{BS}rs{BS}wt{BS}er132`). ER-106 (alias model, `local_aff7362b-afcb-4f46-9adc-fe31fce01644`) idle since 22 Nov 17:30 with 2
+uncommitted changes in `C:{BS}rs{BS}wt{BS}er106` (17 GB) and no report: ask LuciDin to look at it (probably a question waiting).
+
+**Ready next (one writer per file):**
+- Port (one recomp card at a time): **ER-037** opcode harness vs PCSX2 (accuracy; DISP-03's pick, LuciDin chose accuracy and
+  stability over speed), ER-136 FMV freeze (needs LuciDin pressing Start), ER-135 shake, ER-105 sound, ER-127 / 128 / 129,
+  ER-044 (regenerate with the generator built from game_build: `C:{BS}rs{BS}recomp{BS}work_er036{BS}build_recomp_er036.bat`), speed
+  ER-139 (VU1 recompile: design at Opus xhigh, which a high dispatcher cannot start; LuciDin starts it himself or a brief is pasted),
+  ER-140 to ER-146, ER-155 (after speed), ER-108 / 109 memory card, ER-126 capture tool (after playable). Not coded: a PCSX2
+  reference recorder (PINE: per-frame input, RAM regions, frame captures; DISP-03 suggested it in a Query answer, no decision).
+- Decomp: `text_00150878` after ER-132: ER-133, ER-134; `text_001000C0`: ER-131 (Opus xhigh: func_00120EF0, func_00124BE8 and
+  five parked), ER-093 (func_00119FE0, own session); ER-154's nine files: ER-158 (high), ER-159 (medium), ER-107 (waits on ER-106);
+  five small files: only ER-118 (waits on ER-106) and ER-122 left; tools (one `m2c_bulk.py` writer): ER-138 + ER-147 + ER-151 +
+  ER-160, ER-117 (search tools); small: ER-156, ER-157 (string scan); ER-032, ER-052, ER-031 wait.
+- **Thursday / Friday (Fable / Ultracode):** ER-122 batch (func_00147F78, func_00145FE8, func_0014D3F8, func_00146598,
+  func_00145D08 (a static helper would need an invented name: ask LuciDin), func_0014E450), then ER-131 / ER-133 if Opus resists.
+
+**Open for LuciDin:** GPL-3.0-only or -or-later (Recomp); a licence for the decomp repo; ER-058's patch published (ER-110's
+judgement); Ringsmith's weekly share; the PCSX2 recorder card; pinning the dispatcher (DISP-03 asked, no answer).
+
+**Quirks learned by DISP-03.** (16) Since ER-110 the app sees the parent folder as a non-git project: `start_session` makes no
+worktree; every decomp brief says WORKTREE FIRST: `git -C ...{BS}Decomp worktree add -b <branch> C:{BS}rs{BS}wt{BS}<code> main` (EnterWorktree is
+refused), junctions, regress there; run folders under `C:{BS}rs{BS}wt{BS}<code>_runs` (they get large: 1-10 GB each; delete after merging, on
+LuciDin's yes). (17) Start sessions with `initiation` "user_asked" and `cwd` set to `...{BS}Decomp` or `...{BS}Recomp` only on LuciDin's own
+words in that turn; after a session message the start is refused: propose an own_initiative card (no `cwd`; the brief names the
+folder to work in). The app caps 5 working at once. (18) The dispatcher's own folder flips between the parent and `Decomp`: use
+absolute paths in every command. (19) Control characters: Bash heredocs turned `C:{BS}rs` into CR + `s` three more times (also in a
+card's docs commit, ER-123); write fix scripts with the Write tool, build backslashes with `chr(92)`, and scan
+`grep -caP '[{BS}x00-{BS}x08{BS}x0b-{BS}x1f]' docs/*.md docs/*.json` before every docs commit. (20) `archive_session` needs a second call with
+the hook's `session` label; LuciDin often archives from the sidebar first. (21) A card with managerial rights may commit without
+asking first (ER-036): check the commit after. (22) Most card branches fast-forward; otherwise `git merge --no-ff` in the main
+checkout (the hook runs regress). (23) A card's numbers in its completion message are deltas on main at its last merge; check
+`m-dec-funcs` / `m-dec-bytes` in `docs/progress_data.json` after each merge. Next free code: **ER-161**.
+DISP-01's and DISP-02's quirks 1-15 still hold.
+
 ## STATE FOR A FRESH DISPATCHER (DISP-02 -> DISP-03, Sun 22 Nov 2026, 15:10 Eastern)
 
 **Where the project is.** Decomp: **787 / 3,609 functions matched (57,200 bytes)**, every one proven by `make regress`
