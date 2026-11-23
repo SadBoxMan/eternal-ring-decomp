@@ -1325,11 +1325,11 @@
     {
       "code": "ER-114",
       "title": "m2c_bulk --plain: named prototypes",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Mon 23 Nov 2026 (commit 0191ac8): soft-double calls as C, deref width; func_001C1310 and func_001BCF48 plain MATCH"
     },
     {
       "code": "ER-115",
@@ -1388,11 +1388,11 @@
     {
       "code": "ER-121",
       "title": "m2c_bulk tries ruling 3.14",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Mon 23 Nov 2026 (commit 0191ac8): ruling 3.14 variant; func_0014C110 + 2 new on main"
     },
     {
       "code": "ER-122",
@@ -1415,11 +1415,11 @@
     {
       "code": "ER-124",
       "title": "m2c_bulk store-order variant",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Mon 23 Nov 2026 (commit 0191ac8): offset-order store variant; recipes 2.25's five examples plain MATCH"
     },
     {
       "code": "ER-125",
@@ -1469,11 +1469,11 @@
     {
       "code": "ER-130",
       "title": "m2c_bulk --plain: conflicting declarations, empty harvests",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Mon 23 Nov 2026 (commit 0191ac8, branch er-114-m2c-bulk-2): G390 typedef broke m2c's context since 22 Nov; own-extern handling; 17/17 plain"
     },
     {
       "code": "ER-131",
