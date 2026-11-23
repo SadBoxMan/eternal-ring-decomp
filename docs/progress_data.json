@@ -1577,11 +1577,11 @@
     {
       "code": "ER-142",
       "title": "Recomp: GS capture and replay benchmark",
-      "status": "Queued",
+      "status": "Done",
       "track": "port",
       "model": "Opus, medium",
       "waits_on": "ER-037",
-      "notes": ""
+      "notes": "Done 23 Nov 2026 (Recomp 9144ab1): patch 14 er142_gs_capture (PS2X_GS_CAPTURE, F9), replay tool er142_gs_replay; gameplay frame replays to the live VRAM SHA-256 every time, 9/9 frames equal, ~75 ms/replay (30 ms drawing + 43 ms latches)"
     },
     {
       "code": "ER-143",
