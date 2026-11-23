@@ -783,6 +783,32 @@ func_00164948();` to align); `text_001000C0` func_0012DB88 (offset order), func_
 file's six parameters are the likelier reading, Unconfirmed). **The tool is about 3 times slower** with a context
 that parses (more attempts compile, harvest drafts succeed). `make regress` PASS after the runs (ELF unchanged).
 
+### 6.13 `text_001000C0` rerun with ER-114's tool (ER-137 + ER-125, Mon 23 Nov 2026)
+
+Worktree `C:\rs\wt\er125`, branch `er-125-text-001000c0`, main `b95ea9a` (after ER-137's two placements). Runs and
+drafts (game code, not in git): `C:\rs\wt\er125_runs\` (`er125file`, `er125rr`; ER-137's two-function run `er137`
+was wiped by a regress before it was copied out, its two drafts were rewritten by hand in `C:\rs\wt\er125_scratch\`).
+
+| Run | Command | Functions | Result | Time |
+|---|---|---|---|---|
+| `er137` | `m2c_bulk.py --plain --tag ER-137 func_0012DB88 func_0012F900` (par 2) | 2 | 2 masked / 2 plain MATCH (func_0012F900 flagged: the file's extern to align) | 6 s |
+| `er125file` | `m2c_bulk.py --plain --tag ER-125 --file text_001000C0 --par 4 --gcc-timeout 30` | 423 (443 harvested signatures) | **0 MATCH**; 310 compile; same size 74 (1-2 words 2, 3-8 words 27, 9+ 45); size differs 236; no compile 113 | 599 s |
+| `er125rr` | `--rerun-diffs build/m2c_bulk/er125file --chunk 8` (9 chunks) | 71 | **0 MATCH, none closer** than in `er125file` | 161 s |
+
+- The whole-file run found nothing new: ER-114's A/B had already shown this file's only two plain MATCHes
+  (func_0012DB88, func_0012F900, ER-137's share, placed first). Lists of 8 (`--rerun-diffs --chunk 8`) gave the
+  same drafts as the file-wide harvest here.
+- **The near-miss list was the useful output**: 27 of the 74 same-size DIFFs placed by hand (2,556 bytes), most in
+  minutes (recipes 2.29). The biggest single cause (13 functions) was m2c's `M2C_UNK sp[64]`: drafts that differ only
+  in `$sp` offsets. A scan for that is cheap: a same-size DIFF whose `!!` lines all mention `$sp` (9 here; 3 of them
+  string-literal functions). Worth adding to `m2c_bulk.py` (follow-up): size the stack locals from the game's frame
+  (the lowest saved-register slot) and retry.
+- Left in the file: 396 `INCLUDE_ASM` (of the run's 423, after 27 placed). Of them by the `er125file` draft: same size
+  47 (3-8 words 11: func_00111700, func_0012D9B8, func_00101898, func_001033F0, func_00128940, func_00125790,
+  func_00134090, func_00101740, func_00103470, func_0012E6B8, func_00130B18; 9+ words 36), size differs 236, no
+  compile 113. Parked causes: recipes 2.29.
+- `make regress` PASS after every batch (ELF unchanged, 3,606 functions match).
+
 ## 7. Not verified
 
 - ER-130 / ER-124 / ER-121 / ER-114 (6.12): none of the new plain MATCHes is placed, so none is proven by `make
