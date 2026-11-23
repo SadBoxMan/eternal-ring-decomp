@@ -1541,11 +1541,11 @@
     {
       "code": "ER-138",
       "title": "m2c_bulk round 3 (optional)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "m2c_bulk round 3 (with ER-147 / ER-151 / ER-160): offset order for *p / p[N] stores, ruling 3.14 with the first locals, register + typed pointer in bytes. Branch er-138-m2c-bulk-3, commit ad52f1e; matching_tools 6.18."
     },
     {
       "code": "ER-139",
@@ -1622,11 +1622,11 @@
     {
       "code": "ER-147",
       "title": "m2c_bulk: frame-sized locals",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Frame-sized locals: 9 of ER-125's 13 plain MATCH at 9f76d66^ (4 left 2-4 words: u16 parameter x3, a dropped store); stores inside ifs (func_0012FF78) and untouched argument registers (func_0012F540, func_0012FE10) plain MATCH; text_001000C0 0 -> 18 plain MATCH, none lost. matching_tools 6.18."
     },
     {
       "code": "ER-148",
@@ -1658,11 +1658,11 @@
     {
       "code": "ER-151",
       "title": "m2c_bulk packer variant",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Packer variant: all nine func_001C6880 wrappers plain MATCH at b18d16a^. matching_tools 6.18."
     },
     {
       "code": "ER-152",
@@ -1739,11 +1739,11 @@
     {
       "code": "ER-160",
       "title": "m2c_bulk plain step checks",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Plain checks: non-extern prototype of the target counts (func_0013E818 flagged); one form per file for a name the drafts declare differently (D_0035C554); func_001359C0 traced (mixed pointer / float run) and matched by the new by-type order. matching_tools 6.18."
     },
     {
       "code": "ER-161",
