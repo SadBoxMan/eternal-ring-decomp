@@ -1924,6 +1924,24 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-181",
+      "title": "Align func_0012DA68's parameter order (3 files)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, medium",
+      "waits_on": "ER-171",
+      "notes": ""
+    },
+    {
+      "code": "ER-182",
+      "title": "func_00140698: frame-form ruling, then place",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "LuciDin's ruling",
+      "notes": ""
     }
   ]
 }
