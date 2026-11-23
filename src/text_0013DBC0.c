@@ -508,7 +508,28 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140250);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140698);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_001407F0);
+/* ER-154: drafted with m2c (tools/m2c_bulk.py --plain), fixed by hand; names, types and offsets are Unconfirmed readings. */
+void func_001407F0(void *arg0, void *arg1) {
+    u16 temp_3;
+    u16 temp_6;
+    u16 temp_6_2;
+
+    temp_6 = *(u16 *)((char *)arg0 + 4);
+    if (((temp_6 == 0x13) && (*(u16 *)((char *)arg1 + 4) == 0x20)) || ((*(u16 *)((char *)arg1 + 4) == 0x13) && (temp_6 == 0x20))) {
+        temp_6_2 = *(u16 *)((char *)arg0 + 0x7A);
+        temp_3 = *(u16 *)((char *)arg1 + 0x7A);
+        if (temp_6_2 < temp_3) {
+            *(u16 *)((char *)arg0 + 0x7A) = temp_3;
+        } else {
+            *(u16 *)((char *)arg1 + 0x7A) = temp_6_2;
+        }
+        if (*(s16 *)((char *)arg0 + 0x7E) < *(s16 *)((char *)arg1 + 0x7E)) {
+            *(s16 *)((char *)arg0 + 0x7E) = *(s16 *)((char *)arg1 + 0x7E);
+            return;
+        }
+        *(s16 *)((char *)arg1 + 0x7E) = *(s16 *)((char *)arg0 + 0x7E);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140868);
 
@@ -532,7 +553,34 @@ void func_00140920(s8 *arg0, s32 arg1) {
     func_001407F0(arg0, *(void **)((char *)arg0 + 0xE8));
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140978);
+extern s32 func_00131688(void **arg0, s16 arg1);
+extern void func_00140918(void);
+
+/* ER-154: drafted with m2c (tools/m2c_bulk.py --plain), fixed by hand; names, types and offsets are Unconfirmed readings. */
+void func_00140978(s8 *arg0) {
+    void **temp_16;
+    void *temp_5;
+    void *temp_5_2;
+
+    func_00131000(arg0, func_00140918);
+    temp_16 = *(void ***)((char *)arg0 + 0xE8);
+    if (!(*(u8 *)((char *)temp_16 + 0x5A) & 0x40)) {
+        if (func_00131688(temp_16, *(s16 *)((char *)arg0 + 0x66)) != 0) {
+            if (*(u8 *)((char *)arg0 + 0x60) != 0) {
+                temp_5_2 = *(void **)((char *)temp_16 + 0xC4);
+                if (temp_5_2 != NULL) {
+                    func_00131000((s8 *) temp_16, temp_5_2);
+                }
+            } else {
+                temp_5 = *(void **)((char *)temp_16 + 0xC8);
+                if (temp_5 != NULL) {
+                    func_00131000((s8 *) temp_16, temp_5);
+                }
+            }
+        }
+        *(u16 *)((char *)temp_16 + 0x66) = (u16) (*(u16 *)((char *)temp_16 + 0x66) + (u16) *(s16 *)((char *)arg0 + 0x66));
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140A20);
 
