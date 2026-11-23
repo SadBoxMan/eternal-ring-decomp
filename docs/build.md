@@ -228,7 +228,7 @@ covered: a symbol longer than 8 bytes (`D_00354800` is the double plus 8 zero by
 position. A float literal is written as a literal in C (`1500.0f`): owned `.lit4` words have no labels any more,
 so an `extern float` stand-in (ER-014's workaround) no longer links. A variable of an owned `.sdata` / `.data` run
 can still be used through `extern` from C in the same file (`func_00150818` reads `D_0035BF20` so).
-A string literal written in C (ER-149, `docs/decomp_recipes.md` 2.32) needs no change here: splat migrates a string
+A string literal written in C (ER-149, `docs/decomp_recipes.md` 2.33) needs no change here: splat migrates a string
 used by one function into that function's asm file, so no INCLUDE line moves, and gcc puts the literal in the object's
 `.rodata` in the same place (8-byte aligned). Strings of 8 bytes or less (with the NUL) go to `.sdata` instead
 (`-G8`), which only works in a file that owns its `.sdata` run.
