@@ -1897,6 +1897,15 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-178",
+      "title": "Controllers: PS (HID, USB + Bluetooth) and Xbox (XInput) pads",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
