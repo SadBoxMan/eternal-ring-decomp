@@ -2818,7 +2818,7 @@ void func_0012FCA0(void **arg0, u16 arg1, s32 arg2, s32 arg3) {
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012FD10);
 
 extern void func_00130150(f32 *, void *, s32, f32 fparg0, f32 fparg1);
-extern void func_0012C500(void *, s32, s32, s32, void *);
+extern void *func_0012C500(void *, s32, s32, s32, void *);
 
 /* ER-125: from an m2c draft by hand (a four-float local; the u16 parameter is narrowed once on entry, recipes 2.18).
    Names and types Unconfirmed. */
@@ -2830,7 +2830,13 @@ void func_0012FD70(void **arg0, u16 arg1, s32 arg2, s32 arg3, void *arg4, f32 ar
     func_0012C500(arg0, arg1, arg2, (s32)v, arg4);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012FE10);
+/* ER-125: from an m2c draft by hand: $a0 and $a2 pass through, the u16 parameter is narrowed on entry (recipes 2.18),
+   and func_0012C500's value is returned (it returns func_0012C360's). Names and types Unconfirmed. */
+void* func_0012FE10(void **arg0, u16 arg1, s32 arg2, s32 arg3) {
+    char *p = *(char **)((char *)*arg0 + 0xE0) + arg3 * 0xA0;
+
+    return func_0012C500(arg0, arg1, arg2, (s32)(p + 0x30), p + 0x10);
+}
 
 extern void func_00113C30(char *a0, s32 a1, void *a2);
 
