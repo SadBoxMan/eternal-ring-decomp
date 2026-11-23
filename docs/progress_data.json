@@ -1654,6 +1654,33 @@
       "model": "LuciDin, then Opus medium",
       "waits_on": "ruling",
       "notes": "Ruled 23 Nov: do-while(0) not accepted (3.17); func_0014E450 parked"
+    },
+    {
+      "code": "ER-151",
+      "title": "m2c_bulk packer variant",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-152",
+      "title": "func_001C56F0 and its (void) callees",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-153",
+      "title": "text_00150878 near misses batch",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
