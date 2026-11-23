@@ -203,9 +203,39 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00103160);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001032D8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001033F0);
+extern s32 func_001C4FF0(char *, s32, s32, s32);
+extern void func_00164760(void);
+extern void func_00111C10(s32, s32);
+extern s32 D_0035B868;
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00103470);
+/* ER-149: by hand from the m2c draft; the string is its own .rodata (D_00354080). Names and types are Unconfirmed readings. */
+s32 func_001033F0(void) {
+    s32 buf[40]; /* ruling 3.13: unused, only sizes the 0xC0 frame (nothing reads sp+0..0x9F) */
+
+    func_00101200(D_001F6590, 9U);
+    D_0035B828 = 0;
+    func_00101200(D_001F6590, 9U);
+    D_0035B828 = 0;
+    func_001C4FF0("TEXT0.PSS", (s32)D_0035B878 + 0x800000, 0xA00000, 1);
+    func_00164760();
+    func_00111C10(D_0035B868, 1);
+    return 0;
+}
+
+/* ER-149: by hand from the m2c draft; the two strings are its own .rodata (D_00354090, D_003540A0). Names and types are Unconfirmed readings. */
+s32 func_00103470(void) {
+    s32 buf[40]; /* ruling 3.13: unused, only sizes the 0xD0 frame (nothing reads sp+0..0x9F) */
+
+    func_00101200(D_001F6590, 9U);
+    D_0035B828 = 0;
+    func_001C4FF0("TEXT1.PSS", (s32)D_0035B878 + 0x800000, 0xA00000, 0);
+    func_00164760();
+    func_00101200(D_001F6590, 9U);
+    D_0035B828 = 0;
+    func_001C4FF0("STAFF.PSS", (s32)D_0035B878 + 0x800000, 0xA00000, 0);
+    func_00164760();
+    return 0;
+}
 
 void func_00103510(void) {
 }
@@ -668,13 +698,33 @@ INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354170);
 INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354180);
 INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354190);
 INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_003541A0);
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00112638);
+extern s32 func_00100EC0(s32, s32);
+extern s32 func_001126A0(s32, s32, s32);
+extern s32 func_00112D30(s32, s32, s32);
+
+/* ER-149: by hand from the m2c draft; the string is its own .rodata (D_003541B0). func_00100EC0 is a stub that
+   returns 1 and reads no argument; passing it arg0 and arg1 (already in $a0 / $a1, so no move) gives the game's
+   saved-register choice (arg1 in $s0), arg0 alone or all four do not. Its parameters are Unconfirmed. */
+s32 func_00112638(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+    if (func_00100EC0(arg0, arg1) != 0) {
+        func_001E9C10((s32 *)"Cannot Read MI2 File\n");
+        return arg1;
+    }
+    return func_001126A0(arg1, arg2, arg3);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001126A0);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001129B0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00112CC8);
+/* ER-149: the twin of func_00112638 for MIX files; the string is its own .rodata (D_003541C8). Names Unconfirmed. */
+s32 func_00112CC8(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+    if (func_00100EC0(arg0, arg1) != 0) {
+        func_001E9C10((s32 *)"Cannot Read MIX File\n");
+        return arg1;
+    }
+    return func_00112D30(arg1, arg2, arg3);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00112D30);
 
