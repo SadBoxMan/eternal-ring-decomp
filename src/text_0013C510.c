@@ -189,7 +189,22 @@ INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013CC68);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013CCE8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013CD68);
+extern void func_001C9B18(void *, void *);
+extern s32 func_0014FF38(void *arg0, s32 arg1);
+
+/* ER-159: by hand from m2c; names, types and offsets are Unconfirmed readings. The local is 16 bytes (the game's 0x40
+   frame); m2c's draft sized it 256. Saves the vector at arg1 + 0x90, may switch state, then writes it back. */
+void func_0013CD68(s8 *arg0, s32 arg1) {
+    f32 v[4];
+    char *p = (char *)arg1 + 0x90;
+
+    *(s8 *)(arg0 + 0xC) = 0;
+    func_001C9B18(v, p);
+    if (func_0014FF38(arg0, 3) != 0) {
+        func_00131000(arg0, func_0013C9A8);
+    }
+    func_001C9B18(p, v);
+}
 
 extern s32 func_0012FA68(void *);
 
@@ -203,7 +218,45 @@ void func_0013CDD0(void *arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013CE28);
+extern s32 func_0012B6B0(void *, s32, s32, s32, f32);
+extern s32 func_0012F938(void *, s32);
+extern s32 func_0012FAA8(void *);
+extern void func_001321E8(char *);
+
+/* ER-159: by hand from m2c; names, types and offsets are Unconfirmed readings. The x74 counters are s16 written
+   `x += 1; if (x >= N)` (recipes 2.34). */
+void func_0013CE28(void **arg0, void *arg1) {
+    char *a = (char *)arg0;
+
+    switch (*(s16 *)(a + 0x6E)) {
+    case 0:
+        func_0013D480(arg0, 0);
+        if (*(s8 *)(a + 0xD) == 0) {
+            *(s16 *)(a + 0x74) = 0;
+            *(s16 *)(a + 0x6E) += 1;
+        }
+        break;
+    case 1:
+        *(s16 *)(a + 0x74) += 1;
+        if (*(s16 *)(a + 0x74) >= 0x29 && func_0012B6B0(arg0, 0, 2, 0, 0.1f) != 0) {
+            func_0012FAA8(arg0);
+            *(s16 *)(a + 0x74) = 0;
+            *(s16 *)(a + 0x6E) += 1;
+        }
+        break;
+    case 2:
+        if (func_0012F938(arg1, 2) != 0) {
+            *(s16 *)(a + 0x74) += 1;
+            if (*(s16 *)(a + 0x74) >= 0x3D) {
+                func_001321E8(a);
+            }
+        }
+        break;
+    }
+    if (*(s16 *)(a + 0x6E) != 2 && func_0012B6B0(arg0, 0, 2, 0, 0.1f) != 0) {
+        *(u8 *)((char *)arg1 + 0x147) &= 0xFE;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013CF78);
 
