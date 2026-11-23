@@ -226,7 +226,13 @@ s32 func_001524D8(void) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001524F8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00152548);
+extern void func_001C9B18(s32, void *);
+extern char D_00330240[];
+
+/* ER-113: by hand from the m2c draft; names and types Unconfirmed. arg1 is unused (the call reads $a2). */
+void func_00152548(s32 arg0, s32 arg1, s32 arg2) {
+    func_001C9B18(arg0, (arg2 * 0x10) + D_00330240);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00152560);
 
@@ -979,7 +985,6 @@ void func_00158130(char *arg0, char *arg1) {
     }
 }
 
-extern void func_001C9B18(s32, void *);
 extern s32 func_001321D8(void *);
 void func_001583F0(void);
 
@@ -6641,11 +6646,29 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C6660);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C6720);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C67D0);
+/* ER-113: by hand from the m2c draft; names and types Unconfirmed. */
+u64* func_001C67D0(u64 *arg0, s64 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6) {
+    *arg0 = ((u64) arg1 << 0x3F) | ((u64) (arg2 & 0xFFFFFFF0) << 0x20) | ((u64) (u32) arg3 << 0x1F) | ((u64) (u32) arg4 << 0x1C) | ((u64) (u32) arg5 << 0x1A) | ((u64) (u32) arg6);
+    return arg0 + 2;
+}
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C6828);
+/* ER-113: by hand from the m2c draft; names and types Unconfirmed. */
+void* func_001C6828(void *arg0, s64 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7) {
+    *(s32 *)((char *)arg0 + 0) = (arg6 << 0xF) | arg7;
+    *(s32 *)((char *)arg0 + 4) = ((arg5 << 0xE) | ((arg2 << 0x1C) | ((arg3 << 0x1A) | (arg4 << 0xF))));
+    *(s32 *)((char *)arg0 + 8) = (s32) (arg1 & 0xFFFFFFFF);
+    *(s32 *)((char *)arg0 + 0xC) = (s32) (arg1 >> 0x20);
+    return (char *)arg0 + 0x10;
+}
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C6880);
+/* ER-113: by hand from the m2c draft; names and types Unconfirmed. */
+void* func_001C6880(void *arg0, s32 arg1, s64 arg2) {
+    *(s32 *)((char *)arg0 + 0xC) = 0;
+    *(s32 *)((char *)arg0 + 0) = (s32) (arg2 & 0xFFFFFFFF);
+    *(s32 *)((char *)arg0 + 8) = arg1;
+    *(s32 *)((char *)arg0 + 4) = (s32) (arg2 >> 0x20);
+    return (char *)arg0 + 0x10;
+}
 
 extern void * func_001C6880(void *, s32, s64);
 
@@ -6654,29 +6677,50 @@ s32 func_001C68B0(void *arg0) {
     return func_001C6880(arg0, 0x3F, 0);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C68D0);
+/* ER-113: from the m2c draft; OR terms written in parameter order (a GS register packer). Names and types Unconfirmed. */
+void* func_001C68D0(void *arg0, s64 arg1, s64 arg2, s64 arg3, s64 arg4, s64 arg5, s64 arg6, s64 arg7) {
+    return func_001C6880(arg0, 0x14, ((u64) (arg1 << 0x20) >> 0x20) | ((u64) (arg2 << 0x20) >> 0x1E) | ((u64) (arg3 << 0x20) >> 0x1B) | ((u64) (arg4 << 0x20) >> 0x1A) | ((u64) (arg5 << 0x20) >> 0x17) | ((u64) (arg6 << 0x20) >> 0xD) | (arg7 << 0x20));
+}
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C6938);
+/* ER-113: from the m2c draft; OR terms written in parameter order (a GS register packer). Names and types Unconfirmed. */
+void* func_001C6938(void *arg0, s64 arg1, s64 arg2, s64 arg3, s64 arg4, s64 arg5, s64 arg6, s64 arg7, u32 arg_sp0, u32 arg_sp8, u32 arg_sp10, u32 arg_sp18, u32 arg_sp20) {
+    return func_001C6880(arg0, 6, ((u64) (arg1 << 0x20) >> 0x20) | ((u64) (arg2 << 0x20) >> 0x12) | ((u64) (arg3 << 0x20) >> 0xC) | ((u64) (arg4 << 0x20) >> 6) | ((u64) (arg5 << 0x20) >> 2) | (arg6 << 0x22) | (arg7 << 0x23) | ((s64) arg_sp0 << 0x25) | ((s64) arg_sp8 << 0x33) | ((s64) arg_sp10 << 0x37) | ((s64) arg_sp18 << 0x38) | ((s64) arg_sp20 << 0x3D));
+}
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C69D8);
+/* ER-113: from the m2c draft; OR terms written in parameter order (a GS register packer). Names and types Unconfirmed. */
+void* func_001C69D8(void *arg0, s64 arg1, s64 arg2, s64 arg3, s64 arg4, s64 arg5, s64 arg6, s64 arg7, u32 arg_sp0, u32 arg_sp8) {
+    return func_001C6880(arg0, 0, ((u64) (arg1 << 0x20) >> 0x20) | ((u64) (arg2 << 0x20) >> 0x1D) | ((u64) (arg3 << 0x20) >> 0x1C) | ((u64) (arg4 << 0x20) >> 0x1B) | ((u64) (arg5 << 0x20) >> 0x1A) | ((u64) (arg6 << 0x20) >> 0x19) | ((u64) (arg7 << 0x20) >> 0x18) | ((s64) arg_sp0 << 9) | ((s64) arg_sp8 << 0xA));
+}
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 s32 func_001C6A60(void *arg0, s64 arg1, s64 arg2) {
     return func_001C6880(arg0, 3, ((u64) (arg1 << 0x20) >> 0x20) | ((u64) (arg2 << 0x20) >> 0x10));
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C6A90);
+/* ER-113: from the m2c draft; OR terms written in parameter order (a GS register packer). Names and types Unconfirmed. */
+void* func_001C6A90(void *arg0, s64 arg1, s64 arg2, s64 arg3, s64 arg4, s64 arg5) {
+    return func_001C6880(arg0, 1, ((u64) (arg1 << 0x20) >> 0x20) | ((u64) (arg2 << 0x20) >> 0x18) | ((u64) (arg3 << 0x20) >> 0x10) | ((u64) (arg4 << 0x20) >> 8) | (arg5 << 0x20));
+}
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 s32 func_001C6AE0(void *arg0, s64 arg1, s64 arg2, s64 arg3) {
     return func_001C6880(arg0, 5, ((u64) (arg1 << 0x20) >> 0x20) | ((u64) (arg2 << 0x20) >> 0x10) | (arg3 << 0x20));
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C6B18);
+/* ER-113: from the m2c draft; OR terms written in parameter order (a GS register packer). Names and types Unconfirmed. */
+void* func_001C6B18(void *arg0, s64 arg1, s64 arg2, s64 arg3, s64 arg4) {
+    return func_001C6880(arg0, 0x4C, ((u64) (arg1 << 0x20) >> 0x20) | ((u64) (arg2 << 0x20) >> 0x10) | ((u64) (arg3 << 0x20) >> 8) | (arg4 << 0x20));
+}
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C6B60);
+/* ER-113: from the m2c draft; OR terms written in parameter order (a GS register packer). Names and types Unconfirmed. */
+void* func_001C6B60(void *arg0, s64 arg1, s64 arg2, s64 arg3, s64 arg4, s64 arg5, s64 arg6, s64 arg7, u32 arg_sp0) {
+    return func_001C6880(arg0, 0x47, ((u64) (arg1 << 0x20) >> 0x20) | ((u64) (arg2 << 0x20) >> 0x1F) | ((u64) (arg3 << 0x20) >> 0x1C) | ((u64) (arg4 << 0x20) >> 0x14) | ((u64) (arg5 << 0x20) >> 0x12) | ((u64) (arg6 << 0x20) >> 0x11) | ((u64) (arg7 << 0x20) >> 0x10) | ((s64) arg_sp0 << 0x11));
+}
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C6BD8);
+/* ER-113: from the m2c draft; OR terms written in parameter order (a GS register packer). Names and types Unconfirmed. */
+void* func_001C6BD8(void *arg0, s64 arg1, s64 arg2, s64 arg3, s64 arg4) {
+    return func_001C6880(arg0, 0x40, ((u64) (arg1 << 0x20) >> 0x20) | ((u64) (arg2 << 0x20) >> 0x10) | (arg3 << 0x20) | (arg4 << 0x30));
+}
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 s32 func_001C6C18(void *arg0, s64 arg1, s64 arg2) {
@@ -6688,9 +6732,15 @@ s32 func_001C6C48(void *arg0, s64 arg1) {
     return func_001C6880(arg0, 0x1A, (s64) ((u64) (arg1 << 0x20) >> 0x20));
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C6C70);
+/* ER-113: from the m2c draft; OR terms written in parameter order (a GS register packer). Names and types Unconfirmed. */
+void* func_001C6C70(void *arg0, s64 arg1, s64 arg2, s64 arg3, s64 arg4, s64 arg5, s64 arg6, s64 arg7, u32 arg_sp0) {
+    return func_001C6880(arg0, 0x1B, ((u64) (arg1 << 0x20) >> 0x1D) | ((u64) (arg2 << 0x20) >> 0x1C) | ((u64) (arg3 << 0x20) >> 0x1B) | ((u64) (arg4 << 0x20) >> 0x1A) | ((u64) (arg5 << 0x20) >> 0x19) | ((u64) (arg6 << 0x20) >> 0x18) | ((u64) (arg7 << 0x20) >> 0x17) | ((s64) arg_sp0 << 0xA));
+}
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C6CE8);
+/* ER-113: from the m2c draft; OR terms written in parameter order (a GS register packer). Names and types Unconfirmed. */
+void* func_001C6CE8(void *arg0, s64 arg1, s64 arg2, s64 arg3, s64 arg4, s64 arg5, s64 arg6) {
+    return func_001C6880(arg0, 8, ((u64) (arg1 << 0x20) >> 0x20) | ((u64) (arg2 << 0x20) >> 0x1E) | ((u64) (arg3 << 0x20) >> 0x1C) | ((u64) (arg4 << 0x20) >> 0x12) | ((u64) (arg5 << 0x20) >> 8) | (arg6 << 0x22));
+}
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 s32 func_001C6D48(void *arg0, s64 arg1, s64 arg2, s64 arg3) {
