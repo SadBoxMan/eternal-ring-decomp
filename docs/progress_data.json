@@ -632,11 +632,11 @@
     {
       "code": "ER-037",
       "title": "Recomp opcode test harness (PCSX2 PINE vs recomp)",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, high",
-      "waits_on": "LuciDin's yes for PCSX2 runs",
-      "notes": ""
+      "waits_on": "done",
+      "notes": "Done Mon 23 Nov 2026 (Recomp 1273c8d; recomp_opcodes.md section 7). Harness tools/recomp/optest: 34 kernels + vf0 thread test, 564 cases, PCSX2 2.5.185 int + rec vs recomp, bitwise. F1 operand / F2 / F3 / F4 agree with PCSX2; F5-F8 confirmed; new N1-N6. Blind A/B: the cvt.w.s fix mended the attack animations. Method C not built (follow-up)."
     },
     {
       "code": "ER-038",
@@ -644,7 +644,7 @@
       "status": "Queued",
       "track": "recomp",
       "model": "Opus, medium",
-      "waits_on": "ER-037",
+      "waits_on": "none",
       "notes": ""
     },
     {
@@ -1541,11 +1541,11 @@
     {
       "code": "ER-138",
       "title": "m2c_bulk round 3 (optional)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "m2c_bulk round 3 (with ER-147 / ER-151 / ER-160): offset order for *p / p[N] stores, ruling 3.14 with the first locals, register + typed pointer in bytes. Branch er-138-m2c-bulk-3, commit ad52f1e; matching_tools 6.18."
     },
     {
       "code": "ER-139",
@@ -1622,11 +1622,11 @@
     {
       "code": "ER-147",
       "title": "m2c_bulk: frame-sized locals",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Frame-sized locals: 9 of ER-125's 13 plain MATCH at 9f76d66^ (4 left 2-4 words: u16 parameter x3, a dropped store); stores inside ifs (func_0012FF78) and untouched argument registers (func_0012F540, func_0012FE10) plain MATCH; text_001000C0 0 -> 18 plain MATCH, none lost. matching_tools 6.18."
     },
     {
       "code": "ER-148",
@@ -1658,11 +1658,11 @@
     {
       "code": "ER-151",
       "title": "m2c_bulk packer variant",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Packer variant: all nine func_001C6880 wrappers plain MATCH at b18d16a^. matching_tools 6.18."
     },
     {
       "code": "ER-152",
@@ -1739,11 +1739,11 @@
     {
       "code": "ER-160",
       "title": "m2c_bulk plain step checks",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Plain checks: non-extern prototype of the target counts (func_0013E818 flagged); one form per file for a name the drafts declare differently (D_0035C554); func_001359C0 traced (mixed pointer / float run) and matched by the new by-type order. matching_tools 6.18."
     },
     {
       "code": "ER-161",
@@ -1796,6 +1796,69 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Sonnet, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-167",
+      "title": "func_00119FE0 round 2 (ruling needed for func_00113238 s32)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, xhigh",
+      "waits_on": "LuciDin's ruling; ER-162",
+      "notes": ""
+    },
+    {
+      "code": "ER-168",
+      "title": "Opcode harness method C: game leaf functions",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-169",
+      "title": "Hardware reference for opcode edges (ps2autotests)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "LuciDin's yes to fetch",
+      "notes": ""
+    },
+    {
+      "code": "ER-170",
+      "title": "N5: StartThread / SleepThread return values",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-171",
+      "title": "Place round 3's 15 plain MATCHes (text_001000C0, text_00150878)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-164",
+      "notes": ""
+    },
+    {
+      "code": "ER-172",
+      "title": "m2c_bulk u16-parameter variant",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-173",
+      "title": "Whole-file reruns with m2c_bulk round 3",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
     }
