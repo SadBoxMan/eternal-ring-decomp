@@ -274,7 +274,34 @@ void func_0014B528(void **arg0, char *arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014B688);
 
-INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014B7C0);
+extern int func_00130780(char *);
+extern s32 func_0014BD70(s8 *, s32, s32);
+extern void func_0014B898();
+extern void func_0014BD50(void *);
+extern void func_0014BD60(void *);
+
+/* ER-120: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+void func_0014B7C0(s8 *arg0, s32 arg1) {
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        func_0014BD50(arg0);
+        func_0014BD60(arg0);
+        *(s16 *)(arg0 + 0x6E) += 1;
+    case 1:
+        if (func_0014BD70(arg0, arg1, 1) == 0) {
+            break;
+        }
+        switch (func_00130780((char *)arg0)) {
+        case 0:
+            func_00131000((char *)arg0, func_0014B898);
+            break;
+        case 1:
+            func_00131000((char *)arg0, func_0014B898);
+            break;
+        }
+        break;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014B898);
 
@@ -492,7 +519,29 @@ void func_0014C380(s8 *arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014A968", func_0014C3F8);
+extern s32 func_0012FAA8(void *);
+
+/* ER-120: by hand from the m2c draft (func_0012FAA8 returns s32, as its definition in text_001000C0); names, types and offsets are Unconfirmed readings. */
+void func_0014C3F8(s8 *arg0) {
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        *(s8 *)(arg0 + 0xE) = 0;
+        func_0014C810((char *)arg0, (s32)func_0014C4F8);
+        func_0012FAA8(arg0);
+        *(s16 *)(arg0 + 0x6E) += 1;
+    case 1:
+        if (func_0012B7C0((void **)arg0, 3, 2, *(s16 *)(arg0 + 0x6C), 0xA, 0, 0.3f) != 0) {
+            *(s16 *)(arg0 + 0x6C) = 0;
+            *(s16 *)(arg0 + 0x6E) += 1;
+        }
+        break;
+    case 2:
+        if (*(s16 *)(arg0 + 0x6C) >= 0xB5) {
+            func_001321E8((char *)arg0);
+        }
+        break;
+    }
+}
 
 
 /* ER-085: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */

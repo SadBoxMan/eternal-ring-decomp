@@ -467,7 +467,29 @@ void func_001464A8(char *arg0) {
     func_00131000(arg0, func_001464E0);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00145120", func_001464E0);
+extern s32 func_0012F8C8(s8 *a0, s32 a1, s32 a2, s32 a3, s32 a4, f32 a5);
+extern s32 func_00131140(char *a0, void *a1, void *a2, void *a3, void *a4, void *a5);
+extern void func_00146598();
+extern void func_00146888();
+extern void func_001469B8();
+extern void func_00146C20();
+
+/* ER-120: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
+void func_001464E0(void **arg0) {
+    char *p = (char *)arg0;
+
+    if (*(s16 *)(p + 0x6E) == 0) {
+        *(u16 *)(p + 0x74) = func_0012E568(0x1E, 0x96);
+        *(s16 *)(p + 0x6E) += 1;
+    }
+    func_0012F8C8((s8 *)p, 0, *(s16 *)(p + 0x6C), 0x1E, 1, 0.08f);
+    if (func_00131140(p, func_00146C20, func_00146C20, func_001469B8, func_00146888, 0) != 0) {
+        return;
+    }
+    if ((s16)(*(u16 *)(p + 0x74) -= 1) < 0) {
+        func_00131000(p, func_00146598);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00145120", func_00146598);
 

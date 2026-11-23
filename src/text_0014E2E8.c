@@ -587,7 +587,13 @@ void func_001501D8(void *arg0) {
     func_0012FB48(arg0, 0);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0014E2E8", func_001501E0);
+extern float func_001114E8(char *, float *);
+extern char D_0032FD80[];
+
+/* ER-120: by hand from the m2c draft; names and types are Unconfirmed readings. */
+s32 func_001501E0(float *arg0) {
+    return func_001114E8(D_0032FD80, arg0) <= 1750.0f;
+}
 
 /* ER-054: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00150220(void *arg0, void *arg1) {
