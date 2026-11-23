@@ -838,6 +838,40 @@ block's dependences, priorities and ready lists (the option is spelled with a da
 | func_0015C0E0 | 1,072 | 33 words (was 36: `d[3] = 1.0f` right after `f`). Left: before `func_0017D968` the game builds `D_00354D80`'s full address before its first `ld` and converts `(s32)f` last; after `% 45` the `10` and `%hi(D_002488A0)` registers are swapped. Tried: 360 orders of the first block, hill-climbs of both blocks, the conversion from `p[1]` / `a0 + 0x14`, `p` and `d` as `Vec4`, `f` sharing `y` / `k` / `r`; reading `D_002488A0` as part of `D_00248880` changes the size (separate symbols) |
 | func_00178C60 | 3,608 | not attempted by ER-123: 902 instructions, 30 calls, stack records passed to `func_00178700` with 64-bit GIF-tag constants, and a busy-wait on hardware registers (`*(s32 *)0x1000A000 & 0x100`, `0x10003020`) that needs `volatile` reads (a ruling); the ER-098 m2c draft (run `er098all`, chunk47) is 366 instructions short (stores into the stack records lost). A card of its own |
 
+### 2.29 `text_001000C0` round 3: m2c's stack arrays, parameters it drops, prologue ties (ER-137 + ER-125, Mon 23 Nov 2026; Confirmed by `make regress`, 29 functions)
+
+29 placed (2,744 bytes), commits `a785de7` (ER-137: func_0012DB88, func_0012F900), `9f76d66`, `2d4eea2`, `c3c5fe4`,
+`c22dc69`, `3f6597f`, `92232b1` (ER-125: 27 by hand from the near misses of a whole-file `m2c_bulk.py --plain` rerun
+with ER-114's tool, `docs/matching_tools.md` 6.13). Rulings used: 3.13 (func_001198C0, func_00101ED0), 3.16
+(func_001116D0, func_001116E0). Nothing else compiler-steering.
+
+| Lesson | Proved by |
+|---|---|
+| **m2c writes every stack local as `M2C_UNK sp[64]`**, so the frame comes out 0x100 bytes too big and the draft differs only in `$sp` offsets. Size the locals from the game's frame: the lowest saved register's slot is the locals' size (`sd $s0, 0x10($sp)` = 16 bytes, a `f32 v[4]`; 0x40 = a `f32 m[4][4]`; 0x60 = a 0x60-byte packet). A word m2c reads at `sp+0x30` next to a 0x40 array is the matrix's last row (`m[3]`). Several locals are laid out in declaration order from `$sp` upward (func_0012CBF8: `m[4][4]` at 0, `r[4][4]` at 0x40, `v[4]` at 0x80) | func_0012C190, func_0012C718, func_0012FB90, func_0012D2D8, func_001307A0, func_0012DF30, func_0012EB60, func_0012CB08, func_0012CBF8, func_001124E8, func_0012FCA0, func_0012FD70, func_0012FE48 |
+| **A frame bigger than the locals, with nothing read there** is ruling 3.13's unused local; any size within the 16-byte rounding gives the frame (func_001198C0: 0x101 to 0x110 bytes; func_00101ED0: 0x71 to 0x80), so the size and type are Unconfirmed | func_001198C0, func_00101ED0 |
+| **Parameters m2c drops**: an argument register the function never touches but its callee reads is a pass-through parameter (`$a0` / `$a1` / `$a2` and `$f12`): func_0012F540 passes `$a0` / `$a1` on, func_0012FE10 `$a0` / `$a2`, func_0012F900 its float 6th parameter (the file's callers pass `0.1f`), func_0012EAF8 `$a0` | func_0012F540, func_0012FE10, func_0012F900, func_0012EAF8 |
+| **A wrapper with a frame and `jal` returns its callee's value** (2.18 again): func_0012FE10 returns func_0012C500's value, which returns func_0012C360's; the file's `extern void` for func_0012C500 became `void *` (callers unchanged) | func_0012FE10, func_0012F900 |
+| **A data symbol bigger than 8 bytes is not `$gp`-relative**: `extern s32 D_X;` gives `addiu $a2, $gp, ...` where the game has `lui` / `addiu`; `extern char D_X[];` (unsized) gives the game's pair | func_0012F540 (`D_0035B9A0`) |
+| **The EE timer count register** (`0x10000000`, Timer 0 `T0_COUNT`) needs `volatile` (ruling 3.16) for the game's order of the `lui` and the `$gp` store and for the read after the `mult` | func_001116D0, func_001116E0 |
+| **A clearing loop over records compares with `slt`** (signed) when written with an index (`for (i = 0; i < 0x200; i++) f(D + i * 0xA0, 0x28);`); a `char *` loop compares with `sltu` or changes shape | func_001194B8, func_00119510 |
+| **m2c's copy of a parameter into a second variable** moved the parameter's move above the second register save; computing from the parameter itself gives the game's prologue. A `?:` on the result gives `movn` / `movz` where `if / return` gives a branch, and the operand order of `<` with `?:` picks `movz` over `movn` | func_0012E5C0, func_00131020 |
+| **A `u8` field store of 0xFF**: m2c's `s8` store wrote `-1` (`addiu $a1, $zero, -1`); the field is `u8` (`addiu ..., 0xFF`) | func_0012B890 |
+| **A loop count loaded from a `u16` but kept in an `s32`** has no `andi` after the decrement | func_00113238 |
+| **Field store order inside a block**: three stores after a NULL test went out in the game's order only as `0x14, 0x30, 0x10` (offset order and the other four orders did not); `m2c_bulk.py`'s store variants miss runs inside an `if` | func_0012FF78 |
+| **A 4x4 transpose** reads well as `f32 (*arg1)[4]` with `t[i][j] = arg1[j][i]`; the flat `arg1[j * 4 + i]` form is 4 words off and `t[i * 4 + j]` 1 word | func_0012EAF8 (its extern in the file now takes `f32 (*)[4]`; func_0012CBF8 and func_0012CD08 pass matrices already) |
+| **splat's function regex needs `void* func_X(`** for a pointer return (`void *func_X(` is not seen as a function and `tools/split.py`'s order check fails); the repo already spells it that way | func_00131020, func_0012FE10 |
+
+**Parked (one-line cause; the run's drafts in `C:\rs\wt\er125_runs\er125file\c\`, game code, not in git):**
+
+| Function | Size | Cause |
+|---|---|---|
+| func_00111700 | 60 | prologue tie: the game saves `$s0`, moves `$a1` into it, then saves `$s1`; ours saves both first and gives `$a1` `$s1` (`$a0` passes through to func_00100EC0); 6 spellings of the locals and types |
+| func_0012FEE0 | 84 | 2 words: the same prologue tie (the `s8` parameter's `sll` before the `$s1` save); 4 spellings |
+| func_0012D9B8 | 96 | 4 words: the game schedules the `0.0f <= f` compare above the `sh` of 0x5C; 5 statement orders and types |
+| func_0012E428 | 96 | 7 words: the game's NULL test falls through to `b` with the zero in its slot; 6 spellings of the root walk (a `static` helper inlines smaller) |
+| func_00130B18 | 72 | 8 words: our float temporaries are `$f0`-`$f2`, the game's `$f1`-`$f3` (also with `f32` parameters) |
+| func_001033F0, func_00103470, func_00112638, func_00112CC8 | | string literals ("TEXT0.PSS", "Cannot Read MI2 File\n", ...): a function that defines `.rodata` data is not verified yet (2.5); the drafts are frame-only or register-order near misses otherwise |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -928,7 +962,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23); three by ER-100 (2.24); func_001668E0, func_001668A8 (ER-095, 2.25: `char buf[0x80]`); func_00113ED8 (ER-115, 2.27) |
+| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23); three by ER-100 (2.24); func_001668E0, func_001668A8 (ER-095, 2.25: `char buf[0x80]`); func_00113ED8 (ER-115, 2.27); func_001198C0, func_00101ED0 (ER-125, 2.29) |
 
 ### 3.14 ER-100: an address-taken local that only stops a sibling call (Sun 22 Nov 2026, 16:40 Eastern, LuciDin in the ER-100 session)
 
@@ -946,7 +980,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** (first ruled "not accepted" at about 18:45, reversed after the explanation) | `volatile` only on reads and writes of memory-mapped hardware register addresses (EE timers, DMA, GIF / VIF, GS privileged registers and the like: e.g. func_00178C60's busy-wait on `0x1000A000` / `0x10003020`), where the game's code re-reads the register each time as the hardware changes it. It states a fact about the location, as Sony's own register access macros do (Unconfirmed until checked against an SDK header). Each use carries a comment naming this ruling. **Never on ordinary variables**: `volatile` keep-alives that only force a load or store stay forbidden. LuciDin: the goal stays a true 100% decomp as in Twinblade (3.1); every use of the narrow rulings (3.13-3.16) is listed here so it can be reviewed later. |
+| **Accepted, narrowly** (first ruled "not accepted" at about 18:45, reversed after the explanation) | `volatile` only on reads and writes of memory-mapped hardware register addresses (EE timers, DMA, GIF / VIF, GS privileged registers and the like: e.g. func_00178C60's busy-wait on `0x1000A000` / `0x10003020`), where the game's code re-reads the register each time as the hardware changes it. It states a fact about the location, as Sony's own register access macros do (Unconfirmed until checked against an SDK header). Each use carries a comment naming this ruling. **Never on ordinary variables**: `volatile` keep-alives that only force a load or store stay forbidden. LuciDin: the goal stays a true 100% decomp as in Twinblade (3.1); every use of the narrow rulings (3.13-3.16) is listed here so it can be reviewed later. Used so far: func_001116D0, func_001116E0 (ER-125, 2.29: EE Timer 0 count `0x10000000`) |
 
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker): park such functions with a
 one-line cause and ask.
