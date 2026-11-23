@@ -1546,6 +1546,78 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-139",
+      "title": "Recomp: VU1 static recompilation",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus xhigh/high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-140",
+      "title": "Recomp: faster VU1 interpreter",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-141",
+      "title": "Recomp: GS on its own thread",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-142",
+      "title": "Recomp: GS capture and replay benchmark",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-143",
+      "title": "Recomp: faster CPU rasteriser",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, high",
+      "waits_on": "ER-142",
+      "notes": ""
+    },
+    {
+      "code": "ER-144",
+      "title": "Recomp: GPU GS renderer (EX)",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus high/xhigh",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-145",
+      "title": "Recomp: small speed batch",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-146",
+      "title": "Recomp: profile heavier state and cutscene",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
