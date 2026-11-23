@@ -11,7 +11,7 @@ INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013B748);
 
 extern s32 func_0012F8C8(s8 *, s32, s32, s32, s32, f32);
 extern int func_00131140(char *, void *, void *, void *, void *, void *);
-extern void func_0013BBC8(void);
+extern void func_0013BBC8(void **, void *);
 extern void func_0013BA50(void);
 extern void func_0013BD90(void);
 
@@ -83,7 +83,54 @@ void func_0013B840(char *a0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013BA50);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013BBC8);
+extern s32 func_0012F938(void *arg0, s32 arg1);
+extern void func_0012F9C0(void **, s32);
+extern s32 func_0012FC38(void **, s32, s32, s32);
+extern s32 func_00130FE0(char *arg0, void *arg1);
+extern void func_0013BD28(s8 *arg0);
+
+/* ER-154: drafted with m2c (tools/m2c_bulk.py --plain), fixed by hand; names, types and offsets are Unconfirmed readings. */
+void func_0013BBC8(void **arg0, void *arg1) {
+    s16 temp_17;
+    s16 temp_2;
+    u16 temp_4;
+
+    temp_17 = *(s16 *)((char *)arg0 + 0x6E);
+    switch (temp_17) {                              /* irregular */
+    case 0:
+        func_00130CE0((s8 *) arg0, 10.0f);
+        if (func_0012F8C8(arg0, 8, (s32) *(s16 *)((char *)arg0 + 0x6C), 4, 0, 0.3f) != 0) {
+            temp_4 = *(u16 *)((char *)(*(void **)((char *)arg1 + 0xE0)) + 0x8C);
+            if (temp_4 >= 0x1EU) {
+                *(s8 *)((char *)arg0 + 8) = 0;
+                *(u16 *)((char *)arg0 + 0x74) = 0U;
+                *(s16 *)((char *)arg0 + 0x6E) = (s16) ((u16) *(s16 *)((char *)arg0 + 0x6E) + 1);
+            } else if (temp_4 == 0xF) {
+                func_0012F9C0(arg0, 2);
+            }
+            if (func_00130780(arg0) >= 2) {
+                func_00131000((s8 *) arg0, func_0013BD28);
+                return;
+            }
+        } else {
+            return;
+        }
+        break;
+    case 1:
+        if (*(s8 *)((char *)arg0 + 8) == 0) {
+            if (func_0012FC38(arg0, 0, 0x14, 0x32) != 0) {
+                *(s8 *)((char *)arg0 + 8) = (s8) temp_17;
+            }
+        }
+        if (func_0012F938(arg1, 8) != 0) {
+            *(s16 *)((char *)arg0 + 0x74) += 1;
+            if (*(s16 *)((char *)arg0 + 0x74) >= 0xA) {
+                func_00130FE0((s8 *) arg0, func_0013B840);
+            }
+        }
+        break;
+    }
+}
 
 void func_0013B840(char *a0);
 
