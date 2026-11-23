@@ -943,6 +943,35 @@ hand), `91803bf` (7 with m2c's `sp[64]`). Runs: `docs/matching_tools.md` 6.15. E
 | func_001C2FC8 | 1 word: `addu $v0, $v0, $s0` against the game's `addu $v0, $s0, $v0` for the `D_001FEC00[idx + 0x118]` address (frame fixed with `char buf[0x80]`); 8 spellings of the index (`char *` / `s32 *` base, array or pointer sum, either operand first) |
 | func_001C56F0 | not tried: it calls `func_001C6158`, `func_001C7328`, `func_001C8648` with an argument, but the file defines them `(void)` |
 
+### 2.32 The five small game files, round 6 (ER-148, Mon 23 Nov 2026; Confirmed by `make regress`, 14 functions)
+
+14 placed in `text_00145120` (6), `text_0014A968` (1), `text_0014C840` (1) and `text_0014E2E8` (6), 6,452 bytes, of
+ER-120's 15 left (2.30); `make regress` (-j4) green. Branch `er-148-five-files`, worktree `C:\rs\wt\er148`, commit
+`826c224`. A fresh `m2c_bulk.py --plain --tag ER-148 --list` over the 16 (label `er148`, 30 s) gave 0 MATCH and no
+same-size draft (so the `$sp`-only scan of `docs/matching_tools.md` 6.13 had nothing to take); all 14 came by hand
+from those drafts and ER-120's parked C, by three helper agents in scratch files (each placed here, declarations
+aligned, the whole file checked with `cmpfunc`). Runs (game code, not in git): `C:\rs\wt\er148_runs\`.
+
+| Lesson | Proved by |
+|---|---|
+| **A callee's real return type, again** (2.30): `func_00130BF8` returns `f32` (now so in `text_00145120` as in `text_0014A968`): that alone fixed the 3 words parked as an FP tie. `func_0012FA18` (returns `func_00165170`'s `s32`) and `func_0012FAE8` (returns `lbu 0x79`) are `s32` in `text_0014E2E8` now (6 words of `$v0` / `$v1`); the other files still declare `func_0012FAE8` `void` (no caller there uses the value) | func_00147708, func_0014F7F8 |
+| **A field read into a local first** moves its load above a store through another pointer, under `-fno-strict-aliasing`: `u16 s = *(u16 *)(p + 0x6E);` before `arg1->x94 = ...`, then `*(s16 *)(p + 0x6E) = s + 1;` (`u16`: the game's `lhu`) | func_0014FC68 (parked at 3 words in 2.30) |
+| **A stack slot that looks address-taken can be a plain spill**: all 9 callee-saved registers in use; written like func_00150658 (`tbl = flag ? A : B`, loop with `i`, values used after the loop), it matched with no trick | func_0014FA18 |
+| **Overlapping "temporaries" can be the rows of one matrix**: `f32 m[4][4]` whose row 1 is filled and row 2 normalised, then `func_001CA078(m, m[1], m[2])` builds `m` in place; locals in declaration order `m, b[4][4], r[4][4], v[4], out[4]` | func_0014D1E0, func_0014F328 (clones: three offsets differ) |
+| **A 16-byte "stack argument" can be an unused local**: `func_0012C578` reads only `$a0`-`$a3` (its other caller passes four words); the four stores to `sp+0` are a local filled and never read, which gcc keeps (no dead-store removal for stack memory). **Ruling 3.18** | func_001486F0 |
+| **Ruling 3.14 also keeps a `%hi` CSE**: `(void)&arg0;` blocks the last call's sibcall and with it the game's `%hi(func_0014A3B0)` held in `$s3` across four calls (ours rematerialised it without) | func_0014A238 |
+| **Shape fixes**: case 3 and case 4 as two plain fall-through cases re-reading `->E0->8C` (not `case 4:` inside case 3's `if`); `*(f32 *)(p + 0x48) *= k;` rather than locals loaded together; `x6E = 3; break;` in each place instead of `goto`s (the compiler merges the tail); a 5-entry jump table from `case 0: case 1:`, `case 2`, `case 3` and an empty `case 4: break;`; `if (k == 1) ret = 1; if (k == 0x10) ret = -1;` for a `-1 / 1 / 0` select; `extern const` for never-stored `.sdata` floats the game hoists (`D_0035BD08`, `D_0035BD0C`, `D_0035BD38`, `D_0035BDF4`, `D_0035BF10`) | func_001469B8, func_001494A0, func_00147100, func_0014E608, func_0014BD70 |
+| **Prototypes aligned with the definitions**: `func_0014BD70(char *, char *, s32)` (the caller passes `1` in `$a2`, the function never reads it: third parameter Unconfirmed), `func_0014D1E0(char *, f32)`, `func_001469B8(char *, char *)`; `func_0012EEB0(float *, float *)` declared first here (types Unconfirmed) | the files' other functions still match |
+
+Parked (C in the dispatcher's notes folder `ER-148_c/` and `ER-120_c/`, not in git):
+
+| Function | Cause |
+|---|---|
+| func_00145D08 | 19 words (17 more shapes, none closer): the game copies the pointer to `$v0` for the second wrap loop and reloads / stores the field every pass with the loop constants hoisted; a real `while` / `do` keeps the field in a register for the whole loop, a `goto` loop gets everything but the copy (32 words), every `q = p` placement is removed by CSE. Reading (Unconfirmed): an inlined helper |
+| func_0014E450 | 4 words: case 2's `sw $0, 0x90` against the `D_0035BEC8` load, and case 4's two calls need a `jal` where plain C gives a sibling `j`. Ruling 3.17 forbids `do { } while (0)`; a ruling-3.14 form (`(void)&arg0` or `&arg1`) blocks every sibcall, but the game keeps case 3's tail `j func_00131000` (37 words) |
+
+Not this card: func_0014C840, func_0014D930 (ER-118), func_00145FE8, func_00146598, func_00147F78, func_0014D3F8 (ER-122).
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1039,7 +1068,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31) |
+| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32) |
 
 ### 3.15 ER-095: a 16-byte aligned float vector type (Sun 22 Nov 2026, about 17:35 Eastern, LuciDin in the DISP-03 session)
 
@@ -1059,5 +1088,11 @@ Standing rulings; each applies until LuciDin changes it.
 |---|---|
 | **Not accepted** | Wrapping calls in `do { ... } while (0)` only so the compiler keeps a `jal` instead of a sibling `j` (func_0014E450, case 4; recipes 2.24 / 2.30). Park such functions; a ruling-3.14 form (an address-taken local) may be tried where it fits. |
 
-No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker): park such functions with a
+### 3.18 ER-148: an unused local whose stores the game makes (Mon 23 Nov 2026, 13:02 Eastern, LuciDin in the ER-148 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted, narrowly** | A local that the code fills and never reads, where the game's binary really contains those stores (func_001486F0: four stores `-x70, 1.0, -x78, 0` to a 16-byte local at `sp+0` before `func_0012C578`, which reads only `$a0`-`$a3`): gcc keeps dead stores to stack memory, so the C reproduces stores the original made. Reading (Unconfirmed): a leftover, or an argument dropped from the call. Not for stores the game does not have, nor for code that only steers registers or scheduling. Each use carries a comment naming this ruling. Used so far: func_001486F0 (ER-148, 2.32: `f32 s[4];`) |
+
+No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker, 3.18 only stores the game makes): park such functions with a
 one-line cause and ask.
