@@ -18,8 +18,16 @@ For each function (named, read from a list file, or every INCLUDE_ASM function o
    variables declared (flagged: m2c lost a stack buffer); m2c's byte offsets made C-correct (ER-097): a %hi / %lo
    data base in index arithmetic becomes `extern char D_X[]` (or a `(char *)` cast when src/ declares it), a typed
    pointer stepped or offset by a literal steps by elements
+   (ER-114: a dereferenced byte base gets its type back, or the width of the function's only memory access)
+4a. store variants on a same-size draft: each run of consecutive field stores sorted by offset (three modes, ER-124;
+   --no-store-sort skips it), then permutations of short runs
 4b. const variant (ER-101): a draft that does not match is compiled again with the .sdata floats it reads that
    tools/sdata_consts.py finds never stored declared `extern const` (kept only on a MATCH; --no-const skips it)
+4c. ruling 3.14 variant (ER-121): where our build has a sibling `j` and the game's function has none,
+   `(void)&arg0; /* ruling 3.14 */` (kept only on a MATCH; --no-ruling-314 skips it)
+(ER-130: src/ declarations whose type is a file-local typedef are left out of m2c's context, which otherwise fails
+   to parse; --plain uses, adopts or leaves out the target file's own extern for the function. ER-114: --plain
+   writes the GOFAST soft-double calls m2c names (fptodp, dpadd, ...) as plain double C, recipes 2.11)
 4. compile with the Makefile's own settings (tools/eematch.py) into the output folder and compare with the original
    (eematch.compare_function: masked relocations with targets checked); a compile that runs past --gcc-timeout is
    killed with its children (cc1) and marked TIMEOUT (ER-066 / ER-079)
@@ -127,6 +135,7 @@ class AsmInfo:
     has_jtable: bool = False
     hilo_syms: set[str] = field(default_factory=set)   # symbols the asm reaches through %hi / %lo
     slot_moves: list[str] = field(default_factory=list)  # ER-084: mnemonics moved out of a tail j's delay slot
+    mem_ops: list[str] = field(default_factory=list)     # ER-114: load / store mnemonics, stack accesses left out
 
 
 def prepare_asm(src: Path) -> AsmInfo:
@@ -163,6 +172,8 @@ def prepare_asm(src: Path) -> AsmInfo:
             if op == "jr" and "$31" not in m[2]:
                 info.has_jtable = True
             info.hilo_syms.update(re.findall(r"%(?:hi|lo)\((\w+)\)", m[2]))
+            if op in MEM_TYPES and not re.search(r"\(\$(?:29|sp)\)", m[2]):
+                info.mem_ops.append(op)
         out_lines.append(line)
     if SLOT_MOVE:
         out_lines = move_tail_slots(out_lines, info)
@@ -223,19 +234,57 @@ typedef unsigned int u128 __attribute__((mode(TI)));
 """
 
 
+# words m2c's context (CTX_TYPEDEFS + C) knows as types or qualifiers; any other identifier in a declaration's type
+# is a file-local typedef (e.g. ER-092's `typedef struct {...} G390;` in text_001000C0.c), which the context lacks
+CTX_TYPE_WORDS = {"extern", "const", "volatile", "unsigned", "signed", "char", "short", "int", "long", "float",
+                  "double", "void", "s8", "u8", "s16", "u16", "s32", "u32", "s64", "u64", "f32", "f64", "s128", "u128",
+                  "M2C_UNK", "M2C_UNK8", "M2C_UNK16", "M2C_UNK32", "M2C_UNK64"}
+
+
+def unknown_types(decl: str, name: str) -> set[str]:
+    """Identifiers in a declaration line that are neither the declared name, a parameter name nor a type the context
+    knows (CTX_TYPE_WORDS). A parameter's name is its last identifier when another word comes before it."""
+    m = re.match(rf"^(.*?)\b{re.escape(name)}\b(.*)$", decl)
+    if not m:
+        return set()
+    words = set(re.findall(r"[A-Za-z_]\w*", m[1]))
+    rest = m[2].strip()
+    if rest.startswith("("):
+        inner = rest[1:rest.rfind(")")] if ")" in rest else rest[1:]
+        for p in _split_top(inner):
+            ids = re.findall(r"[A-Za-z_]\w*", p)
+            if len(ids) > 1 and ids[-1] not in CTX_TYPE_WORDS:
+                ids = ids[:-1]                    # the parameter's name
+            words |= set(ids)
+    words.discard("__attribute__")
+    return {w for w in words if w not in CTX_TYPE_WORDS and not w.startswith("__")}
+
+
 def src_context() -> tuple[dict[str, str], dict[str, str]]:
     """(function prototypes, data extern lines) from src/: definitions first, then extern prototypes; the first
-    declaration of a name wins (a clash between files is reported, not resolved)."""
+    declaration of a name wins (a clash between files is reported, not resolved). A declaration whose type is a
+    file-local typedef (struct types: m2c's context has none of them) is left out and reported: one such line made
+    m2c refuse the whole context ("Syntax error when parsing C context"), so from ER-092's G390 (22 Nov 2026, 17:04)
+    every src / harvest attempt failed and each draft fell back to `none` (found by ER-130)."""
     protos: dict[str, str] = {}
     data: dict[str, str] = {}
     clashes = []
+    skipped: dict[str, set[str]] = {}
     files = sorted((ROOT / "src").glob("*.c"))
+
+    def known(line: str, name: str) -> bool:
+        bad = unknown_types(line, name)
+        if bad:
+            skipped.setdefault(name, set()).update(bad)
+        return not bad
     for p in files:
         for m in SIG_RE.finditer(p.read_text(encoding="utf-8")):
             ret = " ".join(m[1].split())
             if ret.startswith("static"):
                 continue
-            protos.setdefault(m[2], f"{ret} {m[2]}({m[3].strip() or 'void'});")
+            line = f"{ret} {m[2]}({m[3].strip() or 'void'});"
+            if m[2] not in protos and known(line, m[2]):
+                protos[m[2]] = line
     for p in files:
         for line in p.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -245,6 +294,8 @@ def src_context() -> tuple[dict[str, str], dict[str, str]]:
             if not names:
                 continue
             name = names[0]
+            if not known(line, name):
+                continue
             if "(" in line:
                 if name not in protos:
                     protos[name] = line[len("extern "):]
@@ -255,7 +306,24 @@ def src_context() -> tuple[dict[str, str], dict[str, str]]:
     if clashes:
         print(f"m2c_bulk: note: {len(set(clashes))} prototype(s) differ between src/ files; first kept: "
               + ", ".join(sorted(set(clashes))[:8]))
+    if skipped:
+        types = sorted(set().union(*skipped.values()))
+        print(f"m2c_bulk: note: {len(skipped)} src/ declaration(s) left out of the context (type unknown to it: "
+              + ", ".join(types[:8]) + "): " + ", ".join(sorted(skipped)[:8]))
     return protos, data
+
+
+CTX_FAIL_RE = re.compile(r"Syntax error when parsing C context\.?\s*\n?(.*)")
+
+
+def check_context(m2c_dir: Path, ctx: Path, asm: Path, timeout: int) -> None:
+    """Run m2c once with the context; a context m2c cannot parse makes every attempt that uses it fail silently (each
+    draft falls back to `none`), so say so loudly."""
+    _rc, out, err = run_m2c(m2c_dir, asm, ctx, timeout)
+    m = CTX_FAIL_RE.search(out + "\n" + err)
+    if m:
+        print(f"m2c_bulk: WARNING: m2c cannot parse the context {ctx.name} ({m[1].strip()[:120]}); every src / "
+              "harvest attempt will fall back to `none`", file=sys.stderr)
 
 
 def harvest_signature(draft: str, name: str) -> str | None:
@@ -358,7 +426,44 @@ def _in_arith(text: str, ref: str) -> bool:
     return re.search(rf"(?<![\w&]){r}\b\s*[-+](?![-+=>])|(?<![-+])[-+]\s*{r}\b(?!\s*\[)", text) is not None
 
 
-def byte_bases(text: str, hilo: set[str], includes: list[Path]) -> tuple[str, list[str]]:
+MEM_TYPES = {"lb": "s8", "lbu": "u8", "sb": "s8", "lh": "s16", "lhu": "u16", "sh": "s16", "lw": "s32", "sw": "s32",
+             "lwu": "u32", "lwc1": "f32", "swc1": "f32", "ld": "s64", "sd": "s64"}
+ASM_MEM_OPS: dict[str, list[str]] = {}    # function -> its memory-access mnemonics (job() fills it, ER-114)
+
+
+def deref_widths(body: str, n: str, t: str, mem_ops: list[str]) -> tuple[str, str]:
+    """ER-114 (func_001BCF48): after a byte base `D_X` became `char D_X[]`, a dereference of a sum with it
+    (`*((arg0 * 0xC4C) + D_X)`) reads a char. Give it m2c's type back, `*(T *)(...)`; where m2c had no width
+    (M2C_UNK: func_001BCF48's `lhu`), the width of the function's only memory access in the asm, if it has exactly
+    one. Works on the body with the `D_X\\0` markers of byte_bases. Returns (body, type used or '')."""
+    if t == "M2C_UNK":
+        ops = {MEM_TYPES[o] for o in mem_ops if o in MEM_TYPES}
+        if len(mem_ops) != 1 or len(ops) != 1:
+            return body, ""
+        t = ops.pop()
+    if BYTE_TYPE_RE.fullmatch(t):
+        return body, ""
+    out, i, used = [], 0, ""
+    while (k := body.find("*(", i)) >= 0:
+        prev = body[:k].rstrip()[-1:]
+        try:
+            j = _close_paren(body, k + 2)
+        except ValueError:
+            break
+        inner = body[k + 2:j]
+        if f"{n}\0" in inner and \
+                (not prev or prev in "=(,!&|?:;{}<>+-*/%^~" or body[:k].rstrip().endswith("return")):
+            out.append(body[i:k] + f"*({t} *)({inner})")
+            used = t
+        else:
+            out.append(body[i:j + 1])
+        i = j + 1
+    out.append(body[i:])
+    return "".join(out), used
+
+
+def byte_bases(text: str, hilo: set[str], includes: list[Path], mem_ops: list[str] | None = None
+               ) -> tuple[str, list[str]]:
     """ER-097: m2c writes a %hi / %lo data base used in index arithmetic in bytes (`(arg0 * 0x2C8) + &D_X`,
     `&D_X + 0x252`: evaluate.py handle_add_real / add_imm print the raw byte count), but C scales it by the element
     type it declared (M2C_UNK: by 4). docs/decomp_recipes.md 2.20.
@@ -386,7 +491,11 @@ def byte_bases(text: str, hilo: set[str], includes: list[Path]) -> tuple[str, li
             head, body = text[:body_start], text[body_start:]
             body = re.sub(rf"&{n}\b", f"{n}\0", body)
             body = re.sub(rf"(?<![\w&]){n}\b(?![\0\[])", f"(*({t} *){n})", body)
+            body, k = deref_widths(body, n, t, mem_ops)
             text = head + body.replace("\0", "")
+            if k:
+                done.append(f"{n} (deref as {k})")
+                continue
             done.append(n)
         elif n in ctx_arrays and _in_arith(text, n):
             text = re.sub(rf"(?<![\w&]){n}\b(?=\s*[-+](?![-+=>]))", f"((char *){n})", text)
@@ -477,7 +586,7 @@ def clean_draft(draft: str, name: str, includes: list[Path], hilo: set[str]) -> 
     if n_hilo:
         notes.append(f"{n_hilo} %hi/%lo data extern(s)")
     text = "\n".join(lines)
-    text, bases = byte_bases(text, hilo, includes)
+    text, bases = byte_bases(text, hilo, includes, ASM_MEM_OPS.get(name, []))
     if bases:
         notes.append("byte base: " + " ".join(bases))
     text, steps = byte_steps(text, name)
@@ -805,6 +914,152 @@ def store_orders(c_text: str, limit: int = 24):
                 return
 
 
+STORE_SORT = True           # --no-store-sort turns the ER-124 offset-order variant off
+FIELD_STORE_RE = re.compile(r"^(\s+)M2C_FIELD\(")
+BYTE_TYPE_RE = re.compile(r"\b(?:[su]8|M2C_UNK8|char)\b")
+
+
+def _field_store(line: str):
+    """`<indent>M2C_FIELD(base, T *, off) = rhs;` -> (indent, base, type, offset, rhs), else None."""
+    m = FIELD_STORE_RE.match(line)
+    if not m or not line.rstrip().endswith(";"):
+        return None
+    i = m.end()
+    try:
+        j = _close_paren(line, i)
+    except ValueError:
+        return None
+    args = _split_top(line[i:j])
+    rest = line[j + 1:].strip()
+    if len(args) != 3 or not rest.startswith("= ") or rest.startswith("=="):
+        return None
+    try:
+        off = int(args[2].strip(), 0)
+    except ValueError:
+        return None
+    return m[1], args[0].strip(), args[1].strip(), off, rest[2:-1].strip()
+
+
+def offset_orders(c_text: str):
+    """ER-124 (recipes 2.25, ER-098's asc_sort.py): m2c lists a setter's stores in the game's schedule order, and the
+    C that compiles to that schedule writes them in ascending offset order. Each run of 2+ consecutive
+    `M2C_FIELD(base, T *, off) = rhs;` lines at one indentation (inside blocks too) is sorted by offset, in three
+    modes: offset order (`asc`), bytes last (`bytelast`), bytes first (`bytefirst`); a stable sort keeps two stores to
+    one field in order. Left alone: a run in which a store's right side reads a field the run writes (func_00181210's
+    x58 pair) or calls a function. Yields (mode, text) for each mode that changes the text."""
+    lines = c_text.split("\n")
+    runs, cur = [], []
+    for i, ln in enumerate(lines):
+        st = _field_store(ln)
+        if st and CALL_RE.search(ln):
+            st = None
+        if st and cur and st[0] == cur[-1][1][0] and i == cur[-1][0] + 1:
+            cur.append((i, st))
+            continue
+        if len(cur) >= 2:
+            runs.append(cur)
+        cur = [(i, st)] if st else []
+    if len(cur) >= 2:
+        runs.append(cur)
+    good = []
+    for run in runs:
+        written = {(st[1], st[3]) for _i, st in run}
+        reads = False
+        for _i, st in run:
+            for mm in re.finditer(r"M2C_FIELD\(", st[4]):
+                try:
+                    a = _split_top(st[4][mm.end():_close_paren(st[4], mm.end())])
+                    if len(a) == 3 and (a[0].strip(), int(a[2].strip(), 0)) in written:
+                        reads = True
+                except ValueError:
+                    reads = True               # not parsable: leave the run alone
+        if not reads:
+            good.append(run)
+    seen = {c_text}
+    for mode in ("asc", "bytelast", "bytefirst"):
+        new = list(lines)
+        for run in good:
+            def key(item, mode=mode):
+                b = 1 if BYTE_TYPE_RE.search(item[1][2]) else 0
+                o = item[1][3]
+                return (o,) if mode == "asc" else ((b, o) if mode == "bytelast" else (-b, o))
+            for (i, _st), (j, _st2) in zip(run, sorted(run, key=key)):
+                new[i] = lines[j]
+        text = "\n".join(new)
+        if text not in seen:
+            seen.add(text)
+            yield mode, text
+
+
+SIBCALL_314 = True          # --no-ruling-314 turns the ER-121 variant off
+SIBCALL_ARG_RE = re.compile(r"\(void\)&(\w+); /\* ruling 3\.14 \*/")
+LOCAL_DECL_RE = re.compile(r"^    (?!return\b|goto\b)(?:(?:const|unsigned|signed|volatile)\s+)*[A-Za-z_]\w*[\s*]+\w+"
+                           r"(?:\[[^\]]*\])?;\s*$")
+
+
+def our_sibcalls(s_path: Path, name: str) -> list[str]:
+    """Function names our compiled .s reaches by a plain `j` (a sibling call) inside `name`."""
+    if not s_path.exists():
+        return []
+    out, inside = [], False
+    for ln in s_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if re.match(rf"^{name}:", ln):
+            inside = True
+        elif inside and re.match(rf"^\s*\.end\s+{name}\b", ln):
+            break
+        elif inside:
+            m = re.match(r"^\s*j\s+([A-Za-z_]\w*)\s*$", ln)
+            if m and not m[1].startswith(("$", ".")):
+                out.append(m[1])
+    return out
+
+
+def game_has_sibcall(game: eematch.Game, addr: int | None) -> bool:
+    """A `j` in the game's function whose target lies outside it (a sibling call)."""
+    size = game.size_of.get(addr) if addr is not None else None
+    if not size:
+        return True                                    # unknown: do not try the variant
+    for off in range(0, size, 4):
+        t = _call_target(game.word(addr + off), addr + off)
+        if t is not None and game.word(addr + off) >> 26 == 2 and not (addr <= t < addr + size):
+            return True
+    return False
+
+
+def sibcall_variant(c_draft: str, name: str, addr: int | None, s_path: Path, game: eematch.Game) -> str | None:
+    """ER-121 (ruling 3.14, recipes 2.24): the game has `jal` + epilogue where our build of the draft has a sibling
+    `j`, because Cygnus' sibcall pass refuses sibcalls in a function that takes a local's or parameter's address.
+    `(void)&arg0; /* ruling 3.14 */` after the declarations (a parameter: ER-100 found a narrow local given `&` goes
+    to the stack). Only when our .s has a sibling `j` and the game's function has none; None otherwise or when the
+    function has no parameter."""
+    if not our_sibcalls(s_path, name) or game_has_sibcall(game, addr):
+        return None
+    m = SIG_RE.search(c_draft)
+    while m and m[2] != name:
+        m = SIG_RE.search(c_draft, m.end())
+    if not m or not m[3].strip() or m[3].strip() == "void":
+        return None
+    ids = re.findall(r"[A-Za-z_]\w*", _split_top(m[3])[0])
+    if len(ids) < 2:
+        return None
+    arg = ids[-1]
+    lines = c_draft[m.end():].split("\n")
+    k = 1 if lines and lines[0].strip() == "" else 0     # the rest of the `{` line
+    while k < len(lines) and (LOCAL_DECL_RE.match(lines[k]) or not lines[k].strip()):
+        k += 1
+    lines.insert(k, f"    (void)&{arg}; /* ruling 3.14 */")
+    return c_draft[:m.end()] + "\n".join(lines)
+
+
+def store_variants(c_text: str):
+    """Offset orders first (ER-124: at most 3 compiles), then the permutations of store_orders. Yields (note, text)."""
+    if STORE_SORT:
+        for mode, text in offset_orders(c_text):
+            yield f"store order by offset ({mode})", text
+    for text in store_orders(c_text):
+        yield "store order permuted", text
+
+
 def compile_compare(name: str, addr: int | None, c_text: str, c_path: Path, out: Path, game: eematch.Game):
     c_path.write_text(c_text, encoding="utf-8", newline="\n")
     obj_path, msg = compile_draft(c_path, out / "obj")
@@ -837,6 +1092,7 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
     at.files["c"] = c_text
     # compile under a per-attempt name: the variants of one function share the folder
     c_path = out / "obj" / f"{name}.{re.sub(r'[^a-z]+', '_', ctx_label)}.c"
+    c_draft = c_text
     res, msg = compile_compare(name, addr, c_text, c_path, out, game)
     if res is None:
         at.files["err.txt"] = msg
@@ -861,33 +1117,54 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
                 at.files["c"] = alt
                 at.notes.append("return-wrapper form")
     if not res.match and res.game_size == res.our_size:
-        for k, alt in enumerate(store_orders(c_text)):
+        for k, (note, alt) in enumerate(store_variants(c_text)):
             res2, _msg2 = compile_compare(name, addr, alt, c_path.with_suffix(f".ord{k}.c"), out, game)
             if res2 and res2.match:
                 res, c_text = res2, alt
                 at.files["c"] = alt
-                at.notes.append("store order permuted")
+                at.notes.append(note)
                 break
+    if not res.match and SIBCALL_314:
+        sv = sibcall_variant(c_draft, name, addr, c_path.with_suffix(".s"), game)
+        if sv:
+            tries = [(compile_compare(name, addr, sv, c_path.with_suffix(".r314.c"), out, game)[0], sv, "")]
+            r0 = tries[0][0]
+            if r0 and not r0.match and r0.game_size == r0.our_size:
+                for k, (note, alt2) in enumerate(store_variants(sv)):
+                    r3, _m3 = compile_compare(name, addr, alt2, c_path.with_suffix(f".r314.ord{k}.c"), out, game)
+                    tries.append((r3, alt2, note))
+                    if r3 and r3.match:
+                        break
+            hit = next(((r, t, nt) for r, t, nt in tries if r and r.match), None)
+            if hit:
+                res, c_text = hit[0], hit[1]
+                at.files["c"] = c_text
+                at.notes.append("ruling 3.14 (void)&" + SIBCALL_ARG_RE.search(c_text)[1]
+                                + (f"; {hit[2]}" if hit[2] else ""))
+            else:
+                best = min((r for r, _t, _n in tries if r), default=None,
+                           key=lambda r: (abs(r.our_size - (r.game_size or 0)), sum(not w.ok for w in r.words)))
+                at.notes.append("ruling 3.14 tried, no match" + (
+                    f" (best: {diff_class(best)}, {sum(not w.ok for w in best.words)} words)" if best else ""))
     if not res.match and CONST_VARIANT:
         cv = const_variant(c_text, name, at.protos_h, out)
         if cv:
             alt, ph2, used = cv
             res2, _msg2 = compile_compare(name, addr, alt, c_path.with_suffix(".const.c"), out, game)
-            tries = [(res2, alt)]
+            tries = [(res2, alt, "")]
             if res2 and not res2.match and res2.game_size == res2.our_size:
-                for k, alt2 in enumerate(store_orders(alt)):
+                for k, (note, alt2) in enumerate(store_variants(alt)):
                     r3, _m3 = compile_compare(name, addr, alt2, c_path.with_suffix(f".const.ord{k}.c"), out, game)
-                    tries.append((r3, alt2))
+                    tries.append((r3, alt2, note))
                     if r3 and r3.match:
                         break
-            hit = next(((r, t) for r, t in tries if r and r.match), None)
+            hit = next(((r, t, nt) for r, t, nt in tries if r and r.match), None)
             if hit:
-                res, c_text = hit
+                res, c_text = hit[0], hit[1]
                 at.files["c"] = c_text
                 at.protos_h = ph2
                 at.consts = used
-                at.notes.append("const floats: " + " ".join(sorted(used))
-                                + ("; store order permuted" if c_text != alt else ""))
+                at.notes.append("const floats: " + " ".join(sorted(used)) + (f"; {hit[2]}" if hit[2] else ""))
             else:
                 at.notes.append("const variant tried, no match")
     at.files["diff.txt"] = eematch.report(res)
@@ -978,7 +1255,7 @@ def widen_proto(line: str | None, name: str, top: int) -> str | None:
 
 
 def passthrough_retry(name: str, addr: int | None, best: Attempt, a_out: Path, out: Path, m2c_dir: Path,
-                      game: eematch.Game, timeout: int, hilo: set[str]) -> Attempt | None:
+                      game: eematch.Game, timeout: int, hilo: set[str], tag: str = "pt") -> Attempt | None:
     """Re-draft with each shifted callee's prototype widened by a leading `void *` in m2c's context (and the draft's
     prototypes header), so m2c itself reads the untouched $a0 as the function's own arg0 and the arguments after it
     from $a1 on (a trailing constant m2c had dropped comes back too)."""
@@ -1002,7 +1279,7 @@ def passthrough_retry(name: str, addr: int | None, best: Attempt, a_out: Path, o
         if new is None:
             return None
         widened[callee] = new
-    tag = "pt"
+
     ctx = out / "obj" / f"{name}.{tag}.ctx.h"
     ph = out / "obj" / f"{name}.{tag}.protos.h"
     add = "".join(v + "\n" for v in widened.values())
@@ -1029,6 +1306,7 @@ def job(name: str, asm_path: Path, out: Path, m2c_dir: Path, ctxs: list[tuple[Pa
             row.instr = gs // 4
             row.band = band_of(row.instr, row.instr == 2 and game.word(addr) == 0x03E00008 and game.word(addr + 4) == 0)
     info = prepare_asm(asm_path)
+    ASM_MEM_OPS[name] = list(info.mem_ops)
     flags = []
     if info.has_div_sqrt:
         flags.append("div/sqrt (ER-034)")
@@ -1048,12 +1326,23 @@ def job(name: str, asm_path: Path, out: Path, m2c_dir: Path, ctxs: list[tuple[Pa
         if tried[-1].match:
             break
     best = min(tried, key=Attempt.score)
-    if passthrough and not best.match and best.compiles:
-        pt = passthrough_retry(name, addr, best, a_out, out, m2c_dir, game, timeout, info.hilo_syms)
-        if pt is not None:
+    if passthrough and not best.match:
+        # ER-130: each compiled attempt in score order (at most 3 retries), not the best alone: with a working src
+        # context the best draft can take a callee's full src/ prototype and miss, while the `none` draft's
+        # pass-through retry matches (func_0012F900 in text_001000C0)
+        n_pt = 0
+        for base in sorted([a for a in tried if a.compiles], key=Attempt.score):
+            if n_pt >= 3:
+                break
+            pt = passthrough_retry(name, addr, base, a_out, out, m2c_dir, game, timeout, info.hilo_syms,
+                                   f"pt{n_pt}")
+            if pt is None:
+                continue
+            n_pt += 1
             tried.append(pt)
             if pt.match:
                 best = pt
+                break
     KEPT[name] = (best.files.get("c", ""), best.protos_h)
     WIDENED[name] = dict(best.widened)
     CONSTED[name] = set(best.consts)
@@ -1159,8 +1448,60 @@ def plain_types(text: str) -> str:
 
 
 def decl_name(line: str) -> str | None:
+    """The name a declaration line declares: the first func_ / D_ name, else (ER-114: `sqrtf`, `fptodp`, SDK names)
+    the identifier before the parameter list of a prototype, or before the `;` / `[` of a data extern."""
     m = NAME_RE.findall(line)
-    return m[0] if m else None
+    if m:
+        return m[0]
+    s = re.sub(r"/\*.*?\*/", "", line).strip()
+    pm = re.match(r"^(?:extern\s+)?[A-Za-z_][\w\s\*]*?[\s\*]([A-Za-z_]\w*)\s*\(", s)
+    if pm and pm[1] not in CTX_TYPE_WORDS:
+        return pm[1]
+    dm = re.match(r"^extern\s+[A-Za-z_][\w\s\*]*?[\s\*]([A-Za-z_]\w*)\s*(?:\[[^\]]*\])?\s*;$", s)
+    return dm[1] if dm and dm[1] not in CTX_TYPE_WORDS else None
+
+
+# ER-114: libgcc's GOFAST soft-double routines (ER-041 names, recipes 2.11: "write plain C with doubles; never call
+# these routines by name"); m2c calls them by name, so the plain form writes the C operation that compiles to them
+SOFT_UNARY = {"fptodp": "double", "litodp": "double", "dptofp": "f32", "dptoli": "s32", "dptoul": "u32"}
+SOFT_BINARY = {"dpadd": "+", "dpsub": "-", "dpmul": "*", "dpdiv": "/"}
+SOFT_RE = re.compile(r"\b(fptodp|litodp|dptofp|dptoli|dptoul|dpadd|dpsub|dpmul|dpdiv|dpcmp)\s*\(")
+
+
+def plain_softfloat(text: str) -> tuple[str, int, list[str]]:
+    """`fptodp(x)` -> `((double) (x))`, `dpadd(a, b)` -> `(a + b)` (also dpsub / dpmul / dpdiv), `dptofp` /
+    `dptoli` / `dptoul` / `litodp` -> casts, `dpcmp(a, b) OP 0` -> `(a OP b)`. Innermost calls first. Returns (text,
+    rewrites, routines left by name: a dpcmp not compared with 0, or one with other than its arguments)."""
+    n, left = 0, []
+    pos = len(text)
+    while True:
+        ms = [m for m in SOFT_RE.finditer(text) if m.start() < pos]
+        if not ms:
+            break
+        m = ms[-1]
+        pos = m.start()
+        try:
+            j = _close_paren(text, m.end())
+        except ValueError:
+            left.append(m[1])
+            continue
+        args = [a.strip() for a in _split_top(text[m.end():j])]
+        par = [a if _simple(a) or re.fullmatch(r"[\w.]+f?", a) else f"({a})" for a in args]
+        rep, end = None, j + 1
+        if m[1] in SOFT_UNARY and len(args) == 1:
+            rep = f"(({SOFT_UNARY[m[1]]}) {par[0]})"
+        elif m[1] in SOFT_BINARY and len(args) == 2:
+            rep = f"({par[0]} {SOFT_BINARY[m[1]]} {par[1]})"
+        elif m[1] == "dpcmp" and len(args) == 2:
+            cm = re.match(r"\s*(<=|>=|==|!=|<|>)\s*0\b(?!\.)", text[j + 1:])
+            if cm:
+                rep, end = f"({par[0]} {cm[1]} {par[1]})", j + 1 + cm.end()
+        if rep is None:
+            left.append(m[1])
+            continue
+        text = text[:m.start()] + rep + text[end:]
+        n += 1
+    return text, n, sorted(set(left))
 
 
 def file_decls(src_file: str) -> dict[str, str]:
@@ -1178,6 +1519,57 @@ def file_decls(src_file: str) -> dict[str, str]:
         if not m[1].strip().startswith("static"):
             out.setdefault(m[2], f"{' '.join(m[1].split())} {m[2]}({m[3].strip() or 'void'});")
     return out
+
+
+def _param_types(params: str) -> list[str]:
+    """Parameter list text -> the types alone (`void *arg0, s32 b` -> ['void *', 's32']; `void` / empty -> [])."""
+    params = params.strip()
+    if params in ("", "void"):
+        return []
+    out = []
+    for p in _split_top(params):
+        p = " ".join(p.split())
+        ids = re.findall(r"[A-Za-z_]\w*", p)
+        if len(ids) > 1 and ids[-1] not in CTX_TYPE_WORDS and p.endswith(ids[-1]):
+            p = p[:-len(ids[-1])].rstrip()
+        out.append(re.sub(r"\s*\*\s*", " *", p).replace("* *", "**").strip())
+    return out
+
+
+def _proto_parts(line: str, name: str) -> tuple[str, list[str] | None] | None:
+    """`extern T name(params);` -> (return type, parameter types; None for an unprototyped `()`)."""
+    m = re.match(rf"^\s*(?:extern\s+)?(.*?)\s*\b{name}\s*\((.*)\)\s*;\s*$", line)
+    if not m:
+        return None
+    ret = re.sub(r"\s*\*\s*", " *", " ".join(m[1].split())).strip()
+    return ret, (None if m[2].strip() == "" else _param_types(m[2]))
+
+
+def own_decl_form(func: str, name: str, own: str) -> tuple[str, str | None]:
+    """ER-130: the target file's own extern for the function (an address-taking user's `(void)`, `(s8 *)`, ...)
+    against the draft's definition. Returns ("same", None) when they agree (gcc accepts both; `()` agrees with any
+    parameters), ("adopt", function text with the file's return and parameter types) when the parameter counts
+    agree, else ("differ", None)."""
+    d = SIG_RE.search(func)
+    o = _proto_parts(own, name)
+    if not d or not o:
+        return "differ", None
+    d_ret = re.sub(r"\s*\*\s*", " *", " ".join(d[1].split())).strip()
+    d_params = _param_types(d[3])
+    o_ret, o_params = o
+    if o_ret == d_ret and (o_params is None or o_params == d_params):
+        return "same", None
+    if o_params is None or len(o_params) != len(d_params):
+        return "differ", None
+    names = []
+    for p in (_split_top(d[3]) if d_params else []):
+        ids = re.findall(r"[A-Za-z_]\w*", p)
+        names.append(ids[-1] if len(ids) > 1 and ids[-1] not in CTX_TYPE_WORDS else None)
+    if any(n is None for n in names):
+        return "differ", None
+    ps = ", ".join((t + n if t.endswith("*") else f"{t} {n}") for t, n in zip(o_params, names)) or "void"
+    head = (o_ret + name if o_ret.endswith("*") else f"{o_ret} {name}") + f"({ps}) {{"
+    return "adopt", func[:d.start()] + head + func[d.end():]
 
 
 def plain_parts(c_text: str, name: str):
@@ -1215,7 +1607,13 @@ def plain_parts(c_text: str, name: str):
         return "m2c macro left: " + ", ".join(left)
     if re.search(r"\b[su]128\b", func + "".join(decls.values())):
         return "128-bit type (common.h has no s128 / u128)"
-    return decls, func, hilo
+    notes = []
+    func, n_soft, soft_left = plain_softfloat(func)
+    if soft_left:
+        return "soft-double routine called by name (recipes 2.11): " + ", ".join(soft_left)
+    if n_soft:
+        notes.append(f"{n_soft} soft-double call(s) written as C")
+    return decls, func, hilo, notes
 
 
 def proto_lines(path: Path | None) -> dict[str, str]:
@@ -1251,7 +1649,7 @@ def make_plain(rows: list[Row], out: Path, game: eematch.Game) -> None:
         if not isinstance(p, tuple):
             r.plain = f"skipped: {p}"
             continue
-        head, func, _hilo = p
+        head, func, _hilo, pnotes = p
         fdecls = fdecls_cache.setdefault(r.file, file_decls(r.file))
         protos = proto_lines(KEPT[r.func][1])
         widened = {n: "extern " + plain_types(v) for n, v in WIDENED.get(r.func, {}).items()}
@@ -1263,45 +1661,93 @@ def make_plain(rows: list[Row], out: Path, game: eematch.Game) -> None:
                            + "\n".join(protos.values()))
             consted[n] = f"extern const {plain_types(dm[1]) if dm else 'f32'} {n};"
         must_const = [n for n in consted if n in fdecls and not re.search(rf"\bconst\b[^;]*\b{n}\b", fdecls[n])]
-        lines = []
-        for n in dict.fromkeys(NAME_RE.findall(func)):
-            if n == r.func:
-                if n in fdecls and fdecls[n].startswith("extern"):
-                    lines.append(fdecls[n])      # the file's own extern for it must agree with the definition
-                continue
-            for src in (consted, widened, fdecls, run_sigs, head, protos):
-                if n in src:
-                    lines.append(src[n])
-                    break
-            else:
-                lines.append(f"/* m2c_bulk: no declaration for {n} */")
-        text = '#include "common.h"\n\n' + "".join(ln + "\n" for ln in lines) + ("\n" if lines else "") + \
-            PLAIN_COMMENT.format(tag=f"{TAG}: " if TAG else "") + "\n" + func.strip() + "\n"
+        # ER-130: the file's own extern for the target (an address-taking user's prototype) must agree with the
+        # definition, or the plain compile fails "conflicting types" (and so would the placement: place.py keeps the
+        # file's line). Agrees: declare it. Same parameter count: try the definition with the file's types (kept on a
+        # plain MATCH: nothing in the file changes). Else leave it out here and say which line to align.
+        own = fdecls.get(r.func, "")
+        own_state = None
+        if own.startswith("extern"):
+            own_state, adopted = own_decl_form(func, r.func, own)
+            if own_state == "adopt":
+                alt_text = plain_file(own_lines_for(func, r.func, own, lines_src=(consted, widened, fdecls, run_sigs,
+                                                                                    head, protos)), adopted)
+                res_a, _m = compile_compare(r.func, game.addr(r.func), alt_text,
+                                            out / "obj" / f"{r.func}.plain_own.c", out, game)
+                if res_a and res_a.match:
+                    func = adopted
+                    own_state = "adopted"
+        lines = own_lines_for(func, r.func, own if own_state in ("same", "adopted") else "",
+                              lines_src=(consted, widened, fdecls, run_sigs, head, protos))
+        text = plain_file(lines, func)
         res, msg = compile_compare(r.func, game.addr(r.func), text, out / "obj" / f"{r.func}.plain.c", out, game)
         (out / "c" / f"{r.func}.plain.c").write_text(text, encoding="utf-8", newline="\n")
         if res is None:
             r.plain = "compile error: " + gcc_error_class(msg)
-            own = fdecls.get(r.func, "")
-            dm = SIG_RE.search(func)
-            if own.startswith("extern") and dm and \
-                    " ".join(own.split()) != f"extern {' '.join(dm[1].split())} {r.func}({dm[3].strip() or 'void'});":
-                r.plain += f" (the file's own extern is `{own}`; align it with the definition, recipes 2.9)"
             (out / "c" / f"{r.func}.plain.err.txt").write_text(msg, encoding="utf-8", newline="\n")
         elif res is False:
             r.plain = "compare failed: " + msg[:80]
         else:
             (out / "c" / f"{r.func}.plain.diff.txt").write_text(eematch.report(res), encoding="utf-8", newline="\n")
             r.plain = "MATCH" if res.match else "diff: " + diff_class(res)
+        if own_state == "adopted":
+            r.plain += f" (definition takes the file's own prototype `{own}`)"
+        elif own_state in ("differ", "adopt"):
+            r.plain += f" (the file's own extern `{own}` differs from the definition and is left out here: align " \
+                       "that line with the definition before placing, recipes 2.9)"
         if must_widen:
             r.plain += " (file declares " + ", ".join(must_widen) + " narrower; widen it to the plain file's line " \
                        "before placing)"
         if must_const:
             r.plain += " (file declares " + ", ".join(sorted(must_const)) + " without const; make the file's line " \
                        "const before placing, then make regress: the file's other users compile against it too)"
-    # one name declared two ways by drafts of the same file would clash when both are placed
+        if pnotes:
+            r.plain += " (" + "; ".join(pnotes) + ")"
+        if RULING_RE.search(func):
+            r.plain += " (uses ruling 3.14: list it in recipes 3.14 when placed)"
+    plain_clashes(rows, out)
+
+
+RULING_RE = re.compile(r"/\* ruling 3\.14 \*/")
+
+
+def plain_file(lines: list[str], func: str) -> str:
+    return '#include "common.h"\n\n' + "".join(ln + "\n" for ln in lines) + ("\n" if lines else "") + \
+        PLAIN_COMMENT.format(tag=f"{TAG}: " if TAG else "") + "\n" + func.strip() + "\n"
+
+
+def own_lines_for(func: str, name: str, own: str, lines_src) -> list[str]:
+    """The plain file's declarations: one line per name the body uses, from the first source in lines_src that has
+    it; `own` (the file's own extern for the target, when it agrees) first. Named callees (ER-114: `sqrtf`, SDK
+    names) are declared like func_ / D_ names."""
+    lines = [own] if own else []
+    for n in dict.fromkeys(body_names(func, lines_src)):
+        if n == name:
+            continue
+        for src in lines_src:
+            if n in src:
+                lines.append(src[n])
+                break
+        else:
+            lines.append(f"/* m2c_bulk: no declaration for {n} */")
+    return lines
+
+
+def body_names(func: str, lines_src) -> list[str]:
+    """func_ / D_ names in the body, then other identifiers the body calls that a declaration source names."""
+    out = NAME_RE.findall(func)
+    declared = set().union(*(set(s) for s in lines_src))
+    for m in re.finditer(r"\b([A-Za-z_]\w*)\s*\(", func):
+        if m[1] in declared and not NAME_RE.fullmatch(m[1]):
+            out.append(m[1])
+    return out
+
+
+def plain_clashes(rows: list[Row], out: Path) -> None:
+    """One name declared two ways by plain drafts of the same file clashes when both are placed."""
     by_file: dict[str, dict[str, set[str]]] = collections.defaultdict(lambda: collections.defaultdict(set))
     for r in rows:
-        if r.plain == "MATCH":
+        if r.plain.startswith("MATCH"):
             for ln in (out / "c" / f"{r.func}.plain.c").read_text(encoding="utf-8").splitlines():
                 if ln.startswith("extern ") and (n := decl_name(ln)):
                     by_file[r.file][n].add(" ".join(ln.split()))
@@ -1339,6 +1785,9 @@ def run_batch(names: list[str], out: Path, args, m2c_dir: Path, idx: dict[str, P
         body = ctx_body(protos, data)
         ctx_path.write_text(CTX_TYPEDEFS + "\n" + body, encoding="utf-8", newline="\n")
         protos_path.write_text(body, encoding="utf-8", newline="\n")
+        probe = out / "obj" / "_ctx_check.s"
+        probe.write_text(prepare_asm(idx[names[0]]).text, encoding="utf-8", newline="\n")
+        check_context(m2c_dir, ctx_path, probe, args.timeout)
     print(f"m2c_bulk: {len(names)} function(s), ctx {args.ctx}"
           + (f" ({harvested} harvested signatures)" if args.ctx == "harvest" else "") + f", output {out}")
 
@@ -1417,6 +1866,12 @@ def main() -> int:
     ap.add_argument("--no-const", action="store_true",
                     help="skip the const variant (a non-matching draft is compiled again with the .sdata floats "
                          "tools/sdata_consts.py finds never stored declared extern const; ER-101)")
+    ap.add_argument("--no-store-sort", action="store_true",
+                    help="skip the offset-order store variant (each run of consecutive field stores sorted by offset, "
+                         "three modes; ER-124)")
+    ap.add_argument("--no-ruling-314", action="store_true",
+                    help="skip the ruling 3.14 variant ((void)&arg0 where our build has a sibling j and the game has "
+                         "jal + epilogue; ER-121)")
     ap.add_argument("--rerun-diffs", metavar="RESULTS",
                     help="take the functions from an earlier run's results.json (or its folder): its same-size DIFFs "
                          "that are still INCLUDE_ASM; use with --chunk")
@@ -1428,7 +1883,9 @@ def main() -> int:
                          "with m2c ... */\")")
     args = ap.parse_args()
     sys.stdout.reconfigure(line_buffering=True)
-    global GCC_TIMEOUT, TAG, SLOT_MOVE, CONST_VARIANT
+    global GCC_TIMEOUT, TAG, SLOT_MOVE, CONST_VARIANT, STORE_SORT, SIBCALL_314
+    STORE_SORT = not args.no_store_sort
+    SIBCALL_314 = not args.no_ruling_314
     CONST_VARIANT = not args.no_const
     GCC_TIMEOUT = args.gcc_timeout
     SLOT_MOVE = not args.no_slot_move

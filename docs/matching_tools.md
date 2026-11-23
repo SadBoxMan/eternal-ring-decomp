@@ -180,6 +180,7 @@ python -I tools/m2c_bulk.py --list picks.txt                     one name per li
    [--tag ER-NNN]                                                task code for the plain comment (6.6)
    [--gcc-timeout 120] [--no-passthrough]                        gcc / ee-as kill time; skip the pass-through retry (6.6)
    [--no-slot-move] [--no-const]                                 skip the tail-j slot rewrite / the const variant (6.10)
+   [--no-store-sort] [--no-ruling-314]                           skip the offset-order store variant / the ruling 3.14 variant (6.12)
 python -I tools/sdata_consts.py [--all] [--names D_X ...]        census of the never-stored .sdata floats (6.10)
 python -I tools/m2c_bulk.py --rerun-diffs build/m2c_bulk/<label> --chunk 8 --plain    an earlier run's same-size DIFFs in small lists (6.6)
 ```
@@ -219,7 +220,10 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
      to its callee comes out as `(void)` until the callee's parameters are known (text_00145120: 193 signatures,
      changes per round 193, 65, 26, 7).
    The context always leaves out the function's own prototype; `s128` / `u128` are declared for m2c with
-   `__attribute__((mode(TI)))` (a plain `s128 *` made the context fail to parse).
+   `__attribute__((mode(TI)))` (a plain `s128 *` made the context fail to parse). A `src/` declaration whose type is
+   a file-local typedef (a struct type such as ER-092's `G390`) is left out and listed: one such line made m2c refuse
+   the whole context, and every run from 22 Nov 2026 17:04 to ER-130 fell back to `none` (6.12). The run checks the
+   context once and prints a WARNING when m2c cannot parse it.
 
 3. **Fallback contexts.** Unless `--single`, each function is tried with `harvest`, then `harvest` without the
    harvested signatures that say `void` (a callee m2c thought returns nothing but whose `$v0` / `$f0` the caller
@@ -243,7 +247,9 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
      (`&D_X` -> `D_X`, a read of its value -> `(*(T *)D_X)`); one that `src/` declares gets a `(char *)` cast on the
      operand instead. A parameter or local `T *v` (element size 2, 4 or 8 known) in `v += N;` / `v - N` steps by
      `N / sizeof(T)` elements (byte arithmetic through `char *` when N is not a multiple). Notes: `byte base: D_X`,
-     `N pointer step(s) in elements`.
+     `N pointer step(s) in elements`. A dereferenced sum with such a base (`*((arg0 * 0xC4C) + D_X)`) gets m2c's type
+     back as `*(T *)(...)`; where m2c had none (`M2C_UNK`), the width of the function's only non-stack memory access
+     in the asm, if it has exactly one (ER-114, func_001BCF48: `lhu` -> `u16`; Notes `byte base: D_X (deref as u16)`).
 
 5. **Compile** with exactly the Makefile's `CC` / `CFLAGS` / `CPPFLAGS` / `AS` / `ASFLAGS` (`eematch.settings()`)
    into `obj/`, **compare** with `eematch.compare_function` (the cmpfunc check: relocation targets checked).
@@ -253,8 +259,17 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
    - **return-wrapper**: ours shorter than the game's and the draft is `void f(..) { ...; g(..); }`: try
      `M2C_UNK f(..) { ...; return g(..); }`. A call whose value is returned gets a frame and `jal`, a void tail call
      a sibling `j`; m2c gives the void form when it cannot tell that `$v0` is passed on;
-   - **store order**: same size as the game's: try the other orders of each run of 2 or more plain top-level
-     assignments (every order up to 4 statements, else reversed; at most 24 compiles), kept only on a MATCH;
+   - **store order**: same size as the game's: first (ER-124) each run of 2 or more consecutive
+     `M2C_FIELD(base, T *, off) = rhs;` lines at one indentation (inside blocks too) sorted by offset, in three modes
+     (offset order, bytes last, bytes first; runs that read a field they write or call a function are left alone; at
+     most 3 compiles); then the other orders of each run of 2 or more plain top-level assignments (every order up to
+     4 statements, else reversed; at most 24 compiles); kept only on a MATCH (Notes: `store order by offset (asc)` /
+     `store order permuted`);
+   - **ruling 3.14** (ER-121): when our build of the draft has a sibling `j` (read from the compiled `.s`) and the
+     game's function has no `j` out of itself, `(void)&arg0; /* ruling 3.14 */` after the declarations (the first
+     parameter; none when the function has none), then the store orders of that form; kept only on a MATCH (Notes:
+     `ruling 3.14 (void)&arg0`, else `ruling 3.14 tried, no match (best: ...)`; the Plain column says the ruling is
+     used, for the list in recipes 3.14);
    - **const floats** (ER-101, 6.10): the draft compiled again with every `.sdata` float it reads that
      `tools/sdata_consts.py` finds never stored declared `extern const` (also in its prototypes header), then the
      store orders of that form; kept only on a MATCH (Notes: `const floats: D_X ...`). `--plain` declares those
@@ -706,7 +721,78 @@ the hand work below (byte strides came up 6 times). Results and every chunk's dr
 - `--rerun-diffs` could not be used (no earlier `results.json`); `--file ... --chunk 8` cost about the same as
   ER-060's file-wide run (1.2 s against 1.2 s per function) and needs no list.
 
+### 6.12 Broken context, own declarations, offset order, ruling 3.14, soft doubles (ER-130, ER-124, ER-121, ER-114, Mon 23 Nov 2026)
+
+Changes in `tools/m2c_bulk.py`; nothing placed in `src/`. Worktree `C:\rs\wt\er114`, branch `er-114-m2c-bulk-2`. The
+reproductions set `src/` files back to old states in the worktree (`text_001000C0` at `9527f54^`, the five ER-054
+files at `87fc92e^` and at `554b0ee^`, `text_00150878` at `acb6a6a^`), split, ran main's tool and this one, and
+restored the files (never committed). Drafts and tables (game code, not in git): dispatcher's notes folder `ER-114_c/`.
+
+**ER-130 (b): the context was broken, not `--list`.** ER-092's `typedef struct {...} G390; extern G390 D_001FF390;`
+in `text_001000C0.c` (commit `1b84924`, 22 Nov 2026, 17:04) went into m2c's context, which m2c then refused as a whole
+("Syntax error when parsing C context"). From then on every harvest draft failed (`0 signatures, N without a draft`)
+and every `harvest` / `src` attempt fell back to `none`, silently: ER-112's "0 harvested signatures", ER-115's 9 of 17
+and func_0012C3E8's lost `$a0` all come from this. `--list` and `--file` harvest alike; no file-wide harvest was
+needed. Fix: `src/` declarations whose type the context does not know are left out and listed (here `G390`, `Vec4`:
+4 lines), and the run warns when m2c cannot parse the context. Since the working context changes many drafts, the
+pass-through retry (6.7) now runs on each compiled attempt in score order (at most 3), not only on the best one:
+func_0012F900 matched only through the `none` draft's retry.
+
+**ER-130 (a): the file's own extern for the target.** In the plain form: the file's line is declared when it agrees
+with the definition (an unprototyped `()` agrees on parameters); with the same parameter count the definition is
+compiled with the file's types (kept on a plain MATCH: nothing in the file changes; Plain column `definition takes
+the file's own prototype`); otherwise the line is left out of the plain file and the Plain column says to align it
+before placing (the plain compile used to fail "conflicting types").
+
+| Check (old state) | Main's tool | This tool |
+|---|---|---|
+| ER-112's 17 `text_001000C0` names, `--list` (`9527f54^`) | 0 signatures, 9 masked / 8 plain MATCH | 19 signatures, **17 masked / 17 plain MATCH** (func_0012B218, func_0012CAD8 take the file's prototype; func_00134070, func_0012F8A0 flagged to align) |
+| ER-112's five ER-054 names (`87fc92e^`) | 0 signatures, 3 masked / 1 plain | **5 / 5 plain** (func_0014C630, func_0014D028 get func_0012C3E8's `$a0`; func_0014DEA0 flagged: the file's `(void)` extern) |
+
+**ER-124: offset order** (6, step 6). Recipes 2.25's five examples, `text_00150878` at `acb6a6a^`, no hand edits:
+
+| Function | Main's tool | This tool |
+|---|---|---|
+| func_00187F78, func_001918B8, func_001AC938, func_001B3440, func_001898F0 | size -1 instr (context `none`) | **plain MATCH**, `store order by offset (asc)` (the working context alone gives same-size 5-9 word DIFFs) |
+
+**ER-121: ruling 3.14.** ER-100's eight ruling 3.14 functions (five files at `554b0ee^`): **func_0014C110 plain MATCH**
+with `(void)&arg0`; func_0014A0B8 (7 words), func_00148BE0 (6), func_00148D28 (6) become same-size near misses
+(listed in Notes, not kept); func_00149EE8, func_0014A500, func_001485A8, func_0014B528 stay off. That is ER-100's
+"1 MATCH, near misses" picture.
+
+**ER-114: soft doubles and the lost width.** The plain form takes named declarations (`sqrtf`, SDK names), and writes
+the GOFAST calls m2c names as plain double C (recipes 2.11: never call them by name): `fptodp(x)` -> `((double) x)`,
+`litodp` / `dptofp` / `dptoli` / `dptoul` -> casts, `dpadd` / `dpsub` / `dpmul` / `dpdiv` -> `+ - * /`, `dpcmp(a, b) OP 0`
+-> `(a OP b)`; any other use is skipped with the reason. **func_001C1310: plain MATCH** (`func_001BE0B0(arg0 + 1,
+((double) ((f32) (func_001E9C70() & 0xFFFF) / 65535.0f)))`). **func_001BCF48: plain MATCH** (the deref width, 6
+step 4). Not done: byte arithmetic for a register added to a typed pointer (`v + i * 4`; no example to check it on).
+
+**A/B on main** (`src/` as on main `a739927`, default context, `--plain --gcc-timeout 30`, par 4, the runs side by side):
+
+| Files | Asm functions | Masked MATCH old -> new | Plain MATCH old -> new | Lost | Compile | Time old / new |
+|---|---|---|---|---|---|---|
+| the five ER-054 files | 74 | 0 -> 0 | 0 -> 0 | none | 68 -> 74 | 51 / 171 s |
+| `text_001000C0` | 425 | 1 -> 2 | 0 -> 2 | none (func_0012F900 after the retry change, rerun alone) | 291 -> 312 | 291 / 904 s |
+| `text_00150878` | 1,095 | 16 -> 21 | 12 -> 21 | none | 691 -> 740 | 812 / 2,304 s |
+
+New plain MATCHes on main (none placed; drafts in `ER-114_c/`): `text_00150878` func_00162108, func_00165080 (ruling
+3.14), func_00180200, func_00183930, func_0018AAB8 (working context), and func_00157A50, func_001AEC58, func_001B75E0
+(masked MATCHes whose plain form failed "too few arguments" before), func_00164948 (file's `extern s32
+func_00164948();` to align); `text_001000C0` func_0012DB88 (offset order), func_0012F900 (file's extern
+`(char *, int, int, int, int, float)` to align: the draft drops the float, which passes through in `$f12`; the
+file's six parameters are the likelier reading, Unconfirmed). **The tool is about 3 times slower** with a context
+that parses (more attempts compile, harvest drafts succeed). `make regress` PASS after the runs (ELF unchanged).
+
 ## 7. Not verified
+
+- ER-130 / ER-124 / ER-121 / ER-114 (6.12): none of the new plain MATCHes is placed, so none is proven by `make
+  regress`; the A/B runs used the tool before the per-attempt pass-through change (that change only adds attempts;
+  func_0012F900 rerun alone with the final tool). The type filter of the context keeps a declaration only when every
+  type word is a basic type (a typedef from `include/` would also be left out; none met). The offset sort handles
+  `M2C_FIELD` stores only (not `*p = x` or array stores). The ruling 3.14 variant takes the first parameter only
+  (ER-100 also used a local, func_0014B528's `g`); the soft-double rewrite was checked on func_001C1310 only
+  (`fptodp`); `dpcmp` and the arithmetic forms are untested. The deref width needs exactly one non-stack memory
+  access in the function.
 
 - ER-084 / ER-097 / ER-101 (6.10): the slot move with a label on the delay-slot line (skipped by design, not met);
   the byte rewrites on a base declared in `src/` (the `(char *)` cast path; not met in the reruns), on a register
