@@ -2103,7 +2103,7 @@ void func_0012CB08(void *arg0, void *arg1, void *arg2, s32 arg3) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012CB70);
 
-extern void func_0012EAF8(void *, void *);
+extern void func_0012EAF8(void *, f32 (*)[4]);
 
 /* ER-125: from an m2c draft by hand: two 4x4 float matrices and a vector (m2c read one 64-word array and words at
    0x30 / 0x40 / 0x80); the matrix's last row is passed on. Declared in this order for the game's stack layout.
@@ -2517,7 +2517,19 @@ int func_0012EAB8(float *a0, float a1, float a2) {
     return r;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012EAF8);
+/* ER-125: from an m2c draft by hand: transposes a 4x4 float matrix into a local and passes it on with $a0. Names and
+   types Unconfirmed. */
+void func_0012EAF8(void *arg0, f32 (*arg1)[4]) {
+    f32 t[4][4];
+    s32 i, j;
+
+    for (i = 0; i < 4; i++) {
+        for (j = 0; j < 4; j++) {
+            t[i][j] = arg1[j][i];
+        }
+    }
+    func_001D75C8((s32)arg0, (s32 *)t);
+}
 
 /* ER-125: from an m2c draft by hand (the local is a 4x4 float matrix, not m2c's 64 words). Names and types
    Unconfirmed. */
