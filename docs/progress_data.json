@@ -1744,6 +1744,33 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-161",
+      "title": "func_00178C60 round 2",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, xhigh",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-162",
+      "title": "text_00150878: nine ER-153 near misses + ER-133 (sched tie-breaks)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-163",
+      "title": "text_001000C0: func_001D03E0 extern void",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }

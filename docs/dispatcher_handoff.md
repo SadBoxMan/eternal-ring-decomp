@@ -23,6 +23,7 @@ handoff note in one small commit, and offer the next card. Keep turns short.
 - **Model check.** A session cannot start above the dispatcher's own model and effort; run the dispatcher at the
   highest setting its cards need (Twinblade and Cordona ran theirs on Opus high for this reason). Each card stops at
   STEP 0 until the picker matches; tell LuciDin which setting to pick.
+- **Pin.** Every new dispatcher pins itself in the sidebar at start, without asking (LuciDin, Mon 23 Nov 2026: "Always pin the DISP").
 - **Numbering.** Dispatchers are titled "Ringsmith DISP-##" (two digits: DISP-01, DISP-02, ...; LuciDin, 17 Nov 2026). Hand over at about 50% context: the outgoing one writes a
   "STATE FOR A FRESH DISPATCHER" section here, starts the next DISP-##, confirms it is reachable by message, then updates the
   id in `docs/handoff.md` and the memory note. A fresh dispatcher at each weekly reset too.
@@ -291,3 +292,4 @@ cards report. (8) Cards' "follow-ups" become ER rows in `docs/handoff.md` plus t
 - Mon 23 Nov 2026, ~11:20 Eastern: LuciDin's yes (DISP-03 session): push both repos to GitHub after the current cards complete (ER-104, ER-113 + ER-137, ER-125 + ER-137, ER-120), each after the game-data history check; main only, never force.
 - Mon 23 Nov 2026, 13:26 Eastern: backup (DISP-03, plain `python tools/backup.py` to E:): `ringsmith_20261123_1326_main.zip` (91 files, 510 KB) + `repo.bundle` at 06fa493, verify okay; `ringsmith_20261123_1326_recomp.zip` (41 files, 156 KB) + `recomp.bundle` at 3135af4, verify okay (after ER-030, ER-114 round 2, ER-104, ER-113, ER-125, ER-120, ER-036, ER-148, ER-149 + ER-071). Matched 1,059 / 3,609. Rulings since the last backup: 3.16 (volatile, hardware registers only), 3.17 (no do-while(0)), 3.18 (unused local whose stores the game makes).
 - Mon 23 Nov 2026, 13:42 Eastern: **DISP-04** started (Opus high, 13:38, in `Decomp`), id `local_14744be3-5a0c-4c46-a20f-0595608745e8`, confirmed reachable; DISP-03 hands over at 55% context (state section above). DISP-03 takes no new work and can be archived once LuciDin likes.
+- Mon 23 Nov 2026, 13:55 Eastern: DISP-04 checked the hand-over (id in the three places) and pinned itself (LuciDin's standing rule). ER-132 + ER-152 + ER-153 merged (fast-forward to 10f84ec, clean regress PASS): 1,140 / 3,609 (116,096 bytes); follow-ups ER-161 to ER-163, ER-117 widened. First combined use of rulings 3.13 + 3.14 (func_001636A0, `s32 buf[4]; (void)&buf;`) flagged to LuciDin.
