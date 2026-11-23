@@ -635,7 +635,14 @@ s32 func_001116E0(void) {
     return D_0035B89C * 60000 + *(volatile s32 *)0x10000000; /* ruling 3.16: hardware register */
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00111700);
+extern s32 func_00100EC0(s32, s32);
+extern s32 func_00111740(s32 *, s32);
+
+/* ER-164: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+s32 func_00111700(s32 arg0, s32 arg1, s32 arg2) {
+    func_00100EC0(arg0, arg1);
+    return func_00111740((s32 *) arg1, arg2);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00111740);
 
@@ -698,7 +705,6 @@ INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354170);
 INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354180);
 INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_00354190);
 INCLUDE_RODATA("asm/nonmatchings/text_001000C0", D_003541A0);
-extern s32 func_00100EC0(s32, s32);
 extern s32 func_001126A0(s32, s32, s32);
 extern s32 func_00112D30(s32, s32, s32);
 

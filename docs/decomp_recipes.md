@@ -1182,6 +1182,22 @@ relocations masked from the asm file's `%hi` / `%lo` / `gp_rel` / `li.s` lines),
 `declperm.py` (random local declaration orders), `drift.py` (where the size drifts). One compile of this function
 takes about 0.2 s at par 4.
 
+### 2.38 Return-type sweep: callee declarations across `src/` (ER-164 + ER-156, Mon 23 Nov 2026; Confirmed by `make regress`)
+
+Branch `er-164-return-types` (worktree `C:\rs\wt\er164`), commits `52b5d30` and the next. The full list (function, real type,
+evidence, files) and the scripts are in `docs/matching_tools.md` 6.19. 4 functions placed, 732 bytes (func_0013F3B0,
+func_001524F8, func_001C4838, func_00111700); 24 declarations in 11 files changed to the game's return type (5 of them ER-156's func_0012FAE8), plus one ruling-3.19 prototype.
+
+| Lesson | Proved by |
+|---|---|
+| **Most wrong return types are neutral in matched code**: setting a callee's declaration to its real type changed no placed caller in 49 of 56 (file, callee) pairs, so a file's `void` for a value-returning callee usually does no harm once its callers match. It matters while a caller is being matched (2.36), so fix the declaration first, then draft | `declflip.py` over the list (6.19); 24 declarations changed, `make regress` PASS |
+| **The caller's view decides, both ways, and the evidence is in the game's callers**: func_00130CE0 (a pass-through whose definition says `s32`) is read by none of its 108 call sites, and seven placed callers need it `void`; func_00111480 has 35 call sites that read `$f0`, yet func_001306C0 matches only with `s32` (what its file declares); func_001C4838 matches only with the `void` word copy func_00101238 declared `s32` (ruling 3.19). Read from the game: a callee whose callers read `$v0` / `$f0` returns a value; one no caller reads may have been declared `void` (or `int`) by the original source, whatever its definition does | func_00130CE0, func_001306C0, func_001C4838 |
+| **A pass-through wrapper's definition says nothing about its return type**: `s32 f(..) { return g(..); }` and `void f(..) { g(..); }` both compile to the same tail `j`, so the `s32` of func_00131000, func_00130FE0, func_0014FE10, func_0012FA68, func_001C1560 is a reading (Unconfirmed). Use the callers (6.19) | the five wrappers |
+| **An m2c draft's harvested prototypes can be wrong in both directions**: m2c infers `int` for a callee that leaves junk in `$v0` (func_001C9B18, a `lq; sq` 16-byte copy) and `void` for one whose value goes unused. `flip.py` (each callee prototype as `void` / `s32` / `f32`) on the 103 same-size near misses found one match; the other 102 do not move, so return types are not their cause | func_001C4838 |
+
+Not compiler-steering: no new ruling form beyond 3.19 (asked and accepted in this card) and one use of 3.14
+(func_0013F3B0, drafted with it by `m2c_bulk.py`).
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1278,7 +1294,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32); by ER-154: func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.34); by ER-153: func_001636A0 (`(void)&buf` on ruling 3.13's array, 2.35) |
+| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32); by ER-154: func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.34); by ER-153: func_001636A0 (`(void)&buf` on ruling 3.13's array, 2.35); by ER-164: func_0013F3B0 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.38) |
 
 ### 3.15 ER-095: a 16-byte aligned float vector type (Sun 22 Nov 2026, about 17:35 Eastern, LuciDin in the DISP-03 session)
 
@@ -1303,6 +1319,12 @@ Standing rulings; each applies until LuciDin changes it.
 | Ruling | Item |
 |---|---|
 | **Accepted, narrowly** | A local that the code fills and never reads, where the game's binary really contains those stores (func_001486F0: four stores `-x70, 1.0, -x78, 0` to a 16-byte local at `sp+0` before `func_0012C578`, which reads only `$a0`-`$a3`): gcc keeps dead stores to stack memory, so the C reproduces stores the original made. Reading (Unconfirmed): a leftover, or an argument dropped from the call. Not for stores the game does not have, nor for code that only steers registers or scheduling. Each use carries a comment naming this ruling. Used so far: func_001486F0 (ER-148, 2.32: `f32 s[4];`) |
+
+### 3.19 ER-164: a cross-file prototype declared as the caller saw it (Mon 23 Nov 2026, 16:41 Eastern, LuciDin in the ER-164 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** | In a file that does not define the callee, an `extern` prototype with a return type other than the definition's, when the caller matches only with that type and does not use the value (func_001C4838 in `text_00150878`: `extern s32 func_00101238(...)`, whose definition in `text_001000C0` is a `void` word copy; the `int` return makes the call set `$v0`, which gives the game's `$v0` / `$v1` choice after it, 2.36 / 2.38). Read as the original source declaring the callee differently (or not at all: an implicit `int`). The definition keeps its own type. Precedent in placed code before the ruling: `text_00150878` declares the `void` func_00113238, func_0012E3B0, func_001321D8, func_001321E8 `s32` (neutral there). Each use carries a comment naming this ruling. **Not** covered: changing a definition's type, or a same-file declaration that contradicts the definition (func_00113238 for func_00119FE0 in `text_001000C0`, recipes 2.37: still open). Used so far: func_001C4838 (ER-164, 2.38) |
 
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker, 3.18 only stores the game makes): park such functions with a
 one-line cause and ask.
