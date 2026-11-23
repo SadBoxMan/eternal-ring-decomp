@@ -10,7 +10,9 @@ all-models bar (open: Ringsmith's share beside Twinblade, Cordona and Guild)**; 
 suspected crash, hang or glitch, ask LuciDin what he saw and what the game normally does. (5) Do NOT propose cards.
 (6) FINISH: update this note (thread and queue), report usage as a Field / Value table, send the dispatcher a
 completion message (what changed, commits, what was not verified, follow-ups with model / effort), then tell LuciDin
-to return to the dispatcher. (7) PORT RUNS (LuciDin, Sun 22 Nov 2026): keep the recompiled exe's console window
+to return to the dispatcher. **ARCHIVE-READY** (LuciDin, Mon 23 Nov 2026): when nothing is left to do in the
+session (work committed, completion message sent, questions answered), send the dispatcher one short message
+"ER-NNN ready to archive" with what is committed and anything left uncommitted; the dispatcher then archives it. (7) PORT RUNS (LuciDin, Sun 22 Nov 2026): keep the recompiled exe's console window
 hidden; if it cannot be hidden, put it on the secondary monitor with the game window. Game windows: secondary monitor,
 muted.
 (8) TWO REPOSITORIES (ER-110, Sun 22 Nov 2026): the decomp and every project doc are in

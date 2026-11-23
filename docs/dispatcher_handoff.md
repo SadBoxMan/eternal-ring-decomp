@@ -44,7 +44,7 @@ handoff note in one small commit, and offer the next card. Keep turns short.
   sessions. Log each one below. Since ER-110 run it in `Decomp` (`git -C` does not apply: `cd Decomp` first, or
   `python Decomp\tools\backup.py`); it also writes a `_recomp` zip and `recomp.bundle` of the sibling Recomp
   repository on the same line (check "recomp.bundle verify okay" too).
-- **Archive** work sessions once verified finished; never ones still working, waiting on LuciDin, or holding
+- **Archive** work sessions once verified finished. Since Mon 23 Nov 2026 (LuciDin) each session sends the dispatcher "ER-NNN ready to archive" when nothing is left to do in it; on that message (and its branch merged, nothing uncommitted that matters) the dispatcher archives it; never ones still working, waiting on LuciDin, or holding
   uncommitted work.
 - **Windows paths in scripts.** Write them as Python raw strings (`r"C:\rs\..."`): plain strings turned `\r` / `\t`
   into control characters in `docs/handoff.md` twice on 17 Nov 2026. Check with `grep -P '[\x00-\x08\x0b-\x1f]'`.
@@ -96,7 +96,7 @@ the 5-hour bar, at 95% stop at a clean point and tell the dispatcher; do NOT pro
 files, done-when, model / effort / Ultracode) in the completion message. Fan-out agents skip the model check (put that
 line in every agent prompt) and get a token budget per batch.
 Finish: docs, handoff note and tracker updated (`python tools/progress_tracker.py task ER-NNN --status Done --notes "..."`,
-plus `metric` / `milestone` / `item` for anything measured or moved; see docs/tracker.md), usage table, completion message to the dispatcher, tell LuciDin to return to
+plus `metric` / `milestone` / `item` for anything measured or moved; see docs/tracker.md), usage table, completion message to the dispatcher. ARCHIVE-READY (LuciDin, 23 Nov 2026): when nothing is left to do in this session, send the dispatcher one short message 'ER-NNN ready to archive' with what is committed and anything left uncommitted; then tell LuciDin to return to
 it."
 
 ## Sidebar sections (LuciDin, 17 Nov 2026)
@@ -296,3 +296,4 @@ cards report. (8) Cards' "follow-ups" become ER rows in `docs/handoff.md` plus t
 - Mon 23 Nov 2026, 14:10 Eastern: wave 7 started on LuciDin's 'Start all 4' (DISP-04), file ownership: ER-093 + ER-163 = src/text_001000C0.c (`local_a4f46d82`, C:\rs\wt\er093); ER-158 + ER-159 = ER-154's nine files (matching_tools 6.16) (`local_2b800f83`, C:\rs\wt\er158); ER-138 + ER-147 + ER-151 + ER-160 = tools/m2c_bulk.py, docs/matching_tools.md 6 (`local_bee767d9`, C:\rs\wt\er138; Opus medium); port ER-037 = Recomp tools/recomp/, docs/recomp_opcodes.md + C:\rs\recomp\work_er037 (`local_bc0d3697`). Cleanup on LuciDin's word: ER-132, ER-148, ER-149 + ER-071, ER-154 archived (DISP-03 already archived); worktrees er132 / er148 / er149 / er154 / .claude\worktrees\er089 and the run / scratch folders er095 / er120 / er125 / er132 / er148 / er149 / er154 (about 3 GB) removed; branches kept. ER-106 (C:\rs\wt\er106, 17 GB, 2 uncommitted doc edits) left alone.
 - Mon 23 Nov 2026, 14:45 Eastern: LuciDin set the port order: ER-037 (running), then ER-142 (GS capture / replay benchmark, Opus medium), then ER-139 (VU1 static recompilation: design at Opus xhigh, which LuciDin starts himself from a pasted brief, then the build at Opus high; compare mode with the interpreter required, so results stay bit-identical). Reason (DISP-04's advice): ER-139 is speed at zero accuracy cost, not an accuracy gain; ER-142 gives the exact proofs for the speed work.
 - Mon 23 Nov 2026, 14:50 Eastern: ER-158 + ER-159 merged (2052d49, `--no-ff`, clean regress PASS): 1,153 / 3,609 (118,604 bytes); follow-ups ER-164 to ER-166. Lesson (recipes 2.36): callee return types matter even when the value is ignored; passed to ER-093 and the m2c_bulk card.
+- Mon 23 Nov 2026, 14:58 Eastern: ER-164 (return-type sweep + ER-156, Opus medium, `local_0c7ccad0`, C:\rs\wt\er164) started on LuciDin's word; owns every game `src/` file except `text_001000C0.c` (ER-093). New rule (LuciDin): sessions tell the dispatcher directly when they are ready to archive (handoff item 6, the standard brief); the running cards were told.
