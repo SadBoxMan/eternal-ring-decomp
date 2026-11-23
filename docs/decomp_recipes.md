@@ -499,7 +499,7 @@ rerun, 17 by hand). Nothing compiler-steering.
 | func_00126F00 | 476 | **placed by ER-094 (2.23)**: `extern const` vectors |
 | func_00120EF0 | 1,348 | **ER-091 (2.23): 71 words, right size, re-parked**; was: 265 of 337 words: the scratchpad constant hoisted in ours (above) and the `D_001FF390` base CSE; structure, struct copy and data match |
 | func_0011BB90 | 2,068 | **placed by ER-092 (2.23)**, by hand (no jump table in it after all); was: the m2c draft is 27 instructions short |
-| func_00119FE0 | 6,636 | surveyed only: 925 m2c lines, 53 calls, a jump table, 36 literals; m2c's draft does not compile (`M2C_BREAK`) |
+| func_00119FE0 | 6,636 | **parked by ER-093 (2.37) at 5 words, same size** (two tie-breaks: a sched2 class / dependent-count tie, a local-alloc `$v0` / `$v1`); was: surveyed only: 925 m2c lines, 53 calls, a jump table (in fact a compare tree), 36 literals; m2c's draft does not compile (`M2C_BREAK`) |
 
 ### 2.19 Delay slots filled by the assembler: ee-as r4 (ER-070, Sun 22 Nov 2026; ruling 3.12)
 
@@ -1092,6 +1092,59 @@ dispatcher's notes folder `ER-132_152_153_c/` (our C only).
 | func_001BE9C0 | 4 words (was 8): the `D_001FF340[0]` store first gives the game's `$v0` / `$v1`; then `sw $0` falls after the `swc1` (720 orders, base-pointer spellings) |
 | func_001C4838 | 4 words: `0x8000` / `1` in `$v0` / `$v1` swapped; the `1` is a QImode pseudo (size 1), so local-alloc ranks it below the SImode `0x8000` (8 spellings of the store) |
 | func_0018B8A8 | 7 words: the float read first moves the `lwc1`; the registers then differ (720 orders of each of two shapes) |
+
+### 2.37 `text_001000C0`: func_00119FE0 by hand, a syscall stub's caller (ER-093 + ER-163, Mon 23 Nov 2026)
+
+ER-163 (commit `39b555e`, branch `er-093-text-001000c0`, worktree `C:\rs\wt\er093`): `text_001000C0.c` declares
+func_001D03E0 `void` like `text_00150878.c` (2.35); its five calls in the file (func_00104300 and four in
+func_001124E8) compile to the same bytes. Confirmed by `make regress`.
+
+**func_00119FE0 (ER-093, 6,636 bytes, 1,659 instructions): parked at 5 words, same size as the game.** By hand from
+the asm with ER-073's m2c draft as a map (the draft did not compile: `M2C_BREAK` on the `% 5` divide check, and m2c
+cannot read `li.s`; `m2c_bulk.py` gets past both). It is func_0011BB90's big sibling (2.23): the same D_001FF390 view
+work area, counters and matrix tail, plus the DualShock 2 pressure bytes of the pad buffer D_001F6590 (8..0x13,
+Unconfirmed reading), a slot-cycling selection on D_001FF890 and an item use through the 0x100-byte records at
+D_0035B8DC. **No jump table** (the census's "jump table" is a four-case `switch` compiled as a compare tree: MIPS has no
+`casesi`, so `CASE_VALUES_THRESHOLD` is 5). Draft, header (struct layouts, all Unofficial) and the scripts below in the
+dispatcher's notes folder `ER-093_c/` (our C only). First draft: 1,320 / 1,659 instructions equal register-blind;
+after the lessons below, 1,654 of the 1,659 words are equal. Nothing compiler-steering.
+
+Seen only in masked compares (Unconfirmed until a placement proves them):
+
+| Lesson | Effect here |
+|---|---|
+| **Spill slots follow declaration order.** The three pressure values that lose their register are stored at `sp+0xA4`, `0xA8`, `0xAC` in the order their locals are declared (reload allocates slots by pseudo number), after the spilled `btn` at `0xA0` | declaring `pA8up, pA8dn, pA0dn` first gave the game's slot map; with the next two rows, 1,543 -> 1,573 instructions equal register-blind |
+| **`if (p >= 9) { ... } else { r = 0.0f; }`** gives the game's `slti; bnel ...; sw $0` (the single-store else-arm is placed last and reorg steals it into the likely slot); `if (p < 9) r = 0; else { ... }` gives `beqz` + `b` | eight pressure blocks (with the rows above and below) |
+| **Duplicated code in both arms, merged by jump2.** The game's decay of `xB0` after `x70 = r[0]` / `x70 = 0`, and the `D_001FF340[1] = xE4 - xE0 - xE8` assignment under `if (!(xC7 & 1)) ... else if (x100 != 0) ...`, are written twice; cross-jumping merges only the tail that matches the fall-through block, so each arm keeps its head (two orphan `lui $a0` / `lui $a1` of `%hi(D_001FF340)` stay in the game) | the second copy of the assignment: 4 words short -> 2 short, 322 -> 211 differing words |
+| **A flag set in both arms**: `if (btn & 0x4000) k = 0; else { func_001CA048(a, a, 2.0f); k = 1; }` keeps the game's `b join; daddu k, $0` (k = 0 in the slot). With `k = 1` before the call, jump.c hoists `k = 0` above the branch | 801 -> 322 differing words (everything after it realigned) |
+| **`s32 fl; fl \|= (s16)(a & b);`** gives `and; sll 16; sra 16; or` (the game); an `s16 fl` accumulator ORs first and sign-extends after. Fixing it let loop.c hoist the third loop constant (0.6) and the frame got the game's fifth saved FPR (`$f24`) | frame 0x170 -> 0x180, prologue exact (1,573 -> 1,582 equal) |
+| **A down-counting clear loop wants the pointer**: `bp = &D.bits[31]; for (i = 31; i >= 0; i--) *bp-- = 0;` gives the game's `sb; addiu -1; addiu -1; bgez`; `D.bits[i] = 0` keeps `addu i, base` in the loop | 211 -> 207 words |
+| **`if (c) D.xC1 = 4; else D.xC1 = 1;`** (two stores, cross-jumped into one `sb`) gives the game's `beqz; b; li 4 / li 1; sb`; `D.xC1 = c ? 4 : 1` gives a filled-slot form; a variable for the value moves the register allocation (61 words) | same size as the game, 207 -> 153 words |
+| **One variable per live range** (2.23 again): the 0x4000 flag, the two-shot loop counter, the decay copies (`x`) and the later length (`len`) each need their own local; sharing `k` / `t` put them in saved registers or `$f12` | `len`: 153 -> 133, `x`: 133 -> 94, the flag / counter split with the next row: 94 -> 56 |
+| **The second `D_001F5910[D_0035B824 * 32]` test written `!= 0 ? D9E0 : CF80`** (the first `== 0 ? CF80 : D9E0`; gcc canonicalises the first either way) gives the game's cross-jump, where the second block keeps both calls and the first block's `func_0011D9E0` call is merged into it | 61 -> 56 words |
+| **Statement order inside `switch` cases** decides the schedule of independent loads: one order shared by all four cases (`pA8up, pA8dn, pB4dn, pB4up, pA0dn, pB0up, pA0up, pB0dn`) found by a hill-climb from m2c's order plus one swap (`swperm.py`, 219 compiles, about 50 s) | the switch's 39 differing words -> 0 (56 -> 17 overall) |
+| **Store order of five float stores into a struct global**: the game's offset order (`x90 .. xA4`), found by trying all 120 orders | 10 -> 5 words |
+
+**The 5 words left (two spots, both tie-breaks in known families):**
+
+- **+0x16DC, 3 words** (`sw $s4, 0x74($v0)` against `lui $a1, %hi(D_001FF890)` after the second `func_0017D968`
+  call): in sched2 both have priority 11 and issue in the same cycle; `rank_for_schedule` picks the store first
+  because its class is 3 (data dependence of cost 1 on the call) against the `lui`'s 2 (anti dependence on the call,
+  cost 0 by `ADJUST_COST`), and it has 5 dependents against 1. The game issues the `lui` first. Same family as
+  func_001C8758 / func_001B34F8 (2.35: dependent-count ties). 24 statement orders, struct / pointer spellings of the
+  store, no `ret` variable: no change.
+- **+0x195C / +0x1970, 2 words** (`lw $v0, 0xFC($s1)` / `lbu $a1, 3($v0)` for the first `func_00113ED8` call):
+  local-alloc gives the `D.fc` pseudo the first free register `$v0`, the game `$v1` (the second call matches with
+  `$v0`); no copy suggestion applies (`find_free_reg`, numeric `REG_ALLOC_ORDER`), so the game must have had
+  something live in `$v0` there that our RTL lacks. Same family as func_00124BE8 / func_00120EF0 / func_001C4838
+  (`$v0` / `$v1` swaps). 12 spellings (types of `fc` and `D_0035B8CC`, index forms like func_0011C858's
+  `D_0035B8CC + idx * 32`, temporaries) and 200 random declaration orders: no change.
+
+**Scripts** (notes `ER-093_c/tools/`, paths are this card's worktree): `sc.py` (compile + register-blind aligned diff,
+relocations masked from the asm file's `%hi` / `%lo` / `gp_rel` / `li.s` lines), `try.py` (one line per variant, par
+4), `swperm.py` (shared statement order across switch cases: climb or all), `perm.py` (every order of a line range),
+`declperm.py` (random local declaration orders), `drift.py` (where the size drifts). One compile of this function
+takes about 0.2 s at par 4.
 
 ## 3. Rulings (LuciDin)
 
