@@ -1048,6 +1048,51 @@ written `(char *)D_0035C554 + ...` (same bytes).
 | func_00137658 | 4 words: the game stores `x74` (a call's result) before loading `x6E` for its increment; ours loads first (`+= 1`, `++` and m2c's form) |
 | func_001CD680 | 4 words: `D_0035C554 + arg0 * 16` summed into `$v0` with `$ra` saved after the shift in the game; 2 spellings of the sum |
 
+### 2.35 `text_00150878` hard ones 2: struct arrays, `?:` returns, arguments the callee reads, a syscall stub (ER-152 + ER-153 + ER-132, Mon 23 Nov 2026; Confirmed by `make regress`, 5 functions)
+
+5 functions placed in `text_00150878`, 828 bytes, branch `er-132-text-00150878` (worktree `C:\rs\wt\er132`), commits
+`78e6ef7` (ER-152), `287f64f` (ER-153). Fresh drafts: `m2c_bulk.py --plain --tag ER-153 --label er153` on the 13
+near misses and func_00178C60 (20 s; 14 compile, 0 MATCH). Hand files, near-miss drafts, the func_00178C60 draft
+and this card's scripts (register-blind score, region diff, per-block order climber, group reorder) are in the
+dispatcher's notes folder `ER-132_152_153_c/` (our C only).
+
+| Lesson | Proved by |
+|---|---|
+| **An empty callee keeps its bytes whatever its parameters**: func_001C6158, func_001C7328 and func_001C8648 (`jr $ra; nop`) are called with a value in `$a0`; widened to `(void *arg0)`, the caller then matched as plain C on the first draft | func_001C56F0 (func_001C6158, func_001C7328, func_001C8648 unchanged) |
+| **`base->arr[base->i]` with the array a struct member** gives the game's `addu base, i*4`; every pointer-sum or `s32 *` index spelling gives `addu i*4, base` (2.31's 8 spellings). `D_001FEC00` read this way is a struct with a word array at 0x460 (Unofficial field names, element count Unconfirmed) | func_001C2FC8 |
+| **`return (f(p) == 0) ? a + b * k : 0;`** as one expression gives the game's `bnel` with the zero in the likely slot and the product in the game's registers; the `if (...) return ...; return 0;` form (2.25) fixed the branch but left `$v0` / `$v1` swapped (5 words) | func_001C8700 |
+| **A call that takes the caller's parameter** (`func_00154840(arg0)`, whose definition reads `$a0`): passing it costs no instruction and puts the parameter copies in the game's prologue order (`sd $s0` before `sd $s1`); the zero-argument call gives them swapped | func_001540C0 |
+| **A syscall stub is `void`**: func_001D03E0 (`li $v1, 0x64; syscall`: FlushCache in the PS2 kernel, Unconfirmed name) declared `void` lets the caller reuse `$v0` after the call (2.20); the file's extern changed, its other callers unchanged, and func_001636A0's own later declaration (`s32`) aligned to `void` (func_00164760 unchanged) | func_001636A0 |
+| **Rulings 3.13 + 3.14 together**: an unused array whose address is taken (`s32 buf[4]; (void)&buf;`) gives both the game's 0x30 frame (0x10 bytes of locals) and its `jal` + epilogue for the last call; a scalar `(void)&x` is optimised away (no frame, sibling `j`) | func_001636A0 |
+
+**Seen only in the func_00178C60 draft (same size, not placed; Unconfirmed until a placement proves them):**
+
+- one base-pointer local per region for a global struct (`g0`..`g10`, each assigned once): one local assigned many
+  times loses its alias base (2.28), so gcc reloads its fields after every stack store; the separate locals took the
+  draft from 3 instructions too long to the game's size;
+- a base pointer for the entry read of `D_001FF340` keeps `%hi(D_001FF340)` in a saved register for a later use of the
+  symbol (the game's `daddu $s6`);
+- an angle written inline in each call pair (`f(K - base) * c1; g(K - base) * c2`) takes the first saved FPR; one
+  reused variable takes the last;
+- `D_002488C0 + i * 0x180` inside the loop gives the game's strength-reduced pointer, set after the entry test (a
+  walking pointer is set before it);
+- two flag tests as nested `if`s give the game's two `bnel`; `!(f & 4) && !(f & 1)` folds into one `andi 5`.
+
+**Parked (one-line causes; drafts in notes `ER-132_152_153_c/`):**
+
+| Function | Cause |
+|---|---|
+| func_00178C60 | ER-132: same size (0xE18), 394 words differ, 731 of 902 instructions equal register-blind; left: register allocation (`alpha` in `$s6`, the game's `$s5`) and the load / store order of most stack-record blocks, the `D_0035C548` block (the game loads `x4` / `x6` before its products), the second digit loop's pointer, the `hp * 0x8A / 100` product (before the `== 100` test in the game). The draft's busy-wait uses `volatile` reads under ruling 3.16. Draft and tools in notes |
+| func_001C8600 | 2 words: the `sw $a1, 0($a0)` kills `$a1`, so sched1's register-weight tie-break puts it first; the game behaves as if `x0`'s value did not die there (all 120 orders of 3 shapes, chained zeros, `s16` / `u16` `arg1`) |
+| func_0018C9E8 | 2 words: `li 1` / `sh` swapped; the game's schedule needs no memory dependence between the `sh` through the loaded `x18` pointer and the `sw` to `+4`, which `-fno-strict-aliasing` always adds (11 shapes: `?:`, comma, `if` / `else`, temporaries) |
+| func_001C8758 | 2 words: the `xC` load wins sched2's dependent-count tie over `x8` (its register is rewritten by `mfhi` later); 13 index spellings, `?:`, typed element pointers |
+| func_0017D6B8 | 3 words (was 7): `*arg2` read first fixes the argument registers; `sw arg0` against `lhu 0x1E4` left (840 orders) |
+| func_001C6F90 | 3 words: the three `$gp` stores against `ld $s0` (sched2 gives the load priority 5, the stores 4); 4 loop shapes x 6 orders, `s32` with `return 1` |
+| func_001B34F8 | 4 words: the `x70` load has three dependents (copy, call, anti-dependence on the `D_00248880` store) and wins the tie over the `x24` load |
+| func_001BE9C0 | 4 words (was 8): the `D_001FF340[0]` store first gives the game's `$v0` / `$v1`; then `sw $0` falls after the `swc1` (720 orders, base-pointer spellings) |
+| func_001C4838 | 4 words: `0x8000` / `1` in `$v0` / `$v1` swapped; the `1` is a QImode pseudo (size 1), so local-alloc ranks it below the SImode `0x8000` (8 spellings of the store) |
+| func_0018B8A8 | 7 words: the float read first moves the `lwc1`; the registers then differ (720 orders of each of two shapes) |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1138,13 +1183,13 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23); three by ER-100 (2.24); func_001668E0, func_001668A8 (ER-095, 2.25: `char buf[0x80]`); func_00113ED8 (ER-115, 2.27); func_001198C0, func_00101ED0 (ER-125, 2.29); func_001033F0, func_00103470 (ER-149, 2.33) |
+| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23); three by ER-100 (2.24); func_001668E0, func_001668A8 (ER-095, 2.25: `char buf[0x80]`); func_00113ED8 (ER-115, 2.27); func_001198C0, func_00101ED0 (ER-125, 2.29); func_001033F0, func_00103470 (ER-149, 2.33); func_001636A0 (ER-153, 2.35: `s32 buf[4]`, with ruling 3.14's `(void)&buf`) |
 
 ### 3.14 ER-100: an address-taken local that only stops a sibling call (Sun 22 Nov 2026, 16:40 Eastern, LuciDin in the ER-100 session)
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32); by ER-154: func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.34) |
+| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32); by ER-154: func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.34); by ER-153: func_001636A0 (`(void)&buf` on ruling 3.13's array, 2.35) |
 
 ### 3.15 ER-095: a 16-byte aligned float vector type (Sun 22 Nov 2026, about 17:35 Eastern, LuciDin in the DISP-03 session)
 
