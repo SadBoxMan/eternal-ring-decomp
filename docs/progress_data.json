@@ -1877,7 +1877,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-172",
+      "waits_on": "none",
       "notes": ""
     },
     {
@@ -1904,6 +1904,24 @@
       "status": "In progress",
       "track": "port",
       "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-179",
+      "title": "text_001CA8D8: func_001CB388 + func_001CB300",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-180",
+      "title": "m2c_bulk round 4 (keep narrowing; with ER-175)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
     }
