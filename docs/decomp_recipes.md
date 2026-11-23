@@ -972,6 +972,40 @@ Parked (C in the dispatcher's notes folder `ER-148_c/` and `ER-120_c/`, not in g
 
 Not this card: func_0014C840, func_0014D930 (ER-118), func_00145FE8, func_00146598, func_00147F78, func_0014D3F8 (ER-122).
 
+### 2.33 ER-031's files and the game-unk files rerun with ER-114's tool (ER-154, Mon 23 Nov 2026; Confirmed by `make regress`, 76 functions)
+
+76 functions placed in nine files, 7,676 bytes, branch `er-154-other-files` (worktree `C:\rs\wt\er154`), commits
+`6c5614d`, `d5326c8`, `85a83c4`, `f43db66`, `58a8433` (bulk, 57 plain MATCHes + 7 by hand), `7a1f02e`, `42e974f`,
+`ba45b19`, `9506bec`, `1aab8aa`, `01796d6`, `04e5cba` (12 by hand). Runs: `docs/matching_tools.md` 6.16. Ruling 3.14 for
+func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by the tool; listed there). Nothing else
+compiler-steering.
+
+| Lesson | Proved by |
+|---|---|
+| **A getter on a 2-D record array keeps the base address whole**: `char *p = D_01B72600 + ((a0 * 4) + a1) * 0x1C0; return *(T *)(p + off);` gives the game's `addiu %lo(D_01B72600)` and the field offset in the load; the one-expression form folds the offset into `%lo` (2 words); a `struct[][4]` or `struct[]` type gives other code (recipes 2.25's base pointer, now for a computed index) | func_001CB218, func_001CB240, func_001CB288, func_001CB2B0, func_001CB2D8, func_001CB500 |
+| **A 16-bit counter compared after the increment is an `s16` written `x += 1; if (x >= N)`**: the game stores the raw sum (`sh $v0`) and compares a sign-extended copy (`sll` / `sra` into `$v1`); m2c's `temp = u16 + 1; field = temp; if (temp >= N)` sign-extends in place (3 words). `++x >= N` matches too | func_00138D50, func_0013A1A0, func_0013BBC8 |
+| **The callback-table setters store `0xC4, 0xC8, 0xF8, 0xC0, 0xCC`** (with `0xF` first in func_0013F318), not offset order, in two functions; a third (func_001359C0) is plain offset order. Found by searching every order of the run (120 / 24); `m2c_bulk.py`'s offset-order variant did not get func_001359C0 (a tool gap, not traced) | func_00139CA8, func_0013F318, func_001359C0 |
+| **A float store ordered after a load**: the game reads `(*arg0)->0xA4` before storing `arg1` at `p->0x4C`; with `-fno-strict-aliasing` C must read first (a local) | func_001387C0 |
+| **The if / else the other way round** gives the game's `beql` where m2c's order gives `bnel` (the likely slot takes the other arm's store) | func_001407F0, func_00140978 |
+| Recipes 2.10 / 2.25 again: a pass-through `arg0` (`func_0013D480(arg0, 2)`, the file already said `(void *, s8)`); `func_0012B890`'s float is its sixth parameter (`text_0013C510`'s prototype changed to `(void *, s32, s32, s32, s16, f32, s32)`, its two other callers swap their last two arguments: same bytes); four float stores in one order of 24 | func_0013C6D8, func_0013D688, func_0013F128 |
+| **A wrapper returning a callee's `f32` is `f32` itself** (2.18 again): func_00144B28 returns func_00144D18's value (placed as `f32`); as `s32` gcc adds `cvt.w.s` / `mfc1`. The tool's Plain column blamed a narrower `func_0012F8C8` prototype; that change was not needed | func_00144B28 |
+
+**File declarations changed** (each proven by `make regress`): `text_0013DBC0` func_0013E818 prototype `(s32 *)` (a
+non-`extern` prototype line, which the plain step does not check: the plain file compiled, the file did not);
+`text_001343E8` func_00136058 / func_001360A0 `(void **, s8 *)`, `extern float sqrtf(float);` above func_00135958;
+`text_001388E8` func_00139450 `(void **)` (the second argument is never read), func_00138D50's definition takes the
+file's `(s8 *, void *)`; `text_0013B748` func_0013BBC8 `(void **, void *)`; `text_0013C510` func_0012B890 (above).
+`text_001CB528`: the drafts' `extern s32 D_0035C554` conflicted with the file's `extern void *`; the sums are
+written `(char *)D_0035C554 + ...` (same bytes).
+
+**Parked (one-line causes; drafts in `C:\rs\wt\er154_runs\`, hand files in `C:\rs\wt\er154_scratch\`, game code not in git):**
+
+| Function | Cause |
+|---|---|
+| func_0013B2B0, func_0013E760, func_0013F068 | 3-5 words, one shape in three functions: `x94 += xB0` then `func_0012D9B8(arg0, x94)`; the game loads `x94` into `$f1`, `xB0` into `$f0` and sums into `$f1`; ours sums into `$f0` (8 spellings on func_0013B2B0: `+=`, operand order, a temp, the sum inside the call; `xB0 + x94` gets the loads right, 3 words left) |
+| func_00137658 | 4 words: the game stores `x74` (a call's result) before loading `x6E` for its increment; ours loads first (`+= 1`, `++` and m2c's form) |
+| func_001CD680 | 4 words: `D_0035C554 + arg0 * 16` summed into `$v0` with `$ra` saved after the shift in the game; 2 spellings of the sum |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1068,7 +1102,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32) |
+| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32); by ER-154: func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.33) |
 
 ### 3.15 ER-095: a 16-byte aligned float vector type (Sun 22 Nov 2026, about 17:35 Eastern, LuciDin in the DISP-03 session)
 

@@ -876,6 +876,51 @@ git): `C:\rs\wt\er113_runs\` (`er137`, `er113all` (10 GB with the objects), `er1
   func_001C2FC8, now 1 word: recipes 2.31), size
   differs 556, no compile or no draft 355. Parked causes: recipes 2.31 and 2.25.
 
+### 6.16 ER-031's files and the game-unk files rerun with ER-114's tool (ER-154, Mon 23 Nov 2026)
+
+Worktree `C:\rs\wt\er154`, branch `er-154-other-files`, main `058fece`. The nine files last bulk-run before ER-069's flag
+(ER-072 / ER-078). Runs and drafts (game code, not in git): `C:\rs\wt\er154_runs\` (`er154_<file>`, `er154rr_<file>`,
+copied out of `build/` after each run), hand files `C:\rs\wt\er154_scratch\`.
+
+| Run | Command | Functions | Result | Time |
+|---|---|---|---|---|
+| `er154_<file>` | `m2c_bulk.py --plain --tag ER-154 --file <file> --par 4 --gcc-timeout 30`, each of the nine | 293 | **58 masked / 57 plain MATCH** (`text_001343E8` 32, `text_001CB528` 10, `text_0013DBC0` 8, `text_001388E8` 5, `text_001CA8D8` 3; three with ruling 3.14); 274 compile | 313 s |
+| `er154rr_<file>` | `--rerun-diffs <er154_file>\results.json --chunk 8` | 70 | **0 MATCH**, none closer | 151 s |
+
+- **The old context was the whole story here**: these files had no rerun since the context broke (6.12), and a third
+  of `text_001343E8` (32 of 79) matched outright. Lists of 8 added nothing (as 6.13 / 6.15 found).
+- **Check each plain MATCH inside its file with `cmpfunc` before regress.** Three things the plain step missed: a
+  non-`extern` prototype of the target (`void func_0013E818(void *);`, conflicting types), a data extern of another type
+  (`extern s32 D_0035C554` against the file's `void *`), and harvested callee prototypes that clash with the file's
+  (`place.py` copies the plain file's externs; drop the ones the file already declares, and move a declaration the file
+  has only below the function up, as `place.py` does for identical lines). And the Plain column's hint for
+  func_00144B28 ("file declares func_0012F8C8 narrower") was wrong: the cause was the wrapper's return type (recipes
+  2.33). Possible tool follow-ups: check non-`extern` prototypes and data externs in the plain step.
+- **19 more by hand** from the near-miss list (recipes 2.33), most in minutes: 6 getters of one shape, 3 counters of
+  one shape, 4 store orders (searches over 24 / 120), 3 branch / load orders, 2 pass-through / float-sixth prototypes,
+  func_00144B28.
+- Placed by this card: **76 functions, 7,676 bytes**. `make regress` PASS after every file and after merging main.
+
+| File | Asm before | Placed | Left | Same size 1-2 / 3-8 / 9+ words | Size differs | No compile |
+|---|---|---|---|---|---|---|
+| `text_0013DBC0` | 86 | 12 | 74 | 2 / 5 / 12 | 53 | 2 |
+| `text_001343E8` | 79 | 34 | 45 | 0 / 2 / 12 | 31 | 0 |
+| `text_001CB528` | 49 | 10 | 39 | 0 / 2 / 8 | 21 | 8 |
+| `text_001CA8D8` | 19 | 9 | 10 | 0 / 0 / 2 | 6 | 2 |
+| `text_001388E8` | 18 | 8 | 10 | 0 / 2 / 2 | 6 | 0 |
+| `text_0013C510` | 15 | 2 | 13 | 0 / 2 / 2 | 8 | 1 |
+| `text_0013A410` | 11 | 0 | 11 | 0 / 1 / 2 | 7 | 1 |
+| `text_001CA0F0` | 9 | 0 | 9 | 0 / 1 / 2 | 2 | 4 |
+| `text_0013B748` | 7 | 1 | 6 | 0 / 0 / 0 | 5 | 1 |
+| total | 293 | 76 | 217 | 2 / 15 / 42 | 139 | 19 |
+
+By the `er154_<file>` draft. The two 1-2 word ones are ER-107's func_0013F288 / func_001431A0 (left alone, with
+func_0013D088, func_0013AA28, func_0013BD90). 3-8 words: func_0013E760, func_0013F068, func_0013B2B0, func_00137658,
+func_001CD680 (parked, recipes 2.33); func_00140C18, func_001416B8, func_00143230, func_001346D0, func_001CC848,
+func_00139650, func_001397E0, func_0013CD68, func_0013CE28, func_001CA8B0 (not tried). Jump tables left in
+`text_001343E8` (recipes 2.5, waits on the S3 cut): func_00134F70, func_00135DC0, func_00137CE0. `text_001C9B18` (VU0)
+not run.
+
 ## 7. Not verified
 
 - ER-137 / ER-113 (6.15): the 66 'size -1' drafts of ER-098 without the ruling 3.14 shape were not classified one
