@@ -1352,11 +1352,11 @@
     {
       "code": "ER-117",
       "title": "Generic statement-order search tool",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Mon 23 Nov 2026 (commit 0b0c6a8, branch er-117-search-tools): tools/ordersearch.py (score/perm/climb/switch/decl/group/sub/dump), docs/matching_tools.md 8; proofs: func_0011BB90 3 of 720 store orders, func_00119FE0 draft 1658/1659 = sc.py"
     },
     {
       "code": "ER-118",
@@ -1508,7 +1508,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, high",
-      "waits_on": "ER-117",
+      "waits_on": "one writer for text_00150878.c",
       "notes": ""
     },
     {
@@ -1878,6 +1878,15 @@
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "ER-172",
+      "notes": ""
+    },
+    {
+      "code": "ER-176",
+      "title": "tools/ordersearch.py round 2 (variants, restarts)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
       "notes": ""
     }
   ]
