@@ -914,6 +914,35 @@ Parked (one-line causes; C in the scratch folder, not in git):
 Not this card: func_0014C840, func_0014D930 (ER-118), func_00145FE8, func_00146598, func_00147F78, func_0014D3F8 (ER-122).
 C of the parked ones: notes `ER-120_c/` in the dispatcher's notes folder (game code, not in git).
 
+### 2.31 `text_00150878` rerun: GS register packers, pointer-return spelling (ER-137 + ER-113, Mon 23 Nov 2026; Confirmed by `make regress`, 43 functions)
+
+43 functions placed in `text_00150878`, 3,316 bytes, branch `er-113-text-00150878` (worktree `C:\rs\wt\er113`),
+commits `870aaf8` (ER-137's 9), `51d70b9` (12 plain MATCHes of the rerun), `b18d16a` (13 by hand), `8b7a4c3` (2 by
+hand), `91803bf` (7 with m2c's `sp[64]`). Runs: `docs/matching_tools.md` 6.15. ER-137's func_00162108 and func_00165080 use ruling 3.14 (listed there).
+
+| Lesson | Proved by |
+|---|---|
+| **GS register packers: OR the fields in parameter order, left to right** (`a1 \| a2 << k2 \| a3 << k3 \| ...`, as Sony's `SCE_GS_SET_*` macros are written). m2c's drafts group the terms as the scheduler left them (`a \| d \| (b \| c)`), which compiles to the same instructions in another order (5-23 words); the flat parameter-order list matched all nine `func_001C6880` wrappers outright. A first search over every order and grouping found a right-nested form for two of them; the parameter order is the reading kept | func_001C68D0, func_001C6938, func_001C69D8, func_001C6A90, func_001C6B18, func_001C6B60, func_001C6BD8, func_001C6C70, func_001C6CE8, func_001C67D0 |
+| **A stack-passed packer argument is `u32`** (`lwu` from the caller's frame); m2c's `u32 arg_sp0` with its `(s64)` cast is right, an `s64` parameter gives `ld` | func_001C6938, func_001C69D8, func_001C6B60, func_001C6C70 |
+| **A 64-bit value stored as two words**: `(s32) (v & 0xFFFFFFFF)` and `(s32) (v >> 0x20)` give the game's `lui 0xFFFF; dsrl32; and` and `dsra32`; m2c's `0xFFFF0000U >> 0x20` mask does not. The stores then go in the order the game schedules (`+0xC`, `+0`, `+8`, `+4` for func_001C6880; a 24-order search) | func_001C6880, func_001C6828 (its 32-bit OR written `a5 \| (a2 \| (a3 \| a4))`: the parameter order gives 5 words) |
+| **Pointer returns are written `void* func_X(`** (recipes 2.13): with `void *func_X(` the split step does not see the definition and stops on the function order | the 12 pointer-returning functions above |
+| **An unused middle parameter**: the game reads `$a2` and never `$a1`, so the function has three parameters (the pass-through retry drafted `(void *, s32 arg2)`) | func_00152548 |
+| **A pass-through second argument** to a callee another function in the file calls with two arguments: give the wrapper the parameter and pass it on (the one-argument draft conflicted with the file's other declaration) | func_00175D90 |
+| **m2c's `M2C_UNK sp[64]` (2.29, ER-125): size the local from the game's frame** (`addiu $sp, -0x30` with `$s0` saved at `0x10`: 0x10 bytes of locals, `s32 buf[4]`; `0x60` / `0x40`: `f32 m[16]`). Four words passed as `&v[0]` ... `&v[3]` are one array (the game's `ori $a2, $sp, 4` needs the 16-byte-aligned array at `sp+0`). After the frame, the usual fixes: offset-order stores, the `NULL` arm first, one reused variable | func_001C89F8, func_001C8D58 (unused first parameter), func_0017D2D0, func_00157760, func_00192EE8 / func_00193440, func_001585C8 |
+| Recipes 2.25 again: `if (p == NULL) return -1;` before the call gives the game's `bnel` with `-1` in the likely slot; a base-pointer local (`char *g = (char *)D_001FEC00;`) gives the game's single `%hi` / `%lo` pair with plain offsets | func_001A7CA8, func_001C20B0 |
+
+**Parked (one-line causes; hand files in `C:\rs\wt\er113_runs\hand\`, game code not in git):**
+
+| Function | Cause |
+|---|---|
+| func_001C8600 | 2 words: the `sw $a1, 0($a0)` store goes first in ours, second in the game; all 120 orders of the five stores, and a chained `x8 = xC = 0` (24 orders), leave it |
+| func_0018C9E8 | 2 words: `li $v0, 1` and `sh $zero` swapped in the taken branch (the `x18` pointer read first, before the test, gives the game's delay-slot load; 5 spellings of the branch) |
+| func_001B34F8 | 4 words (was 7): `x70` read into a local first and `x10 = x4 = 0xC9` fix two places; the `D_00248880` store keeps `$v0` / `$v1` swapped and the `sw` scheduled after the `addiu` |
+| func_001BE9C0 | 8 words: the base pointer of `D_001FF340` takes `$v0` (game `$v1`) and the `%hi` register the other; 5 spellings (`f32 *`, `s32 *`, `char *`, assigned before / after the store) |
+| func_0018B8A8 | 7 words: the game loads the `D_002488A0` float before the first store; none of the 720 orders of the six stores does |
+| func_001C2FC8 | 1 word: `addu $v0, $v0, $s0` against the game's `addu $v0, $s0, $v0` for the `D_001FEC00[idx + 0x118]` address (frame fixed with `char buf[0x80]`); 8 spellings of the index (`char *` / `s32 *` base, array or pointer sum, either operand first) |
+| func_001C56F0 | not tried: it calls `func_001C6158`, `func_001C7328`, `func_001C8648` with an argument, but the file defines them `(void)` |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1010,7 +1039,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8 |
+| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31) |
 
 ### 3.15 ER-095: a 16-byte aligned float vector type (Sun 22 Nov 2026, about 17:35 Eastern, LuciDin in the DISP-03 session)
 
