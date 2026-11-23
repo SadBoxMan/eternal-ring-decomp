@@ -185,6 +185,7 @@ python -I tools/m2c_bulk.py --list picks.txt                     one name per li
    [--no-frame] [--no-packer] [--no-untouched] [--no-reg-bytes]  skip frame-sized locals / the packer order / the untouched-args
                                                                  retry / register byte arithmetic (6.18)
    [--store-limit 48]                                            most permuted store orders compiled per draft (6.18)
+   [--no-narrow]                                                 skip the narrow-parameter variant (6.20)
 python -I tools/sdata_consts.py [--all] [--names D_X ...]        census of the never-stored .sdata floats (6.10)
 python -I tools/m2c_bulk.py --rerun-diffs build/m2c_bulk/<label> --chunk 8 --plain    an earlier run's same-size DIFFs in small lists (6.6)
 ```
@@ -291,6 +292,14 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
      more plain assignments at one indentation (ER-147: inside if-blocks and loops too, as func_0012FF78; every order
      up to 4 statements, else reversed; at most 24 per run and `--store-limit` (48) per draft); kept only on a MATCH
      (Notes: `store order by offset (asc)` / `(by type)` / `store order permuted`);
+   - **narrow parameters** (ER-172, 6.20; `--no-narrow`): where the game narrows an argument register (`$a0`-`$t3`)
+     before writing it and before its first jump or branch (`andi $d, $aN, 0xFFFF` -> `u16`, `0xFF` -> `u8`; `sll $d,
+     $aN, 16` then `sra` / `srl $e, $d, 16` -> `s16` / `u16`, by 24 -> `s8` / `u8`; recipes 2.18: a `u16` parameter is
+     narrowed once on entry), the draft's parameter `argN` of another integer type gets that type, and m2c's narrowings
+     of it in the body (`argN & 0xFFFF` / `0xFF`, `(u16) argN`, the shift pair; a bare one only as a whole operand)
+     become plain `argN`; then the store orders of that form (at most `--store-limit`). Tried on a draft that does not
+     match yet (after the frame and packer fixes), kept only on a MATCH (Notes: `narrow parameter: arg1 u16`, else
+     `narrow parameter tried (arg1 u16), no match (best: ...)`); the variants below start from the draft as it was;
    - **ruling 3.14** (ER-121): when our build of the draft has a sibling `j` (read from the compiled `.s`) and the
      game's function has no `j` out of itself, `(void)&arg0; /* ruling 3.14 */` after the declarations (the first
      parameter), then (ER-138) the same with each of the first 3 locals declared at the top of the body (8- and 16-bit
@@ -1046,7 +1055,7 @@ more in these files, 6.13 / 6.15):
 | `text_001000C0` | 392 | **6 / 6**: func_00115038, func_0012C938, func_0012D318, func_00130180 (frame), func_0012C9D8 (frame; its definition takes the file's own prototype), func_00111700 (return-wrapper form: an older step; ER-125 had it parked as a prologue tie) | | | 690 s |
 | `text_00150878` | 1,047 | **9 / 9**: func_0017D7F0, func_0018CA20, func_0019E438, func_001A24A8, func_001AF6A0, func_001AFB30 (frame, two with offset order after it), func_001C87E0 (untouched-args retry: `func_001DB898` widened to 3), func_00154CA8 (ruling 3.14 `(void)&arg0` and a permuted order; the definition takes the file's prototype), func_001524F8 (plain draft) | 1 / 13 / 135 | 531 | 2,423 s |
 
-func_00130DF0 matched at `9f76d66^` but not on main (its context differs there). None placed by this card; ER-164 placed func_00111700 and func_001524F8, ER-171 the other 13 (recipes 2.39; still all MATCH when redrafted at 81b6239). ER-171's whole-file reruns at 81b6239 (labels `er171c0`, `er171s0`, 1,062 / 2,434 s): `text_001000C0` 386 functions, 1 new plain MATCH (func_00133F28, ruling 3.14, placed); `text_00150878` 1,037 functions, 0. The tool is slower again
+func_00130DF0 matched at `9f76d66^` but not on main (its context differs there). None placed by this card; ER-164 placed func_00111700 and func_001524F8, ER-171 the other 13 (recipes 2.40; still all MATCH when redrafted at 81b6239). ER-171's whole-file reruns at 81b6239 (labels `er171c0`, `er171s0`, 1,062 / 2,434 s): `text_001000C0` 386 functions, 1 new plain MATCH (func_00133F28, ruling 3.14, placed); `text_00150878` 1,037 functions, 0. The tool is slower again
 (text_00150878: 2,423 s against ER-113's 1,740 s with the tool before this card; other sessions were loading the
 machine for both, so the share of the new variants is not measured).
 
@@ -1108,6 +1117,31 @@ declared `s32`), 23 same-size drafts at 16 words or fewer, `flip.py` on all 23: 
 Placed by this card: **4 functions, 732 bytes** (func_0013F3B0 184, func_001524F8 80, func_001C4838 408,
 func_00111700 60). `make regress` PASS after each batch and after merging main.
 
+### 6.20 Narrow parameters (ER-172, Mon 23 Nov 2026)
+
+Change in `tools/m2c_bulk.py` (6, step 6: **narrow parameters**, `--no-narrow`); nothing placed in `src/`. Worktree
+`C:\rs\wt\er172`, branch `er-172-m2c-u16`. A/B as in 6.18: main's tool copied aside (`tools/_m2c_bulk_main.py`,
+never committed) against this one, same arguments (`--plain --tag ER-172 --gcc-timeout 30 --par 4`). Runs and drafts
+(game code, not in git): `C:\rs\wt\er172_runs\`.
+
+Why: m2c types the parameter `s32` and writes `arg1 & 0xFFFF` where it is used, so gcc puts the `andi` at the call;
+the game's source had a `u16` parameter, which gcc narrows once in the prologue (recipes 2.18, func_001320B8). The
+game's asm shows the narrowing before the first jump or branch, so the variant reads the type from there; it changes
+only a parameter's type (no ruling needed) and is kept only on a MATCH.
+
+| Run (state) | Functions | Main's tool | This tool | Lost | Time A / B |
+|---|---|---|---|---|---|
+| ER-147's 16 `text_001000C0` examples (`9f76d66^`) | 16 | 13 MATCH; func_0012FCA0 / func_0012FD70 / func_0012FE48 2 / 2 / 4 words | **16 MATCH**, the three plain MATCH (`narrow parameter: arg1 u16`, after the frame fix); func_001307A0 (a dropped store) is 2 words off in both | none | 32 / 33 s |
+| whole `text_001000C0` (`9f76d66^`) | 423 | 19 masked / 19 plain MATCH; same size 1-2 / 3-8 / 9+: 6 / 24 / 42; size differs 219 | **22 / 22**; 4 / 23 / 42; 219 | none | 953 / 1,094 s |
+| every function on main (`3f36447`) whose asm narrows at entry (30, list `narrow_main.txt`) | 30 | 0 MATCH | **1 MATCH: func_001CB388** (`text_001CA8D8`, `u16 arg2`, plain MATCH; still `INCLUDE_ASM` on main) | none | 161 / 164 s |
+
+- Main's tool now gives 19 MATCHes at `9f76d66^` where 6.18 had 18: func_00133F28 is new in both A and B (not from this
+  card; most likely the other `src/` files changed m2c's context since `c194d93`: not checked). Only the three examples changed rows between A and B.
+- In the asm of the split (1,710 functions at `9f76d66^`, 1,679 on main) 36 / 30 functions narrow an argument
+  register at entry; the variant compiled on 17 of `text_001000C0`'s drafts (one compile each, plus store orders on a
+  same-size result). Not kept but closer with it (it is kept only on a MATCH): func_001CB300 27 -> 1 word (`arg2`,
+  `arg3`, `arg4` `u16`), func_0012B7C0 15 -> 4, func_0012C578 / func_0012C630 9 -> 7, func_0012C500 16 -> 14.
+- The B run on the whole file took 15% longer than A (other sessions were loading the machine; not measured apart).
 
 ## 7. Not verified
 
