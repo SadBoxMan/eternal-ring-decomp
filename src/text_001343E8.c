@@ -512,7 +512,23 @@ f32 func_001387A0(void *arg0) {
     return var_f0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_001387C0);
+/* ER-154: drafted with m2c (tools/m2c_bulk.py --plain), fixed by hand; names, types and offsets are Unconfirmed readings. */
+s32 func_001387C0(void *arg0, f32 fparg0) {
+    void *temp_3;
+    f32 t;
+
+    temp_3 = *(void **)((char *)arg0 + 0x48);
+    if (temp_3 != NULL) {
+        t = *(f32 *)((char *)(*(void **)arg0) + 0xA4);
+        *(f32 *)((char *)temp_3 + 0x4C) = fparg0;
+        *(f32 *)((char *)temp_3 + 0x64) = t;
+        if (fparg0 >= 1.0f) {
+            *(void **)((char *)arg0 + 0x48) = NULL;
+        }
+        return 1;
+    }
+    return 0;
+}
 
 /* ER-154: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 s32 func_00138800(void **arg0) {
