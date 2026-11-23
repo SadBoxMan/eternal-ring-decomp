@@ -1010,9 +1010,27 @@ void func_00119458(s32 arg0) {
     D_001FFAA9[0] = 1;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001194B8);
+extern void func_00101200(int *p, u32 n);
+extern char D_002608C0[];
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00119510);
+/* ER-125: from an m2c draft by hand (an indexed loop gives the game's signed end compare): clears 0x200 records of
+   0xA0 bytes. Names Unconfirmed. */
+void func_001194B8(void) {
+    s32 i;
+
+    for (i = 0; i < 0x200; i++) {
+        func_00101200((int *)(D_002608C0 + i * 0xA0), 0x28);
+    }
+}
+
+/* ER-125: from an m2c draft by hand, as func_001194B8: clears 0x200 records of 36 words. Names Unconfirmed. */
+void func_00119510(void) {
+    s32 i;
+
+    for (i = 0; i < 0x200; i++) {
+        func_00101200(D_0021E880 + i * 36, 0x24);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00119568);
 
@@ -1720,7 +1738,6 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00129900);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00129C70);
 
-extern char D_002608C0[];
 
 /* ER-081: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
 void func_00129ED8(s32 arg0) {
@@ -2773,15 +2790,46 @@ s32 func_0012FBE8(void **arg0, s32 arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012FC38);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012FCA0);
+extern void func_0012CB08(void *arg0, void *arg1, void *arg2, s32 arg3);
+extern void *func_0012C360(void *, s32, s32, s32, void *);
+
+/* ER-125: from an m2c draft by hand (two four-float locals; the u16 parameter is narrowed once on entry, recipes
+   2.18). Names and types Unconfirmed. */
+void func_0012FCA0(void **arg0, u16 arg1, s32 arg2, s32 arg3) {
+    f32 a[4];
+    f32 b[4];
+
+    func_0012CB08(a, b, *arg0, arg3);
+    func_0012C360(arg0, arg1, arg2, (s32)a, b);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012FD10);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012FD70);
+extern void func_00130150(f32 *, void *, s32, f32 fparg0, f32 fparg1);
+extern void func_0012C500(void *, s32, s32, s32, void *);
+
+/* ER-125: from an m2c draft by hand (a four-float local; the u16 parameter is narrowed once on entry, recipes 2.18).
+   Names and types Unconfirmed. */
+void func_0012FD70(void **arg0, u16 arg1, s32 arg2, s32 arg3, void *arg4, f32 arg5, f32 arg6) {
+    f32 v[4];
+
+    func_00130150(v, *arg0, arg3, arg5, arg6);
+    func_001C9FE8(v, *(char **)((char *)*arg0 + 0xE0) + arg3 * 0xA0 + 0x30, v);
+    func_0012C500(arg0, arg1, arg2, (s32)v, arg4);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012FE10);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012FE48);
+extern void func_00113C30(char *a0, s32 a1, void *a2);
+
+/* ER-125: from an m2c draft by hand (a four-float local; the u16 parameter is narrowed once on entry, recipes 2.18).
+   Names and types Unconfirmed. */
+void func_0012FE48(char **arg0, u16 arg1, s32 arg2, s32 arg3, void *arg4) {
+    f32 v[4];
+
+    func_00113C30(*arg0, arg3, v);
+    func_0012C360(arg0, arg1, arg2, (s32)v, arg4);
+}
 
 
 /* ER-112: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
@@ -2881,7 +2929,15 @@ s32 func_00130780(void *arg0) {
     return func_0012D138(arg0, arg0 + 0x138);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001307A0);
+/* ER-125: from an m2c draft by hand (four floats, the second cleared; $a1 passes through to func_001CA018), as
+   func_0012D2D8 with v[1] = 0. Names and types Unconfirmed. */
+void func_001307A0(void *arg0, void *arg1) {
+    f32 v[4];
+
+    func_001CA018(v, arg1, D_001FF340);
+    v[1] = 0.0f;
+    func_001CA0C0(arg0, v);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001307E0);
 
