@@ -251,7 +251,7 @@ extern void func_00130180(float *, char *, float *);
 extern void func_001CA048(float *, float *, float);
 extern void func_001CA0C0(void *, void *);
 extern void func_00130B18(char *, f32, f32, f32);
-extern void func_00130BF8(char *, f32);
+extern f32 func_00130BF8(char *, f32);
 extern float func_0012D470(char *a0, float *d, float max);
 extern int func_00130780(char *);
 extern f32 D_0035BED4;
@@ -304,7 +304,7 @@ s32 func_0014EAD0(s8 *arg0, s32 arg1) {
 extern void func_0012EA28(void *, f32, f32, f32);
 extern void func_0012B218(void *, int);
 extern void func_0012B1F0(void *arg0, s32 arg1, s32 arg2);
-extern void func_0012E820(char *, float, float);
+extern float func_0012E820(char *, float, float);
 extern void func_0012C788(void *);
 extern void func_0012DF30(void *, s32, s32, void *, f32 *, f32 fparg0);
 extern void func_0014F328(char *, f32);

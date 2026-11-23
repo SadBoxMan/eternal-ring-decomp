@@ -250,7 +250,7 @@ void func_0014B0E8(void *arg0) {
 }
 
 extern s32 func_0012C190(char *);
-extern void func_00130AD0(char *, f32, f32);
+extern float func_00130AD0(char *, f32, f32);
 extern void func_00130848(s8 **, f32);
 extern f32 D_0035BDD8;
 extern f32 D_0035BDDC;
@@ -619,7 +619,7 @@ void func_0014BD60(void *arg0) {
 
 extern void func_001CA018(float *, char *, char *);
 extern void func_001CA0C0(float *, float *);
-extern void func_0012D568(char *, f32);
+extern float func_0012D568(char *, f32);
 extern f32 D_0035BDF0;
 extern const f32 D_0035BDF4;
 extern f32 D_0035BDF8;
