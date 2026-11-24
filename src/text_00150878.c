@@ -334,7 +334,79 @@ void func_00152AC8(void *arg0, void *arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00152B88);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00152D58);
+extern s32 func_0012FAE8(void *, int, int, int, float);
+extern f32 func_0012D3E8(void *, void *, f32);
+extern void func_0012CB70(float *, char *, char *);
+extern float func_00130A88(char *, float *, float);
+extern void func_0012EA28(void *, f32, f32, f32);
+extern s32 func_0012FBE8(void *, s32);
+extern float sqrtf(float);
+extern f32 D_0035BFFC;
+extern f32 D_0035C000;
+extern f32 D_0035C004;
+extern f32 D_0035C008;
+extern f32 D_0035C00C;
+extern f32 D_0035C010;
+extern f32 D_0035C030;
+extern f32 D_0035C034;
+
+/* ER-186: from ER-171's m2c draft; the compare written x6C > x74 (ER-184) and the sign loop as a counted
+   for loop over two f32 frame arrays (s, v: Unofficial names). Types and offsets are Unconfirmed readings. */
+void func_00152D58(s8 *arg0, s8 *arg1) {
+    f32 s[4];
+    f32 v[4];
+    f32 f;
+    f32 x;
+    f32 z;
+    s32 i;
+    s16 state;
+
+    state = *(s16 *)(arg0 + 0x6E);
+    switch (state) {                                /* irregular */
+    case 0:
+        func_0012FAE8(arg0, 2, 0x7F, (s32) (arg1 + 0x90), 2.5e+03f);
+        *(s16 *)(arg0 + 0x6E) = (s16) ((u16) *(s16 *)(arg0 + 0x6E) + 1);
+        /* fallthrough */
+    case 1:
+        *(s16 *)(arg0 + 0x74) = func_0012E568((s32) D_0035BFFC, (s32) D_0035C000);
+        *(s16 *)(arg0 + 0x6C) = 0;
+        *(s16 *)(arg0 + 0x6E) = (s16) ((u16) *(s16 *)(arg0 + 0x6E) + 1);
+        /* fallthrough */
+    case 2:
+        func_00153238(arg0, arg1);
+        if (*(s16 *)(arg0 + 0x6C) > *(s16 *)(arg0 + 0x74)) {
+            func_0012D3E8(arg0, *(s8 **)(arg0 + 0x130), D_0035C004);
+            *(s8 *)(arg0 + 8) = 0;
+            *(s16 *)(arg0 + 0x6E) = (s16) ((u16) *(s16 *)(arg0 + 0x6E) + 1);
+        }
+        break;
+    case 3:
+        func_00130CE0(arg0, 20.0f);
+        func_0012CB70(s, arg1, *(s8 **)(arg0 + 0x130));
+        s[1] += 50.0f;
+        for (i = 0; i < 3; i++) {
+            f = D_0035C008;
+            if (!(s[i] >= 0.0f)) {
+                f = -f;
+            }
+            v[i] = f;
+        }
+        func_00130A88(arg0, v, D_0035C00C);
+        func_0012EA28(arg1 + 0x94, *(f32 *)(*(s8 **)(arg0 + 0x130) + 4) + 50.0f, D_0035C030, D_0035C034);
+        x = *(f32 *)(arg0 + 0x90);
+        z = *(f32 *)(arg0 + 0x98);
+        if (((x * *(f32 *)(arg1 + 0x70)) + (z * *(f32 *)(arg1 + 0x78))) >= 0.0f) {
+            *(s16 *)(arg0 + 0x6E) = 1;
+        } else if (D_0035C010 <= sqrtf((x * x) + (z * z))) {
+            if (*(s8 *)(arg0 + 8) == 0) {
+                if (func_0012FBE8(arg0, 2) != 0) {
+                    *(s8 *)(arg0 + 8) = 1;
+                }
+            }
+        }
+        break;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00152FB0);
 
@@ -6005,7 +6077,6 @@ extern void func_001BBD78(s32);
 extern u8 D_001F65EB[];
 extern s32 D_001FF390[];
 extern s32 D_001FF530[];
-extern float sqrtf(float);
 extern int abs(int);
 /* ER-123: the table behind *(D_002029D0 + 0): eight s16 values, then eight (chance, value) pairs; Unofficial names, Unconfirmed reading. */
 typedef struct { s16 chance; s16 value; } ChancePair;
