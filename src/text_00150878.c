@@ -2783,7 +2783,23 @@ void func_0016E390(void) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0016E3C8);
+extern void *D_01ADE978[];
+
+/* ER-213: from ER-188's rs0 draft; both store pairs in the order an `ordersearch variants` run found (m2c had each
+   pair the other way round). D_01ADE978 read as a table of 6 record pointers (Unconfirmed). */
+void func_0016E3C8(void) {
+    u16 *p = D_0035C518;
+    s32 i;
+    char *r;
+
+    p[2] = 0;
+    *(s32 *)(p + 0x10) = 0;
+    for (i = 0; i < 6; i++) {
+        r = D_01ADE978[i];
+        *(s32 *)(r + 0x30) = 0;
+        *(s8 *)(r + 0x34) = 0;
+    }
+}
 
 INCLUDE_RODATA("asm/nonmatchings/text_00150878", D_00355160);
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0016E408);
@@ -3172,7 +3188,30 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017B810);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017BBB8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017BC40);
+extern s32 D_0034B6E0[];
+extern s32 D_003496E0[];
+
+/* ER-212: stores in the order of ER-186's climb (the x1A halfword last); the clear loop walks 32 records of
+   0x100 bytes. ruling 3.22: func_0017A2E0 (void, defined above) is called as returning int, as the original caller
+   saw it (undeclared, implicit int, or declared so in another source file: Unconfirmed); the int return sets $v0 at
+   the call, which gives the game's registers in the loop. */
+void func_0017BC40(void) {
+    char *p = (char *)D_0034B6E0;
+    s32 i;
+    D_0034B6E0[0] = 0;
+    D_003496C0[0] = 0;
+    D_003496C0[1] = 0;
+    *(s32 *)(p + 4) = 0;
+    *(s16 *)(p + 0xE) = 0;
+    *(s16 *)(p + 0x10) = 0;
+    *(s16 *)(p + 0x12) = 0;
+    *(s16 *)(p + 0x18) = 0;
+    *(s16 *)(p + 0x1A) = 0;
+    ((s32 (*)(void))func_0017A2E0)(); /* ruling 3.22 */
+    for (i = 0; i < 32; i++) {
+        D_003496E0[i * 64] = 0;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017BCB8);
 
@@ -4129,7 +4168,24 @@ void func_0018C730(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018C780);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018C938);
+extern const Vec4A D_00355BD0;
+extern const Vec4A D_00355BF0;
+extern s32 func_00158AD8(s32, s32, void *, void *, void *, void *);
+
+/* ER-213 (DISP-05's relay of ER-216's .rodata copy scan): both vectors copied from `extern const` .rodata objects
+   (recipes 2.49; plain externs leave 2 words). Vec4A is ruling 3.15's type; names Unconfirmed. */
+void func_0018C938(char *arg0) {
+    Vec4A a = D_00355BD0;
+    Vec4A b = D_00355BF0;
+
+    func_00162CB8(D_00248880, (s32)(arg0 + 0x10));
+    *(s32 *)(arg0 + 0x10) = 0;
+    *(s32 *)(arg0 + 4) = 2;
+    D_00248880[1] = 1;
+    D_00248880[7] = 0x01000000;
+    *(s32 *)(arg0 + 0x18) = func_00158AD8(*(s32 *)(arg0 + 0x14), 0xE, arg0 + 0x50, arg0 + 0x60, &a, &b);
+    *(s8 *)(arg0 + 0x78) = 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018C9E8);
 
@@ -5227,7 +5283,6 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A3A40);
 extern const Vec4A D_00355E60;
 extern const Vec4A D_00355E70;
 extern const Vec4A D_00355BE0;
-extern s32 func_00158AD8(s32, s32, void *, void *, void *, void *);
 /* ER-195: ER-198's base-pointer scan hit (recipes, ER-195): three 16-byte vectors copied from .rodata, declared
    const (the loads then schedule as the game's). Names, types and offsets are Unconfirmed readings. */
 void func_001A3D00(s32 arg0, f32 f) {
@@ -6119,7 +6174,21 @@ float func_001B8BC0(float x) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8C50);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8CB0);
+/* ER-213: from ER-188's rs0 draft; the bit test as an if (`!= 0` gives srl / andi 1, the game has andi / sltu).
+   arg0 + 0x20 points at a record pointer whose record holds a pointer at 0x11C to a block with flags at 0x1E4:
+   Unconfirmed reading. */
+s32 func_001B8CB0(char *arg0) {
+    void **pp;
+
+    pp = *(void ***)(arg0 + 0x20);
+    if (pp == NULL) {
+        return 1;
+    }
+    if (*(u16 *)(*(char **)((char *)*pp + 0x11C) + 0x1E4) & 0x40) {
+        return 1;
+    }
+    return 0;
+}
 
 /* ER-034. Same code as func_001B8BC0. */
 float func_001B8CD8(float x) {
@@ -6134,7 +6203,19 @@ float func_001B8CD8(float x) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8D68);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8DC8);
+/* ER-213: from ER-188's rs0 draft; the same shape as func_001B8CB0 (bit 0x20; the record reading is Unconfirmed). */
+s32 func_001B8DC8(char *arg0) {
+    void **pp;
+
+    pp = *(void ***)(arg0 + 0x20);
+    if (pp == NULL) {
+        return 1;
+    }
+    if (*(u16 *)(*(char **)((char *)*pp + 0x11C) + 0x1E4) & 0x20) {
+        return 1;
+    }
+    return 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8DF0);
 
@@ -6142,7 +6223,20 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8F18);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8F58);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8FC8);
+/* ER-213: from ER-188's rs0 draft; the game shifts the flag byte in 64 bits (`dsrl`), which only a 64-bit return
+   type with the byte read into a 64-bit local first gives (`return b >> 7;` narrows to `srl`). The u64 type is a
+   reading (Unconfirmed); its one caller (func_001ADA10) only tests the value against zero. */
+u64 func_001B8FC8(char *arg0) {
+    void **pp;
+    u64 v;
+
+    pp = *(void ***)(arg0 + 0x20);
+    if (pp == NULL) {
+        return 1;
+    }
+    v = *(u8 *)(*(char **)((char *)*pp + 0x11C) + 0x1E4);
+    return v >> 7;
+}
 
 /* ER-034. Same code as func_001B8BC0. */
 float func_001B8FF0(float x) {
@@ -6594,7 +6688,6 @@ void func_001BE158(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BE178);
 
-extern s32 D_0034B6E0[];
 extern void func_0017BC40(void);
 
 /* ER-080: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
@@ -7194,7 +7287,120 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C1928);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C1CA8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C1E38);
+extern s32 func_001C20B0(void);
+extern s32 func_001C1CA8();
+extern s32 func_001E3360(s32, void *, void *);
+
+/* ER-213: by hand from the game's code (m2c's draft had gotos). D_001FEC00 read as a struct through a cast at every use
+   (recipes 2.45: the base stays D_001FEC00 and gcse keeps its %hi in $s3); the shared tails come from cross-jumping:
+   case 0's x14 == 2 path is case -2's, its x1C paths are default's, and the 0x4B8 store with the x10 / x1C updates is
+   written in both arms of v == 2. TEC00, its fields and the state values are Unofficial readings. */
+typedef struct {
+    s32 x0, x4, x8, xC, x10, x14, x18, x1C, x20, x24, x28, x2C, x30, x34;
+    char pad[0x4B4 - 0x38];
+    s8 b4B4[2];
+    u16 h4B6;
+    s32 w4B8[2];
+} TEC00;
+#define EC00 ((TEC00 *)D_001FEC00)
+
+s32 func_001C1E38(void) {
+    s32 r = 0;
+    s32 v;
+
+    if (EC00->x10 == 0) {
+        if (EC00->x4 == 0 && func_001C20B0() == 0) {
+            EC00->x28 = 0;
+            EC00->x4 = 1;
+        }
+        if (EC00->x4 == 1 && EC00->x28 != 0) {
+            switch (EC00->x8) {
+            case 0:
+                EC00->x4 = 0;
+                EC00->x28 = 0;
+                EC00->x34 = 0;
+                EC00->x10 = 1;
+                if (EC00->x14 == 2) {
+                    EC00->b4B4[EC00->x1C] = 1;
+                    r = 1;
+                } else {
+                    if (EC00->x1C == 0) {
+                        EC00->b4B4[0] = 0;
+                        EC00->w4B8[0] = 0;
+                    } else {
+                        EC00->b4B4[1] = 0;
+                        EC00->w4B8[1] = 0;
+                    }
+                    r = 0;
+                }
+                break;
+            case -2:
+                EC00->x4 = 0;
+                EC00->x28 = 0;
+                EC00->x34 = 0;
+                EC00->x10 = 1;
+                if (EC00->x14 == 2) {
+                    EC00->b4B4[EC00->x1C] = 1;
+                    r = 1;
+                } else {
+                    r = 0;
+                    EC00->b4B4[EC00->x1C] = 0;
+                }
+                break;
+            default:
+                EC00->x10 = 1;
+                EC00->x4 = 0;
+                EC00->x28 = 0;
+                EC00->x34 = 0;
+                if (EC00->x1C == 0) {
+                    EC00->b4B4[0] = 0;
+                    EC00->w4B8[0] = 0;
+                } else {
+                    EC00->b4B4[1] = 0;
+                    EC00->w4B8[1] = 0;
+                }
+                r = 0;
+                break;
+            }
+        }
+    } else if (EC00->x10 == 1) {
+        if (EC00->x14 == 2 && EC00->b4B4[EC00->x1C] != 0) {
+            v = func_001C1CA8();
+            if (v != 1) {
+                if (v == 2) {
+                    EC00->x4 = 0;
+                    EC00->x28 = 0;
+                    EC00->x34 = 0;
+                    EC00->w4B8[EC00->x1C] = EC00->x18 + EC00->x30 * 100;
+                    EC00->x10 = 0;
+                    EC00->x1C = EC00->x1C == 0;
+                } else {
+                    EC00->x4 = 0;
+                    EC00->x28 = 0;
+                    EC00->x34 = 0;
+                    EC00->w4B8[EC00->x1C] = 8000;
+                    EC00->x10 = 0;
+                    EC00->x1C = EC00->x1C == 0;
+                }
+                EC00->h4B6 += 1;
+            }
+        } else {
+            EC00->x4 = 0;
+            EC00->x28 = 0;
+            EC00->x34 = 0;
+            EC00->w4B8[EC00->x1C] = 0;
+            EC00->b4B4[EC00->x1C] = 0;
+            EC00->x10 = 0;
+            EC00->x1C = EC00->x1C == 0;
+            EC00->h4B6 += 1;
+        }
+    }
+    if (func_001E3360(1, &EC00->x24, &EC00->x8) == 1) {
+        EC00->x28 = EC00->x24;
+    }
+    return r;
+}
+#undef EC00
 
 extern s32 func_001E34A8(s32, s32, void *, void *, void *);
 /* ER-113: by hand from the m2c draft (base-pointer local, recipes 2.25); names and types Unconfirmed. */
@@ -7487,7 +7693,21 @@ void func_001C4DF0(void) {
 void func_001C4DF8(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C4E00);
+extern s32 func_001C4EB0();
+
+/* ER-213: from ER-188's rs0 draft; m2c's `D_001FEC00 + 0x24` (an s32 pointer step) written as the element
+   addresses &D_001FEC00[9] / [2]. func_001E3360's prototype is a reading from this call (Unconfirmed). */
+s32 func_001C4E00(void) {
+    if (D_001FEC00[4] == 0) {
+        D_001FEC00[4] = func_001C4EB0();
+    }
+    if (D_001FEC00[1] != 0) {
+        if (func_001E3360(1, &D_001FEC00[9], &D_001FEC00[2]) == 1) {
+            D_001FEC00[10] = D_001FEC00[9];
+        }
+    }
+    return (D_001FEC00[4] == -1) ? -1 : 0;
+}
 
 extern s32 func_001E3C98(s32, s32);
 

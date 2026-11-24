@@ -1649,6 +1649,42 @@ and D_00354938 are vectors was not checked).
 | func_001325E8 (`text_001000C0`) | 28 words, 4 bytes short: PRE's hoist of `b0 & b1` (above); `(b0 & 0x2000) && (b1 & 0x2000)` gives the size but other code (13 words) |
 | func_001CCB08 (`text_001CB528`) | 52 words: inner-loop shapes tried (for with `&&` or `break`, `if / else`, locals, index j: 52; `while` + `break` 0x278; `while (k >= m && cmp)` 0x288); the game's `b L; copy` exits and plain `bnez` look like dbr choices from block layout and its liveness scan (Unconfirmed) |
 
+### 2.53 `text_00150878`: a callee's int return in a void caller, cross-jumped tails, 64-bit flags (ER-212 + ER-134 + ER-213, Tue 24 Nov 2026; Confirmed by `make regress`, 8 functions)
+
+Branch `er-212-150878` (worktree `C:\rs\wt\er212`), commits `d832ee1` (ER-212: func_0017BC40, new ruling 3.22),
+`ed6c763` (func_001B8CB0, func_001B8DC8, func_001B8FC8, func_001C4E00), `e209b20` (func_0016E3C8), `2f27739`
+(func_001C1E38), `01e1fb6` (func_0018C938, DISP-05's relay of ER-216's `.rodata` copy scan). **8 functions, 1,232 bytes.** Scratch (our C only): `C:\rs\wt\er212_runs\` (`k\` func_0017BC40,
+`s\` the small ones, `e38\` func_001C1E38, `c0e0\` func_0015C0E0).
+
+| Lesson | Proved by |
+|---|---|
+| **A loop's register tie after a call can come from the call's return value**: an `int`-returning call sets `$v0` (REG_UNUSED; that local-alloc then counts `$v0` as busy into the next insn is a reading, not checked in a dump: Unconfirmed), so the loop-start temporaries born right after the call take `$v1` and the counter, allocated later by global-alloc, gets `$v0`. A `void` call leaves `$v0` free and swaps the two (2.49's 8 words). func_0017A2E0 is a `void` function defined above in the same file (its own code leaves `0x00200000` in `$v0`), so the caller saw it as returning `int` (undeclared or declared elsewhere): ruling 3.22's cast. **Try this when a register tie sits right after a call to a function the file defines `void`** (2.36 / 2.38 / 3.19 are the cross-file form) | func_0017BC40 |
+| **Cross-jumping makes shared tails, so write the copies the game merged**: gcc's jump pass replaces a block that ends like another block with a jump to it, and inverts `if (c) goto A; goto B; A:` around it. func_001C1E38's case 0 jumps into case -2's `x14 == 2` body (`beq` + fall into the else) only when both bodies are the same statements in the same order; its `x1C` paths jump into `default`'s; the `0x4B8` store with the `x10` / `x1C` updates is written in both arms of `v == 2` (only the store's address stays in each arm). The **first case body in the source is the one the compare tree falls into** (case 0 here) | func_001C1E38 |
+| **A global struct read through a cast at every use keeps the symbol as the base** (2.45) **and lets gcse keep the `%hi` in a saved register across calls**: the game rebuilds `D_001FEC00` with `addiu $a0, $s3, %lo` after each join; a `char *g` local (0x238 bytes) or byte offsets on the symbol (base `D_001FEC00+0x10`, 147 words) do not. The cast is a `#define` used only by this function (`#undef` after it; `tools/place.py c` drops the `#undef`, add it by hand) | func_001C1E38 |
+| **A one-bit test the game makes with `andi` + `sltu`** is `if (x & 0x40) return 1; return 0;`; `return (x & 0x40) != 0;` and `?:` give `srl` + `andi 1` | func_001B8CB0, func_001B8DC8 |
+| **A `dsrl` on a loaded byte**: only a 64-bit return type with the byte read into a 64-bit local first (`v = b; return v >> 7;`) keeps the shift in DImode; `return (u64)b >> 7;` is narrowed by combine to `srl`, and 64-bit bitfields load a doubleword. The caller only tests `$v0` against zero | func_001B8FC8 |
+| **2.49's `extern const` vector once more**: func_0018C938 copies D_00355BD0 / D_00355BF0 into two stack vectors for func_00158AD8; with plain externs 2 words differ, with both `const` it matches as first written. ER-216's scan (`C:\rs\wt\er216_runs\scan214.tsv`) lists 305 such copy functions in this file; only this one was tried | func_0018C938 |
+| m2c's `s32 *` pointer steps (`D_001FEC00 + 0x24`) are element addresses (`&D_001FEC00[9]`); store pairs in the order a `variants` run found | func_001C4E00, func_0016E3C8 |
+
+Rulings used: **3.22** (new) once (func_0017BC40). Unofficial names: `TEC00` and its fields `x0`-`x34`, `b4B4`,
+`h4B6`, `w4B8`, the macro `EC00`, locals `p`, `pp`, `v`, `r`, `g`, `i`. Readings (Unconfirmed): func_001B8FC8's `u64`
+return, func_001E3360 `s32 (s32, void *, void *)`, func_001C1CA8 / func_001C20B0 returning `s32`, `D_01ADE978` as a
+table of 6 record pointers, the record behind `arg0 + 0x20` of func_001B8CB0 / DC8 / FC8 (a pointer at `0x11C` to flags
+at `0x1E4`), the state values of func_001C1E38.
+
+**Parked (scratch in `C:\rs\wt\er212_runs\`, game code not in git):**
+
+| Function | Cause |
+|---|---|
+| func_0015C0E0 (ER-134) | 30 words, same size (`c0e0\t2_os\best.c`; was 31 with ER-176). Two scheduler ties: (1) the two struct copies' `ld`s, the `li 1` / `sw 0xC` and the `(s32)f` store before func_0017D968; (2) after `% 45` the `lui` of D_002488A0 has priority 55 against the div trap's 54 (`.sched2`, `b1_dump\`), so ours puts it between `div` and `beql` and the game does not. Template `t2.c`: `const` on either vector, where `f` dies, `p[1]` for `f`, a temporary for the call, `t % 45 + 45` / `45 + t % 45`, both order blocks (the `% 45` store inside); 5,049 compiles with 8 restarts, plus `t1.c` 3,132 |
+| func_0015C020 | 6 words (was 13; `s\c020t_os\best.c`): the `x68 = j` store written after `g` fixes 2.49's `$a1` / `$a2` swap; left: the `0x70` load against the `0x60` store at the top, and `sb x2` / `sw x78` / `sw x68` in the tail (every order of each block, 1,260 + 120) |
+| func_0019D090 | 8 words (unchanged; `s\d090t_os\best.c`): the `0.0625f` constant and multiply against the `0x1C` / `0x8` stores around the `div.s`; `t` folded in, `a.v[1]` reuse, `s8` / `u8` byte, word spellings, climb with 4 restarts (3,870 compiles) |
+| func_001766F8 | 2 words: sched2 priority tie in the call branch: the `g[2]` store has an output dependence on the `g[0]` store (both may alias after reload), so it outranks the `li 2`; 336 shapes (direct indexing, a pointer, both branch layouts, argument spellings) |
+| func_001BF700 | 2 real words (the other 2 are the `%hi` / `%lo` pairing): sched2 at the entry, the `lw 8($a0)` (8 forward dependences) beats the `lui` (3) at equal priority 28; base types, temporaries, climb with 3 restarts |
+| func_001BEFD8 | 2 words: `sb 0x21A` falls after the `swc1 0x14` (game: before it); 15,360 combinations of flag-pointer types, a struct, a temporary and the tail order |
+| func_00151670 | 4 words (2 real): FP local-alloc tie, `D_0035BF34` and the product take `$f0`, pi `$f1` (game the other way), and the loads follow; `const`, operand orders, temporaries, return shapes, declaration orders (432) |
+| ER-162's eight (func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001B34F8, func_001BE9C0, func_001C6F90, func_001C8600, func_001C8758) | Not retried: the round-4 rerun's and ER-188's 3-8 word lists are these, with ER-153's causes (scheduler ties, 2.35) standing; they stay ER-162's |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1788,6 +1824,12 @@ Standing rulings; each applies until LuciDin changes it.
 | Ruling | Item |
 |---|---|
 | **Accepted** (a per-file exception to 3.11) | `text_001CA8D8` (the pad state code, func_001CA8D8 to func_001CB500) is built with the edge-based LCM on: the Makefile adds `-fedge-lcm` after `CFLAGS` for `build/src/text_001CA8D8.s` only (commit `8707afa`). Evidence (ER-192, 2.48): func_001CA9A8 matches as plain C only with it (4 bytes short without; ER-185 had needed two cached flag-word locals, now dropped); without it, classic PRE hoists func_001CAB10's loop counter `slot + 1` to the top of the loop body, which no plain C found avoids (with it the draft lines up 429 / 449 register-blind instead of about 355); every function already placed in the file matches either way. Reading (Unconfirmed): this file was compiled with the compiler's default, unlike the rest of the game. Every other file keeps 3.11 |
+
+### 3.22 ER-212: a same-file void callee called as returning int (Tue 24 Nov 2026, about 14:29 Eastern, LuciDin in the ER-212 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** (the same-file case 3.19 left open) | A call through a cast to an `int`-returning function type, `((s32 (*)(void))func_X)();`, when the callee is defined `void` earlier in the same `src/` file (so no `extern` with another return type can be written there) and the caller matches only with the call setting `$v0` (func_0017BC40: the int return moves its clear loop's registers to the game's, 2.53). Read as the original caller seeing the callee undeclared (implicit `int`) or declared so in another source file (Unconfirmed). The definition keeps its own type. Each use carries the comment `ruling 3.22`. Used so far: func_0017BC40 (ER-212, 2.53) |
 
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker, 3.18 only stores the game makes): park such functions with a
 one-line cause and ask.
