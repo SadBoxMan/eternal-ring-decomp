@@ -188,6 +188,9 @@ python -I tools/m2c_bulk.py --list picks.txt                     one name per li
    [--no-narrow]                                                 skip the narrow-parameter variant (6.20)
    [--no-narrow-keep] [--no-rt-fix]                              narrowing only on a MATCH / m2c's own harvested return
                                                                  types (6.21)
+   [--no-early-exit] [--no-s16-sign] [--no-game-ret]             skip the ER-188 draft fixes: early exit first, s16 sign
+   [--no-stack-vec] [--no-global-base]                           test, the game's return type, stack vector, global
+                                                                 base (6.22)
 python -I tools/sdata_consts.py [--all] [--names D_X ...]        census of the never-stored .sdata floats (6.10)
 python -I tools/m2c_bulk.py --rerun-diffs build/m2c_bulk/<label> --chunk 8 --plain    an earlier run's same-size DIFFs in small lists (6.6)
 ```
@@ -307,6 +310,19 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
      of 3 or more ORed terms, each reading a parameter, is written as the flat list in parameter order (`a1 | a2 <<
      k2 | ...`, recipes 2.31); terms without a parameter, or an operator weaker than `|` outside parentheses, leave
      the expression alone. Kept as the frame fix is (Notes: `OR terms in parameter order (packer)`);
+   - **ER-188 draft fixes** (6.22), after the packer, in this order, each kept when it matches or comes strictly
+     closer (then the base of everything below; when nothing below matches, the variants kept only on a MATCH run
+     again from each earlier state, so no match is lost: Notes `draft fix dropped: ...`):
+     **early exit first** (only where the game has more forward branch-likelies than our build; `if (c) { ..; return
+     X; } return Y;` at the end of the body -> `if (!c) { return Y; } ..; return X;`, up to 3 levels, a void
+     function's last `if` -> `if (!c) { return; }`; recipes 2.43), **s16 sign test** (`t = x - 1; x = t; if (t &
+     0x8000)` -> `if (--x < 0)` on an `s16`, else `(s16) t < 0`; recipes 2.46), **the game's return type** (a `void`
+     draft ending in a call, where the game's callers read `$v0` / `$f0`: `return g(..);` typed `f32` / `s32`, the
+     callee's prototype retyped too when it differs; recipes 2.42), **stack vector** (where the game moves floats
+     through its stack locals: m2c's `sp` array typed `f32`; a call passing `sp` and then 1-4 values becomes the
+     stores `sp[i] = v;` and the call with `sp` last, the callee cut after it as `f32 *`; recipes 2.46), **global
+     base** (`M2C_FIELD(D_x, T *, off)` through `T *gb0 = (T *)D_x;` and `gb0[off / size]`, each access type in turn
+     and same-size fields unified; a draft-declared global as `extern T D_x[];`; recipes 2.45);
    - **store order**: same size as the game's: first (ER-124) each run of 2 or more consecutive
      `M2C_FIELD(base, T *, off) = rhs;` lines at one indentation (inside blocks too; ER-138: also `*p = x;` at offset
      0 and `p[N] = x;` at N times the element size, for a parameter, local or `extern T D_X[];` of known element type)
@@ -360,7 +376,10 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
    name in different ways (`extern s32 D_0035C554;` against `extern void *D_0035C554;` in text_001CB528), each form in
    turn (the most used first) is put into the other drafts, which are compiled again; the first form every draft
    matches with is written into all of them (Plain column: `one declaration for the file: ...`), else each such row
-   names the clash.
+   names the clash. ER-188: a callee the target file declares only below the function's `INCLUDE_ASM` line is
+   named in the Plain column (`the file declares func_X only below this function`): `place.py` keeps the file's line
+   and drops the plain file's, so the placed call would be unprototyped (a float argument passed as a double,
+   recipes 2.45); put a prototype above the function first.
 
 Columns of the table: function, file, address, instructions and size band (`tools/census.py` bands), m2c gave a
 draft, draft compiles, exact match, differing words, sizes, class (MATCH / diff / compile error / m2c failed /
@@ -1209,6 +1228,57 @@ a call (func_0012FAA8, func_0014FE30). Hence the callee-side conditions in step 
   has the sibling-`j` shape that triggers it, so it was not exercised on them.
 - `--single` tries only the first form (the game's types), so with `--single` a match that needs m2c's own type can
   be lost; without it the old chain is tried in full after the new forms.
+
+### 6.22 Draft fixes from the hand matches: early exits, s16 sign tests, return types, stack vectors, global bases (ER-188, Tue 24 Nov 2026)
+
+Changes in `tools/m2c_bulk.py` (step 6 above, **ER-188 draft fixes**, and step 8's late-declaration note); nothing
+placed in `src/`. Worktree `C:\rs\wt\er188`, branch `er-188-early-exit`, commit `ac6fed4`. Runs and drafts (game
+code, not in git): `C:\rs\wt\er188_runs\`.
+
+Why: ER-184 and ER-189 matched 28 early exits by hand from m2c drafts (recipes 2.43, 2.46), ER-189 another 15 with
+`--x < 0`, returned float values and stack vectors (2.46), ER-186 five globals used as base pointers (2.45). Each is a
+mechanical rewrite of m2c's output, and the game's asm shows when to try it (forward branch-likelies, `lwc1` /
+`swc1` at `N($sp)`, callers reading `$v0` / `$f0`). The fixes change only the draft's C (no ruling form).
+
+**A/B on the examples:** the 9 files ER-184 / ER-186 / ER-189 placed in, set back in the worktree (`text_00150878` at
+`fd75cc4^`, the 8 others at `c5ea17b^`; regress PASS on that state), main's tool (copied aside as
+`tools/_m2c_bulk_main.py`, never committed) against this one on the 68 functions those cards placed, same arguments
+(`--plain --tag ER-188 --gcc-timeout 30 --par 4`; labels `exA` / `exB`, 105 / 111 s).
+
+| Run | Functions | Main's tool | This tool | Lost |
+|---|---|---|---|---|
+| ER-184 / ER-186 / ER-189's placed functions | 68 | 9 MATCH (8 plain) | **29 MATCH (28 plain)** | none |
+
+- The 20 new: **16 by the early exit** (func_00131448 and 15 of ER-184's `arg0->x20` family, func_001A1838 two levels
+  deep), **2 by the s16 sign test** (func_00141E20, func_00143C10, each with ruling 3.14 after it, as placed),
+  **2 by the f32 stack array** (func_00130378, func_001303A8; drafted `void`, which gives the same bytes as the
+  placed `float` here: the game ends in a tail call).
+- Closer, not matching: func_0012D388 and func_00130120 10 -> 1 word (stack vector; the word left not examined),
+  func_001C1630 13 -> 3 (global base), func_0013C468 22 -> 16, func_001CA630 24 -> 17, func_001BCCF8 / func_001BCD30
+  11 -> 10, func_001308B8 28 -> 26. **Farther in words:** func_00132108 33 -> 50 (global base kept because its size
+  came closer, 12 -> 4 bytes off: the keep rule compares the size first, as for the narrow parameter in 6.21).
+- Not reached by any fix: func_001C1880 (needs `while` for m2c's `if` + `do while`), func_001BF198, func_00152D58
+  (ER-186's counted loop), and the store-order cases (they need `ordersearch`).
+
+**Whole files with this tool** (no A run: main's tool's last reruns found no MATCH left in these files, 6.18 / 6.21,
+ER-189's `er189c0`):
+
+| File (state) | Asm functions | Plain MATCH | Same size 1-2 / 3-8 / 9+ | Size differs | Time |
+|---|---|---|---|---|---|
+| `text_001000C0` (`4f4c8df`, label `rc0`) | 354 | **9**: func_00123D70, func_0012C020, func_0012C128, func_0012D3E8, func_0012DAF8 (f32 stack array), func_00125AF0, func_00126968 (global base), func_0012C578, func_0012C630 (the game's return type + narrow parameter) | 2 / 4 / 41 | 184 | 752 s |
+| `text_00150878` (`4f4c8df`, `rs0`) | 1,012 | **12**: func_0016E368, func_001BF238, func_001C40F0, func_001C4E88, func_001C4F88 (global base), func_00153ED0, func_0018A3B0, func_0018FC10, func_001C1378 (f32 stack array), func_001C7538 (early exit), func_0018D168, func_00193B68 (older steps only) | 5 / 12 / 148 | 478 | 2,406 s |
+| the 14 smaller game files (main `27e48e2` merged, `rsm`; `text_001CA8D8` scored without ruling 3.21's per-file `-fedge-lcm`, which eematch does not apply: ER-205) | 183 | **2**: func_00138370 (`text_001343E8`, plain draft after the frame fix), func_00144F90 (`text_0013DBC0`, s16 sign test) | 4 / 4 / 31 | 119 | 236 s |
+
+- Relayed to the owners through DISP-05; the 9 of `text_001000C0` are placed on main (ER-196 / ER-197 / ER-198's card, recipes 2.47).
+- Kept fixes over the two big runs (`rc0` + `rs0`): global base 94 drafts (array form 16), f32 stack array 61, stack
+  vector 28, early exit 11, the game's return type 2, s16 sign test 1. A fix is kept when it comes closer, so most of
+  these are steps toward a match, not matches.
+- The plain note on callees declared below the function fired on 6 of the 21 MATCHes (func_0012C578, func_0012C630,
+  func_0012D3E8, func_00153ED0, func_0018A3B0, func_001C4F88).
+- Merging main or committing (the hooks run regress) while a run's folder is still being copied out of `build/`
+  loses its tail: `rs0`'s `obj/` lost some scratch files that way (its `c/` and results were complete).
+- Header copies (`.gret` / `.svec`) are named per attempt (function and context), so one context's copy cannot
+  overwrite another's. `const_variant`'s `{func}.const.protos.h` is still per function only (older; not changed here).
 
 ## 7. Not verified
 

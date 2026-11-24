@@ -1991,11 +1991,11 @@
     {
       "code": "ER-188",
       "title": "m2c_bulk early-exit variant",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Tue 24 Nov 2026 (commit ac6fed4 + docs): m2c_bulk.py draft fixes (early exit, s16 sign, game return type, stack vector, global base); A/B 68 examples 9 -> 29 MATCH, none lost; reruns: text_001000C0 9, text_00150878 12, 14 small files 2 new plain MATCHes (relayed); matching_tools 6.22"
     },
     {
       "code": "ER-189",
