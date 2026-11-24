@@ -1874,11 +1874,11 @@
     {
       "code": "ER-175",
       "title": "m2c_bulk: callee return types from call sites",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "none",
-      "notes": ""
+      "notes": "m2c_bulk round 4 (with ER-180): callee return types from the game's call sites for harvested signatures and m2c's draft prototypes, m2c's types kept as fallback, --no-rt-fix; func_001C4838 plain MATCH at e7f5a42, func_0013C4E0 plain MATCH on main (not placed); no MATCH lost; matching_tools 6.21; commit d72efdc"
     },
     {
       "code": "ER-176",
@@ -1919,11 +1919,11 @@
     {
       "code": "ER-180",
       "title": "m2c_bulk round 4 (keep narrowing; with ER-175)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "with ER-175: narrowing kept when closer as the base of later variants (rerun from the old draft if none matches), --no-narrow-keep; func_001CB300 27->1, func_0012B7C0 15->4, func_0012C578/C630 9->7 kept; no MATCH lost; matching_tools 6.21; commit d72efdc"
     },
     {
       "code": "ER-181",
