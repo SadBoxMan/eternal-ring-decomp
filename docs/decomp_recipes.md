@@ -1352,6 +1352,34 @@ as the callers use them); `D_01B72600` read as an array of 8 records (2 ports x 
 | func_001CAB10 | 0x704 bytes, the per-port / per-slot state machine on `x17A` (calls func_001CA8D8, func_001CA9A8 and ten libpad routines). m2c's draft does not compile (a `case` outside its switch, func_001D7030 given 3 arguments: the game passes 2). A clean `switch` draft by hand (`C:\rs\wt\er185_runs\s\cab10_b.c`) compiles 7 instructions short, 338 / 449 equal register-blind. Lead: case 0's compare tree on the controller ID (game: `<7`, `==0x100`, `<0x101`, `==7`, then `<5`, `<2`, `<4` with `x17A = 0x28` for 4) is not the draft's `switch (a) { case 4; case 7; case 0x100; }`; the frame keeps `port + 1` at `sp+0x10` |
 | func_001CA8D8 | not tried (m2c draft 15 instructions short with 16 `M2C_ERROR`s) |
 
+### 2.44 `text_00150878`: a counted sign loop, globals as base pointers (ER-186, Mon 23 Nov 2026; Confirmed by `make regress`, 6 functions)
+
+Branch `er-186-00150878` (worktree `C:\rs\wt\er186`), commits `6fd3268` (func_0012DA68 declared `(void **, f32, f32,
+s32, s32)` in `text_00150878`, its extern and one call; same bytes: every file now agrees), `4010d03`
+(func_00152D58), `ddba55e` (func_001C1880, func_001C1630, func_001BCCF8, func_001BCD30), `68f4498` (func_001BF198).
+6 functions, 1,076 bytes, by hand from ER-171's run `er171s0` drafts. Scratch (our C only): `C:\rs\wt\er186_runs\`
+(`s\`: func_00152D58; `x\`: the rest and the two leads below).
+
+| Lesson | Proved by |
+|---|---|
+| **m2c's pointer loop over a frame array, written as a counted `for` over two typed arrays**: func_00152D58's sign loop (`v[i] = s[i] >= 0 ? d : -d`, 3 elements) as m2c's `var_4` / `var_2` / `var_3 = 2` pointer walk keeps every instruction but takes the wrong registers (10 words after ER-184's `x6C > x74`); `f32 s[4]; f32 v[4]; for (i = 0; i < 3; i++) { f = d; if (!(s[i] >= 0.0f)) f = -f; v[i] = f; }` matches (also with `?:`; an `if / else` storing in both arms is larger). gcc reverses the counter itself (`li 2` ... `bgez`), so a down-counting `bgez` loop in the game is a plain up-counting `for` | func_00152D58 |
+| **A callee declared later in the file is unprototyped at an earlier call**: the float argument then goes as a double (`lui` + `ld` into a GPR) and the function grows 2 words; `func_0012FAE8`'s prototype added above func_00152D58 (it stays at its old place too). A scratch draft with full prototypes hides this: check the placed function in the file (`place.py extract` + `ordersearch score`) | func_00152D58 |
+| **A global used as a base address (`lui` + `addiu`, then loads off the register) is an array or struct access, not a byte-offset cast**: m2c's `M2C_FIELD(D_x, T *, off)` and `((u8 *)D_x)[off]` fold the offset into `%lo` (diff hint: `R_MIPS_LO16 D_x+0x24 ..., game uses D_x`). The forms that keep the base: the file's `extern s32 D_x[];` read with a constant index (`D_001F6B90[9]`), one typed pointer set from it (`s8 *p = (s8 *)D_x;` or `s16 *p = (s16 *)D_x;`), or a struct type cast (`((T890 *)D_001FF890)->x21D`, where the game rebuilds the address in each block). A scan of the run's diffs for that hint lists 12 drafts; 5 placed | func_001C1880, func_001C1630, func_001BCCF8, func_001BCD30, func_001BF198 |
+| `ordersearch perm` over 4 byte stores (24 orders): func_001C1630's flags in the order 0x21, 0x20, 0x22, 0x23 (the first of 3 matching orders). `perm` on 9 lines is 9! = 362,880 compiles: use `climb` there | func_001C1630 |
+
+Nothing compiler-steering; no ruling used. Unofficial names: `s`, `v`, `f`, `x`, `z`, `i`, `state`, `p`, `T890` and its
+fields `x21C`-`x21E`. Readings (Unconfirmed): the `f32` frame arrays, `arg0` of func_001BF198 as `s32 *`, the
+prototypes added (`func_0012D3E8` `f32 (void *, void *, f32)`, `func_001D8F10` `s32 (s32, s32, s32, void *)`,
+`D_001F6BB0` as `s8 []`; `func_001C17F0` `void (void)`), `D_001F6B90` field 9 and `D_001FF890`'s bytes at 0x21C-0x21E.
+
+**Leads, not placed (scratch in `C:\rs\wt\er186_runs\x\`, game code not in git):**
+
+| Function | State |
+|---|---|
+| func_0017BC40 | 8 words (`k2_os\best.c`): stores match after a `climb` (the `x1A` halfword last); the clear loop over `D_003496E0` (32 records of 0x100 bytes, word 0) swaps its pointer and counter (`$v1` / `$v0` in the game). Index up or down, pointer, `do / while`, record type: all the same 8 words. `D_0034B6E0` also needs an extern above it (the file's is at func_0017BC40's caller) |
+| func_001BF8E0 | 5 words (`h1_os\best.c`): 11 stores from `arg0` into `D_001FF390` (G390); a `climb` reaches 5, the `x30` load / `x138` store and the `x18` pair stay out of place. Pointer, index and m2c orders tried |
+| func_00157B60 | 4 real words (`n1.c`; the score's other 4 are `$gp` relocations): `((R8 *)D_00330410)[sp[0]].x4` (2.42's record array) gives the right instructions; the index load and the table address take `$v0` / `$v1` the other way round. Operand order of the `&`, scalar `sp`, a table pointer tried |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
