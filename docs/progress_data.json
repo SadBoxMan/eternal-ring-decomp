@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-23",
+  "updated": "2026-11-24",
   "note": "Read by tools/progress_tracker.py (format in docs/tracker.md). Only facts from the repo: a metric's total stays null ('not measured yet') until the split (ER-003) and the census (ER-004) give real counts; never write an estimate as a total. Every metric, milestone and task has a 'track': decomp, recomp, port, assets or other. Statuses: milestones and phase items use Not started / In progress / Complete; ER tasks use Queued / In progress / Waiting / Done.",
   "tracks": [
     {
@@ -1446,7 +1446,7 @@
       "track": "port",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Folded into ER-200 (24 Nov 2026)"
     },
     {
       "code": "ER-128",
@@ -1464,7 +1464,7 @@
       "track": "port",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Folded into ER-200 (24 Nov 2026)"
     },
     {
       "code": "ER-130",
@@ -1518,7 +1518,7 @@
       "track": "port",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Folded into ER-200 (24 Nov 2026)"
     },
     {
       "code": "ER-136",
@@ -2095,6 +2095,15 @@
       "model": "Opus, medium",
       "waits_on": "LuciDin's decision",
       "notes": ""
+    },
+    {
+      "code": "ER-200",
+      "title": "Recomp: graphical bug fixes (2D UI and the rest)",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": "Filed 24 Nov 2026 on LuciDin's word; folds in ER-129, ER-135, ER-127; step 1 asks LuciDin for every fault seen"
     }
   ]
 }
