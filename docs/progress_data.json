@@ -1883,11 +1883,11 @@
     {
       "code": "ER-176",
       "title": "tools/ordersearch.py round 2 (variants, restarts)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Tue 24 Nov 2026: ordersearch.py variants mode (@{a@|b@} groups, named groups share a choice, with order blocks; all / climb), --restarts N for climb/switch/variants, --text FILE (from permg.py; perm_stores.py and permg.py otherwise covered by perm). func_0015C0E0 trial: 33 -> 31 words, no MATCH. ER-093 switch from alphabetical start: 34 -> 11 words with 8 restarts. Commit c4a1e02, regress PASS. matching_tools 8.4."
     },
     {
       "code": "ER-177",
