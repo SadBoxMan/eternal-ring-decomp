@@ -710,7 +710,7 @@ extern void func_00154CA8(s8 *, void *);
 extern void func_00154DD8();
 extern float func_00130378(char *, s32);
 extern float func_0012E7B0(float a, float b);
-extern s32 func_0012DA68(void **arg0, s32 arg1, s32 arg2, f32 fparg0, f32 fparg1);
+extern s32 func_0012DA68(void **, f32, f32, s32, s32);
 
 /* ER-171: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00154CA8(s8 *arg0, void *arg1) {
@@ -730,7 +730,7 @@ void func_00154CA8(s8 *arg0, void *arg1) {
         temp_2 = *(s32 *)((char *)arg0 + 0x10) + 1;
         *(f32 *)((char *)arg0 + 0x34) = temp_f0_2;
         *(s32 *)((char *)arg0 + 0x10) = temp_2;
-        if (func_0012DA68((void **) arg0, temp_2, 0x28, *(f32 *)((char *)arg0 + 0x30), temp_f0_2) != 0) {
+        if (func_0012DA68((void **) arg0, *(f32 *)((char *)arg0 + 0x30), temp_f0_2, temp_2, 0x28) != 0) {
             func_00131000(arg0, &func_00154DD8);
         }
     }
