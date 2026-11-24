@@ -2347,6 +2347,15 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-228",
+      "title": "place.py keeps #undef after a placed definition",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, low",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
