@@ -1114,7 +1114,32 @@ void func_00157B50(void *arg0, s32 arg1) {
     *(s32 *)((char *)arg0 + 8) = 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00157B60);
+/* ER-195: from ER-186's draft (m2c_bulk --plain); the table as an array of 8-byte records keeps the game's
+   registers (recipes, ER-195). Names, types and offsets are Unconfirmed readings. */
+typedef struct { s32 x0; s32 x4; } R330410;
+extern R330410 D_00330410[];
+extern s32 func_0012F5F8(u16, s32, s32, s32 *, s32, s32, s32, s32);
+
+void func_00157B60(void *arg0) {
+    s32 sp[4];
+    u32 i;
+
+    if (*(s32 *)((char *)arg0 + 4) == 0) {
+        *(s32 *)((char *)arg0 + 0xC) = 0;
+        *(s32 *)((char *)arg0 + 4) = 1;
+    }
+    sp[0] = *(s32 *)((char *)arg0 + 0xC);
+    func_0012F5F8(D_0035B830 & D_0035B834, 0x40, 0x10, sp, 1, 0, 8, 1);
+    i = 0;
+    *(s32 *)((char *)arg0 + 0xC) = sp[0];
+    do {
+        i += 1;
+    } while (i < 9U);
+    func_0012F5F8(D_0035B830 & D_0035B834, 0x40, 0x10, sp, 1, 0, 8, 1);
+    if (D_0035B830 & D_0035B834 & 0x2000) {
+        func_00157B50(arg0, D_00330410[sp[0]].x4);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00157C58);
 
@@ -6760,7 +6785,29 @@ void func_001BF808(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF840);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF8E0);
+/* ER-195: from ER-186's draft; the two first values loaded before the stores, then a climb (recipes, ER-195).
+   Names, types and offsets are Unconfirmed readings. */
+void func_001BF8E0(void *arg0) {
+    char *g = (char *)D_001FF390;
+    f32 t;
+    f32 a;
+    s32 b;
+
+    *(s8 *)(g + 0x102) = 1;
+    a = *(f32 *)((char *)arg0 + 8);
+    b = *(s32 *)((char *)arg0 + 0x30);
+    *(f32 *)(g + 0x120) = a;
+    *(s32 *)(g + 0x138) = b;
+    *(f32 *)(g + 0x124) = *(f32 *)((char *)arg0 + 0x10);
+    *(f32 *)(g + 0x128) = *(f32 *)((char *)arg0 + 0x18);
+    *(f32 *)(g + 0x12C) = 1.0f;
+    t = *(f32 *)((char *)arg0 + 0x20);
+    *(f32 *)(g + 0x10C) = t;
+    *(f32 *)(g + 0x130) = t;
+    *(f32 *)(g + 0x134) = *(f32 *)((char *)arg0 + 0x28);
+    *(s8 *)(g + 0x103) = 0;
+    *(s32 *)arg0 = 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF940);
 
