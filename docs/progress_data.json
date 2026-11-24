@@ -2131,6 +2131,33 @@
       "model": "Sonnet, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-204",
+      "title": "func_001CAB10 under ruling 3.21",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, xhigh",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-205",
+      "title": "Scratch compiles pick up per-file CFLAGS",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-188, ER-176",
+      "notes": ""
+    },
+    {
+      "code": "ER-206",
+      "title": "-fedge-lcm evidence scan",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
