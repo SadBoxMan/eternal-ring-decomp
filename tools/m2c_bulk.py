@@ -408,6 +408,206 @@ def harvest(names: list[str], idx: dict[str, Path], src_protos: dict[str, str], 
     return sigs
 
 
+# --- callee return types from the game's call sites (ER-175) ---------------------------------------------------
+
+RT_FIX = True               # --no-rt-fix keeps m2c's harvested return types as m2c inferred them (ER-175)
+RT_WINDOW = 24              # instructions looked at after a jal's delay slot (ER-164's rtscan.py)
+RT_LEAVE_ONE_OUT = 4        # most changed draft prototypes for which each is also tried as m2c wrote it
+_RT_SCAN: dict[str, dict] | None = None
+RT_NOTES: dict[str, str] = {}   # function -> "return types from the game: func_X int -> void, ..." (its Notes)
+
+
+def _rt_effects(word: int, vram: int):
+    """(GPRs read, GPRs written, FPRs read, FPRs written, rabbitizer instruction) of one game word."""
+    import rabbitizer
+    ins = rabbitizer.Instruction(word, vram=vram, category=rabbitizer.InstrCategory.R5900)
+    rs, rt, rd, fd = (word >> 21) & 31, (word >> 16) & 31, (word >> 11) & 31, (word >> 6) & 31
+    gr = {r for f, r in ((ins.readsRs, rs), (ins.readsRt, rt), (ins.readsRd, rd)) if f()}
+    gw = {r for f, r in ((ins.modifiesRs, rs), (ins.modifiesRt, rt), (ins.modifiesRd, rd)) if f()}
+    fr = {r for f, r in ((ins.readsFs, rd), (ins.readsFt, rt), (ins.readsFd, fd)) if f()}
+    fw = {r for f, r in ((ins.modifiesFs, rd), (ins.modifiesFt, rt), (ins.modifiesFd, fd)) if f()}
+    return gr, gw, fr, fw, ins
+
+
+def game_return_scan(game: eematch.Game) -> dict[str, dict]:
+    """ER-175 (ER-164's rtscan.py, recipes 2.38: the game's callers show a callee's return type): for every function
+    of the game, from the original ELF's code (function bounds from the build's symbols), its call sites and what
+    each caller does with `$v0` / `$f0` after the `jal`: read before written (a reader), passed back to the caller's
+    own caller untouched (`jr $ra` with the register unwritten: a pass), or neither. The scan is a straight line from
+    the instruction after the delay slot, at most RT_WINDOW instructions, stopping at a branch target (a join), after
+    a branch's delay slot, or at the next call. Callee side (rtscan's too): whether the function writes `$v0` / `$f0`
+    in the 6 instructions before a `jr $ra` or in its delay slot, makes a call there, or leaves by a tail `j`.
+    Returns {name: {"sites": n, "v0": n, "f0": n, "pass": [caller, ...], "sets": {"v0", "f0", "call", "tail"}}}
+    (cached)."""
+    global _RT_SCAN
+    if _RT_SCAN is not None:
+        return _RT_SCAN
+    scan: dict[str, dict] = {}
+
+    def entry(n):
+        return scan.setdefault(n, {"sites": 0, "v0": 0, "f0": 0, "pass": [], "sets": set()})
+    for start, size in sorted(game.size_of.items()):
+        name = game.name_at.get(start)
+        raw = game.bytes_at(start, size)
+        if not name or raw is None:
+            continue
+        words = struct.unpack(f"<{size // 4}I", raw[:size // 4 * 4])
+        insns = [_rt_effects(w, start + 4 * i) for i, w in enumerate(words)]
+        targets = set()
+        sets = entry(name)["sets"]
+        for i, (_gr, _gw, _fr, _fw, ins) in enumerate(insns):
+            if ins.isBranch():
+                targets.add(ins.getBranchVramGeneric())
+            if ins.isJrRa():
+                # the 6 instructions before the epilogue's restores (loads from $sp into saved registers, $ra or
+                # $f20+, and the $sp pop: func_0014FE30 sets $v0 before five `ld $sN`), plus the jr's delay slot
+                k, n_body = i - 1, 0
+                while k >= 0 and n_body < 6:
+                    w2 = words[k]
+                    op2, base, dest = w2 >> 26, (w2 >> 21) & 31, (w2 >> 16) & 31
+                    restore = base == 29 and ((op2 in (0x23, 0x37, 0x1E) and dest in SAVED_GPRS)
+                                              or (op2 == 0x31 and dest >= 20)
+                                              or (op2 == 0x09 and dest == 29))     # lw / ld / lq, lwc1, addiu sp
+                    if not restore:
+                        n_body += 1
+                    k -= 1
+                for _gr2, gw2, _fr2, fw2, i2 in insns[k + 1:i + 2]:
+                    if 2 in gw2:
+                        sets.add("v0")
+                    if 0 in fw2:
+                        sets.add("f0")
+                    if i2.isFunctionCall():         # `jal g; ...; jr $ra`: g's value may be the return value
+                        sets.add("call")
+        for i, (_gr, _gw, _fr, _fw, ins) in enumerate(insns):
+            if ins.isJumpWithAddress() and not ins.doesLink():          # j: a tail call when it leaves the function
+                t = ins.getInstrIndexAsVram()
+                if not (start <= t < start + size):
+                    sets.add("tail")
+                    if t in game.name_at:
+                        entry(game.name_at[t])["pass"].append(name)
+                continue
+            if not (ins.isJumpWithAddress() and ins.doesLink()):
+                continue
+            t = ins.getInstrIndexAsVram()
+            callee = game.name_at.get(t)
+            if not callee:
+                continue
+            e = entry(callee)
+            e["sites"] += 1
+            state = {"v0": None, "f0": None}
+            stop_after = None
+            j = i + 2
+            while j < len(insns) and j < i + 2 + RT_WINDOW:
+                gr, gw, fr, fw, ins2 = insns[j]
+                if start + 4 * j in targets:
+                    break
+                for reg, rd_, wr_ in (("v0", 2 in gr, 2 in gw), ("f0", 0 in fr, 0 in fw)):
+                    if state[reg] is None:
+                        if rd_:
+                            state[reg] = "pass" if ins2.isJrRa() else "read"
+                        elif wr_:
+                            state[reg] = "killed"
+                if ins2.isJrRa():
+                    slot = insns[j + 1] if j + 1 < len(insns) else None
+                    for reg, killed in (("v0", slot and 2 in slot[1]), ("f0", slot and 0 in slot[3])):
+                        if state[reg] is None and not killed:
+                            state[reg] = "pass"
+                    break
+                if stop_after is not None and j >= stop_after:
+                    break
+                if ins2.isFunctionCall():
+                    break
+                if ins2.isBranch() or ins2.isJump():
+                    stop_after = j + 1
+                j += 1
+            if state["v0"] == "read":
+                e["v0"] += 1
+            if state["f0"] == "read":
+                e["f0"] += 1
+            if "pass" in (state["v0"], state["f0"]) and "read" not in (state["v0"], state["f0"]):
+                e["pass"].append(name)
+    _RT_SCAN = scan
+    return scan
+
+
+def game_return_class(name: str, scan: dict[str, dict]) -> str | None:
+    """The register class the game's callers treat `name`'s return value as: "f32" (some caller reads $f0, none
+    $v0), "s32" (some caller reads $v0, none $f0), "void" (it has call sites, no caller reads either register, and
+    the function itself writes neither near a `jr $ra`, makes no call just before it and has no tail `j`:
+    func_001C9B18, a 16-byte copy), or None (not known: no direct call sites, e.g. reached only through a function
+    pointer; both registers read; or no reader but the function sets $v0 / $f0 at its end, ends in a call or
+    tail-calls, which may be a value nobody uses: func_0012E820 ends `mov.s $f0` and its callers need it `float`,
+    func_0012FAA8 ends `jal func_00165170; jr $ra` and its callers need it `s32`, recipes 2.36). Passes (a caller returning with the register untouched)
+    are not followed: a void caller that ends in a call looks the same (ER-175 tried it: func_00101238, a void word
+    copy, came out s32 through one such caller)."""
+    e = scan.get(name)
+    if not e or not e["sites"]:
+        return None
+    v0, f0 = e["v0"] > 0, e["f0"] > 0
+    if v0 and f0:
+        return None
+    if f0:
+        return "f32"
+    if v0:
+        return "s32"
+    return None if e["sets"] else "void"
+
+
+def _ret_class(ret: str) -> str:
+    r = " ".join(ret.split())
+    if "*" in r:
+        return "s32"
+    if r == "void":
+        return "void"
+    if r in ("f32", "float"):
+        return "f32"
+    return "s32"                # integers, M2C_UNK, f64 / double (returned in $v0 / $v1 on the EE)
+
+
+def rt_fix_signatures(sigs: dict[str, str], game: eematch.Game) -> tuple[dict[str, str], dict[str, str]]:
+    """ER-175: m2c's harvested signatures with the return type read from the game's call sites where the register
+    class differs (func_001C9B18 came out `int`; no caller reads its $v0). Only harvested signatures change: a src/
+    prototype is placed code's own view and keeps its type (the as-the-caller-saw-it cases of recipes 2.36 / 2.38 and
+    ruling 3.19 live there). A GPR return of the right class keeps m2c's type (a pointer stays a pointer). Returns
+    (fixed signatures, {name: "old -> new"})."""
+    scan = game_return_scan(game)
+    fixed, changed = dict(sigs), {}
+    for n, sig in sigs.items():
+        m = re.match(rf"^(.*?)\s*\b{n}\(", sig)
+        if not m:
+            continue
+        want = game_return_class(n, scan)
+        old = " ".join(m[1].split())
+        if want is None or _ret_class(old) == want:
+            continue
+        fixed[n] = want + " " + sig[m.end() - len(n) - 1:]
+        changed[n] = f"{old} -> {want}"
+    return fixed, changed
+
+
+DRAFT_PROTO_RE = re.compile(r"^(?!extern\b|static\b|typedef\b|return\b)([A-Za-z_][\w \*]*?)\s*\b(func_[0-9A-F]{8})"
+                            r"\(([^;\n]*)\);([ \t]*/\* extern \*/)[ \t]*$", re.M)
+_M2C_CACHE: dict[tuple[str, str], tuple[int, str, str]] = {}
+
+
+def rt_fix_draft(c_text: str, game: eematch.Game, skip: frozenset = frozenset()) -> tuple[str, list[str]]:
+    """ER-175: the callee prototypes m2c writes into a draft itself (`M2C_UNK func_X(..);  /* extern */`, for a
+    callee the context does not declare) with the return type the game's call sites show, as rt_fix_signatures does
+    for the harvest (ER-164's func_001C4838 draft had func_001C9B18 so, as M2C_UNK). Returns (text, ["func_X M2C_UNK
+    -> void", ...]); the text is unchanged when the list is empty. `skip`: callees left as m2c wrote them."""
+    scan = game_return_scan(game)
+    used: list[str] = []
+
+    def fix(m):
+        want = game_return_class(m[2], scan)
+        old = " ".join(m[1].split())
+        if want is None or _ret_class(old) == want or m[2] in skip:
+            return m[0]
+        used.append(f"{m[2]} {old} -> {want}")
+        return f"{want} {m[2]}({m[3]});{m[4]}"
+    return DRAFT_PROTO_RE.sub(fix, c_text), used
+
+
 # --- m2c ----------------------------------------------------------------------------------------------------
 
 def run_m2c(m2c_dir: Path, asm_path: Path, ctx: Path | None, timeout: int) -> tuple[int, str, str]:
@@ -911,6 +1111,7 @@ class Attempt:
     res: object = None                                     # the eematch.FuncResult of the kept draft
     widened: dict[str, str] = field(default_factory=dict)  # pass-through retry: callee -> widened prototype
     consts: set[str] = field(default_factory=set)          # ER-101: floats the kept draft declares const
+    rt_used: list[str] = field(default_factory=list)       # ER-175: callees given the game's return type in the draft
 
     def score(self) -> tuple:
         size_off = abs((self.size_ours or 0) - (self.size_game or 0)) if self.compiles else 10 ** 6
@@ -1433,6 +1634,7 @@ def packer_variant(c_text: str, name: str) -> str | None:
 # --- ER-172: narrow parameters ---------------------------------------------------------------------------------
 
 NARROW_VARIANT = True       # --no-narrow turns the ER-172 variant off
+NARROW_KEEP = True          # --no-narrow-keep keeps it only on a MATCH, as ER-172 did (ER-180)
 NARROW_TYPES = {("andi", 0xFFFF): "u16", ("andi", 0xFF): "u8", ("sra", 16): "s16", ("srl", 16): "u16",
                 ("sra", 24): "s8", ("srl", 24): "u8"}
 WIDE_INT_TYPES = {"s32", "u32", "int", "unsigned int", "signed int", "M2C_UNK", "M2C_UNK32", "s16", "u16", "s8",
@@ -1556,9 +1758,16 @@ def compile_compare(name: str, addr: int | None, c_text: str, c_path: Path, out:
 
 
 def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, ctx: Path | None,
-            protos_h: Path | None, ctx_label: str, game: eematch.Game, timeout: int, hilo: set[str]) -> Attempt:
+            protos_h: Path | None, ctx_label: str, game: eematch.Game, timeout: int, hilo: set[str],
+            rt: bool = False, rt_skip: frozenset = frozenset()) -> Attempt | None:
+    """One draft from one context through the variants. rt (ER-175): the draft's own callee prototypes with the
+    game's return types (rt_fix_draft; `rt_skip`: callees left as m2c wrote them); returns None when that changes
+    nothing. m2c runs once per (asm, context)."""
     at = Attempt(ctx_label, protos_h=protos_h, ctx=ctx)
-    rc, draft, err = run_m2c(m2c_dir, a_out, ctx, timeout)
+    key = (str(a_out), str(ctx))
+    if key not in _M2C_CACHE:
+        _M2C_CACHE[key] = run_m2c(m2c_dir, a_out, ctx, timeout)
+    rc, draft, err = _M2C_CACHE[key] if rt else _M2C_CACHE.pop(key)
     at.files["m2c.txt"] = draft + ("\n/* stderr:\n" + err + "*/\n" if err.strip() else "")
     fail = re.search(r"Decompilation failure:\s*\n\s*\n?(.*)", draft)
     if rc != 0 or fail or not draft.strip():
@@ -1571,6 +1780,13 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
     at.n_err = len(re.findall(r"\bM2C_ERROR\(", draft))
     includes = [out / "m2c_extra.h", m2c_dir / "m2c_macros.h"] + ([protos_h] if protos_h else [])
     c_text, at.notes = clean_draft(draft, name, includes, hilo)
+    if rt:
+        c_text, used = rt_fix_draft(c_text, game, rt_skip)
+        if not used:
+            return None
+        at.rt_used = [u.split()[0] for u in used]
+        at.notes.append("draft prototypes with the game's return types: " + ", ".join(used)
+                        + (" (kept as m2c wrote: " + ", ".join(sorted(rt_skip)) + ")" if rt_skip else ""))
     if at.n_err:
         at.notes.append(f"{at.n_err} M2C_ERROR")
     at.files["c"] = c_text
@@ -1626,90 +1842,119 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
             else:
                 at.notes.append("packer order tried, no closer")
     # ER-172: parameters the game narrows at entry typed u16 / s16 / u8 / s8 (then the store orders of that form);
-    # kept only on a MATCH, else the variants below start from the draft as it was
+    # ER-180: kept when it matches or brings the draft closer (the variants below then start from it; if none of them
+    # matches, they run again from the draft as it was before the narrowing, so no match is lost)
+    narrow_pre = None
     if not res.match and NARROW_VARIANT:
         nv = narrow_variant(c_text, name)
         if nv:
             alt, used = nv
-            r0 = compile_compare(name, addr, alt, c_path.with_suffix(".narrow.c"), out, game)[0]
-            tries = [(r0, alt, "")]
+            npath = c_path.with_suffix(".narrow.c")
+            r0 = compile_compare(name, addr, alt, npath, out, game)[0]
+            tries = [(r0, alt, "", npath)]
             if r0 and not r0.match and r0.game_size == r0.our_size:
                 for k, (note, alt2) in enumerate(store_variants(alt)):
                     if k >= STORE_LIMIT:
                         break
-                    r3 = compile_compare(name, addr, alt2, c_path.with_suffix(f".narrow.ord{k}.c"), out, game)[0]
-                    tries.append((r3, alt2, note))
+                    opath = c_path.with_suffix(f".narrow.ord{k}.c")
+                    r3 = compile_compare(name, addr, alt2, opath, out, game)[0]
+                    tries.append((r3, alt2, note, opath))
                     if r3 and r3.match:
                         break
-            hit = next(((r, t, nt) for r, t, nt in tries if r and r.match), None)
+            hit = next(((r, t, nt) for r, t, nt, _p in tries if r and r.match), None)
             if hit:
                 res, c_text = hit[0], hit[1]
                 at.files["c"] = c_text
                 at.notes.append("narrow parameter: " + ", ".join(used) + (f"; {hit[2]}" if hit[2] else ""))
             else:
-                best = min((r for r, _t, _n in tries if r), default=None, key=_off)
-                at.notes.append("narrow parameter tried (" + ", ".join(used) + "), no match" + (
-                    f" (best: {diff_class(best)}, {sum(not w.ok for w in best.words)} words)" if best else ""))
-    if not res.match and res.game_size == res.our_size:
-        for k, (note, alt) in enumerate(store_variants(c_text)):
-            res2, _msg2 = compile_compare(name, addr, alt, c_path.with_suffix(f".ord{k}.c"), out, game)
-            if res2 and res2.match:
-                res, c_text = res2, alt
-                at.files["c"] = alt
-                at.notes.append(note)
-                break
-    if not res.match and SIBCALL_314:
-        svs = sibcall_variants(c_draft, name, addr, s_base, game)
-        tries = []
-        n_ord = 0
-        for v, sv in svs:
-            r0 = compile_compare(name, addr, sv, c_path.with_suffix(f".r314_{v}.c"), out, game)[0]
-            tries.append((r0, sv, ""))
-            if r0 and r0.match:
-                break
-            if r0 and r0.game_size == r0.our_size:
-                for k, (note, alt2) in enumerate(store_variants(sv)):
-                    if n_ord >= STORE_LIMIT:
-                        break
-                    n_ord += 1
-                    r3, _m3 = compile_compare(name, addr, alt2, c_path.with_suffix(f".r314_{v}.ord{k}.c"), out, game)
-                    tries.append((r3, alt2, note))
-                    if r3 and r3.match:
-                        break
-            if any(r and r.match for r, _t, _n in tries):
-                break
-        if svs:
-            hit = next(((r, t, nt) for r, t, nt in tries if r and r.match), None)
-            if hit:
-                res, c_text = hit[0], hit[1]
-                at.files["c"] = c_text
-                at.notes.append("ruling 3.14 (void)&" + SIBCALL_ARG_RE.search(c_text)[1]
-                                + (f"; {hit[2]}" if hit[2] else ""))
-            else:
-                best = min((r for r, _t, _n in tries if r), default=None, key=_off)
-                at.notes.append(f"ruling 3.14 tried ({', '.join(v for v, _s in svs)}), no match" + (
-                    f" (best: {diff_class(best)}, {sum(not w.ok for w in best.words)} words)" if best else ""))
-    if not res.match and CONST_VARIANT:
-        cv = const_variant(c_text, name, at.protos_h, out)
-        if cv:
-            alt, ph2, used = cv
-            res2, _msg2 = compile_compare(name, addr, alt, c_path.with_suffix(".const.c"), out, game)
-            tries = [(res2, alt, "")]
-            if res2 and not res2.match and res2.game_size == res2.our_size:
-                for k, (note, alt2) in enumerate(store_variants(alt)):
-                    r3, _m3 = compile_compare(name, addr, alt2, c_path.with_suffix(f".const.ord{k}.c"), out, game)
-                    tries.append((r3, alt2, note))
-                    if r3 and r3.match:
-                        break
-            hit = next(((r, t, nt) for r, t, nt in tries if r and r.match), None)
-            if hit:
-                res, c_text = hit[0], hit[1]
-                at.files["c"] = c_text
-                at.protos_h = ph2
-                at.consts = used
-                at.notes.append("const floats: " + " ".join(sorted(used)) + (f"; {hit[2]}" if hit[2] else ""))
-            else:
-                at.notes.append("const variant tried, no match")
+                best = min((x for x in tries if x[0]), default=None, key=lambda x: _off(x[0]))
+                if NARROW_KEEP and best and _off(best[0]) < _off(res):
+                    narrow_pre = (res, c_text, c_draft, s_base)
+                    was = sum(not w.ok for w in res.words)
+                    res, c_text, c_draft, s_base = best[0], best[1], best[1], best[3].with_suffix(".s")
+                    at.files["c"] = c_text
+                    at.notes.append("narrow parameter kept, closer: " + ", ".join(used) + (
+                        f"; {best[2]}" if best[2] else "") + f" ({was} -> {sum(not w.ok for w in res.words)} words)")
+                else:
+                    at.notes.append("narrow parameter tried (" + ", ".join(used) + "), no match" + (
+                        f" (best: {diff_class(best[0])}, {sum(not w.ok for w in best[0].words)} words)"
+                        if best else ""))
+
+    def later(res, c_text, c_draft, s_base):
+        """The variants kept only on a MATCH (store orders, ruling 3.14, const floats) on one base draft. Returns
+        (res, c_text, notes, protos_h or None, consts or None)."""
+        notes: list[str] = []
+        ph_new = consts = None
+        if not res.match and res.game_size == res.our_size:
+            for k, (note, alt) in enumerate(store_variants(c_text)):
+                res2, _msg2 = compile_compare(name, addr, alt, c_path.with_suffix(f".ord{k}.c"), out, game)
+                if res2 and res2.match:
+                    res, c_text = res2, alt
+                    notes.append(note)
+                    break
+        if not res.match and SIBCALL_314:
+            svs = sibcall_variants(c_draft, name, addr, s_base, game)
+            tries = []
+            n_ord = 0
+            for v, sv in svs:
+                r0 = compile_compare(name, addr, sv, c_path.with_suffix(f".r314_{v}.c"), out, game)[0]
+                tries.append((r0, sv, ""))
+                if r0 and r0.match:
+                    break
+                if r0 and r0.game_size == r0.our_size:
+                    for k, (note, alt2) in enumerate(store_variants(sv)):
+                        if n_ord >= STORE_LIMIT:
+                            break
+                        n_ord += 1
+                        r3, _m3 = compile_compare(name, addr, alt2, c_path.with_suffix(f".r314_{v}.ord{k}.c"), out,
+                                                  game)
+                        tries.append((r3, alt2, note))
+                        if r3 and r3.match:
+                            break
+                if any(r and r.match for r, _t, _n in tries):
+                    break
+            if svs:
+                hit = next(((r, t, nt) for r, t, nt in tries if r and r.match), None)
+                if hit:
+                    res, c_text = hit[0], hit[1]
+                    notes.append("ruling 3.14 (void)&" + SIBCALL_ARG_RE.search(c_text)[1]
+                                 + (f"; {hit[2]}" if hit[2] else ""))
+                else:
+                    best = min((r for r, _t, _n in tries if r), default=None, key=_off)
+                    notes.append(f"ruling 3.14 tried ({', '.join(v for v, _s in svs)}), no match" + (
+                        f" (best: {diff_class(best)}, {sum(not w.ok for w in best.words)} words)" if best else ""))
+        if not res.match and CONST_VARIANT:
+            cv = const_variant(c_text, name, at.protos_h, out)
+            if cv:
+                alt, ph2, used = cv
+                res2, _msg2 = compile_compare(name, addr, alt, c_path.with_suffix(".const.c"), out, game)
+                tries = [(res2, alt, "")]
+                if res2 and not res2.match and res2.game_size == res2.our_size:
+                    for k, (note, alt2) in enumerate(store_variants(alt)):
+                        r3, _m3 = compile_compare(name, addr, alt2, c_path.with_suffix(f".const.ord{k}.c"), out, game)
+                        tries.append((r3, alt2, note))
+                        if r3 and r3.match:
+                            break
+                hit = next(((r, t, nt) for r, t, nt in tries if r and r.match), None)
+                if hit:
+                    res, c_text = hit[0], hit[1]
+                    ph_new, consts = ph2, used
+                    notes.append("const floats: " + " ".join(sorted(used)) + (f"; {hit[2]}" if hit[2] else ""))
+                else:
+                    notes.append("const variant tried, no match")
+        return res, c_text, notes, ph_new, consts
+
+    st = later(res, c_text, c_draft, s_base)
+    if not st[0].match and narrow_pre:
+        st2 = later(*narrow_pre)
+        if st2[0].match:
+            st = (st2[0], st2[1], ["narrow parameter dropped: a later variant matches without it"] + st2[2],
+                  st2[3], st2[4])
+    res, c_text = st[0], st[1]
+    at.files["c"] = c_text
+    at.notes += st[2]
+    if st[3] is not None:
+        at.protos_h, at.consts = st[3], st[4]
     at.files["diff.txt"] = eematch.report(res)
     at.res = res
     at.match = res.match
@@ -2017,6 +2262,25 @@ def job(name: str, asm_path: Path, out: Path, m2c_dir: Path, ctxs: list[tuple[Pa
     a_out.write_text(info.text, encoding="utf-8", newline="\n")
     tried = []
     for ctx, protos_h, ctx_label in ctxs:
+        if RT_FIX:
+            # ER-175: m2c's own callee prototypes with the game's return types first, then the draft as m2c wrote it
+            at_rt = attempt(name, addr, a_out, out, m2c_dir, ctx, protos_h, ctx_label + ", rt", game, timeout,
+                            info.hilo_syms, rt=True)
+            if at_rt is not None:
+                tried.append(at_rt)
+                # several changed: each one also left as m2c wrote it (the caller may have seen that type: ER-164's
+                # func_001C4838 matches with func_001C9B18 void and func_00101238 as m2c's int, ruling 3.19)
+                if not at_rt.match and 2 <= len(at_rt.rt_used) <= RT_LEAVE_ONE_OUT:
+                    for k, c in enumerate(at_rt.rt_used):
+                        a2 = attempt(name, addr, a_out, out, m2c_dir, ctx, protos_h, ctx_label + f", rt{k}", game,
+                                     timeout, info.hilo_syms, rt=True, rt_skip=frozenset({c}))
+                        if a2 is not None:
+                            tried.append(a2)
+                            if a2.match:
+                                break
+                if tried[-1].match:
+                    _M2C_CACHE.pop((str(a_out), str(ctx)), None)
+                    break
         tried.append(attempt(name, addr, a_out, out, m2c_dir, ctx, protos_h, ctx_label, game, timeout,
                              info.hilo_syms))
         if tried[-1].match:
@@ -2076,6 +2340,8 @@ def job(name: str, asm_path: Path, out: Path, m2c_dir: Path, ctxs: list[tuple[Pa
         notes.append("pass-through retry tried, no match")
     if any(at.ctx_label.startswith("untouched") for at in tried) and not best.match:
         notes.append("untouched-args retry tried, no match")
+    if name in RT_NOTES:
+        notes.append(RT_NOTES[name] + ("" if best.ctx_label.endswith("game return types") else " (not kept)"))
     if len(tried) > 1:
         notes.append(f"ctx {best.ctx_label} ({len(tried)} tried)")
     row.notes = "; ".join(notes)
@@ -2549,14 +2815,26 @@ def run_batch(names: list[str], out: Path, args, m2c_dir: Path, idx: dict[str, P
     void_ret: set[str] = set()
     src_protos: dict[str, str] = {}
     src_data: dict[str, str] = {}
+    rt_changed: dict[str, str] = {}
+    m2c_protos_path = None
     if args.ctx != "none":
         protos, data = src_context()
         src_protos, src_data = dict(protos), dict(data)
         if args.ctx == "harvest":
             sigs = harvest(names, idx, protos, data, out, m2c_dir, args)
-            protos.update(sigs)
             harvested = len(sigs)
             void_ret = {n for n, sig in sigs.items() if sig.startswith("void ")}
+            if RT_FIX:
+                # ER-175: return types from the game's call sites; m2c's own signatures stay as a fallback context
+                fixed, rt_changed = rt_fix_signatures(sigs, game)
+                m2c_protos_path = out / "protos_m2c.h"
+                m2c_protos_path.write_text(ctx_body({**protos, **sigs}, data), encoding="utf-8", newline="\n")
+                (out / "rt_fix.txt").write_text("".join(f"{n} {rt_changed[n]}\n" for n in sorted(rt_changed)),
+                                                encoding="utf-8", newline="\n")
+                print(f"m2c_bulk: return types from the game's call sites: {len(rt_changed)} of {len(sigs)} harvested "
+                      f"signature(s) changed ({out / 'rt_fix.txt'})")
+                sigs = fixed
+            protos.update(sigs)
         protos_path = out / "protos.h"
         ctx_path = out / "m2c_ctx.h"
         body = ctx_body(protos, data)
@@ -2568,11 +2846,13 @@ def run_batch(names: list[str], out: Path, args, m2c_dir: Path, idx: dict[str, P
     print(f"m2c_bulk: {len(names)} function(s), ctx {args.ctx}"
           + (f" ({harvested} harvested signatures)" if args.ctx == "harvest" else "") + f", output {out}")
 
-    def variant(n, tag, drop: set[str], src_only: bool):
-        """Context files for function n: without its own prototype, minus `drop`, or src/ only."""
+    def variant(n, tag, drop: set[str], src_only: bool, base: Path | None = None):
+        """Context files for function n: without its own prototype, minus `drop`, or src/ only (`base`: another
+        prototypes file than protos.h)."""
         c = out / "obj" / f"{n}.{tag}.ctx.h"
         ph = out / "obj" / f"{n}.{tag}.protos.h"
-        body = ctx_body(src_protos, src_data) if src_only else drop_names(protos_path.read_text(encoding="utf-8"), drop)
+        body = ctx_body(src_protos, src_data) if src_only else \
+            drop_names((base or protos_path).read_text(encoding="utf-8"), drop)
         c.write_text(without_own(CTX_TYPEDEFS + "\n" + body, n), encoding="utf-8", newline="\n")
         ph.write_text(without_own(body, n), encoding="utf-8", newline="\n")
         return c, ph
@@ -2581,9 +2861,16 @@ def run_batch(names: list[str], out: Path, args, m2c_dir: Path, idx: dict[str, P
         # each draft's headers leave out its own prototype (m2c prints the definition itself)
         ctxs = []
         if args.ctx == "harvest":
-            ctxs.append((*variant(n, "h", set(), False), "harvest"))
+            mine = sorted(c for c in prepare_asm(idx[n]).callees if c in rt_changed)
+            if mine:
+                # ER-175: the game's return types first, then m2c's own harvest (the caller may have seen m2c's)
+                RT_NOTES[n] = "return types from the game: " + ", ".join(f"{c} {rt_changed[c]}" for c in mine)
+                ctxs.append((*variant(n, "h", set(), False), "harvest, game return types"))
+                ctxs.append((*variant(n, "hm", set(), False, m2c_protos_path), "harvest"))
+            else:
+                ctxs.append((*variant(n, "h", set(), False, m2c_protos_path), "harvest"))
             if void_ret:
-                ctxs.append((*variant(n, "hnv", void_ret, False), "harvest minus void returns"))
+                ctxs.append((*variant(n, "hnv", void_ret, False, m2c_protos_path), "harvest minus void returns"))
         if args.ctx in ("harvest", "src"):
             ctxs.append((*variant(n, "src", set(), True), "src"))
         ctxs.append((None, None, "none"))
@@ -2657,6 +2944,12 @@ def main() -> int:
     ap.add_argument("--no-narrow", action="store_true",
                     help="skip the narrow-parameter variant (a parameter the game narrows at entry, andi 0xFFFF / "
                          "0xFF or an sll + sra / srl pair, typed u16 / u8 / s16 / s8; ER-172)")
+    ap.add_argument("--no-rt-fix", action="store_true",
+                    help="keep m2c's harvested return types (default: a harvested callee's return type is read from "
+                         "the game's call sites where they show it, m2c's own kept as a fallback context; ER-175)")
+    ap.add_argument("--no-narrow-keep", action="store_true",
+                    help="keep the narrow-parameter variant only on a MATCH, as ER-172 did (default: also when it "
+                         "brings the draft closer, which the later variants then start from; ER-180)")
     ap.add_argument("--no-untouched", action="store_true",
                     help="skip the untouched-args retry (callees widened to take the argument registers the function "
                          "passes on untouched; ER-147)")
@@ -2677,9 +2970,11 @@ def main() -> int:
     args = ap.parse_args()
     sys.stdout.reconfigure(line_buffering=True)
     global GCC_TIMEOUT, TAG, SLOT_MOVE, CONST_VARIANT, STORE_SORT, SIBCALL_314, FRAME_FIX, PACKER_VARIANT, \
-        UNTOUCHED_RETRY, REG_BYTES, STORE_LIMIT, NARROW_VARIANT
+        UNTOUCHED_RETRY, REG_BYTES, STORE_LIMIT, NARROW_VARIANT, RT_FIX, NARROW_KEEP
     FRAME_FIX = not args.no_frame
     NARROW_VARIANT = not args.no_narrow
+    NARROW_KEEP = not args.no_narrow_keep
+    RT_FIX = not args.no_rt_fix
     PACKER_VARIANT = not args.no_packer
     UNTOUCHED_RETRY = not args.no_untouched
     REG_BYTES = not args.no_reg_bytes

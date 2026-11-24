@@ -186,6 +186,8 @@ python -I tools/m2c_bulk.py --list picks.txt                     one name per li
                                                                  retry / register byte arithmetic (6.18)
    [--store-limit 48]                                            most permuted store orders compiled per draft (6.18)
    [--no-narrow]                                                 skip the narrow-parameter variant (6.20)
+   [--no-narrow-keep] [--no-rt-fix]                              narrowing only on a MATCH / m2c's own harvested return
+                                                                 types (6.21)
 python -I tools/sdata_consts.py [--all] [--names D_X ...]        census of the never-stored .sdata floats (6.10)
 python -I tools/m2c_bulk.py --rerun-diffs build/m2c_bulk/<label> --chunk 8 --plain    an earlier run's same-size DIFFs in small lists (6.6)
 ```
@@ -230,10 +232,33 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
    the whole context, and every run from 22 Nov 2026 17:04 to ER-130 fell back to `none` (6.12). The run checks the
    context once and prints a WARNING when m2c cannot parse it.
 
+   **Return types from the game's call sites** (ER-175, 6.21; `--no-rt-fix`): after the last round, each harvested
+   signature (never a `src/` prototype) whose return register class differs from what the game's callers show gets
+   that class: `f32` when some call site reads `$f0` after the `jal` (and none `$v0`), `s32` when some reads `$v0`
+   (and none `$f0`; a GPR type m2c gave, such as a pointer, is kept), `void` when no call site reads either and the
+   callee itself writes neither in the 6 instructions before a `jr $ra` (epilogue restores skipped) or its delay
+   slot, makes no call there and has no tail `j` (func_001C9B18, a `lq; sq` copy m2c typed `int`). Anything else
+   (no direct call site, both read, or a callee that sets the register or ends in a call with no reader:
+   func_0012E820, func_0012FAA8, recipes 2.36) keeps m2c's type. The scan reads the original ELF (function bounds
+   from the build's symbols; ER-164's `rtscan.py` rules: a straight line of at most 24 instructions after the delay
+   slot, stopping at a join, after a branch's delay slot or at the next call), 0.4 s for the whole game. The changes
+   are listed in `rt_fix.txt` in the run folder.
 3. **Fallback contexts.** Unless `--single`, each function is tried with `harvest`, then `harvest` without the
    harvested signatures that say `void` (a callee m2c thought returns nothing but whose `$v0` / `$f0` the caller
    uses: "Read from unset register"), then `src`, then `none`, until one matches; the best attempt is kept (match,
-   compiles, fewest `M2C_ERROR`, nearest size, fewest differing words) and named in the Notes column.
+   compiles, fewest `M2C_ERROR`, nearest size, fewest differing words) and named in the Notes column. A function
+   that calls (or names) a callee whose return type the call sites changed is tried first with `harvest, game
+   return types`, then with m2c's own harvest and the rest as before (the caller may have seen m2c's type: recipes
+   2.36, ruling 3.19), so no attempt of the old chain is lost (Notes: `return types from the game: func_X int ->
+   void`, with `(not kept)` when another context won). With `--single` only the first is tried.
+   **The draft's own prototypes** (ER-175): m2c writes a prototype into the draft for each callee the context does
+   not declare (`M2C_UNK func_X(..);  /* extern */`, e.g. in the `none` and `src` attempts). Under each context, the
+   draft is first compiled with those prototypes' return types from the call sites (same rules; Notes `draft
+   prototypes with the game's return types: func_001C9B18 M2C_UNK -> void, ...`; context label `..., rt`), then as
+   m2c wrote it; m2c runs once for both. When 2-4 prototypes change and that form does not match, each changed
+   callee is also tried as m2c wrote it, the others changed (labels `..., rt0`, `rt1`, ...; Notes `(kept as m2c
+   wrote: func_X)`): the caller may have seen m2c's type (ER-164's func_001C4838 matched with func_001C9B18 `void`
+   and func_00101238 as m2c's `int`, ruling 3.19). Every form goes through the variants of step 6.
 
 4. **Cleaning** into a scratch file: `#include "common.h"`, a generated `m2c_extra.h` (`f64`, `s128`, `u128`), m2c's
    own `m2c_macros.h` from the m2c folder (included by path, **never copied into this repo**: m2c is GPL-3), and the
@@ -298,8 +323,13 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
      narrowed once on entry), the draft's parameter `argN` of another integer type gets that type, and m2c's narrowings
      of it in the body (`argN & 0xFFFF` / `0xFF`, `(u16) argN`, the shift pair; a bare one only as a whole operand)
      become plain `argN`; then the store orders of that form (at most `--store-limit`). Tried on a draft that does not
-     match yet (after the frame and packer fixes), kept only on a MATCH (Notes: `narrow parameter: arg1 u16`, else
-     `narrow parameter tried (arg1 u16), no match (best: ...)`); the variants below start from the draft as it was;
+     match yet (after the frame and packer fixes). Kept on a MATCH (Notes: `narrow parameter: arg1 u16`) or (ER-180,
+     6.21; `--no-narrow-keep` turns it off) when its best form is closer than the draft (size difference, then
+     differing words, strictly less): the variants below (store orders, ruling 3.14, const floats) then start from
+     it (Notes: `narrow parameter kept, closer: arg2 u16, ... (27 -> 1 words)`); if none of them matches, they run
+     again from the draft as it was before the narrowing, and a match there wins (Notes: `narrow parameter dropped:
+     a later variant matches without it`). Otherwise `narrow parameter tried (arg1 u16), no match (best: ...)` and
+     the variants start from the draft as it was;
    - **ruling 3.14** (ER-121): when our build of the draft has a sibling `j` (read from the compiled `.s`) and the
      game's function has no `j` out of itself, `(void)&arg0; /* ruling 3.14 */` after the declarations (the first
      parameter), then (ER-138) the same with each of the first 3 locals declared at the top of the body (8- and 16-bit
@@ -1143,7 +1173,53 @@ only a parameter's type (no ruling needed) and is kept only on a MATCH.
   `arg3`, `arg4` `u16`), func_0012B7C0 15 -> 4, func_0012C578 / func_0012C630 9 -> 7, func_0012C500 16 -> 14.
 - The B run on the whole file took 15% longer than A (other sessions were loading the machine; not measured apart).
 
+### 6.21 Return types from the game's call sites; narrowing kept when closer (ER-175 + ER-180, Mon 23 Nov 2026)
+
+Changes in `tools/m2c_bulk.py` (steps 2, 3 and 6 above; `--no-rt-fix`, `--no-narrow-keep`); nothing placed in
+`src/`. Worktree `C:\rs\wt\er175`, branch `er-175-180-m2c-bulk-4`. A/B as in 6.20: main's tool copied aside
+(`tools/_m2c_bulk_main.py`, never committed) against this one, same arguments (`--plain --tag ER-175 --gcc-timeout 30
+--par 4`; A and B ran side by side, so the times are only rough). Every B row is from the final tool (the first B runs of the near-miss list and the 30, made before the draft-prototype form was added, gave the same results). Runs and drafts (game code, not in git):
+`C:\rs\wt\er175_runs\`.
+
+Why: m2c guesses a callee's return type from the callee's own asm (harvest) or, for a callee the context lacks,
+writes its own `M2C_UNK` prototype into the draft; both can be wrong in both directions, and the type the caller saw
+changes register allocation (recipes 2.36, 2.38). The game's callers show it: a caller that reads `$v0` / `$f0`
+after the `jal` saw a value. ER-164's `rtscan.py` logic now runs inside the tool on the original ELF.
+
+**The scan checked against placed code:** the scan places 729 of the game's 3,609 functions in a class (505 `s32`,
+70 `f32`, 154 `void`; the rest are left to m2c). 196 of them have a C definition; 195 agree with it. The other:
+func_001C2FC8 is `void` in its definition, and its only game call site reads its `$v0` (it ends in a call, so it
+passes that callee's value on); the scan says `s32`, which is what that caller saw. Two first rules were dropped on
+this check:
+following passes (a caller returning with `$v0` untouched) made the `void` word copy func_00101238 `s32`; and
+`void` from zero readers alone was wrong for 19 placed `s32` / `f32` functions that set the register early or end in
+a call (func_0012FAA8, func_0014FE30). Hence the callee-side conditions in step 2.
+
+| Run (state) | Functions | Main's tool | This tool | Lost | Time A / B |
+|---|---|---|---|---|---|
+| ER-164's 126 same-size near misses (`e7f5a42`, before ER-164 placed func_001C4838) | 126 | 4 MATCH | **5 MATCH: func_001C4838** (`ctx none, rt0`: func_001C9B18, func_001D03E0 `M2C_UNK -> void`, func_00101238 kept as m2c wrote it; ER-164 found this by hand with `flip.py`); func_0012B7C0 15 -> 4 words (ER-180) | none | 493 / 499 s |
+| the same list on main (`d38fa97`; 118 still `INCLUDE_ASM` in A's run, 120 in B's: A's list had two names run together) | 118 / 120 | 1 MATCH | 1 MATCH; func_0012B7C0 15 -> 4 words, the other 117 shared rows unchanged; 0 of 142 harvested signatures changed, 1 row used a draft prototype change | none | 343 / 386 s |
+| the 30 functions that narrow at entry (ER-172's `narrow_main.txt`, main) | 30 | 1 MATCH (func_001CB388) | 1 MATCH; **9 drafts kept closer**: func_001CB300 27 -> 1 word, func_0012B7C0 15 -> 4, func_0012C578 / func_0012C630 9 -> 7, func_0012C500 16 -> 14, func_0012C3E8 60 -> 58, func_0012F5F8 35 -> 34, func_0012F688 39 -> 38, func_0012F740 39 -> 33; func_0012C3E8 also with a draft prototype `M2C_UNK -> void` | none | 155 / 194 s |
+| 14 smaller game files, whole (`text_0013DBC0`, `text_001343E8`, `text_001CB528`, `text_001C9B18`, `text_0013C510`, `text_001CA8D8`, `text_0013A410`, `text_001CA0F0`, `text_001388E8`, `text_0013B748`, `text_00145120`, `text_0014C840`, `text_0014D930`, `text_0014E2E8`; main) | 231 | 8 MATCH; same size 1-2 / 3-8 / 9+: 4 / 5 / 42 | **9 MATCH: func_0013C4E0** (`text_0013B748`, plain MATCH: harvested func_0013C468 `void -> s32`, its callers read `$v0`); 5 / 5 / 42; 4 of 152 harvested signatures changed, 15 rows used a changed type | none | 387 / 405 s |
+| whole `text_001000C0` (main) | 385 | 0 MATCH (its earlier ones are placed); same size 1-2 / 3-8 / 9+: 1 / 13 / 38 | 0 MATCH; 1 / 16 / 37; 6 of 384 harvested signatures changed, 34 rows used a changed type; **12 drafts closer**: the 8 narrowing ones above in this file, func_0012FAE8 21 -> 15 words (harvested func_001651C0 `void -> s32`), func_0010CE20 21 -> 19, func_0010E690 257 -> 256, func_0010EC20 250 -> 249 (draft prototypes `M2C_UNK -> void`) | none | 848 / 894 s |
+
+- New MATCH on main, not placed (drafts in the dispatcher notes `ER-175/`): **func_0013C4E0** (`src/text_0013B748.c`,
+  11 instructions; the plain draft takes the file's own `extern void func_0013C4E0(void *);`).
+- ER-180 "with ruling 3.14": the ruling 3.14 variant now starts from a kept narrowing; none of the nine kept drafts
+  has the sibling-`j` shape that triggers it, so it was not exercised on them.
+- `--single` tries only the first form (the game's types), so with `--single` a match that needs m2c's own type can
+  be lost; without it the old chain is tried in full after the new forms.
+
 ## 7. Not verified
+
+- ER-175 / ER-180 (6.21): func_0013C4E0 (new plain MATCH) is not placed, so not proven by `make regress`. The
+  return-type scan is a straight line after each `jal` (as `rtscan.py`); calls through a pointer (`jalr`) are not
+  counted, so a function reached only that way keeps m2c's type; a 64-bit value read through `$v1` is not looked
+  at. The callee side looks only at the last 6 instructions before each `jr $ra` past the epilogue restores, so a
+  value set earlier and kept in `$v0` (or in a branch arm) makes no difference to `void`: it is then left to m2c
+  (safe side). The leave-one-out tries stop at 4 changed prototypes and leave one out at a time (a match needing two
+  left as m2c wrote them is not found). Whole files rerun: `text_001000C0` and the 14 smaller files; `text_00150878`
+  (1,037 functions) was not rerun. The narrowing kept as a base did not meet the ruling 3.14 shape.
 
 - ER-138 / ER-147 / ER-151 / ER-160 (6.18): none of the new plain MATCHes is placed, so none is proven by `make
   regress`. The register byte rewrite gave no match on its own (14 drafts changed, among them func_0012EAF8, which it
