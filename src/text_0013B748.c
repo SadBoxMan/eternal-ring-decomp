@@ -203,8 +203,33 @@ s32 func_0013C450(void **arg0) {
     return *(u8 *)((char *)(*(void **)((char *)(*arg0) + 0xE0)) + 0xA78) == 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013C468);
+extern void *func_0012C360(void *, s32, s32, s32, void *);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013B748", func_0013C4E0);
+/* ER-189: by hand (m2c had it void with no float parameter); returns func_0012C360's value, which func_0013C4E0 uses.
+   The xE0 load first (ordersearch perm). Names, types and offsets are Unconfirmed readings. */
+void* func_0013C468(void **arg0, f32 dy) {
+    f32 v[4];
+    char *p;
+    char *q;
+
+    func_0013C438(arg0, 0);
+    p = *(char **)arg0;
+    q = *(char **)(p + 0xE0) + 0xA30;
+    v[0] = *(f32 *)(p + 0xA0);
+    v[1] = *(f32 *)(p + 0xA4) + dy;
+    v[2] = *(f32 *)(p + 0xA8);
+    v[3] = 0.0f;
+    return func_0012C360(arg0, 0x85, 1, (s32)q, v);
+}
+
+extern void* func_0013C468(void **arg0, f32 dy);
+
+/* ER-189: by hand: func_0013C468(arg0, 0.0f), then the record it returns gets x30 = 0.0f (the constant kept in $f20).
+   Names, types and offsets are Unconfirmed readings. */
+void func_0013C4E0(void *arg0) {
+    f32 z = 0.0f;
+
+    *(f32 *)((char *)func_0013C468(arg0, z) + 0x30) = z;
+}
 
 INCLUDE_RODATA("asm/nonmatchings/text_0013B748", D_00354848);

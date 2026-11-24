@@ -480,9 +480,25 @@ float func_001399B8(char *a0, char *a1, float f) {
     return func_00131608(*(float *)(a1 + 0xA4), d);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139A70);
-
 extern void func_0012DF30(void *arg0, s32 arg1, s32 arg2, void *arg3, f32 *arg4, f32 arg5);
+extern f32 D_0032FE68[];
+extern f32 D_0035BA08;
+extern f32 D_0035BA14;
+
+/* ER-189: by hand: the position goes to func_0012DF30 through a stack vector (m2c passed it as float arguments), as
+   func_0013C468 does. Names, types and offsets are Unconfirmed readings. */
+void func_00139A70(void *arg0, void *arg1) {
+    f32 v[4];
+    f32 *p;
+
+    p = *(f32 **)((char *)arg0 + 0x130);
+    v[0] = p[0];
+    v[1] = p[1] + D_0035BA14;
+    v[2] = p[2];
+    v[3] = 0.0f;
+    func_0012DF30(arg1, 4, 3, v, D_0032FE68, D_0035BA08);
+}
+
 extern f32 D_0032FE78[];
 extern f32 D_0035BA0C;
 
