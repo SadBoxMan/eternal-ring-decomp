@@ -87,7 +87,20 @@ void func_001CCDE0(s32 arg0, s32 arg1) {
     func_001CB808(1, 0x1050, *(s16 *)(((char *)D_0035C554 + (arg0 << 5)) + 0x18), arg1 & 0xFF);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CCE00);
+/* ER-189: by hand, the early exits first (recipes 2.43: the game's bnel); names, types and offsets are Unconfirmed readings. */
+s32 func_001CCE00(u32 arg0, s16 arg1) {
+    char *p;
+
+    if (arg0 >= 0x11U) {
+        return -1;
+    }
+    p = (char *)D_0035C554 + (arg0 << 5);
+    if (*(s32 *)p == 0) {
+        return -1;
+    }
+    func_001CB808(1, 0x1060, *(s16 *)(p + 0x18), arg1);
+    return 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CCE58);
 
@@ -111,9 +124,33 @@ s32 func_001CD530(u32 arg0) {
     return func_001CB808(1, 0x2010, *(s32 *)(((arg0 * 0x10) + (char *)D_0035C554) + 0x20C));
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CD570);
+/* ER-189: by hand, the early exits first (recipes 2.43: the game's bnel); names, types and offsets are Unconfirmed readings. */
+s32 func_001CD570(u32 arg0) {
+    char *p;
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CD5C8);
+    if (arg0 >= 5U) {
+        return -1;
+    }
+    p = (char *)D_0035C554 + ((arg0 << 4) + 0x200);
+    if (*(s32 *)p == 0) {
+        return -1;
+    }
+    return (func_001CB808(1, 0x2040, *(s32 *)(p + 0xC)) == 0) ? 0 : -1;
+}
+
+/* ER-189: by hand, the early exits first (recipes 2.43: the game's bnel); names, types and offsets are Unconfirmed readings. */
+s32 func_001CD5C8(u32 arg0) {
+    char *p;
+
+    if (arg0 >= 5U) {
+        return -1;
+    }
+    p = (char *)D_0035C554 + ((arg0 << 4) + 0x200);
+    if (*(s32 *)p == 0) {
+        return -1;
+    }
+    return (func_001CB808(1, 0x2050, *(s32 *)(p + 0xC)) == 0) ? 0 : -1;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CD620);
 
