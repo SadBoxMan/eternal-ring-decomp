@@ -2327,7 +2327,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-224",
+      "waits_on": "",
       "notes": ""
     },
     {
@@ -2354,6 +2354,24 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Sonnet, low",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-229",
+      "title": "func_001037F8 (never-read vector copy; ruling first)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, medium",
+      "waits_on": "LuciDin's ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-230",
+      "title": "m2c_bulk: call-argument vector copies (optional)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
     }
