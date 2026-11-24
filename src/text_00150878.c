@@ -2061,7 +2061,19 @@ void func_00162950(void) {
 void func_00162958(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00162960);
+/* ER-195: ER-198's base-pointer scan hit (recipes, ER-195): D_001FF340 read through one float pointer, the sine
+   table indexed directly. Names, types and offsets are Unconfirmed readings. */
+void func_00162960(char *arg0) {
+    f32 *c = (f32 *)D_001FF340;
+    s32 a;
+    s32 b;
+
+    a = (s32)((c[5] * 4096.0f) / 6.2831855f) & 0xFFF;
+    b = (s32)((c[4] * 4096.0f) / 6.2831855f) & 0xFFF;
+    *(f32 *)(arg0 + 0x10) = c[0] - D_001F0380[a] * 96.0f * D_001F0380[b + 0x400];
+    *(f32 *)(arg0 + 0x14) = c[1] - D_001F0380[b] * 96.0f;
+    *(f32 *)(arg0 + 0x18) = c[2] - D_001F0380[a + 0x400] * 96.0f * D_001F0380[b + 0x400];
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00162A40);
 
@@ -5112,7 +5124,25 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A37C0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A3A40);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A3D00);
+extern const Vec4A D_00355E60;
+extern const Vec4A D_00355E70;
+extern const Vec4A D_00355BE0;
+extern s32 func_00158AD8(s32, s32, void *, void *, void *, void *);
+/* ER-195: ER-198's base-pointer scan hit (recipes, ER-195): three 16-byte vectors copied from .rodata, declared
+   const (the loads then schedule as the game's). Names, types and offsets are Unconfirmed readings. */
+void func_001A3D00(s32 arg0, f32 f) {
+    Vec4A a = D_00355E60;
+    Vec4A b = D_00355E70;
+    Vec4A c = D_00355BE0;
+
+    func_001C9B18((s32)&a, (void *)(arg0 + 0x60));
+    D_00248880[1] = 0;
+    a.v[0] = 1.5707964f;
+    D_00248880[0] = 1;
+    D_00248880[7] = 0;
+    func_0017CC28(c.v, 2, f);
+    func_00158AD8(0x9D, 0xA, (void *)(arg0 + 0x50), &a, &b, &c);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A3DD8);
 
@@ -6771,7 +6801,24 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF688);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF700);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF748);
+extern s32 D_00202950[];
+extern s32 D_00202990[];
+/* ER-195: ER-198's base-pointer scan hit (recipes, ER-195): both records through one pointer each, the two flag
+   bytes 0x21A before 0x21B. Names, types and offsets are Unconfirmed readings. */
+void func_001BF748(s32 *arg0) {
+    char *s = (char *)D_00202990;
+    char *d = (char *)D_00202950;
+    s8 *g;
+
+    *(s32 *)(d + 0x20) = *(s32 *)(s + 0x20);
+    *(u8 *)(d + 0x24) = *(u8 *)(s + 0x24);
+    func_001C9B18((s32)d, s);
+    func_001C9B18((s32)(d + 0x10), s + 0x10);
+    g = (s8 *)D_001FF890;
+    g[0x21A] = 1;
+    g[0x21B] = 1;
+    *arg0 = 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF7C8);
 
