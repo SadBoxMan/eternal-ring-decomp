@@ -1380,6 +1380,46 @@ prototypes added (`func_0012D3E8` `f32 (void *, void *, f32)`, `func_001D8F10` `
 | func_001BF8E0 | 5 words (`h1_os\best.c`): 11 stores from `arg0` into `D_001FF390` (G390); a `climb` reaches 5, the `x30` load / `x138` store and the `x18` pair stay out of place. Pointer, index and m2c orders tried |
 | func_00157B60 | 4 real words (`n1.c`; the score's other 4 are `$gp` relocations): `((R8 *)D_00330410)[sp[0]].x4` (2.42's record array) gives the right instructions; the index load and the table address take `$v0` / `$v1` the other way round. Operand order of the `&`, scalar `sp`, a table pointer tried |
 
+### 2.46 Early exits and callee values in the other game files (ER-189, Mon 23 Nov 2026; Confirmed by `make regress`, 43 functions)
+
+Branch `er-189-early-exit` (worktree `C:\rs\wt\er189`), commits `c5ea17b`, `47559a2`, `ed7cfc1`, `637781c`, `6289ff6`,
+`10ba09c`. 43 functions, 7,400 bytes in eight files: `text_001000C0` 19 (3,140), `text_0013DBC0` 8 (1,672),
+`text_001343E8` 6 (1,428), `text_001CB528` 3 (260), `text_001388E8` 2 (308), `text_0013C510` 2 (304), `text_0013B748`
+2 (160), `text_001CA0F0` 1 (128). Sources: ER-171's `er171c0_nm` drafts (4 of 4 scanner hits placed), a fresh
+`tools/m2c_bulk.py --plain` run over the smaller files (`er189small`: 8 plain MATCHes placed as they were, the rest by
+hand) and over `text_001000C0` (`er189c0`: no MATCH, 19 placed by hand). Scratch (our C only): `C:\rs\wt\er189_runs\`
+(`s\`, `p\`, the scanner `scan.py`, the M2C_FIELD converter `plain.py`).
+
+| Lesson | Proved by |
+|---|---|
+| **2.43's early exit holds in the other files**: a game-side forward likely branch (`bnel` / `beql` / `bc1fl`) where ours has `beqz` / `bc1t` means the short path is written first and returns. Found by scanning the drafts' diffs for forward likely branches on the game side only (backward ones are loop rotation) | func_00133458, func_0010CBF8, func_00110198, func_001CCE00, func_001CD570, func_001CD5C8, func_00143480, func_00142860, func_00140868, func_0013E838, func_0013DEE8, func_00131448 |
+| **The game's tail copies follow the source**: two paths that each end in the same call or test were written so (func_0010CBF8: both paths end in their own `func_001D7588` tail call; func_00133458: the success test in each state, which gcc cross-jumps; func_0013DEE8: both arms of a test fall to one `return 0`). A path that keeps its own literals and registers has its own local (func_0010CBF8's else path) | func_0010CBF8, func_00133458, func_0013DEE8 |
+| **One result variable when `$v0 = 1` sits in the delay slot of every branch to the epilogue** (func_00110198: `r = 1` before the tests; the first two range blocks end `if (x >= lo) goto tail; goto one;`, because `a > hi` or-ed with `a < lo` folds into one unsigned range test) | func_00110198 |
+| **m2c drafts `void` for functions that return the last call's `$f0`**: the callers declare them `float` (func_00130378, func_001302C8). Eight placed with the value returned (2.42). The **absolute value in double**: `d = f(...); if (d < 0.0) d = 0.0 - d; return d;` gives the game's `fptodp` / `dpcmp` / `dpsub` / `dptofp` | func_00130378, func_00130258, func_001303A8, func_001302C8, func_00130C80, func_00130D00, func_00131548, func_001315A8 |
+| **m2c passes a stack vector's floats as call arguments** when the callee gets a pointer to it: a local `f32 v[4]` filled before the call (stores of `0.0f` come out as `sw $zero`) | func_0012D388, func_00130120, func_0012FFD8, func_00139A70, func_0013C468, func_00132108, func_001308B8 (2.42's two-vector shape) |
+| **The callee's return type, again (2.36 / 2.42)**: `$v1` after a call where ours has `$v0` means the callee returns a value: func_0012F9C0 declared `s32` in `text_001000C0` (its asm returns func_00165170's value; no C definition yet), func_001E9A5C (`sdk/libc`) `void *`; func_0013C468 returns func_0012C360's value, which func_0013C4E0 uses. **func_0012DAF8 returns func_0012E820's float**: `text_001000C0`'s extern of it and the definition of func_00130CE0 (which returns its value) were retyped `float`, same bytes | func_00133458, func_001CA630, func_0013C4E0, func_00130C80 |
+| **A float parameter's place, from the caller side (2.42)**: func_0012B890 with the float before the last int (as `text_0013C510` already had it) moves the `mov.s $f12` out of the `jal` slot; `text_001343E8`'s prototype and its five placed calls reordered, same bytes. The definition in `text_001000C0` and five other files still have the float last (follow-up) | func_00136968, func_0013C658 (its call written to the file's order) |
+| **An s16 counter test `--x < 0`** gives the game's `sll 16` / `bgez`; m2c's `temp - 1 ... & 0x8000` is longer | func_00141E20, func_00143C10 |
+| **An array index keeps `(i + c) * size` unfolded**: `t->x1A4[arg1 + 0x10]` gives `addiu 0x10; sll 1; addu; lh 0x1A4`; pointer arithmetic folds it to `+ 0x1C4` | func_0012FAE8 (func_0012F9C0 has the same shape) |
+| Store orders from `ordersearch perm` / `climb` (a store the game makes first), and one spelling: the indirect call through `x4C` passed `arg0` (a reading: `$a0` still holds it at the `jalr`) | func_00143480, func_00142860, func_00140868, func_0013C468, func_00132108, func_00139488 |
+| **Never commit or run `make regress` while an `m2c_bulk` run is going in the same checkout**: the pre-commit hook runs regress, which deletes `build/` with the run in it (section 6 of `docs/matching_tools.md` says so for regress; the hook does the same). ER-189 lost one `text_001000C0` run this way | (the run) |
+
+Rulings used: 3.13 once (func_0011C518: `f32 buf[4]`; the frame has 32 bytes of locals, func_001CA018 stores 16),
+3.14 five times (func_0013C9A8, func_001374C8, func_00140E00 drafted by `m2c_bulk.py`; func_00141E20, func_00143C10 by
+hand). `G390` gained `x40` (`f32[4]`) and `xD8` (`char *`), layout-neutral. Unofficial names: `T11C` (the record
+`x11C` points at), locals `v`, `q`, `t`, `p`, `b`, `a`, `d`, `r`, `n`, `buf`, `dy`, `z`; readings (Unconfirmed):
+func_001EBAA8 / func_001E9E8C / func_001E9A5C as vsprintf / strlen / memcpy, func_001CA630's text area after
+`D_01B31D80[19]`, func_00139488's callback argument, the return types above.
+
+**Parked (scratch in `C:\rs\wt\er189_runs\s\`, game code not in git):**
+
+| Function | Cause |
+|---|---|
+| func_0013EE58 (`text_0013DBC0`) | 2 words: case 1 matches with its test inverted (`== 0` first); in case 0 the game puts `addiu $v1, $s1, 0x90` before `addiu $v0, $a0, 1`, ours the other way (a sched tie). 360 orders, `+= 1`, a typed pointer, the switch value reused tried (`a13ee58_os\best.c`) |
+| func_001CC9B0 (`text_001CB528`) | 11 words, same size: the early exits match; in the final loop over 16 records the base, counter and value take `$a1` / `$v1` / `$a0` where the game has `$a0` / `$a1` / `$v1` (a local-alloc tie). Declaration orders, `for` / `do`, compare spellings tried (`func_001CC9B0_best11.c`) |
+| func_00134790 (`text_001343E8`) | One word short (`func_00134790_best.c`): the game copies the flag word `D_0035B830` into a second register for the first seven tests and keeps the first for the `0x100` test and the call; gcc propagates our copy away |
+| func_001CA6B0 (`text_001CA0F0`) | A varargs wrapper (`fmt, ...` saved to the stack, `va_list` passed to func_001CA630): needs `<stdarg.h>`, which the build does not have (no include path to the compiler's own headers) |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1470,13 +1510,13 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23); three by ER-100 (2.24); func_001668E0, func_001668A8 (ER-095, 2.25: `char buf[0x80]`); func_00113ED8 (ER-115, 2.27); func_001198C0, func_00101ED0 (ER-125, 2.29); func_001033F0, func_00103470 (ER-149, 2.33); func_001636A0 (ER-153, 2.35: `s32 buf[4]`, with ruling 3.14's `(void)&buf`) |
+| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23); three by ER-100 (2.24); func_001668E0, func_001668A8 (ER-095, 2.25: `char buf[0x80]`); func_00113ED8 (ER-115, 2.27); func_001198C0, func_00101ED0 (ER-125, 2.29); func_001033F0, func_00103470 (ER-149, 2.33); func_001636A0 (ER-153, 2.35: `s32 buf[4]`, with ruling 3.14's `(void)&buf`); func_0011C518 (ER-189, 2.46: `f32 buf[4]`) |
 
 ### 3.14 ER-100: an address-taken local that only stops a sibling call (Sun 22 Nov 2026, 16:40 Eastern, LuciDin in the ER-100 session)
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32); by ER-154: func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.34); by ER-153: func_001636A0 (`(void)&buf` on ruling 3.13's array, 2.35); by ER-164: func_0013F3B0 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.38); by ER-165: func_001417E8 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.39); by ER-171: func_00154CA8, func_00133F28 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.40); by ER-185: func_001CAA58 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.44) |
+| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32); by ER-154: func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.34); by ER-153: func_001636A0 (`(void)&buf` on ruling 3.13's array, 2.35); by ER-164: func_0013F3B0 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.38); by ER-165: func_001417E8 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.39); by ER-171: func_00154CA8, func_00133F28 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.40); by ER-185: func_001CAA58 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.44); by ER-189: func_0013C9A8, func_001374C8, func_00140E00 (drafted by `m2c_bulk.py`), func_00141E20, func_00143C10 (by hand) (`(void)&arg0`, 2.46) |
 
 ### 3.15 ER-095: a 16-byte aligned float vector type (Sun 22 Nov 2026, about 17:35 Eastern, LuciDin in the DISP-03 session)
 
