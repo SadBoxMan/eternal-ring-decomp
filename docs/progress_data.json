@@ -2257,6 +2257,15 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-218",
+      "title": "Recomp: internal resolution (EX)",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, high",
+      "waits_on": "speed cards (ER-139 / ER-141 / ER-143)",
+      "notes": ""
     }
   ]
 }
