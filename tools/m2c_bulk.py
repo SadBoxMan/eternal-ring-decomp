@@ -1732,6 +1732,431 @@ def narrow_variant(c_text: str, name: str) -> tuple[str, list[str]] | None:
     return c_text[:m.start()] + head + body, used
 
 
+# --- ER-188: early exits, s16 sign tests, the game's return type, stack vectors, global bases -----------------
+# Draft fixes from hand matches (recipes 2.42, 2.43, 2.45, 2.46). Each yields candidate texts; attempt() keeps the
+# best one when it matches or comes strictly closer, and the variants kept only on a MATCH then start from it (if
+# none of them matches, they run again from the draft as it was, so no match is lost).
+
+EARLY_EXIT = True           # --no-early-exit
+S16_SIGN = True             # --no-s16-sign
+GAME_RET = True             # --no-game-ret
+STACK_VEC = True            # --no-stack-vec
+GLOBAL_BASE = True          # --no-global-base
+
+
+def _func_span(c_text: str, name: str):
+    """(signature match, body lines without the closing brace, text after the body) of `name`'s definition."""
+    m = SIG_RE.search(c_text)
+    while m and m[2] != name:
+        m = SIG_RE.search(c_text, m.end())
+    if not m:
+        return None
+    rest = c_text[m.end():]
+    end = rest.rfind("\n}")
+    if end < 0:
+        return None
+    return m, rest[:end].split("\n"), rest[end:]
+
+
+def _likely_forward(word: int) -> bool:
+    """A branch-likely with a forward target (backward ones are gcc's loop rotation, recipes 2.46)."""
+    op, rt = word >> 26, (word >> 16) & 31
+    off = word & 0xFFFF
+    fwd = 0 < off < 0x8000
+    if op in (0x14, 0x15, 0x16, 0x17):                       # beql / bnel / blezl / bgtzl
+        return fwd
+    if op == 1 and rt in (0x02, 0x03, 0x12, 0x13):           # bltzl / bgezl / bltzall / bgezall
+        return fwd
+    if op == 17 and (word >> 21) & 31 == 8 and rt & 2:       # bc1fl / bc1tl
+        return fwd
+    return False
+
+
+def likely_gap(res, game: eematch.Game, addr: int | None) -> bool:
+    """The game's function has more forward branch-likelies than our build of the draft (ER-184 / ER-189's scan)."""
+    size = game.size_of.get(addr) if addr is not None else None
+    if not size:
+        return False
+    g = sum(_likely_forward(game.word(addr + o)) for o in range(0, size, 4))
+    ours = sum(_likely_forward(w.ours) for w in res.words if w.ours is not None)
+    return g > ours
+
+
+_REL_SWAP = {"==": "!=", "!=": "==", "<": ">=", ">=": "<", ">": "<=", "<=": ">"}
+
+
+def _top_ops(e: str) -> list[tuple[int, str]]:
+    """Top-level comparison, logical, ?: and assignment operators of an expression (outside () and [])."""
+    depth, i, ops = 0, 0, []
+    while i < len(e):
+        c, two = e[i], e[i:i + 2]
+        if c in "([":
+            depth += 1
+        elif c in ")]":
+            depth -= 1
+        elif depth == 0:
+            if two in ("&&", "||", "==", "!=", "<=", ">="):
+                ops.append((i, two))
+                i += 2
+                continue
+            if two in ("<<", ">>", "->"):
+                i += 2
+                continue
+            if c in "<>?=":
+                ops.append((i, c))
+        i += 1
+    return ops
+
+
+def negations(cond: str) -> list[str]:
+    """The inverted test: `==` / `!=` swapped (exact for floats too); `<` `<=` `>` `>=` swapped and also as `!(..)`
+    (not the same for a float NaN: a byte match decides); `!x` -> `x`; anything else `!(..)`."""
+    c = _strip_parens(cond)
+    ops = _top_ops(c)
+    if len(ops) == 1 and ops[0][1] in _REL_SWAP:
+        i, op = ops[0]
+        swapped = f"{c[:i].rstrip()} {_REL_SWAP[op]} {c[i + len(op):].lstrip()}"
+        return [swapped] if op in ("==", "!=") else [swapped, f"!({c})"]
+    if not ops and c.startswith("!") and not c.startswith("!="):
+        inner = c[1:].strip()
+        if re.fullmatch(r"[A-Za-z_]\w*", inner) or _strip_parens(inner) != inner:
+            return [_strip_parens(inner)]
+    if not ops and re.fullmatch(r"[A-Za-z_]\w*", c):
+        return [f"!{c}"]
+    return [f"!({c})"]
+
+
+IF_OPEN_RE = re.compile(r"^    if \((.*)\) \{$")
+
+
+def _early_exit_once(lines: list[str], form: int) -> list[str] | None:
+    """One top-level `if (c) { body; return X; } return Y;` at the end of the body -> `if (!c) { return Y; } body;
+    return X;` (a void function: `if (c) { body }` last -> `if (!c) { return; } body`). None when the tail is not so."""
+    k = len(lines)
+    while k and not lines[k - 1].strip():
+        k -= 1
+    tail = lines[:k]
+    if not tail:
+        return None
+    ret_y = None
+    if re.fullmatch(r"    return\b.*;", tail[-1]):
+        ret_y, close = tail[-1].strip(), len(tail) - 2
+    else:
+        close = len(tail) - 1
+    if close < 1 or tail[close] != "    }":
+        return None
+    j = close - 1
+    while j >= 0 and not (tail[j].startswith("    ") and not tail[j].startswith("     ") and tail[j].strip()):
+        j -= 1
+    if j < 0:
+        return None
+    om = IF_OPEN_RE.match(tail[j])
+    if not om:
+        return None
+    block = tail[j + 1:close]
+    if not block or any(ln.strip() and not ln.startswith("        ") for ln in block):
+        return None
+    if ret_y is not None and not re.fullmatch(r"        return\b.*;", block[-1]):
+        return None                                   # the block falls through to `return Y`: not this shape
+    if ret_y is None and re.fullmatch(r"        return\b.*;", block[-1]):
+        return None
+    negs = negations(om[1])
+    neg = negs[min(form, len(negs) - 1)]
+    exit_ = ret_y if ret_y is not None else "return;"
+    return tail[:j] + [f"    if ({neg}) {{", f"        {exit_}", "    }"] + [ln[4:] if ln.strip() else ln
+                                                                                for ln in block]
+
+
+def early_exit_variants(c_text: str, name: str) -> list[tuple[str, str]]:
+    """Recipes 2.43 / 2.46 (ER-184: 16 of 16 hits, ER-189: 12 more): m2c writes `if (p != NULL) { ...; return 0; }
+    return -1;`, which gcc compiles to a `beqz` past the body; the game's `bnel p, $zero` with the body's first load
+    in the likely slot needs the short path first, `if (p == NULL) return -1;`. Applied at the end of the body up to
+    3 times (a second test inside the first: `if (x <= 0) return -1;`), each depth a candidate; a relational test
+    gives a second spelling (`!(a < b)`). Returns [(note, text)]."""
+    sp = _func_span(c_text, name)
+    if not sp:
+        return []
+    m, lines, after = sp
+    head = c_text[:m.end()]
+    out = []
+    for form in (0, 1):
+        cur = lines
+        for depth in range(1, 4):
+            nxt = _early_exit_once(cur, form)
+            if nxt is None:
+                break
+            cur = nxt
+            text = head + "\n".join(cur) + after
+            if all(text != t for _n, t in out):
+                out.append((f"early exit first (x{depth}" + (", !(..)" if form else "") + ")", text))
+    return out
+
+
+def s16_sign_variants(c_text: str, name: str) -> list[tuple[str, str]]:
+    """Recipes 2.46 (func_00141E20, func_00143C10): m2c's `t = x - 1; x = t; if (t & 0x8000)` on a halfword is the
+    game's `if (--x < 0)` on an s16 (`sll 16` / `bgez`); also a bare `if (t & 0x8000)` -> `if ((s16) t < 0)`.
+    Returns [(note, text)]: the fused decrement first when the temporary is used nowhere else."""
+    sp = _func_span(c_text, name)
+    if not sp or "0x8000" not in c_text:
+        return []
+    m, lines, after = sp
+    head = c_text[:m.end()]
+    body = "\n".join(lines)
+    out = []
+    fused = list(lines)
+    n_fused = 0
+    for i in range(len(fused) - 2, 1, -1):
+        im = re.fullmatch(r"(\s+)if \((!?)\(?(\w+) & 0x8000\)?\) \{", fused[i])
+        if not im:
+            continue
+        ind, neg, t = im[1], im[2], im[3]
+        am = re.fullmatch(rf"{ind}{t} = (.+) - 1;", fused[i - 2])
+        sm = re.fullmatch(rf"{ind}(.+) = (?:\([us]16\) )?{t};", fused[i - 1])
+        if not (am and sm and am[1] == sm[1]):
+            continue
+        if len(re.findall(rf"\b{t}\b", "\n".join(fused))) != 3 + 1:   # declaration, assignment, store, test
+            continue
+        lv = sm[1]
+        fm = re.fullmatch(r"M2C_FIELD\((.+), [us]16 \*, (\w+)\)", lv)
+        s16lv = f"M2C_FIELD({fm[1]}, s16 *, {fm[2]})" if fm else f"(*(s16 *)&{lv})"
+        fused[i] = f"{ind}if (--{s16lv} {'>=' if neg else '<'} 0) {{"
+        del fused[i - 2:i]
+        fused = [ln for ln in fused if not re.fullmatch(rf"    [\w ]+\b{t};", ln)]
+        n_fused += 1
+        break
+    if n_fused:
+        out.append(("s16 sign test: --x < 0", head + "\n".join(fused) + after))
+    simple, k = re.subn(r"if \(\(?(\w+) & 0x8000\)?\)", r"if ((s16) \1 < 0)", body)
+    simple, k2 = re.subn(r"if \(!\((\w+) & 0x8000\)\)", r"if ((s16) \1 >= 0)", simple)
+    if k + k2:
+        out.append(("s16 sign test: (s16) t < 0", head + simple + after))
+    return out
+
+
+TAIL_CALL_RE = re.compile(r"^    ((func_[0-9A-F]{8})\(.*\));$")
+
+
+def _retype_callee(c_text: str, protos_h: Path | None, callee: str, ret: str, out: Path, name: str, tag: str,
+                   stem: str | None = None):
+    """`callee`'s prototype with return type `ret`: the draft's own line (`M2C_UNK func_X(..);  /* extern */`) or the
+    prototypes header's (a copy under obj/, the draft's include switched to it). Returns (text, header) or None."""
+    pat = re.compile(rf"^(?:extern\s+)?[A-Za-z_][\w \*]*?\s*\b{callee}\(", re.M)
+    sm = SIG_RE.search(c_text)
+    while sm and sm[2] != name:
+        sm = SIG_RE.search(c_text, sm.end())
+    pre = c_text[:sm.start()] if sm else c_text
+    if pat.search(pre):
+        new_pre = pat.sub(f"{ret} {callee}(", pre, count=1)
+        return new_pre + c_text[len(pre):], protos_h
+    if protos_h and protos_h.exists():
+        ph = protos_h.read_text(encoding="utf-8")
+        ph2, k = pat.subn(f"{ret} {callee}(", ph, count=1)
+        if not k:
+            return None
+        p2 = out / "obj" / f"{stem or name}.{tag}.protos.h"
+        p2.write_text(ph2, encoding="utf-8", newline="\n")
+        return c_text.replace(f'#include "{protos_h.as_posix()}"', f'#include "{p2.as_posix()}"'), p2
+    return None
+
+
+def game_ret_variants(c_text: str, name: str, game: eematch.Game, protos_h: Path | None, out: Path,
+                      stem: str | None = None):
+    """Recipes 2.42 / 2.46: a `void` draft ending in a call whose value the game leaves in `$v0` / `$f0` to the
+    `jr $ra`, where the game's callers read that register (game_return_class: func_00130378 and seven more are
+    `float`, m2c drafted `void`): `T f(..) { ...; return g(..); }`, the callee's prototype given T as well when it is
+    not. Returns [(note, text, protos header)]."""
+    cls = game_return_class(name, game_return_scan(game))
+    if cls not in ("f32", "s32"):
+        return []
+    sp = _func_span(c_text, name)
+    if not sp or " ".join(sp[0][1].split()) != "void":
+        return []
+    m, lines, after = sp
+    k = len(lines)
+    while k and not lines[k - 1].strip():
+        k -= 1
+    tm = TAIL_CALL_RE.match(lines[k - 1]) if k else None
+    if not tm:
+        return []
+    t = cls if cls == "f32" else "s32"
+    body = lines[:k - 1] + [f"    return {tm[1]};"] + lines[k:]
+    text = c_text[:m.start()] + f"{t} {name}({m[3]}) {{" + "\n".join(body) + after
+    outs = [(f"returns the last call's value ({t}: the game's callers read it)", text, protos_h)]
+    callee = tm[2]
+    cur = _ret_class(_callee_ret(text, protos_h, callee) or "")
+    if cur != ("f32" if t == "f32" else "s32"):
+        rt = _retype_callee(text, protos_h, callee, t, out, name, "gret", stem)
+        if rt:
+            outs.insert(0, (f"returns the last call's value ({t}; {callee} declared {t})", rt[0], rt[1]))
+    return outs
+
+
+def _callee_ret(c_text: str, protos_h: Path | None, callee: str) -> str | None:
+    pat = re.compile(rf"^(?:extern\s+)?([A-Za-z_][\w \*]*?)\s*\b{callee}\(", re.M)
+    for src in (c_text, protos_h.read_text(encoding="utf-8") if protos_h and protos_h.exists() else ""):
+        mm = pat.search(src)
+        if mm and not mm[1].strip().startswith("return"):
+            return " ".join(mm[1].split())
+    return None
+
+
+def game_sp_floats(game: eematch.Game, addr: int | None) -> bool:
+    """The game's function moves floats through its stack locals (`lwc1` / `swc1` at N($sp) below the saves)."""
+    size = game.size_of.get(addr) if addr is not None else None
+    loc = game_locals_size(game, addr)
+    if not size or not loc:
+        return False
+    for o in range(0, size, 4):
+        w = game.word(addr + o)
+        if w >> 26 in (0x31, 0x39) and (w >> 21) & 31 == 29 and (w & 0xFFFF) < loc:
+            return True
+    return False
+
+
+def stack_vec_variants(c_text: str, name: str, game: eematch.Game, addr: int | None, protos_h: Path | None,
+                       out: Path, stem: str | None = None):
+    """Recipes 2.46 (func_0012D388, func_00130120, func_0012FFD8, func_00139A70, ...; ER-189 follow-up 5): m2c's
+    stack array of a function whose game code moves floats through it (`lwc1` / `swc1` at N($sp)) typed `f32`; and a
+    call that passes m2c's `sp` followed by 1-4 values (m2c read the vector's stack stores as more arguments) as the
+    stores into the vector, then the call with `sp` last, its prototype cut after that parameter (`f32 *`). Returns
+    [(note, text, protos header)]."""
+    if not game_sp_floats(game, addr):
+        return []
+    sp = _func_span(c_text, name)
+    if not sp:
+        return []
+    m, lines, after = sp
+    head = c_text[:m.end()]
+    outs = []
+    typed = [re.sub(r"^    (?:M2C_UNK|s32|u32|int)\s+sp\[", "    f32 sp[", ln) for ln in lines]
+    if typed != lines:
+        outs.append(("stack array typed f32", head + "\n".join(typed) + after, protos_h))
+    base = typed
+    for i, ln in enumerate(base):
+        cm = re.fullmatch(r"(\s+)((?:[\w\[\]]+ = |return )?)(func_[0-9A-F]{8})\((.*)\);", ln)
+        if not cm:
+            continue
+        args = _split_top(cm[4])
+        args = [a.strip() for a in args]
+        if "sp" not in args:
+            continue
+        j = args.index("sp")
+        vals = args[j + 1:]
+        if not 1 <= len(vals) <= 4:
+            continue
+        ind = cm[1]
+        stores = [f"{ind}sp[{n}] = {v};" for n, v in enumerate(vals)]
+        new = base[:i] + stores + [f"{ind}{cm[2]}{cm[3]}({', '.join(args[:j + 1])});"] + base[i + 1:]
+        text = head + "\n".join(new) + after
+        if not any(re.match(r"^    f32 sp\[", x) for x in new):
+            text = re.sub(r"^    (?:M2C_UNK|s32|u32|int)\s+sp\[", "    f32 sp[", text, count=1, flags=re.M)
+        callee = cm[3]
+        cut = _cut_callee(text, protos_h, callee, j, out, name, stem)
+        if cut:
+            outs.insert(0, (f"stack vector: {len(vals)} value(s) stored, {callee} takes f32 * (arg {j})",
+                            cut[0], cut[1]))
+        break
+    return outs
+
+
+def _cut_callee(c_text: str, protos_h: Path | None, callee: str, j: int, out: Path, name: str,
+                stem: str | None = None):
+    """`callee`'s prototype cut to its first j + 1 parameters, the last one `f32 *` (draft line or header copy)."""
+    pat = re.compile(rf"^((?:extern\s+)?[A-Za-z_][\w \*]*?\s*\b{callee})\(([^)]*)\)", re.M)
+
+    def fix(mm):
+        ps = [p.strip() for p in _split_top(mm[2])] if mm[2].strip() not in ("", "void") else []
+        ps = (ps + ["s32"] * (j + 1))[:j] + ["f32 *"]
+        return f"{mm[1]}({', '.join(ps)})"
+    if pat.search(c_text):
+        return pat.sub(fix, c_text, count=1), protos_h
+    if protos_h and protos_h.exists():
+        ph2, k = pat.subn(fix, protos_h.read_text(encoding="utf-8"), count=1)
+        if not k:
+            return None
+        p2 = out / "obj" / f"{stem or name}.svec.protos.h"
+        p2.write_text(ph2, encoding="utf-8", newline="\n")
+        return c_text.replace(f'#include "{protos_h.as_posix()}"', f'#include "{p2.as_posix()}"'), p2
+    return None
+
+
+_TSIZE = {"s8": 1, "u8": 1, "char": 1, "s16": 2, "u16": 2, "s32": 4, "u32": 4, "f32": 4, "int": 4, "M2C_UNK": 4,
+          "s64": 8, "u64": 8, "f64": 8}
+GFIELD_RE = re.compile(r"M2C_FIELD\((&?D_[0-9A-F]{8}), ([\w ]+?) \*, (0x[0-9A-Fa-f]+|\d+)\)")
+
+
+def global_base_variants(c_text: str, name: str) -> list[tuple[str, str]]:
+    """Recipes 2.45 (func_001C1880, func_001C1630, func_001BCCF8, func_001BCD30, func_001BF198; ER-186 follow-up 3):
+    `M2C_FIELD(D_x, T *, off)` folds the offset into `%lo(D_x + off)`; the game builds `D_x` in a register and loads
+    off it. The forms that keep the base: one typed pointer set from the global (`s16 *p = (s16 *)D_x;`, each access
+    `p[off / size]`, another type through `(char *)p + off`), tried with each access type in turn (most used first,
+    at most 3); and the draft's own extern of D_x as an array of that type read by index (`D_001F6B90[9]`).
+    Returns [(note, text)]."""
+    sp = _func_span(c_text, name)
+    if not sp or "M2C_FIELD(" not in c_text:
+        return []
+    m, lines, after = sp
+    body = "\n".join(lines)
+    uses = GFIELD_RE.findall(body)
+    if not uses:
+        return []
+    by_g: dict[str, list[tuple[str, int]]] = {}
+    for g, t, off in uses:
+        by_g.setdefault(g, []).append((" ".join(t.split()), int(off, 0)))
+    k = 1 if lines and not lines[0].strip() else 0
+    while k < len(lines) and LOCAL_DECL_RE.match(lines[k]):
+        k += 1
+    outs = []
+    # one candidate per type choice of the most used global; every other global takes its own most used type
+    gl = sorted(by_g, key=lambda g: -len(by_g[g]))
+    first_types = []
+    for t, _n in sorted(((t, sum(a == t for a, _o in by_g[gl[0]])) for t in {a for a, _o in by_g[gl[0]]}),
+                        key=lambda x: -x[1])[:3]:
+        first_types.append(t)
+    for t0, unify in [(t, False) for t in first_types] + [(t, True) for t in first_types[:2]]:
+        if unify and not any(a != t0 and _TSIZE.get(a) == _TSIZE.get(t0) for a, _o in by_g[gl[0]]):
+            continue
+        choice = {gl[0]: t0}
+        for g in gl[1:]:
+            choice[g] = max({a for a, _o in by_g[g]}, key=lambda t: sum(a == t for a, _o in by_g[g]))
+        decls, new_body = [], body
+        for n, g in enumerate(gl):
+            t = choice[g]
+            v = f"gb{n}"
+            decls.append(f"    {t} *{v} = ({t} *){g};")
+
+            def rep(mm, g=g, t=t, v=v, uni=unify and n == 0):
+                if mm[1] != g:
+                    return mm[0]
+                ta, off = " ".join(mm[2].split()), int(mm[3], 0)
+                size = _TSIZE.get(ta)
+                if (ta == t or (uni and size == _TSIZE.get(t))) and size and off % size == 0:
+                    return f"{v}[{off // size}]"
+                return f"(*({ta} *)((char *){v} + 0x{off:X}))"
+            new_body = GFIELD_RE.sub(rep, new_body)
+        nl = new_body.split("\n")
+        text = c_text[:m.end()] + "\n".join(nl[:k] + decls + nl[k:]) + after
+        outs.append((f"global base pointer: " + ", ".join(f"{choice[g]} *{g}" for g in gl)
+                     + (f" (same-size fields as {t0})" if unify else ""), text))
+    # index form: a global the draft declares itself, every access one type at aligned offsets
+    for g in gl:
+        if g.startswith("&"):
+            continue
+        ts = {a for a, _o in by_g[g]}
+        t = next(iter(ts))
+        size = _TSIZE.get(t)
+        if len(ts) != 1 or not size or any(o % size for _a, o in by_g[g]):
+            continue
+        em = re.search(rf"^extern [^;\n]*\b{g}\b[^;\n]*;[^\n]*$", c_text[:m.start()], re.M)
+        if not em:
+            continue
+        text = c_text[:em.start()] + f"extern {t} {g}[];" + c_text[em.end():m.start()]
+        text += c_text[m.start():m.end()] + GFIELD_RE.sub(
+            lambda mm: f"{g}[{int(mm[3], 0) // size}]" if mm[1] == g else mm[0], body) + after
+        outs.append((f"global as an array: extern {t} {g}[]", text))
+    return outs
+
+
 def store_variants(c_text: str):
     """Offset orders first (ER-124: at most 3 compiles), then the permutations of store_orders. Yields (note, text)."""
     if STORE_SORT:
@@ -1841,6 +2266,43 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
                 at.notes.append("OR terms in parameter order (packer)")
             else:
                 at.notes.append("packer order tried, no closer")
+    # ER-188: draft fixes from hand matches (early exit, s16 sign test, the game's return type, stack vector, global
+    # base), each kept when it matches or comes strictly closer; `pres` holds the states before each kept change, so
+    # the variants kept only on a MATCH can run again from them (no match lost)
+    pres: list[tuple] = []
+    for fix in ("early", "s16", "gret", "svec", "gbase"):
+        if res.match:
+            break
+        cands: list[tuple[str, str, Path | None]] = []
+        if fix == "early" and EARLY_EXIT and likely_gap(res, game, addr):
+            cands = [(n, t, at.protos_h) for n, t in early_exit_variants(c_text, name)]
+        elif fix == "s16" and S16_SIGN:
+            cands = [(n, t, at.protos_h) for n, t in s16_sign_variants(c_text, name)]
+        elif fix == "gret" and GAME_RET:
+            cands = game_ret_variants(c_text, name, game, at.protos_h, out, c_path.stem)
+        elif fix == "svec" and STACK_VEC:
+            cands = stack_vec_variants(c_text, name, game, addr, at.protos_h, out, c_path.stem)
+        elif fix == "gbase" and GLOBAL_BASE:
+            cands = [(n, t, at.protos_h) for n, t in global_base_variants(c_text, name)]
+        best = None
+        for k, (note, alt, ph) in enumerate(cands[:8]):
+            fpath = c_path.with_suffix(f".{fix}{k}.c")
+            r2 = compile_compare(name, addr, alt, fpath, out, game)[0]
+            if r2 and (best is None or (not best[0].match and (r2.match or _off(r2) < _off(best[0])))):
+                best = (r2, alt, note, ph, fpath)
+            if r2 and r2.match:
+                break
+        if not cands:
+            continue
+        if best and (best[0].match or _off(best[0]) < _off(res)):
+            was = sum(not w.ok for w in res.words)
+            pres.append((res, c_text, c_draft, s_base, at.protos_h))
+            res, c_text, c_draft, s_base = best[0], best[1], best[1], best[4].with_suffix(".s")
+            at.protos_h = best[3]
+            at.files["c"] = c_text
+            at.notes.append(best[2] + ("" if res.match else f" ({was} -> {sum(not w.ok for w in res.words)} words)"))
+        else:
+            at.notes.append(f"{cands[0][0].split(':')[0].split(' (')[0]} tried, no closer")
     # ER-172: parameters the game narrows at entry typed u16 / s16 / u8 / s8 (then the store orders of that form);
     # ER-180: kept when it matches or brings the draft closer (the variants below then start from it; if none of them
     # matches, they run again from the draft as it was before the narrowing, so no match is lost)
@@ -1869,7 +2331,7 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
             else:
                 best = min((x for x in tries if x[0]), default=None, key=lambda x: _off(x[0]))
                 if NARROW_KEEP and best and _off(best[0]) < _off(res):
-                    narrow_pre = (res, c_text, c_draft, s_base)
+                    narrow_pre = (res, c_text, c_draft, s_base, at.protos_h)
                     was = sum(not w.ok for w in res.words)
                     res, c_text, c_draft, s_base = best[0], best[1], best[1], best[3].with_suffix(".s")
                     at.files["c"] = c_text
@@ -1945,11 +2407,25 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
         return res, c_text, notes, ph_new, consts
 
     st = later(res, c_text, c_draft, s_base)
-    if not st[0].match and narrow_pre:
-        st2 = later(*narrow_pre)
+    if narrow_pre:
+        pres.append(narrow_pre)
+    kept_ph = at.protos_h
+    n_pres = len(pres)
+    for depth, pre in enumerate(reversed(pres)):
+        if st[0].match:
+            break
+        at.protos_h = pre[4]
+        st2 = later(*pre[:4])
         if st2[0].match:
-            st = (st2[0], st2[1], ["narrow parameter dropped: a later variant matches without it"] + st2[2],
-                  st2[3], st2[4])
+            what = "narrow parameter" if narrow_pre and depth == 0 else "draft fix"
+            dropped = [n for n in at.notes if n.startswith(("narrow parameter kept", "early exit first", "s16 sign",
+                                                            "returns the last call", "stack ", "global "))
+                       and "tried" not in n][-(depth + 1):]
+            st = (st2[0], st2[1], [f"{what} dropped: a later variant matches without the last {depth + 1} kept "
+                                   f"change(s) of {n_pres} ({'; '.join(dropped)})"] + st2[2], st2[3], st2[4])
+            kept_ph = pre[4]
+            break
+    at.protos_h = kept_ph
     res, c_text = st[0], st[1]
     at.files["c"] = c_text
     at.notes += st[2]
@@ -2696,6 +3172,10 @@ def make_plain(rows: list[Row], out: Path, game: eematch.Game) -> None:
                        "const before placing, then make regress: the file's other users compile against it too)"
         if pnotes:
             r.plain += " (" + "; ".join(pnotes) + ")"
+        late = late_callees(r.file, r.func, func)
+        if late:
+            r.plain += " (the file declares " + ", ".join(late) + " only below this function: put a prototype above " \
+                       "it before placing, or the call goes unprototyped (a float argument as a double); recipes 2.45)"
         if RULING_RE.search(func):
             r.plain += " (uses ruling 3.14: list it in recipes 3.14 when placed)"
         if "locals sized from the game's frame" in r.notes and r.plain.startswith("MATCH"):
@@ -2705,6 +3185,29 @@ def make_plain(rows: list[Row], out: Path, game: eematch.Game) -> None:
 
 
 RULING_RE = re.compile(r"/\* ruling 3\.14 \*/")
+
+
+def late_callees(src_file: str, func_name: str, func: str) -> list[str]:
+    """ER-188 (recipes 2.45, func_00152D58): callees of the plain function that the target file declares (extern,
+    prototype or definition) only below the function's INCLUDE_ASM line. place.py keeps the file's own line and drops
+    the plain file's, so the call would compile unprototyped there although the plain draft matched."""
+    p = ROOT / "src" / f"{src_file}.c"
+    if not p.exists():
+        return []
+    lines = p.read_text(encoding="utf-8").splitlines()
+    pos = next((i for i, ln in enumerate(lines) if "INCLUDE_ASM" in ln and re.search(rf"\b{func_name}\b", ln)), None)
+    if pos is None:
+        return []
+    late = []
+    for n in dict.fromkeys(re.findall(r"\b(func_[0-9A-F]{8})\s*\(", func)):
+        if n == func_name:
+            continue
+        first = next((i for i, ln in enumerate(lines)
+                      if re.match(r"[A-Za-z_]", ln) and "INCLUDE_ASM" not in ln and re.search(rf"\b{n}\s*\(", ln)),
+                     None)
+        if first is not None and first > pos:
+            late.append(n)
+    return late
 
 
 def plain_file(lines: list[str], func: str) -> str:
@@ -2956,6 +3459,21 @@ def main() -> int:
     ap.add_argument("--no-reg-bytes", action="store_true",
                     help="leave a register added to a typed pointer as m2c wrote it (default: byte arithmetic or "
                          "element counts; ER-138)")
+    ap.add_argument("--no-early-exit", action="store_true",
+                    help="skip the early-exit fix (`if (c) { ..; return X; } return Y;` -> `if (!c) return Y; ..; "
+                         "return X;` where the game has more forward branch-likelies; ER-188, recipes 2.43)")
+    ap.add_argument("--no-s16-sign", action="store_true",
+                    help="skip the s16 sign test fix (`t = x - 1; x = t; if (t & 0x8000)` -> `if (--x < 0)` on an "
+                         "s16; ER-188, recipes 2.46)")
+    ap.add_argument("--no-game-ret", action="store_true",
+                    help="skip the return-type fix (a void draft ending in a call returns its value where the game's "
+                         "callers read $v0 / $f0; ER-188, recipes 2.42 / 2.46)")
+    ap.add_argument("--no-stack-vec", action="store_true",
+                    help="skip the stack-vector fix (m2c's stack array typed f32, a call's trailing vector values as "
+                         "stores into it; ER-188, recipes 2.46)")
+    ap.add_argument("--no-global-base", action="store_true",
+                    help="skip the global-base fix (M2C_FIELD on a global through a typed pointer or as an array; "
+                         "ER-188, recipes 2.45)")
     ap.add_argument("--store-limit", type=int, default=48,
                     help="most permuted store orders compiled per draft (default 48; ER-147)")
     ap.add_argument("--rerun-diffs", metavar="RESULTS",
@@ -2970,7 +3488,13 @@ def main() -> int:
     args = ap.parse_args()
     sys.stdout.reconfigure(line_buffering=True)
     global GCC_TIMEOUT, TAG, SLOT_MOVE, CONST_VARIANT, STORE_SORT, SIBCALL_314, FRAME_FIX, PACKER_VARIANT, \
-        UNTOUCHED_RETRY, REG_BYTES, STORE_LIMIT, NARROW_VARIANT, RT_FIX, NARROW_KEEP
+        UNTOUCHED_RETRY, REG_BYTES, STORE_LIMIT, NARROW_VARIANT, RT_FIX, NARROW_KEEP, EARLY_EXIT, S16_SIGN, GAME_RET, \
+        STACK_VEC, GLOBAL_BASE
+    EARLY_EXIT = not args.no_early_exit
+    S16_SIGN = not args.no_s16_sign
+    GAME_RET = not args.no_game_ret
+    STACK_VEC = not args.no_stack_vec
+    GLOBAL_BASE = not args.no_global_base
     FRAME_FIX = not args.no_frame
     NARROW_VARIANT = not args.no_narrow
     NARROW_KEEP = not args.no_narrow_keep
