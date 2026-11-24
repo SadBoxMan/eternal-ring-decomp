@@ -42,8 +42,22 @@ python -I tools/cmpfunc.py <file.c> [func ...] [--addr 0x...] [--full] [--contex
   and `AS` / `ASFLAGS` (read through `make --eval`, so a flag change in the Makefile reaches the tool at once) into
   `build/scratch/`. With no names, every `func_XXXXXXXX` in it is compared.
 - **A `src/` file** is built with the real rule (`make build/src/<file>.o`); name the function(s).
+- **Per-file flags (ER-205, Tue 24 Nov 2026).** A scratch compile uses the `CFLAGS` of the function's home `src/`
+  file, so a Makefile target-specific line (`$(BUILD)/src/text_001CA8D8.s: CFLAGS += -fedge-lcm`, ruling 3.21)
+  reaches scratch copies with no flag given. The home is the `src/*.c` file that defines each function the scratch
+  file defines, or pulls it in with `INCLUDE_ASM`; the flags are asked of make itself (`CFLAGS` as it applies to
+  `build/src/<home>.s`), so there is no second list in Python. A scratch file with no known function gets the global
+  `CFLAGS`; one holding functions from files with different flags is refused (split it). The same applies to
+  `ordersearch.py` (every mode, `dump` included) and `m2c_bulk.py`'s compiles (`eematch.scratch_cflags`). A `src/`
+  file compiled with `--cflags` now keeps its own flags too (before, it fell back to the global ones). `--cflags`
+  still comes last on the gcc line, so it overrides (`--cflags=-fno-edge-lcm` turns the edge LCM back off). ER-192's
+  wrapper `C:\rs\wt\er192_runs\os_elcm.py` (ordersearch with `-fedge-lcm` added) is no longer needed. Proofs:
+  func_001CA9A8 as a scratch copy (the file's types and externs plus the function) MATCH through cmpfunc and
+  `ordersearch score` with no flag (DIFF, 43 words, with the tools before ER-205 and with `--cflags=-fno-edge-lcm`);
+  a whole-file scratch copy of `text_0014C840.c` gives a byte-identical cmpfunc report before and after (30 MATCH).
 - `--addr` for a function not named after its address; `--full` prints every word with its relocation note;
-  `--cflags` adds gcc flags to a scratch compile (experiments only: a flag in the build needs a ruling).
+  `--cflags` adds gcc flags to a scratch compile (experiments only: a flag in the build needs a ruling; a value
+  starting with `-` needs the `=` form, `--cflags=-fno-edge-lcm`).
 - Exit 0 = every compared function matches, 1 = a difference, 2 = compile error (gcc's message is printed).
 
 **What it compares.** Our function's bytes (size from the symbol, trailing alignment zeros dropped) against the
@@ -1377,7 +1391,7 @@ or `--func` (and `--addr` for a name that is not an address). The input file is 
 | `decl` | random orders of the local declarations (default block: after the function's opening `{` up to the first blank line; 200 samples) | ER-093 `declperm.py` |
 | `group` | sort each run of lines starting with one of `--prefixes` by prefix, for every order of the prefixes | ER-132 `reorder.py`, `reorder2.py` |
 | `sub` | apply `OLD NEW` string replacements (variable reuse, types, spellings; `\n` allowed) to a copy, then `score` it | ER-132 `var.py`; ER-158's `var.py` (one substitution set per call) |
-| `dump` | gcc dumps with the Makefile's `CC` / `CFLAGS` / `CPPFLAGS`: `-dS -dR -fsched-verbose-6` (default) or `-da` (every pass), into `<stem>_dump/` | ER-123 / ER-132 `dump.sh` |
+| `dump` | gcc dumps with the Makefile's `CC` / `CFLAGS` (the home file's, ER-205: section 2) / `CPPFLAGS`: `-dS -dR -fsched-verbose-6` (default) or `-da` (every pass), into `<stem>_dump/` | ER-123 / ER-132 `dump.sh` |
 
 ER-085's `perm.py` (DISP-02's notes folder, `ER-085_c/`: every order of a statement list between a head and a tail
 file, serial, stops at the first MATCH) and the `perm.py` of ER-123, ER-132 and ER-093 (the same with constraints or
