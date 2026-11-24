@@ -1901,11 +1901,11 @@
     {
       "code": "ER-178",
       "title": "Controllers: PS (HID, USB + Bluetooth) and Xbox (XInput) pads",
-      "status": "In progress",
+      "status": "Done",
       "track": "port",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Mon 23 Nov 2026 (Recomp 3947462): patch 15 er178_native_pads (Sony HID USB/BT, Xbox XInput, last-pressed drives pad 1, DS2 ANALOG / pressure / vibration; PS2X_PAD=raylib = old path). Tested by LuciDin: DS4 Bluetooth + Xbox, vibration felt. Not tested: DS4 USB, unplug/replug, Guide, Xbox rumble, DualSense, pressure mode, EX options."
     },
     {
       "code": "ER-179",
@@ -2002,6 +2002,24 @@
       "title": "Early-exit scan by hand (other game files)",
       "status": "Queued",
       "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-190",
+      "title": "Pad test sweep (only on an issue)",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-191",
+      "title": "EX controls: remapping, lightbar",
+      "status": "Queued",
+      "track": "port",
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
