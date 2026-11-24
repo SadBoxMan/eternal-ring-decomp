@@ -85,8 +85,8 @@ extern void func_001352B8(void **arg0);
 
 /* ER-198: by hand from the m2c draft; the double abs as in recipes 2.46 and the D_003546D8 compare written as the
    float literal 0.017453292f promoted (ruling 3.10: = 0x3F91DF46A0000000; drop its INCLUDE_RODATA line); the x30 store
-   before the x6E step; func_0012B6B0 with the float before the last int (its definition in text_001000C0 still has
-   it last, as func_0012B890 had) and func_0012E3B0 declared as text_00150878 does (s32 third parameter: the game
+   before the x6E step; func_0012B6B0 with the float before the last int (as its definition in text_001000C0 has it
+   since ER-203) and func_0012E3B0 declared as text_00150878 does (s32 third parameter: the game
    passes func_0012E568's value unextended); names, types and offsets are Unconfirmed readings. */
 void func_00134958(void **arg0, void *arg1) {
     f32 f;

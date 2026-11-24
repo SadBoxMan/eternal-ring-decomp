@@ -33,14 +33,14 @@ void func_0013C658(s8 *arg0) {
     }
 }
 
-extern s32 func_0012B930(char *, s32, s32, s32, s16, s32, f32);
+extern s32 func_0012B930(char *, s32, s32, s32, s16, f32, s32);
 extern void func_0013C9A8(s8 *);
 
 /* ER-154: drafted with m2c (tools/m2c_bulk.py --plain), fixed by hand; names, types and offsets are Unconfirmed readings. */
 void func_0013C6D8(s8 *arg0) {
     func_0013D480(arg0, 2);
     if (func_00131140(arg0, func_0013C750, func_0013C750, 0, 0, func_0013C9A8) == 0) {
-        func_0012B930(arg0, 0, 1, *(s16 *)((char *)arg0 + 0x6C), 0x5A, 1, 0.1f);
+        func_0012B930(arg0, 0, 1, *(s16 *)((char *)arg0 + 0x6C), 0x5A, 0.1f, 1);
     }
 }
 
@@ -128,7 +128,7 @@ void func_0013C9A8(s8 *arg0) {
         *(s16 *)((char *)arg0 + 0x6E) = (s16) ((u16) *(s16 *)((char *)arg0 + 0x6E) + 1);
     }
     if (func_00131140(arg0, func_0013C750, func_0013C6D8, func_0013C6D8, func_0013C6D8, NULL) == 0) {
-        func_0012B930(arg0, 0, 1, (s32) *(s16 *)((char *)arg0 + 0x6C), 0x78, 1, 0.1f);
+        func_0012B930(arg0, 0, 1, (s32) *(s16 *)((char *)arg0 + 0x6C), 0x78, 0.1f, 1);
         temp_3 = *(s32 *)((char *)arg0 + 0x10) + 1;
         *(s32 *)((char *)arg0 + 0x10) = temp_3;
         if (temp_3 >= 0x259) {
@@ -243,7 +243,7 @@ void func_0013CDD0(void *arg0) {
     }
 }
 
-extern s32 func_0012B6B0(void *, s32, s32, s32, f32);
+extern s32 func_0012B6B0(void *, s32, s32, f32, s32);
 extern s32 func_0012F938(void *, s32);
 extern s32 func_0012FAA8(void *);
 extern void func_001321E8(char *);
@@ -263,7 +263,7 @@ void func_0013CE28(void **arg0, void *arg1) {
         break;
     case 1:
         *(s16 *)(a + 0x74) += 1;
-        if (*(s16 *)(a + 0x74) >= 0x29 && func_0012B6B0(arg0, 0, 2, 0, 0.1f) != 0) {
+        if (*(s16 *)(a + 0x74) >= 0x29 && func_0012B6B0(arg0, 0, 2, 0.1f, 0) != 0) {
             func_0012FAA8(arg0);
             *(s16 *)(a + 0x74) = 0;
             *(s16 *)(a + 0x6E) += 1;
@@ -278,7 +278,7 @@ void func_0013CE28(void **arg0, void *arg1) {
         }
         break;
     }
-    if (*(s16 *)(a + 0x6E) != 2 && func_0012B6B0(arg0, 0, 2, 0, 0.1f) != 0) {
+    if (*(s16 *)(a + 0x6E) != 2 && func_0012B6B0(arg0, 0, 2, 0.1f, 0) != 0) {
         *(u8 *)((char *)arg1 + 0x147) &= 0xFE;
     }
 }
