@@ -211,16 +211,46 @@ literal (a `float` compared with a double constant, `fabs(x) <= 0.17453293f`) wa
 split, gcc writes it as an anonymous `.rodata` constant (`$LCn`) in the function's own place (the game has such a
 double right after the function's jump table: `jtbl_003547E0` then `D_00354800` for func_0013AA28, likewise
 func_0013BD90 and func_0013DF90). There is no C name to define, so the order check lets that `INCLUDE_RODATA` line go, but only if
-all of these hold (`_anon_takeovers` in `tools/split.py`): the symbol is standalone and 4 or 8 bytes long; exactly
-one function references it, from code, and that function is a C definition in this file; no data refers to it; and
-between that function and the symbol splat's order has only functions without `.rodata` of their own (or other
-symbols the same function takes over), so the constant lands where the symbol was. Anything else stays an error: a
+all of these hold (`_anon_takeovers` in `tools/split.py`): the symbol is standalone and is one float or one double
+(4 or 8 bytes; or, since ER-201, 16 bytes that are a double plus 8 zero bytes on a 16-byte boundary, below);
+exactly one function references it, from code, and that function is a C definition in this file; no data refers
+to it; and the constant lands where the symbol was, judged in address order: it must come after the `.rodata` of
+its own function (jump tables) and of every function before it, and before the `.rodata` of every function after
+it (the functions' own migrated `.rodata` and the other constants taken over). Anything else stays an error: a
 dropped line whose user is still INCLUDE_ASM, two lines swapped (both tested, with the error text as before), a
 symbol two functions share. Each split prints the symbols taken over ("anonymous C constants in place of (3.10)").
 With no `src/` change the rule changes nothing (`make regress` PASS, ELF identical); `make regress` still proves the
 bytes of every placement. Proven by three placements (`make regress` PASS after each): func_001371C0 (`D_00354718`),
-func_0014DF08 (`D_00354A28`), func_0014EEF0 (`D_00354A68`), none with a jump table (`docs/decomp_recipes.md` 2.14). Not
-covered: a symbol longer than 8 bytes (`D_00354800` is the double plus 8 zero bytes; func_0013AA28, parked, would need it).
+func_0014DF08 (`D_00354A28`), func_0014EEF0 (`D_00354A68`), none with a jump table (`docs/decomp_recipes.md` 2.14).
+
+**Wider takeovers (ER-201, Tue 24 Nov 2026; ruling 3.10).** Two cases ER-198 and ER-202 met:
+
+- **A double plus 8 zero bytes.** spimdisasm makes one 16-byte symbol of a double and the padding after it when the
+  next item is 16-aligned (`D_00354940` before func_0013FAC8's jump table at 0x00354950; `D_00354980` before
+  `text_00145120`'s `.rodata` at 0x00354990, which starts with a jump table; `D_00354720`, `D_00354800` the same).
+  The zeros are padding, not part of the constant: in the game every such symbol starts 16-aligned and ends where a
+  16-aligned jump table starts. Accepted when words 2 and 3 are zero, the symbol is 16-aligned, and the file's
+  `.rodata` range starts 16-aligned: then `.align 4` (the rule under "Alignment" above, or the next object's own
+  alignment at the end of the range) makes the padding again once the double comes from C. **Not in
+  `text_001343E8`** (its range starts at 0x003546D8): nothing would make the padding there, so `D_00354720`
+  (func_00137A10) waits for the file's cut, as the file's C jump tables do (LuciDin, Tue 24 Nov 2026: wait for the
+  cut, no explicit `.space` padding).
+- **A symbol not next to its function in splat's order.** splat places a standalone symbol just before the next
+  function with migrated `.rodata`, so a C function's constant can sit several functions away, with other
+  standalone symbols between (`D_00354938`, used by func_0013E2F0, between func_0013F580 and its `D_00354940`;
+  `D_00354968` / `D_00354970`, func_001418B8's, between func_00141EE8 and `D_00354978`). A standalone symbol has no
+  fixed place among functions without `.rodata`, so the check moves such an untaken symbol to the other side of the
+  C function in its expected order (just before it, or just after it), and the bytes keep their address order. The
+  C file must have the `INCLUDE_RODATA` line there; each split prints the moves ("INCLUDE_RODATA moved across a C
+  function for them"), and a line left in its old place is an order error (tested). A function's own constants
+  among themselves are left to `make regress` (`D_00354928` / `D_00354930`, both func_0013DF90's).
+
+With no `src/` change the wider rule changes nothing: the split's `asm/` and `linker/` trees are byte-identical to
+those of the old `split.py` (compared file by file), `make regress` PASS. Proven by func_0013F580 (`D_00354940`,
+16 bytes, `D_00354938` moved), func_00141EE8 (`D_00354978`, `D_00354968` / `D_00354970` moved) and func_00142118
+(`D_00354980`, 16 bytes, at the end of the range), placed together, `make regress` PASS. `D_00354800`
+(func_0013AA28, `text_0013A410`, a 16-aligned range) meets the 16-byte rule but is not proven by a placement: the
+C is 9 words off (`docs/decomp_recipes.md` 2.14, 2.22).
 
 **Gotchas.** Run a clean split after changing the yaml (`rm -rf asm linker`, or `make regress`): stale
 `asm/data/*.s` files from an old cut would be linked twice. A C file that defines one of its data symbols itself
