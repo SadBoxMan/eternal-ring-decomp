@@ -2539,7 +2539,19 @@ void func_0012D318(s8 *arg0, void *arg1) {
     func_001C9FE8(temp_16, temp_16, r);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D388);
+extern void func_0012D318(s8 *arg0, void *arg1);
+
+/* ER-189: by hand (m2c lost the stack vector): {0, 0, a, 0} to func_0012D318. arg0 typed as the callers declare it.
+   Names, types and offsets are Unconfirmed readings. */
+void func_0012D388(s32 arg0, f32 a) {
+    f32 v[4];
+
+    v[0] = 0.0f;
+    v[2] = a;
+    v[1] = 0.0f;
+    v[3] = 0.0f;
+    func_0012D318((s8 *)arg0, v);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D3B8);
 
@@ -3152,7 +3164,23 @@ s32 func_0012FAA8(void *arg0) {
     return func_00165170(*(s16 *)((char *)(*(void **)((char *)temp_6 + 0x11C)) + 0x1C6), (*(u8 *)((char *)arg0 + 0x153) << 0x10) | *(u8 *)((char *)arg0 + 0x152), temp_6 + 0x90, 2.5e+03f);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012FAE8);
+extern s32 func_001651C0(s16, s32, s32, f32);
+
+/* Unofficial: the record x11C points at, with an s16 table at 0x1A4 (a reading). */
+typedef struct {
+    char pad0[0x1A4];
+    s16 x1A4[1];
+} T11C;
+
+/* ER-189: by hand: the table read as an array index (`x1A4[arg1 + 0x10]` keeps the game's unfolded (arg1 + 0x10) * 2;
+   pointer arithmetic folds it to + 0x1C4); the float passes through to func_001651C0, as the callers pass one.
+   Names, types and offsets are Unconfirmed readings. */
+s32 func_0012FAE8(void *arg0, int arg1, int arg2, int arg3, float f) {
+    if (*(u8 *)((char *)arg0 + 0x79) >= 0x50) {
+        *(u8 *)((char *)arg0 + 0x79) = func_001651C0((*(T11C **)(*(char **)arg0 + 0x11C))->x1A4[arg1 + 0x10], arg2, arg3, f);
+    }
+    return *(u8 *)((char *)arg0 + 0x79);
+}
 
 extern void func_00165080(s32, s32);
 
@@ -3272,7 +3300,18 @@ void func_0012FF78(s32 arg0, s32 arg1, s32 arg2, f32 arg3) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012FFD8);
+/* ER-189: by hand (m2c lost the stack vector): {-x, y, -z, 0} built before func_0012C778, then passed to func_001C9F60.
+   Names, types and offsets are Unconfirmed readings. */
+void func_0012FFD8(void *arg0, char *arg1, f32 *arg2) {
+    f32 v[4];
+
+    v[0] = -arg2[0];
+    v[1] = arg2[1];
+    v[2] = -arg2[2];
+    v[3] = 0.0f;
+    func_0012C778(arg1);
+    func_001C9F60(arg0, arg1 + 0x50, v);
+}
 
 /* ER-183: from the m2c draft by hand: two vectors, the second built from the first (x and z negated, the shape of
    func_0012D318), which gives the game's sw $0 then lwc1 reload. Names, types and offsets are Unconfirmed readings. */
@@ -3294,7 +3333,17 @@ void func_00130040(void *arg0, char *arg1, f32 a) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001300B0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130120);
+/* ER-189: by hand (m2c lost the stack vector): {x, 0, z, 0} to func_0012C9D8, the first three arguments passed on.
+   Names, types and offsets are Unconfirmed readings. */
+void func_00130120(float *arg0, void *arg1, s32 arg2, f32 x, f32 z) {
+    f32 v[4];
+
+    v[0] = x;
+    v[2] = z;
+    v[1] = 0.0f;
+    v[3] = 0.0f;
+    func_0012C9D8(arg0, arg1, arg2, v);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130150);
 
@@ -3314,17 +3363,63 @@ void func_00130180(void *arg0, s8 *arg1, void *arg2) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001301F8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130258);
+extern float func_0012DAF8(void *, s32, f32);
+extern float func_0012E7B0(float, float);
+extern float func_00130378(char *, s32);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001302C8);
+/* ER-189: by hand: returns func_0012E7B0's float (m2c had it void; recipes 2.42); func_00130378's result taken before the
+   angle wrap (the game keeps it in $f0). Names, types and offsets are Unconfirmed readings. */
+f32 func_00130258(char *arg0) {
+    char *p;
+    f32 a;
+    f32 r;
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130378);
+    p = *(char **)arg0;
+    r = func_00130378(p + 0x90, *(s32 *)(arg0 + 0x130));
+    a = *(f32 *)(p + 0xA4) + 6.2831855f;
+    return func_0012E7B0(r, (a - (f32)(s32)(a / 6.2831855f) * 6.2831855f) - 3.1415927f);
+}
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001303A8);
+/* ER-189: by hand: the absolute value of func_00130258's computation in double, returned as float (recipes 2.42).
+   Names, types and offsets are Unconfirmed readings. */
+f32 func_001302C8(char *arg0) {
+    char *p;
+    f32 a;
+    f32 r;
+    double d;
+
+    p = *(char **)arg0;
+    r = func_00130378(p + 0x90, *(s32 *)(arg0 + 0x130));
+    a = *(f32 *)(p + 0xA4) + 6.2831855f;
+    d = func_0012E7B0(r, (a - (f32)(s32)(a / 6.2831855f) * 6.2831855f) - 3.1415927f);
+    if (d < 0.0) {
+        d = 0.0 - d;
+    }
+    return d;
+}
+
+/* ER-189: by hand: returns func_001E41B8's float (recipes 2.42; the callers declare it float). The address-taken
+   vector keeps the jal. Names, types and offsets are Unconfirmed readings. */
+float func_00130378(char *arg0, s32 arg1) {
+    f32 v[4];
+
+    func_001CA018(v, (void *)arg1, arg0);
+    return func_001E41B8(v[0], v[2]);
+}
+
+/* ER-189: by hand: returns func_0012E7B0's float (m2c had it void; recipes 2.42). Names, types and offsets are Unconfirmed
+   readings. */
+f32 func_001303A8(char *arg0, void *arg1) {
+    f32 v[4];
+    f32 a;
+
+    func_001CA018(v, arg1, arg0 + 0x90);
+    a = func_001E41B8(v[0], v[2]) + 6.2831855f;
+    return func_0012E7B0((a - (f32)(s32)(a / 6.2831855f) * 6.2831855f) - 3.1415927f, *(f32 *)(arg0 + 0xA4));
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130420);
 
-extern float func_0012E7B0(float, float);
 
 /* ER-034. Returns s or -s by the sign of func_0012E7B0(angle from a0 + 0x90 to a1, wrapped into [-pi, pi), +0xA4)
    (a turn direction: reading). The sign as a nested `?:` gives the game's registers. Names and reading Unconfirmed. */
@@ -3490,18 +3585,39 @@ f32 func_00130B60(void *arg0, f32 fparg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130BF8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130C80);
 
-extern s32 func_0012DAF8(void *, s32, f32);
+/* ER-189: by hand: the absolute value of func_0012DAF8's float, in double (dpcmp / dpsub), returned as float (m2c had it
+   void; recipes 2.42). func_0012DAF8 returns func_0012E820's float, so this file now declares it float (and
+   func_00130CE0, which returns its value, float). Names, types and offsets are Unconfirmed readings. */
+float func_00130C80(void *arg0, s32 arg1, f32 f) {
+    double d;
+
+    d = func_0012DAF8(arg0, arg1, f);
+    if (d < 0.0) {
+        d = 0.0 - d;
+    }
+    return d;
+}
+
 
 /* ER-081: drafted with m2c (tools/m2c_bulk.py --plain, pass-through retry); the float in $f12 passes through to
    func_0012DAF8 as its callers in text_001388E8 / text_0013A410 / text_0013B748 pass one (recipes 2.16).
    Names, types and offsets are Unconfirmed readings. */
-s32 func_00130CE0(char *arg0, f32 fparg0) {
+float func_00130CE0(char *arg0, f32 fparg0) {
     return func_0012DAF8(arg0, *(s32 *)(arg0 + 0x130), fparg0);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130D00);
+/* ER-189: by hand: the absolute value of func_0012DAF8's float in double, returned as float (m2c had it void; recipes
+   2.42), as func_00130C80. Names, types and offsets are Unconfirmed readings. */
+f32 func_00130D00(char *arg0, f32 f) {
+    double d;
+
+    d = func_0012DAF8(arg0, *(s32 *)(arg0 + 0x130), f);
+    if (d < 0.0) {
+        d = 0.0 - d;
+    }
+    return d;
+}
 
 extern void func_0012DC10(s32, s32, s32, s32, void *);
 
@@ -3629,7 +3745,19 @@ s32 func_00131430(void *arg0, s32 arg1) {
     return var_2 == arg1;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00131448);
+/* ER-189: by hand: the early exits first (recipes 2.43). Names, types and offsets are Unconfirmed readings. */
+u16 func_00131448(void *arg0) {
+    char *p;
+
+    if (arg0 == NULL) {
+        return 0;
+    }
+    p = *(char **)((char *)arg0 + 0xE8);
+    if (p != NULL) {
+        return *(u16 *)(p + 4);
+    }
+    return 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00131470);
 
@@ -3650,9 +3778,31 @@ f32 func_00131508(s32 arg0, s32 arg1) {
     return func_001E3EC8(((f32) arg0 * 3.1415927f) / (f32) arg1);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00131548);
+/* ER-189: by hand: the absolute value of func_0012E7B0's result, in double (the soft-float dpcmp / dpsub), returned as
+   float (m2c had it void; recipes 2.42). Names, types and offsets are Unconfirmed readings. */
+float func_00131548(float a, float b) {
+    double d;
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001315A8);
+    d = func_0012E7B0(a, b);
+    if (d < 0.0) {
+        d = 0.0 - d;
+    }
+    return d;
+}
+
+extern float func_0012E820(char *, float, float);
+
+/* ER-189: by hand: as func_00131548, for func_0012E820 (its two floats passed on, as the caller in this file passes
+   them). Names, types and offsets are Unconfirmed readings. */
+f32 func_001315A8(s32 arg0, f32 a, f32 b) {
+    double d;
+
+    d = func_0012E820((char *)arg0, a, b);
+    if (d < 0.0) {
+        d = 0.0 - d;
+    }
+    return d;
+}
 
 /* ER-026. Wraps the angle a + b into [-pi, pi] (a reading); names and types Unconfirmed. gcc pads each short loop to 6 instructions itself. */
 float func_00131608(float a, float b) {
@@ -4067,7 +4217,6 @@ void func_001339F8(s8 *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00133A60);
 
-extern float func_0012E820(char *, float, float);
 
 /* ER-171: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00133F28(void *arg0, s32 arg1) {
