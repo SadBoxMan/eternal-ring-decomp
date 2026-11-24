@@ -373,10 +373,10 @@ void func_0014B4C8(s8 *arg0) {
 extern f32 func_001302C8(void *);
 extern float func_00130378(char *, s32);
 extern f32 func_0012E7B0(f32, f32);
-extern s32 func_0012DA68(void *, f32, s32, s32, f32);
+extern s32 func_0012DA68(void **, f32, f32, s32, s32);
 
-/* ER-100: by hand; names, types and offsets are Unconfirmed readings. func_0012DA68's float parameter first
-   (as in recipes 2.21: same registers, other scheduling); `case 2:` beside the default (ruling 3.9); the
+/* ER-100: by hand; names, types and offsets are Unconfirmed readings. func_0012DA68 declared floats-first
+   as everywhere (ER-181, recipes 2.39); `case 2:` beside the default (ruling 3.9); the
    address-taken local only stops the sibling call (ruling 3.14: the game has jal where plain C gives a tail j). */
 void func_0014B528(void **arg0, char *arg1) {
     f32 t;
@@ -400,7 +400,7 @@ void func_0014B528(void **arg0, char *arg1) {
     case 1:
         t = func_00130378(arg1 + 0x90, *(s32 *)((char *)arg0 + 0x130)) + 6.2831855f;
         g = func_0012E7B0((t - ((f32)(s32)(t / 6.2831855f) * 6.2831855f)) - 3.1415927f, *(f32 *)((char *)arg0 + 0x30));
-        if (func_0012DA68(arg0, *(f32 *)((char *)arg0 + 0x30), *(s16 *)((char *)arg0 + 0x6C), 0x1E, g) != 0) {
+        if (func_0012DA68(arg0, *(f32 *)((char *)arg0 + 0x30), g, *(s16 *)((char *)arg0 + 0x6C), 0x1E) != 0) {
             *(s16 *)((char *)arg0 + 0x6E) = 2;
         }
         break;

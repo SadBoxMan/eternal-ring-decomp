@@ -2401,7 +2401,7 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012DA18);
 extern f32 func_001314C8(s32 arg0, s32 arg1);
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain), func_001314C8 declared f32 by hand; names, types and offsets are Unconfirmed readings. */
-s32 func_0012DA68(void **arg0, s32 arg1, s32 arg2, f32 fparg0, f32 fparg1) {
+s32 func_0012DA68(void **arg0, f32 fparg0, f32 fparg1, s32 arg1, s32 arg2) {
     f32 var_f2;
     s32 var_3;
 
