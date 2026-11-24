@@ -108,6 +108,65 @@ The dispatcher is pinned. After start_session and detach_session, file each card
 - "Ringsmith Assets" `cg-d09c277b-8fcc-4b4e-b4f6-928cb158929c`: asset rips; they begin after the recomp is complete
   (LuciDin, 17 Nov 2026).
 
+## STATE FOR A FRESH DISPATCHER (DISP-04 -> DISP-05, Mon 23 Nov 2026, 20:15 Eastern)
+
+**Where the project is.** Decomp: **1,218 / 3,609 functions matched (128,108 bytes)** (DISP-04 started at 1,135), every one proven
+by `make regress`. Rulings now 3.1-3.20: new today **3.19** (a cross-file extern prototype declared as the caller saw it; ER-164) and
+**3.20** (a bare `return;` in a pointer-returning function, PORT NOTE; ER-184), both given by LuciDin in the card's session. Recipes 2.1-2.44
+(renumber on merge: ER-183 / ER-184 both took 2.42, resolved as 2.42 / 2.43). Tools: `tools/m2c_bulk.py` round 4 (frame-sized locals,
+store orders in blocks, untouched args, packer, offset order, 3.14 with locals, narrow parameters u16 / s16 / u8 / s8, call-site return
+types `--no-rt-fix`, kept narrowings; matching_tools 6.18-6.21); `tools/ordersearch.py` (ER-117: score / perm / climb / switch / decl /
+group / sub / dump; matching_tools 8). Lessons that keep paying: callee return types (2.36, 2.38), return the callee's value (2.42),
+**write the early exit first** (2.43: 16 / 16), narrow parameters (6.20).
+**Port (Recomp 3947462, 15 local patches):** ER-037 opcode harness vs PCSX2 (F1-F8, N1-N6; the `cvt.w.s` fix mended the attack animations),
+ER-142 GS capture (`PS2X_GS_CAPTURE`, patch 14) + `er142_gs_replay` (replays to the live VRAM hash), ER-178 **PS (HID, USB + Bluetooth) and
+Xbox (XInput) pads** (patch 15, `docs/controls.md`; LuciDin: "It all worked"). Still 12-15 FPS, no sound; not playable (`ms10`).
+**Not pushed:** Decomp since de596dc, Recomp since 3135af4 (a push needs LuciDin's yes in your session plus the history check).
+
+**Running (all report to the dispatcher id in `docs/handoff.md`; tell them the new id):** ER-186 (`text_00150878`: func_0012DA68 order
++ func_00152D58, Opus medium, `local_84df7f39-4dc2-4a3c-88e0-bf73e9fa106e`, `C:\rs\wt\er186`); ER-189 (every other game src/ file except
+`text_001CA8D8`: early-exit / return-the-callee scan, Opus medium, `local_b8813cda-41ab-4773-bce2-1058e8ee3229`, `C:\rs\wt\er189`; offered
+ER-193 as an add-on). ER-106 (alias model, `local_aff7362b-afcb-4f46-9adc-fe31fce01644`) idle with 2 uncommitted doc edits in `C:\rs\wt\er106`
+(17 GB): still waiting on LuciDin; its row now holds ER-165's / ER-183's strict-aliasing evidence (3 of 3,606 functions differ under
+`-fstrict-aliasing`).
+
+**Ready next (one writer per file):**
+- Port (one recomp card at a time; slot free): **ER-139 design** at Opus xhigh, LuciDin starts it from `ER-139_design_brief.md` in the
+  DISP-03 notes folder (LuciDin's order: ER-037 -> ER-142 -> ER-139, both done before it). Then ER-177 (capture compare, Opus medium),
+  ER-038 (VU0 edges, unblocked), ER-168 (method C), ER-169 (hardware reference, needs his yes to fetch), ER-170, ER-145 (presenter latch
+  etc.), ER-141 / ER-143 (prove with `er142_gs_replay`), ER-190 (pad sweep, only on an issue), ER-191 (EX controls, later).
+- Decomp: ER-192 (`text_001CA8D8`, func_001CAB10 + func_001CA8D8, Opus high); ER-194 (rerun `text_00150878` with round 4, after ER-186);
+  ER-162 (`text_00150878` sched tie-breaks + func_00125790 in `text_001000C0`, Opus high); ER-161 (func_00178C60, Opus xhigh: LuciDin
+  starts it); ER-167 (func_00119FE0, xhigh, waits on the same-file ruling); ER-134 (func_0015C0E0); ER-187 (return-the-callee retry);
+  ER-182 (func_00140698, ruling first); ER-193 (func_0013C4E0, if ER-189 does not fold it). Tools (one `m2c_bulk.py` writer): ER-188
+  (early-exit variant, then rerun every file); ER-176 (`ordersearch.py` variants); ER-174, ER-166 (Sonnet, small); ER-173 (reruns).
+- **Thursday / Friday (Fable / Ultracode):** ER-122 batch, then the parked tie-breaks if Opus resists (ER-161, ER-162, ER-167).
+
+**Open for LuciDin:** the same-file "declared as the caller saw it" ruling (func_00113238 / func_00119FE0, ER-167; DISP-04 leaned no for
+now); func_00140698's frame form (ER-182: (a) or (b) in recipes 2.39); review func_001CA9A8's cached flag words (ER-185: live plain C, may be
+the compiler; no ruling asked); first combined use of 3.13 + 3.14 (func_001636A0, ER-153); ER-106's strict-aliasing evidence vs ruling 3.6;
+moving the older `C:\rs\captures\` (262 MB, incl. `cards\p.ps2` the run scripts read) to E:; whether to copy ER-037's run records to E:;
+GPL-3.0-only or -or-later; a decomp licence; ER-058's patch; Ringsmith's weekly share.
+
+**New rules from LuciDin today:** always pin the DISP (memory note); sessions send "ER-NNN ready to archive" and the dispatcher archives
+them (handoff item 6, the brief); **capture data goes to `E:\Claude\Project Ringsmith\captures\`** (handoff item 7, the brief); port order ER-037 -> ER-142 -> ER-139;
+PS and Xbox pads both supported (done).
+
+**Keep (outside git):** `C:\rs\recomp\optest\runs` and `C:\rs\recomp\work_er037\runs` for good (ER-037's PCSX2 dumps, the blind A/B record);
+`C:\rs\recomp\optest\tree`, `work_er037\ab_tree` until ER-038 / ER-168; `C:\rs\recomp\work_er142`, `work_er178`; the captures on E:; run folders
+`C:\rs\wt\er138_runs` (ER-171-173), `er158_runs` (ER-166), `er164_runs` (ER-174), `er165_runs` (ER-166), `er171_runs` (near-miss drafts),
+`er172_runs`, `er175_runs`, `er179_runs`, `er181_runs`, `er184_runs`, `er185_runs` (ER-192: `s\cab10_b.c`), `er117_runs`.
+
+**Quirks learned by DISP-04.** (24) Remove a worktree only after its session is archived (the archive call refuses while a turn runs; DISP-04
+removed er138 one message early once). (25) Clean regress wipes `build\`: briefs now say to keep anything a follow-up needs in
+`C:\rs\wt\<code>_runs`, not `build\` (ER-171 lost its near-miss drafts once and redrafted them). (26) Two cards that both add a recipes
+section take the same number: on merge keep both, renumber the later one, and fix its mentions in the handoff row and tracker notes; tracker
+metrics = main's number + the card's delta (a resolver script with `chr(92)` paths and a JSON check worked). (27) `archive_session` often needs
+the hook's `session` label on a second call; a session that just got a message is "still working" until its turn ends. (28) `grep -c`
+returning 1 on zero matches stops an `&&` chain (quirk 11 again): loop with `n=$(grep -c ...)` instead. (29) `start_session` with
+`user_asked` and `cwd` works only on LuciDin's own words in that turn (quirk 17); five working sessions is the cap. Next free code: **ER-197** (ER-195 / ER-196 filed after the state was written).
+DISP-01's to DISP-03's quirks 1-23 still hold.
+
 ## STATE FOR A FRESH DISPATCHER (DISP-03 -> DISP-04, Mon 23 Nov 2026, 13:40 Eastern)
 
 **Where the project is.** Decomp: **1,135 / 3,609 functions matched (115,268 bytes)**, every one proven by `make regress`
@@ -320,3 +379,7 @@ cards report. (8) Cards' "follow-ups" become ER rows in `docs/handoff.md` plus t
 - Mon 23 Nov 2026, 19:32 Eastern: ER-181 archived, worktree removed (er181_runs kept for ER-186 / ER-187). ER-184 merged (8c686c9, `--no-ff`; conflicts in recipes / handoff / tracker with ER-183 resolved by script: both kept, ER-184's recipes renumbered 2.43, metrics = main + ER-184's delta; clean regress PASS): **1,212 / 3,609 (127,540 bytes)**. New **ruling 3.20** (LuciDin, about 19:15, in the ER-184 session): a bare `return;` in a pointer-returning function, with a PORT NOTE. Lesson (2.43): write the early exit first (16 / 16). Follow-ups ER-188 (m2c_bulk early-exit variant), ER-189 (scan by hand), ER-186 widened (func_00152D58).
 - Mon 23 Nov 2026, 19:33 Eastern: backup (DISP-04, plain `python tools/backup.py` to E:): `ringsmith_20261123_1933_main.zip` (92 files, 604 KB) + `repo.bundle` at 778425d, verify okay; `ringsmith_20261123_1933_recomp.zip` (60 files, 215 KB) + `recomp.bundle` at 9144ab1, verify okay (after ER-142, ER-172, ER-165, ER-171, ER-179, ER-181 + ER-183, ER-184). Matched 1,212 / 3,609. Rulings since the last backup: 3.20.
 - Mon 23 Nov 2026, 19:49 Eastern: wave 10 started on LuciDin's 'Start all three', all Opus medium: ER-186 = src/text_00150878.c (`local_84df7f39`, C:\rs\wt\er186); ER-185 = src/text_001CA8D8.c (`local_5fa3dd22`, C:\rs\wt\er185); ER-189 = every other game src/ file (`local_b8813cda`, C:\rs\wt\er189). Running beside: ER-175 + ER-180 (tools/m2c_bulk.py), ER-178 (recomp). Five working.
+- Mon 23 Nov 2026, 20:00 Eastern: ER-178 done (Recomp 3947462, Decomp af79892; checked: no binaries): PS (HID, USB + Bluetooth) and Xbox (XInput) pads work in the port (LuciDin tested DS4 on Bluetooth and the Xbox pad: "It all worked"). Vibration lasts 4-5x too long at 12-15 FPS (frame-counted; LuciDin: leave it, speed fixes it). Keep `C:\rs\recomp\work_er178`. Follow-ups ER-190 (test sweep, only on an issue), ER-191 (EX remapping / lightbar, later). The recomp slot is free; next in LuciDin's port order is ER-139's xhigh design session (he starts it).
+- Mon 23 Nov 2026, 20:08 Eastern: ER-178 archived ('ready to archive'). ER-185 merged (`--no-ff`, clean regress PASS): 1,218 / 3,609 (128,108 bytes); recipes 2.44. **For LuciDin's review (no ruling asked yet):** func_001CA9A8 matches only with the two flag words x164 / x102 cached in locals before the loop and re-read at the end of the storing branch: live plain C (no dead code, volatile or asm), but it reproduces a load placement `-fedge-lcm` also reaches, so it may be the compiler and not the source (Unconfirmed); if he wants a ruling, it goes back to INCLUDE_ASM. Follow-up ER-192 (func_001CAB10 + func_001CA8D8, Opus high).
+- Mon 23 Nov 2026, 20:10 Eastern: ER-185 archived, worktree removed (er185_runs kept for ER-192). ER-175 + ER-180 merged (`--no-ff`, clean regress PASS): m2c_bulk round 4 (`--no-rt-fix` call-site return types, `--no-narrow-keep`; matching_tools 6.21). Follow-ups ER-193 (place func_0013C4E0; offered to ER-189, which owns `text_0013B748`), ER-194 (rerun `text_00150878` after ER-186), ER-174 narrowed. `tools/m2c_bulk.py` has no writer now (ER-188 early-exit variant is next for it).
+- Mon 23 Nov 2026, 20:26 Eastern: ER-186 fast-forwarded (b8686e0, clean regress PASS): 1,224 / 3,609 (129,184 bytes); func_0012DA68 floats-first in every file now; its recipes section renumbered 2.45 (ER-185 had 2.44). Follow-ups ER-195 (lead batch), ER-196 (base-pointer scan), ER-188 widened. Only ER-189 is running.
