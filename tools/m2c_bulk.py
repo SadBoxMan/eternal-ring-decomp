@@ -39,6 +39,10 @@ For each function (named, read from a list file, or every INCLUDE_ASM function o
    writes the GOFAST soft-double calls m2c names (fptodp, dpadd, ...) as plain double C, recipes 2.11. ER-160: --plain
    also takes the file's non-extern prototype of the target, and gives every plain draft of one file one form of a
    name they declare differently when all still match with it)
+4f. ER-224 .rodata vector copies, first of the draft fixes: m2c's `spN = M2C_FIELD(&D_x, s64 *, 0);` and
+   `sp<N+8> = M2C_FIELD(&D_x, s64 *, 8);` (or the frame array's `(*(s64 *)&sp[k]) = ...`) for an INCLUDE_RODATA D_x
+   -> `Vec4 spN = D_x;` (assignment, or initializer) with `extern const Vec4 D_x;` and the target file's own vector
+   typedef (recipes 2.49 / 2.52; --no-rodata-vec)
 4. compile with the Makefile's own settings (tools/eematch.py) into the output folder and compare with the original
    (eematch.compare_function: masked relocations with targets checked); a compile that runs past --gcc-timeout is
    killed with its children (cc1) and marked TIMEOUT (ER-066 / ER-079)
@@ -897,6 +901,11 @@ def clean_draft(draft: str, name: str, includes: list[Path], hilo: set[str]) -> 
     text = LIT_RE.sub(lit, text)
     if n_lits:
         notes.append(f"{n_lits} .lit4 literal(s)")
+    # ER-224: m2c reads a literal address of unknown type as `*(void *)0x70000010` (EE scratchpad), which gcc refuses
+    # ("void value not ignored"); a word load
+    text, n_vd = re.subn(r"\*\(void \*\)(0x[0-9A-Fa-f]+)\b", r"*(s32 *)\1", text)
+    if n_vd:
+        notes.append(f"{n_vd} literal-address load(s) of type void as s32")
     head =['#include "common.h"'] + [f'#include "{p.as_posix()}"' for p in includes]
     return "\n".join(head) + "\n\n" + text.strip() + "\n", notes
 
@@ -1750,6 +1759,7 @@ STACK_VEC = True            # --no-stack-vec
 GLOBAL_BASE = True          # --no-global-base
 WHILE_FIX = True            # --no-while (ER-217)
 UNTOUCHED_DRAFT = True      # --no-untouched-draft (ER-217)
+RODATA_VEC = True           # --no-rodata-vec (ER-224)
 KEEP_WORDS = True           # --no-keep-words: the ER-188 keep rule (size first) for the draft fixes (ER-217)
 
 
@@ -2236,6 +2246,258 @@ def while_variants(c_text: str, name: str) -> list[tuple[str, str]]:
     return outs
 
 
+# --- ER-224: a .rodata vector copied with ld / sd as a struct copy from an `extern const` -------------------------
+_RODATA_NAMES: set[str] | None = None
+_VEC_TYPES: dict[str, tuple[str, str, int | None]] = {}
+VEC_TYPEDEF_RE = re.compile(r"typedef\s+struct\s*\{\s*(float|f32)\s+v\s*\[\s*4\s*\]\s*;\s*\}\s*"
+                            r"__attribute__\s*\(\(\s*aligned\s*\(\s*16\s*\)\s*\)\)\s*(\w+)\s*;")
+VEC_HALF_RE = re.compile(r"^(\s+)(sp([0-9A-F]+)|\(\*\(s64 \*\)&sp\[(\d+)\]\)|\*\(s64 \*\)\(\(s8 \*\)sp \+ 0x([0-9A-F]+)\))"
+                         r" = M2C_FIELD\(&(D_[0-9A-F]{8}), s64 \*, (0x0|0|0x8|8)\);$")
+VEC_TYPEDEF_LINE_RE = re.compile(r"^typedef struct \{ (?:float|f32) v\[4\]; \} __attribute__\(\(aligned\(16\)\)\) "
+                                 r"(\w+);$")
+
+
+def rodata_names() -> set[str]:
+    """Every INCLUDE_RODATA symbol of src/ (read once)."""
+    global _RODATA_NAMES
+    if _RODATA_NAMES is None:
+        _RODATA_NAMES = set()
+        for p in (ROOT / "src").rglob("*.c"):
+            _RODATA_NAMES.update(re.findall(r'INCLUDE_RODATA\("[^"]*",\s*(D_[0-9A-F]{8})\)',
+                                            p.read_text(encoding="utf-8", errors="replace")))
+    return _RODATA_NAMES
+
+
+def vec_type(src_file: str | None) -> tuple[str, str, int | None]:
+    """(type name, one-line typedef, the file's line of its own typedef or None) for a 16-byte aligned float vector:
+    the target file's own name and field type where it has one (text_001000C0 `Vec4`, text_00150878 `Vec4A`), else
+    `Vec4` (Unofficial; `Vec4R` if the file already uses the name Vec4 for something else)."""
+    key = src_file or ""
+    if key not in _VEC_TYPES:
+        p = ROOT / "src" / f"{key}.c"
+        text = p.read_text(encoding="utf-8") if key and p.exists() else ""
+        m = VEC_TYPEDEF_RE.search(text)
+        if m:
+            _VEC_TYPES[key] = (m[2], f"typedef struct {{ {m[1]} v[4]; }} __attribute__((aligned(16))) {m[2]};",
+                               text.count("\n", 0, m.start()) + 1)
+        else:
+            n = "Vec4R" if re.search(r"\bVec4\b", text) else "Vec4"
+            _VEC_TYPES[key] = (n, f"typedef struct {{ f32 v[4]; }} __attribute__((aligned(16))) {n};", None)
+    return _VEC_TYPES[key]
+
+
+def rodata_vec_variants(c_text: str, name: str, protos_h: Path | None = None, out: Path | None = None,
+                        stem: str | None = None) -> list[tuple[str, str, Path | None]]:
+    """ER-224 (recipes 2.49 / 2.52: func_001A3D00, func_00126F00, func_00125B68): the game copies an INCLUDE_RODATA
+    vector into a stack local with two `ld` / `sd` pairs; m2c writes the halves as `spN = M2C_FIELD(&D_x, s64 *, 0);`
+    and `sp<N+8> = M2C_FIELD(&D_x, s64 *, 8);` (after the frame fix: `(*(s64 *)&sp[k]) = ...`). The prologue takes the
+    game's order only from a struct copy of a `const` extern: `Vec4 spN = D_x;` with `extern const Vec4 D_x;` and the
+    file's own vector typedef (one line after `#include "common.h"`). A named local must be used only as `&spN`
+    elsewhere and its upper half not at all, else that pair is left alone. Candidates: every pair as an assignment at
+    m2c's line; then, when every pair is a named local copied at the top level of the body above any label, as
+    initializers. Returns [(note, text, protos header)]."""
+    sp = _func_span(c_text, name)
+    if not sp or "s64 *, " not in c_text:
+        return []
+    m, lines, after = sp
+    rod = rodata_names()
+    halves: dict[tuple, int] = {}          # (D_x, kind, start of the vector, half offset) -> line
+    for i, ln in enumerate(lines):
+        hm = VEC_HALF_RE.match(ln)
+        if not hm or hm[6] not in rod:
+            continue
+        off = int(hm[7], 0)
+        if hm[3] is not None:
+            key = (hm[6], "var", int(hm[3], 16) - off, off)
+        elif hm[5] is not None:                        # ER-224's extra-argument stores: a byte offset from sp
+            key = (hm[6], "spb", int(hm[5], 16) - off, off)
+        else:
+            key = (hm[6], "arr", int(hm[4]), off)      # array index of the half; matched below by element size
+        halves.setdefault(key, i)
+    if not halves:
+        return []
+    dm = re.search(r"^    (M2C_UNK|s32|u32|f32|int|s64|u64)\s+sp\[", "\n".join(lines), re.M)
+    elem = _TSIZE.get(dm[1], 4) if dm else None
+    ok, used = [], set()
+    for (g, kind, base, off), i0 in sorted(halves.items(), key=lambda kv: kv[1]):
+        if off != 0:
+            continue
+        if kind in ("var", "spb"):
+            i8 = halves.get((g, kind, base, 8))
+        else:
+            i8 = halves.get((g, kind, base + 8 // elem, 8)) if elem and elem <= 8 else None
+        if i8 is None or i0 in used or i8 in used:
+            continue
+        dlo = dhi = None
+        if kind == "var":
+            lo_n, hi_n = f"sp{base:X}", f"sp{base + 8:X}"
+            dl = [k for k, ln in enumerate(lines) if re.fullmatch(rf"    [A-Za-z_][\w ]*?[\s*]{lo_n};", ln)]
+            dh = [k for k, ln in enumerate(lines) if re.fullmatch(rf"    [A-Za-z_][\w ]*?[\s*]{hi_n};", ln)]
+            if len(dl) != 1 or len(dh) != 1:
+                continue
+            dlo, dhi = dl[0], dh[0]
+            others = "\n".join(ln for k, ln in enumerate(lines) if k not in (i0, i8, dlo, dhi))
+            if re.search(rf"\b{hi_n}\b", others) or re.search(rf"(?<![&\w]){lo_n}\b", others):
+                continue
+        ok.append((g, kind, base, i0, i8, dlo, dhi))
+        used.update((i0, i8))
+    if not ok:
+        return []
+    src_file = ASM_INDEX[name].parent.name if name in ASM_INDEX else None
+    vt, tdef, _tline = vec_type(src_file)
+    names = list(dict.fromkeys(p[0] for p in ok))
+
+    # declarations: the typedef after common.h (before every other include: the prototypes header may hold an extern
+    # that uses it), each D_x's extern (draft line, else the prototypes header's as a copy) as `extern const vt D_x;`
+    pre = c_text[:m.start()]
+    ph, ph_text = protos_h, (protos_h.read_text(encoding="utf-8") if protos_h and protos_h.exists() else None)
+    ph_new = ph_text
+    for g in names:
+        # (a data extern only: no `(` before the name; the section attribute after it is fine)
+        ext_re = re.compile(rf"^extern [^;\n(]*\b{g}\b(?:\s*\[\w*\])?(?:\s+__attribute__\(\([^;\n]*\)\))?\s*;[^\n]*$",
+                            re.M)
+        if ext_re.search(pre):
+            pre = ext_re.sub(f"extern const {vt} {g};", pre, count=1)
+        elif ph_new is not None and ext_re.search(ph_new):
+            ph_new = ext_re.sub(f"extern const {vt} {g};", ph_new, count=1)
+        else:
+            pre = pre.rstrip("\n") + f"\nextern const {vt} {g};\n\n"
+    if ph_new != ph_text and out is not None:
+        ph = out / "obj" / f"{stem or name}.rvec.protos.h"
+        ph.write_text(ph_new, encoding="utf-8", newline="\n")
+        pre = pre.replace(f'#include "{protos_h.as_posix()}"', f'#include "{ph.as_posix()}"')
+    cm = re.search(r'^#include "common\.h"\n', pre, re.M)
+    pre = (pre[:cm.end()] + tdef + "\n" + pre[cm.end():]) if cm else tdef + "\n" + pre
+    head = pre + c_text[m.start():m.end()]
+
+    def build(init: bool) -> str:
+        new, drop = list(lines), set()
+        for g, kind, base, i0, i8, dlo, dhi in ok:
+            ind = VEC_HALF_RE.match(lines[i0])[1]
+            drop.add(i8)
+            if kind == "arr":
+                new[i0] = f"{ind}*({vt} *)&sp[{base}] = {g};"
+                continue
+            if kind == "spb":
+                new[i0] = f"{ind}*({vt} *)((s8 *)sp + 0x{base:X}) = {g};"
+                continue
+            lo_n = f"sp{base:X}"
+            drop.add(dhi)
+            if init:
+                new[dlo] = f"    {vt} {lo_n} = {g};"
+                drop.add(i0)
+            else:
+                new[dlo] = f"    {vt} {lo_n};"
+                new[i0] = f"{ind}{lo_n} = {g};"
+        return head + "\n".join(ln for k, ln in enumerate(new) if k not in drop) + after
+
+    note = f"rodata vector copy: extern const {vt} " + ", ".join(names) + \
+        f" ({len(ok)} cop{'y' if len(ok) == 1 else 'ies'}"
+    outs = [(note + ")", build(False), ph)]
+    first_label = next((k for k, ln in enumerate(lines) if re.fullmatch(r"\w+:", ln.strip())), len(lines))
+    if all(p[1] == "var" and p[3] < first_label and VEC_HALF_RE.match(lines[p[3]])[1] == "    " for p in ok):
+        outs.append((note + ", initializers)", build(True), ph))
+    return outs
+
+
+EXTRA_STORES = True         # --no-extra-stores (ER-224)
+_ST_TYPES = {"sw": "s32", "swc1": "f32", "sd": "s64", "sh": "s16", "sb": "s8"}
+SP_ST_RE = re.compile(r"^(-?0x[0-9A-Fa-f]+|\d+)\(\$(?:29|sp)\)$")
+
+
+def game_call_stores(name: str) -> dict[str, list[dict[int, str]]]:
+    """For each `jal` of the function's splat asm, in order: callee -> [{sp offset: store mnemonic}] of the stores to
+    N($sp) since the previous jal (its delay slot excluded), this jal's delay slot included; the last store to an
+    offset wins. A straight-line scan (branches ignored)."""
+    p = ASM_INDEX.get(name)
+    if not p or not p.exists():
+        return {}
+    ins = []
+    for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+        om = OP_RE.match(line)
+        if om:
+            ins.append((om[1], [o.strip() for o in om[2].split(",")] if om[2].strip() else []))
+    out: dict[str, list[dict[int, str]]] = {}
+    start = 0
+    for i, (op, ops) in enumerate(ins):
+        if op != "jal" or not ops:
+            continue
+        st: dict[int, str] = {}
+        for op2, ops2 in ins[start:i + 2]:
+            if op2 in _ST_TYPES and len(ops2) == 2 and (sm := SP_ST_RE.match(ops2[1])):
+                st[int(sm[1], 0)] = op2
+        out.setdefault(ops[0], []).append(st)
+        start = i + 2
+    return out
+
+
+def extra_arg_stores(c_text: str, name: str) -> tuple[str, str] | None:
+    """ER-224: m2c passes the stores a function makes into its lowest stack slots before a call (a vector at 0($sp)
+    built for the callee, func_00125D00's `sp[0..2]`; the halves of a .rodata vector copy) as `/* extra? */`
+    arguments, and the draft does not compile (too many arguments). Each such call is matched to the game's jal of
+    the same callee by order (only when the draft has as many calls to it as the asm has jals); its n extras become
+    `*(T *)((s8 *)sp + N) = value;` before the statement, T from the store (sw / swc1 / sd / sh / sb), N the n lowest
+    stored offsets below the draft's first named stack local; where that does not fit (or the call sits in a loop
+    test), the extras are dropped. Returns (text, note) or None."""
+    sp = _func_span(c_text, name)
+    if not sp:
+        return None
+    m, lines, after = sp
+    sites = game_call_stores(name)
+    named = [int(x, 16) for x in re.findall(r"^    [^;\n]*?\bsp([0-9A-F]+)\b(?:\[[^\]]*\])?;", "\n".join(lines),
+                                            re.M)]
+    limit = min(named) if named else 1 << 16
+    calls: dict[str, list[tuple[int, int, int]]] = {}       # callee -> [(line, start of name, end paren)]
+    for i, ln in enumerate(lines):
+        for cm in re.finditer(r"\b(func_[0-9A-F]{8})\(", ln):
+            calls.setdefault(cm[1], []).append((i, cm.start(), _close_paren(ln, cm.end())))
+    new = list(lines)
+    inserts: dict[int, list[str]] = {}
+    n_st = n_drop = 0
+    for callee, cl in calls.items():
+        mapped = len(sites.get(callee, [])) == len(cl)
+        for k, (i, s0, j) in enumerate(cl):
+            ln = new[i]
+            if "/* extra? */" not in lines[i][s0:j + 1]:
+                continue
+            # find this call again in the line (an earlier call on it may have been edited): its nth occurrence
+            occ = list(re.finditer(rf"\b{callee}\(", ln))
+            nth = sum(1 for (i2, s2, _j2) in cl if i2 == i and s2 < s0)
+            if nth >= len(occ):
+                continue
+            cm = occ[nth]
+            jj = _close_paren(ln, cm.end())
+            args = _split_top(ln[cm.end():jj])
+            keep = [a for a in args if "/* extra? */" not in a]
+            extras = [a.replace("/* extra? */", "").strip() for a in args if "/* extra? */" in a]
+            stores = []
+            st = sites[callee][k] if mapped else {}
+            offs = sorted(o for o in st if 0 <= o < limit)
+            loop_test = re.match(r"^\s*(?:\}|while \(|for \()", ln) is not None   # no statement slot before it
+            if mapped and len(offs) == len(extras) and st and not loop_test and \
+                    all(st[o] in _ST_TYPES for o in offs):
+                ind = re.match(r"^(\s*)", ln)[1]
+                stores = [f"{ind}*({_ST_TYPES[st[o]]} *)((s8 *)sp + 0x{o:X}) = {v};" for o, v in zip(offs, extras)]
+                n_st += len(stores)
+            else:
+                n_drop += len(extras)
+            new[i] = ln[:cm.end()] + ", ".join(a.strip() for a in keep) + ln[jj:]
+            if stores:
+                inserts.setdefault(i, []).extend(stores)
+    if not n_st and not n_drop:
+        return None
+    body = []
+    for i, ln in enumerate(new):
+        body.extend(inserts.get(i, []))
+        body.append(ln)
+    if n_st and not re.search(r"^    [^;\n]*\bsp\[[^\]]*\];", "\n".join(body), re.M):
+        k = 1 if body and not body[0].strip() else 0
+        body.insert(k, "    M2C_UNK sp[64];")
+    note = "extra? arguments" + (f": {n_st} as stores into sp" if n_st else "") + \
+        (f"{',' if n_st else ':'} {n_drop} dropped" if n_drop else "")
+    return c_text[:m.end()] + "\n".join(body) + after, note
+
+
 _FLOAT_PARAM_RE = re.compile(r"^(?:const\s+)?(?:f32|f64|float|double)\s+\w+$")
 
 
@@ -2403,6 +2665,19 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
     c_path = out / "obj" / f"{name}.{re.sub(r'[^a-z]+', '_', ctx_label)}.c"
     c_draft = c_text
     res, msg = compile_compare(name, addr, c_text, c_path, out, game)
+    if res is None and EXTRA_STORES and "too many arguments to function" in msg and "/* extra? */" in c_text:
+        # ER-224: m2c's `/* extra? */` arguments are the game's stack stores before the call (a vector at 0($sp));
+        # as stores into `sp` (or dropped when they cannot be placed), compiled under the same name (the variants
+        # below then start from it)
+        xs = extra_arg_stores(c_text, name)
+        if xs:
+            r2, m2 = compile_compare(name, addr, xs[0], c_path, out, game)
+            if r2 is not None:
+                res, msg, c_text, c_draft = r2, m2, xs[0], xs[0]
+                at.files["c"] = c_text
+                at.notes.append(xs[1])
+            else:
+                at.notes.append(xs[1] + ": still no compile")
     if res is None:
         at.files["err.txt"] = msg
         if msg.startswith(TIMEOUT_TAG):
@@ -2455,12 +2730,16 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
     # the variants kept only on a MATCH can run again from them (no match lost)
     # ER-217: `while` loops first (kept when no farther: the same loop in the game's spelling, which the global base
     # may need, func_001C1880), the untouched argument after the stack vector; the keep rule is _closer
+    # ER-224: the .rodata vector copies first of all, kept by _closer only (kept when exactly as far off, they took
+    # the M2C_FIELD halves the global base would have used: func_001254F8 80 -> 154 words)
     pres: list[tuple] = []
-    for fix in ("while", "early", "s16", "gret", "svec", "uarg", "gbase"):
+    for fix in ("rvec", "while", "early", "s16", "gret", "svec", "uarg", "gbase"):
         if res.match:
             break
         cands: list[tuple[str, str, Path | None]] = []
-        if fix == "while" and WHILE_FIX:
+        if fix == "rvec" and RODATA_VEC:
+            cands = rodata_vec_variants(c_text, name, at.protos_h, out, c_path.stem)
+        elif fix == "while" and WHILE_FIX:
             cands = [(n, t, at.protos_h) for n, t in while_variants(c_text, name)]
         elif fix == "uarg" and UNTOUCHED_DRAFT:
             cands = untouched_draft_variants(c_text, name, res, game, at.protos_h, out, c_path.stem)
@@ -2610,7 +2889,8 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
             what = "narrow parameter" if narrow_pre and depth == 0 else "draft fix"
             dropped = [n for n in at.notes if n.startswith(("narrow parameter kept", "early exit first", "s16 sign",
                                                             "returns the last call", "stack ", "global ",
-                                                            "while loop", "untouched argument"))
+                                                            "while loop", "untouched argument",
+                                                            "rodata vector"))
                        and "tried" not in n][-(depth + 1):]
             st = (st2[0], st2[1], [f"{what} dropped: a later variant matches without the last {depth + 1} kept "
                                    f"change(s) of {n_pres} ({'; '.join(dropped)})"] + st2[2], st2[3], st2[4])
@@ -3243,6 +3523,9 @@ def plain_parts(c_text: str, name: str):
         s = re.sub(r"/\*\s*extern\s*\*/", "", line).strip()
         if not s:
             continue
+        if tm := VEC_TYPEDEF_LINE_RE.match(s):    # ER-224: the vector typedef of the .rodata copy fix
+            decls["typedef:" + tm[1]] = s
+            continue
         n = decl_name(s)
         if not n or not s.endswith(";"):
             return f"unexpected line before the function: {s[:60]}"
@@ -3320,6 +3603,13 @@ def make_plain(rows: list[Row], out: Path, game: eematch.Game) -> None:
                            + "\n".join(protos.values()))
             consted[n] = f"extern const {plain_types(dm[1]) if dm else 'f32'} {n};"
         must_const = [n for n in consted if n in fdecls and not re.search(rf"\bconst\b[^;]*\b{n}\b", fdecls[n])]
+        # ER-224: the .rodata vector copy fix: its typedef first in the plain file, its `extern const <vector> D_x;`
+        # lines before every other source (the file may declare D_x another way: then say to align it)
+        tdefs = {k[8:]: v for k, v in head.items() if k.startswith("typedef:")}
+        vconst = {n: v for n, v in head.items() if not n.startswith("typedef:")
+                  and (vm := re.match(r"^extern const (\w+) D_[0-9A-F]{8};$", v)) and vm[1] in tdefs}
+        must_vconst = [n for n in vconst if n in fdecls and " ".join(fdecls[n].split()) != vconst[n]]
+        consted = {**vconst, **consted}
         # ER-130: the file's own extern for the target (an address-taking user's prototype) must agree with the
         # definition, or the plain compile fails "conflicting types" (and so would the placement: place.py keeps the
         # file's line). Agrees: declare it. Same parameter count: try the definition with the file's types (kept on a
@@ -3330,8 +3620,8 @@ def make_plain(rows: list[Row], out: Path, game: eematch.Game) -> None:
         if own:
             own_state, adopted = own_decl_form(func, r.func, own)
             if own_state == "adopt":
-                alt_text = plain_file(own_lines_for(func, r.func, own, lines_src=(consted, widened, fdecls, run_sigs,
-                                                                                    head, protos)), adopted)
+                alt_text = plain_file(list(tdefs.values()) + own_lines_for(
+                    func, r.func, own, lines_src=(consted, widened, fdecls, run_sigs, head, protos)), adopted)
                 res_a, _m = compile_compare(r.func, game.addr(r.func), alt_text,
                                             out / "obj" / f"{r.func}.plain_own.c", out, game)
                 if res_a and res_a.match:
@@ -3339,6 +3629,7 @@ def make_plain(rows: list[Row], out: Path, game: eematch.Game) -> None:
                     own_state = "adopted"
         lines = own_lines_for(func, r.func, own if own_state in ("same", "adopted") else "",
                               lines_src=(consted, widened, fdecls, run_sigs, head, protos))
+        lines = list(tdefs.values()) + lines
         text = plain_file(lines, func)
         res, msg = compile_compare(r.func, game.addr(r.func), text, out / "obj" / f"{r.func}.plain.c", out, game)
         (out / "c" / f"{r.func}.plain.c").write_text(text, encoding="utf-8", newline="\n")
@@ -3361,6 +3652,17 @@ def make_plain(rows: list[Row], out: Path, game: eematch.Game) -> None:
         if must_const:
             r.plain += " (file declares " + ", ".join(sorted(must_const)) + " without const; make the file's line " \
                        "const before placing, then make regress: the file's other users compile against it too)"
+        if must_vconst:
+            r.plain += " (file declares " + ", ".join(sorted(must_vconst)) + " otherwise; make the file's line the " \
+                       "plain file's `extern const` vector before placing, then make regress)"
+        for tn in tdefs:
+            vt, _td, tline = vec_type(r.file)
+            if tline and vt == tn:
+                r.plain += f" (the file defines {tn} at line {tline}: drop the plain file's typedef line; the type " \
+                           "must be declared above this function)"
+            else:
+                r.plain += f" (typedef {tn} is Unofficial: {r.file} has no 16-byte vector type; keep the line, " \
+                           "with the comment of ruling 3.15, and list the use there)"
         if pnotes:
             r.plain += " (" + "; ".join(pnotes) + ")"
         late = late_callees(r.file, r.func, func)
@@ -3670,6 +3972,12 @@ def main() -> int:
     ap.add_argument("--no-untouched-draft", action="store_true",
                     help="skip the untouched-argument fix on the draft (a call whose arguments sit one register higher "
                          "in the game gets the function's own first integer argument first; ER-217)")
+    ap.add_argument("--no-rodata-vec", action="store_true",
+                    help="skip the .rodata vector fix (an INCLUDE_RODATA vector copied with ld / sd drafted as a struct "
+                         "copy from `extern const Vec4 D_x;`; ER-224, recipes 2.49 / 2.52)")
+    ap.add_argument("--no-extra-stores", action="store_true",
+                    help="no rescue of a draft that does not compile for m2c's `/* extra? */` arguments (the game's "
+                         "stack stores before the call written as stores into sp, else dropped; ER-224)")
     ap.add_argument("--no-keep-words", action="store_true",
                     help="ER-188's keep rule for the draft fixes (size first, then words) instead of ER-217's (no "
                          "farther in size or in words, unless it reaches the game's size)")
@@ -3688,7 +3996,9 @@ def main() -> int:
     sys.stdout.reconfigure(line_buffering=True)
     global GCC_TIMEOUT, TAG, SLOT_MOVE, CONST_VARIANT, STORE_SORT, SIBCALL_314, FRAME_FIX, PACKER_VARIANT, \
         UNTOUCHED_RETRY, REG_BYTES, STORE_LIMIT, NARROW_VARIANT, RT_FIX, NARROW_KEEP, EARLY_EXIT, S16_SIGN, GAME_RET, \
-        STACK_VEC, GLOBAL_BASE, WHILE_FIX, UNTOUCHED_DRAFT, KEEP_WORDS
+        STACK_VEC, GLOBAL_BASE, WHILE_FIX, UNTOUCHED_DRAFT, KEEP_WORDS, RODATA_VEC, EXTRA_STORES
+    RODATA_VEC = not args.no_rodata_vec
+    EXTRA_STORES = not args.no_extra_stores
     WHILE_FIX = not args.no_while
     UNTOUCHED_DRAFT = not args.no_untouched_draft
     KEEP_WORDS = not args.no_keep_words
