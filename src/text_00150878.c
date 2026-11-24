@@ -1114,7 +1114,32 @@ void func_00157B50(void *arg0, s32 arg1) {
     *(s32 *)((char *)arg0 + 8) = 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00157B60);
+/* ER-195: from ER-186's draft (m2c_bulk --plain); the table as an array of 8-byte records keeps the game's
+   registers (recipes, ER-195). Names, types and offsets are Unconfirmed readings. */
+typedef struct { s32 x0; s32 x4; } R330410;
+extern R330410 D_00330410[];
+extern s32 func_0012F5F8(u16, s32, s32, s32 *, s32, s32, s32, s32);
+
+void func_00157B60(void *arg0) {
+    s32 sp[4];
+    u32 i;
+
+    if (*(s32 *)((char *)arg0 + 4) == 0) {
+        *(s32 *)((char *)arg0 + 0xC) = 0;
+        *(s32 *)((char *)arg0 + 4) = 1;
+    }
+    sp[0] = *(s32 *)((char *)arg0 + 0xC);
+    func_0012F5F8(D_0035B830 & D_0035B834, 0x40, 0x10, sp, 1, 0, 8, 1);
+    i = 0;
+    *(s32 *)((char *)arg0 + 0xC) = sp[0];
+    do {
+        i += 1;
+    } while (i < 9U);
+    func_0012F5F8(D_0035B830 & D_0035B834, 0x40, 0x10, sp, 1, 0, 8, 1);
+    if (D_0035B830 & D_0035B834 & 0x2000) {
+        func_00157B50(arg0, D_00330410[sp[0]].x4);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00157C58);
 
@@ -2036,7 +2061,19 @@ void func_00162950(void) {
 void func_00162958(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00162960);
+/* ER-195: ER-198's base-pointer scan hit (recipes, ER-195): D_001FF340 read through one float pointer, the sine
+   table indexed directly. Names, types and offsets are Unconfirmed readings. */
+void func_00162960(char *arg0) {
+    f32 *c = (f32 *)D_001FF340;
+    s32 a;
+    s32 b;
+
+    a = (s32)((c[5] * 4096.0f) / 6.2831855f) & 0xFFF;
+    b = (s32)((c[4] * 4096.0f) / 6.2831855f) & 0xFFF;
+    *(f32 *)(arg0 + 0x10) = c[0] - D_001F0380[a] * 96.0f * D_001F0380[b + 0x400];
+    *(f32 *)(arg0 + 0x14) = c[1] - D_001F0380[b] * 96.0f;
+    *(f32 *)(arg0 + 0x18) = c[2] - D_001F0380[a + 0x400] * 96.0f * D_001F0380[b + 0x400];
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00162A40);
 
@@ -4075,7 +4112,19 @@ void func_0018CA20(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018CAD0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018D168);
+extern s32 func_001651C0(s16, s32, s32, f32);
+
+/* ER-194: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_0018D168(void *arg0) {
+    func_0017CF10(arg0, 96.0f);
+    func_0017D328(arg0);
+    *(s32 *)((char *)arg0 + 4) = 0x3C;
+    *(s32 *)((char *)arg0 + 0x10) = 0x3C;
+    *(s32 *)((char *)arg0 + 0x14) = 0;
+    *(s32 *)((char *)arg0 + 0x18) = 0;
+    *(s8 *)((char *)arg0 + 0x78) = 1;
+    *(s8 *)((char *)arg0 + 0x7B) = func_001651C0(0x1F9, 0x370050, (s32) (arg0 + 0x50), 2560.0f);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018D1D8);
 
@@ -4351,7 +4400,27 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00193AA0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00193B30);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00193B68);
+extern void func_001A0208(s32, s32);
+extern void func_001A0330(s32, s32, f32 fparg0);
+extern void func_001A04D8(s32, s32);
+
+/* ER-194: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
+void func_00193B68(void *arg0) {
+    s32 temp_3;
+
+    func_001A0208((s32) arg0, 0xB4 - *(s32 *)((char *)arg0 + 4));
+    func_001A0330((s32) arg0, 0xB4 - *(s32 *)((char *)arg0 + 4), 1.0f);
+    func_001A04D8((s32) arg0, 0xB4 - *(s32 *)((char *)arg0 + 4));
+    if (*(s32 *)((char *)arg0 + 4) == 0xB4) {
+        *(s8 *)((char *)arg0 + 0x7B) = func_001651C0(0x210, 0x3C006C, (s32) (arg0 + 0x50), 2560.0f);
+    }
+    temp_3 = *(s32 *)((char *)arg0 + 4);
+    if (temp_3 == 1) {
+        *(s32 *)((char *)arg0 + 0x18) = temp_3;
+        *(s32 *)((char *)arg0 + 4) = 0x141;
+        *(s8 *)((char *)arg0 + 0x78) = 0;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00193C10);
 
@@ -5087,7 +5156,25 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A37C0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A3A40);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A3D00);
+extern const Vec4A D_00355E60;
+extern const Vec4A D_00355E70;
+extern const Vec4A D_00355BE0;
+extern s32 func_00158AD8(s32, s32, void *, void *, void *, void *);
+/* ER-195: ER-198's base-pointer scan hit (recipes, ER-195): three 16-byte vectors copied from .rodata, declared
+   const (the loads then schedule as the game's). Names, types and offsets are Unconfirmed readings. */
+void func_001A3D00(s32 arg0, f32 f) {
+    Vec4A a = D_00355E60;
+    Vec4A b = D_00355E70;
+    Vec4A c = D_00355BE0;
+
+    func_001C9B18((s32)&a, (void *)(arg0 + 0x60));
+    D_00248880[1] = 0;
+    a.v[0] = 1.5707964f;
+    D_00248880[0] = 1;
+    D_00248880[7] = 0;
+    func_0017CC28(c.v, 2, f);
+    func_00158AD8(0x9D, 0xA, (void *)(arg0 + 0x50), &a, &b, &c);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A3DD8);
 
@@ -6746,7 +6833,24 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF688);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF700);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF748);
+extern s32 D_00202950[];
+extern s32 D_00202990[];
+/* ER-195: ER-198's base-pointer scan hit (recipes, ER-195): both records through one pointer each, the two flag
+   bytes 0x21A before 0x21B. Names, types and offsets are Unconfirmed readings. */
+void func_001BF748(s32 *arg0) {
+    char *s = (char *)D_00202990;
+    char *d = (char *)D_00202950;
+    s8 *g;
+
+    *(s32 *)(d + 0x20) = *(s32 *)(s + 0x20);
+    *(u8 *)(d + 0x24) = *(u8 *)(s + 0x24);
+    func_001C9B18((s32)d, s);
+    func_001C9B18((s32)(d + 0x10), s + 0x10);
+    g = (s8 *)D_001FF890;
+    g[0x21A] = 1;
+    g[0x21B] = 1;
+    *arg0 = 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF7C8);
 
@@ -6760,7 +6864,29 @@ void func_001BF808(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF840);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF8E0);
+/* ER-195: from ER-186's draft; the two first values loaded before the stores, then a climb (recipes, ER-195).
+   Names, types and offsets are Unconfirmed readings. */
+void func_001BF8E0(void *arg0) {
+    char *g = (char *)D_001FF390;
+    f32 t;
+    f32 a;
+    s32 b;
+
+    *(s8 *)(g + 0x102) = 1;
+    a = *(f32 *)((char *)arg0 + 8);
+    b = *(s32 *)((char *)arg0 + 0x30);
+    *(f32 *)(g + 0x120) = a;
+    *(s32 *)(g + 0x138) = b;
+    *(f32 *)(g + 0x124) = *(f32 *)((char *)arg0 + 0x10);
+    *(f32 *)(g + 0x128) = *(f32 *)((char *)arg0 + 0x18);
+    *(f32 *)(g + 0x12C) = 1.0f;
+    t = *(f32 *)((char *)arg0 + 0x20);
+    *(f32 *)(g + 0x10C) = t;
+    *(f32 *)(g + 0x130) = t;
+    *(f32 *)(g + 0x134) = *(f32 *)((char *)arg0 + 0x28);
+    *(s8 *)(g + 0x103) = 0;
+    *(s32 *)arg0 = 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF940);
 
