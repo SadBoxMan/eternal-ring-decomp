@@ -1972,16 +1972,34 @@
     },
     {
       "code": "ER-186",
-      "title": "text_00150878: func_0012DA68 extern order",
+      "title": "text_00150878: func_0012DA68 order + func_00152D58",
       "status": "Queued",
       "track": "decomp",
-      "model": "Sonnet, medium",
-      "waits_on": "ER-184",
+      "model": "Opus, medium",
+      "waits_on": "none",
       "notes": ""
     },
     {
       "code": "ER-187",
       "title": "Return-the-callee's-value retry (recipes 2.42)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-188",
+      "title": "m2c_bulk early-exit variant",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-189",
+      "title": "Early-exit scan by hand (other game files)",
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
