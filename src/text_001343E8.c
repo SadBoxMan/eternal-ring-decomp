@@ -847,6 +847,8 @@ extern void func_00137CE0(s8 *, s8 *);
 extern void func_001381D0();
 extern void func_00138370();
 
+/* func_00137A10: parked; MATCH under cmpfunc (ER-198), but its literal takes over D_00354720, a double plus 8 zero bytes
+   of padding that only .align 4 can rebuild: waits for this file's cut (ER-201; LuciDin, 24 Nov 2026). */
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00137A10);
 
 INCLUDE_RODATA("asm/nonmatchings/text_001343E8", D_00354720);
@@ -855,7 +857,69 @@ INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00137CE0);
 
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_001381D0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00138370);
+extern void func_00138370();
+extern s32 func_0012F9C0(void **, s32);
+extern float func_00130CE0(char *arg0, f32 fparg0);
+extern s32 func_0012F8C8(void **arg0, s32 arg1, s32 arg2, s16 arg3, s32 arg4, f32 fparg0);
+extern void func_001386E8(void *, s8 *);
+extern void *func_0012C360(void *, s32, s32, s32, void *);
+f32 func_001387A0(void *arg0);
+extern s32 func_0012F7E0(void *arg0, s32 arg1, s32 arg2);
+extern s32 func_001387C0(void *, f32 fparg0);
+extern s32 func_0012E568(s32, s32);
+extern s32 func_0012F938(void *arg0, s32 arg1);
+extern void func_00131000(char *, void *);
+extern void func_00137A10(void **, void *);
+
+/* ER-188: drafted with m2c (tools/m2c_bulk.py --plain), placed by ER-201; the frame array as s32 sp[8] (recipes 2.40); names, types and offsets are Unconfirmed readings. */
+void func_00138370(void **arg0, s8 *arg1) {
+    s32 sp[8];
+    f32 var_f20;
+    s16 temp_3;
+
+    temp_3 = *(s16 *)((char *)arg0 + 0x6E);
+    switch (temp_3) {                               /* irregular */
+    case 0:
+        *(s8 *)((char *)arg0 + 0xF) = 1;
+        func_0012F9C0(arg0, 1);
+        *(s16 *)((char *)arg0 + 0x6E) = (s16) ((u16) *(s16 *)((char *)arg0 + 0x6E) + 1);
+        /* fallthrough */
+    case 1:
+        func_00130CE0((s8 *) arg0, 10.0f);
+        if (func_0012F8C8(arg0, 0x11, (s32) *(s16 *)((char *)arg0 + 0x6C), 0x14, 0, 0.1f) != 0) {
+            func_001386E8(sp, arg1);
+            sp[4] = 0;
+            (*(f32 *)&sp[5]) = *(f32 *)((char *)arg1 + 0xA4);
+            sp[6] = 0;
+            *(void **)((char *)arg0 + 0x48) = func_0012C360(arg0, 0x82, 1, (s32) sp, &sp[4]);
+            *(s16 *)((char *)arg0 + 0x6E) = (s16) ((u16) *(s16 *)((char *)arg0 + 0x6E) + 1);
+        }
+        return;
+    case 2:
+        func_00130CE0((s8 *) arg0, 20.0f);
+        var_f20 = func_001387A0(arg0) + 0.016666668f;
+        if (0.99f <= var_f20) {
+            var_f20 = 0.99f;
+            func_0012F7E0(arg1, 0x12, 0);
+            *(s16 *)((char *)arg0 + 0x6C) = 0;
+            *(s16 *)((char *)arg0 + 0x6E) = (s16) ((u16) *(s16 *)((char *)arg0 + 0x6E) + 1);
+        }
+        func_001387C0(arg0, var_f20);
+        *(s16 *)((char *)arg0 + 0x74) = func_0012E568(0xA, 0x1E);
+        break;
+    case 3:
+        if (*(s16 *)((char *)arg0 + 0x6C) == 0x1E) {
+            func_001387C0(arg0, 1.0f);
+            func_0012F9C0(arg0, 0);
+        }
+        if (func_0012F938(*(void **)arg0, 0x12) != 0) {
+            *(s8 *)((char *)arg0 + 0xF) = 0;
+            *(s8 *)((char *)arg0 + 0xE) = 0;
+            func_00131000((s8 *) arg0, func_00137A10);
+        }
+        break;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00138540);
 
