@@ -1471,7 +1471,52 @@ void func_00142F20(s8 *arg0) {
     func_00131140(arg0, func_00142A68, func_00142A68, *(void **)((char *)arg0 + 0x40), NULL, func_001429F0);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00142F88);
+extern f32 D_0035BC18;
+extern f32 D_0035BC1C;
+extern f32 D_0035BC38;
+extern f32 D_0035BC3C;
+extern const f32 D_0035BC40;
+
+/* ER-202: by hand from ER-198's draft; D_0035BC40 declared const (recipes 2.21: the game loads it ahead of the
+   stores; Unconfirmed reading), D_0035BC3C read once into a local for both clamps; names, types and offsets are
+   Unconfirmed readings. */
+void func_00142F88(s8 *arg0, s8 *arg1) {
+    f32 v[4];
+    f32 s;
+    f32 x;
+    f32 c;
+    f32 m;
+
+    func_00130CE0(arg0, 10.0f);
+    func_0012F8C8(arg0, 0xA, *(s16 *)(arg0 + 0x6C), 0x14, 1, 0.1f);
+    func_0012CB70(v, arg1, *(char **)*(char **)(arg0 + 0xEC) + 0x90);
+    s = -1.0f;
+    if (v[0] >= 0.0f) {
+        s = 1.0f;
+    }
+    x = *(f32 *)(arg0 + 0x48) + s * D_0035BC18;
+    m = D_0035BC38;
+    *(f32 *)(arg0 + 0x48) = x;
+    c = -m;
+    if (!(x < c)) {
+        c = (m < x) ? m : x;
+    }
+    *(f32 *)(arg0 + 0x48) = c;
+    s = -1.0f;
+    if (v[2] >= D_0035BC40) {
+        s = 1.0f;
+    }
+    x = *(f32 *)(arg0 + 0x4C) + s * D_0035BC1C;
+    c = D_0035BC3C;
+    *(f32 *)(arg0 + 0x4C) = x;
+    if (x < -c) {
+        x = -c;
+    } else if (c < x) {
+        x = c;
+    }
+    *(f32 *)(arg0 + 0x4C) = x;
+    func_00131140(arg0, func_00142A68, func_00142A68, 0, 0, 0);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_001430E0);
 
