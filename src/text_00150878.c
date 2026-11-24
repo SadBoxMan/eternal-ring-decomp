@@ -7271,7 +7271,120 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C1928);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C1CA8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C1E38);
+extern s32 func_001C20B0(void);
+extern s32 func_001C1CA8();
+extern s32 func_001E3360(s32, void *, void *);
+
+/* ER-213: by hand from the game's code (m2c's draft had gotos). D_001FEC00 read as a struct through a cast at every use
+   (recipes 2.45: the base stays D_001FEC00 and gcse keeps its %hi in $s3); the shared tails come from cross-jumping:
+   case 0's x14 == 2 path is case -2's, its x1C paths are default's, and the 0x4B8 store with the x10 / x1C updates is
+   written in both arms of v == 2. TEC00, its fields and the state values are Unofficial readings. */
+typedef struct {
+    s32 x0, x4, x8, xC, x10, x14, x18, x1C, x20, x24, x28, x2C, x30, x34;
+    char pad[0x4B4 - 0x38];
+    s8 b4B4[2];
+    u16 h4B6;
+    s32 w4B8[2];
+} TEC00;
+#define EC00 ((TEC00 *)D_001FEC00)
+
+s32 func_001C1E38(void) {
+    s32 r = 0;
+    s32 v;
+
+    if (EC00->x10 == 0) {
+        if (EC00->x4 == 0 && func_001C20B0() == 0) {
+            EC00->x28 = 0;
+            EC00->x4 = 1;
+        }
+        if (EC00->x4 == 1 && EC00->x28 != 0) {
+            switch (EC00->x8) {
+            case 0:
+                EC00->x4 = 0;
+                EC00->x28 = 0;
+                EC00->x34 = 0;
+                EC00->x10 = 1;
+                if (EC00->x14 == 2) {
+                    EC00->b4B4[EC00->x1C] = 1;
+                    r = 1;
+                } else {
+                    if (EC00->x1C == 0) {
+                        EC00->b4B4[0] = 0;
+                        EC00->w4B8[0] = 0;
+                    } else {
+                        EC00->b4B4[1] = 0;
+                        EC00->w4B8[1] = 0;
+                    }
+                    r = 0;
+                }
+                break;
+            case -2:
+                EC00->x4 = 0;
+                EC00->x28 = 0;
+                EC00->x34 = 0;
+                EC00->x10 = 1;
+                if (EC00->x14 == 2) {
+                    EC00->b4B4[EC00->x1C] = 1;
+                    r = 1;
+                } else {
+                    r = 0;
+                    EC00->b4B4[EC00->x1C] = 0;
+                }
+                break;
+            default:
+                EC00->x10 = 1;
+                EC00->x4 = 0;
+                EC00->x28 = 0;
+                EC00->x34 = 0;
+                if (EC00->x1C == 0) {
+                    EC00->b4B4[0] = 0;
+                    EC00->w4B8[0] = 0;
+                } else {
+                    EC00->b4B4[1] = 0;
+                    EC00->w4B8[1] = 0;
+                }
+                r = 0;
+                break;
+            }
+        }
+    } else if (EC00->x10 == 1) {
+        if (EC00->x14 == 2 && EC00->b4B4[EC00->x1C] != 0) {
+            v = func_001C1CA8();
+            if (v != 1) {
+                if (v == 2) {
+                    EC00->x4 = 0;
+                    EC00->x28 = 0;
+                    EC00->x34 = 0;
+                    EC00->w4B8[EC00->x1C] = EC00->x18 + EC00->x30 * 100;
+                    EC00->x10 = 0;
+                    EC00->x1C = EC00->x1C == 0;
+                } else {
+                    EC00->x4 = 0;
+                    EC00->x28 = 0;
+                    EC00->x34 = 0;
+                    EC00->w4B8[EC00->x1C] = 8000;
+                    EC00->x10 = 0;
+                    EC00->x1C = EC00->x1C == 0;
+                }
+                EC00->h4B6 += 1;
+            }
+        } else {
+            EC00->x4 = 0;
+            EC00->x28 = 0;
+            EC00->x34 = 0;
+            EC00->w4B8[EC00->x1C] = 0;
+            EC00->b4B4[EC00->x1C] = 0;
+            EC00->x10 = 0;
+            EC00->x1C = EC00->x1C == 0;
+            EC00->h4B6 += 1;
+        }
+    }
+    if (func_001E3360(1, &EC00->x24, &EC00->x8) == 1) {
+        EC00->x28 = EC00->x24;
+    }
+    return r;
+}
+#undef EC00
 
 extern s32 func_001E34A8(s32, s32, void *, void *, void *);
 /* ER-113: by hand from the m2c draft (base-pointer local, recipes 2.25); names and types Unconfirmed. */
@@ -7565,7 +7678,6 @@ void func_001C4DF8(void) {
 }
 
 extern s32 func_001C4EB0();
-extern s32 func_001E3360(s32, void *, void *);
 
 /* ER-213: from ER-188's rs0 draft; m2c's `D_001FEC00 + 0x24` (an s32 pointer step) written as the element
    addresses &D_001FEC00[9] / [2]. func_001E3360's prototype is a reading from this call (Unconfirmed). */
