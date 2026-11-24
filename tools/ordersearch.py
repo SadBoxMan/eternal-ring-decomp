@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""ER-117: register-blind scoring and statement-order search for near-miss functions (one tool, eight modes).
+"""ER-117 / ER-176: register-blind scoring and statement-order search for near-miss functions (one tool, nine modes).
 
-  python -I tools/ordersearch.py score  a.c [b.c ...] [--func F] [--diff] [--regs] [--drift]
-  python -I tools/ordersearch.py perm   a.c [--lines A-B] [--before X,Y ...] [--samples N] [--all]
-  python -I tools/ordersearch.py climb  a.c [--lines A-B ...] [--before X,Y ...] [--range LO:HI]
-  python -I tools/ordersearch.py switch a.c [--lines A-B] [--key REGEX] [--search climb|all]
-  python -I tools/ordersearch.py decl   a.c [--lines A-B] [--samples N]
-  python -I tools/ordersearch.py group  a.c --prefixes 'col.,uv.,v[,q['
-  python -I tools/ordersearch.py sub    a.c OLD NEW [OLD NEW ...] [-o out.c]
-  python -I tools/ordersearch.py dump   a.c [--passes sched|all] [--verbose 6]
+  python -I tools/ordersearch.py score    a.c [b.c ...] [--func F] [--diff] [--regs] [--drift]
+  python -I tools/ordersearch.py perm     a.c [--lines A-B | --text F] [--before X,Y ...] [--samples N] [--all]
+  python -I tools/ordersearch.py climb    a.c [--lines A-B ... | --text F ...] [--before X,Y ...] [--restarts N]
+  python -I tools/ordersearch.py switch   a.c [--lines A-B] [--key REGEX] [--search climb|all] [--restarts N]
+  python -I tools/ordersearch.py variants t.c [--search auto|all|climb] [--restarts N] [order blocks]
+  python -I tools/ordersearch.py decl     a.c [--lines A-B] [--samples N]
+  python -I tools/ordersearch.py group    a.c --prefixes 'col.,uv.,v[,q['
+  python -I tools/ordersearch.py sub      a.c OLD NEW [OLD NEW ...] [-o out.c]
+  python -I tools/ordersearch.py dump     a.c [--passes sched|all] [--verbose 6]
 
 score   compile and compare (tools/eematch.py, as tools/cmpfunc.py does), then the register-blind count: our and the
         game's instructions with registers, branch targets and callee names masked, relocated immediates masked (the
@@ -21,7 +22,10 @@ climb   steepest ascent over single-line moves, block by block (each --lines / m
         of any block improves the score.
 switch  one statement order shared by every `case` of a switch in the block: lines whose --key (default: the left
         side of `x = ...;`) is found once in every case are reordered together; other lines keep their place.
-decl    random orders of the function's local declarations (default block: after the opening `{` of --func up to
+variants a template: each `@{a@|b@|c@}` group picks one alternative (`@name{..@}` groups share one choice), together
+        with the template's order blocks; every combination (--search all) or a climb over them.
+        climb / switch / variants climbs: --restarts N adds N climbs from random starts (seeded by --seed).
+decl   random orders of the function's local declarations (default block: after the opening `{` of --func up to
         the first blank line).
 group   sort each run of lines that start with one of --prefixes by prefix, for every order of the prefixes.
 sub     apply string replacements (variable reuse, types, spellings) to a copy and score it.
@@ -260,11 +264,29 @@ def parse_range(s: str) -> tuple[int, int]:
     return int(a), int(b)
 
 
-def find_blocks(lines: list[str], specs: list[str] | None) -> list[tuple[int, int]]:
-    """Blocks as (first, last) 1-based inclusive line numbers: from --lines, else every /*ORDER*/ ... /*END*/ pair
-    (the lines strictly between the two marker lines)."""
-    if specs:
-        blocks = [parse_range(s) for s in specs]
+def text_block(lines: list[str], path: str) -> tuple[int, int]:
+    """The block whose lines are exactly the non-blank lines of file `path` (compared without surrounding
+    whitespace), found once, consecutive, in `lines` (ER-100's permg.py named its block this way)."""
+    want = [l.strip() for l in Path(path).read_text(errors="replace").splitlines() if l.strip()]
+    if not want:
+        raise SystemExit(f"ordersearch: --text {path}: no lines")
+    have = [l.strip() for l in lines]
+    hits = [i for i in range(len(have) - len(want) + 1) if have[i:i + len(want)] == want]
+    if len(hits) != 1:
+        raise SystemExit(f"ordersearch: --text {path}: its {len(want)} line(s) found {len(hits)} times "
+                         "(need exactly once, consecutive)")
+    return hits[0] + 1, hits[0] + len(want)
+
+
+def find_blocks(lines: list[str], specs: list[str] | None, texts: list[str] | None = None) -> list[tuple[int, int]]:
+    """Blocks as (first, last) 1-based inclusive line numbers: from --lines and --text, else every /*ORDER*/ ...
+    /*END*/ pair (the lines strictly between the two marker lines)."""
+    if specs or texts:
+        blocks = [parse_range(s) for s in (specs or [])] + [text_block(lines, t) for t in (texts or [])]
+        blocks.sort()
+        for (a1, b1), (a2, b2) in zip(blocks, blocks[1:]):
+            if a2 <= b1:
+                raise SystemExit(f"ordersearch: blocks {a1}-{b1} and {a2}-{b2} overlap")
     else:
         blocks, start = [], None
         for i, l in enumerate(lines, 1):
@@ -345,8 +367,11 @@ class Run:
         self.log.write(s + "\n")
         self.log.flush()
 
-    def start(self, mode: str) -> Score:
-        base = self.sc.score(self.text if self.text.endswith("\n") else self.text + "\n")
+    def start(self, mode: str, text: str | None = None) -> Score:
+        """Score the starting text (default: the input as written) and write the log header."""
+        if text is None:
+            text = self.text if self.text.endswith("\n") else self.text + "\n"
+        base = self.sc.score(text)
         if base.key[0] == BIG:
             raise SystemExit(f"ordersearch: the input does not compile or compare: {base.head}")
         self.say(f"== {time.strftime('%Y-%m-%d %H:%M:%S')} {mode} {self.path} func {self.sc.func} metric "
@@ -438,7 +463,7 @@ def mode_perm(args, decl: bool = False) -> int:
     if decl and not args.lines:
         blocks = [decl_block(r.lines, args.func)]
     else:
-        blocks = find_blocks(r.lines, args.lines)
+        blocks = find_blocks(r.lines, args.lines, getattr(args, "text", None))
     if len(blocks) != 1:
         raise SystemExit(f"ordersearch: {'decl' if decl else 'perm'} takes exactly one block "
                          f"(found {len(blocks)}); use climb for several")
@@ -486,17 +511,70 @@ def decl_block(lines: list[str], func: str | None) -> tuple[int, int]:
     return a, b - 1
 
 
+def random_order(items: list, cons: list[tuple[int, int]], rnd: random.Random, tries: int = 2000) -> list:
+    """A random order of items that keeps every --before constraint (rejection sampling; falls back to a random
+    linear extension built one free item at a time, so it always succeeds when the constraints allow any order)."""
+    for _ in range(tries):
+        o = items[:]
+        rnd.shuffle(o)
+        if ok_order(o, cons):
+            return o
+    left, out = items[:], []
+    while left:
+        free = [x for x in left if not any(y in left and y != x and (y, x) in cons for y in left)]
+        if not free:
+            raise SystemExit("ordersearch: the --before constraints form a cycle")
+        x = rnd.choice(free)
+        out.append(x)
+        left.remove(x)
+    return out
+
+
+def restart_loop(r: Run, args, climb_from, random_start) -> None:
+    """Run climb_from(start_state, start_key, label) from the as-written start, then from --restarts random starts
+    (random_start(rnd) -> state, text); stop at the first MATCH. Each restart is announced in the log."""
+    climb_from(None, None, "as written")
+    rnd = random.Random(args.seed)
+    for i in range(1, args.restarts + 1):
+        if r.matches:
+            break
+        state, text = random_start(rnd)
+        s = r.sc.score(text)
+        r.say(f"restart {i}/{args.restarts}: start {list(s.key)}")
+        r.offer(s.key, text, f"restart {i} start", s.match)
+        if s.match:
+            break
+        climb_from(state, s.key, f"restart {i}")
+
+
 def mode_climb(args) -> int:
     r = Run(args, Path(args.file))
-    blocks = find_blocks(r.lines, args.lines)
+    blocks = find_blocks(r.lines, args.lines, args.text)
     if not blocks:
-        raise SystemExit("ordersearch: climb: no block (--lines A-B or /*ORDER*/ ... /*END*/)")
+        raise SystemExit("ordersearch: climb: no block (--lines A-B, --text FILE or /*ORDER*/ ... /*END*/)")
     cons = parse_before(args.before)
     base = r.start("climb")
-    orders = {b: list(range(b[0], b[1] + 1)) for b in blocks}
-    r.offer(base.key, assemble(r.lines, orders), "as written", base.match)
-    cur = base.key
+    written = {b: list(range(b[0], b[1] + 1)) for b in blocks}
+    r.offer(base.key, assemble(r.lines, written), "as written", base.match)
+
+    def climb_from(start, key, tag):
+        orders = dict(start) if start else dict(written)
+        cur = key if key is not None else base.key
+        climb_blocks(r, args, blocks, orders, cons, cur, tag)
+
+    def random_start(rnd):
+        o = {b: random_order(written[b], cons, rnd) for b in blocks}
+        return o, assemble(r.lines, o)
+
+    if not base.match:
+        restart_loop(r, args, climb_from, random_start)
+    return r.finish()
+
+
+def climb_blocks(r: Run, args, blocks, orders, cons, cur, tag: str) -> tuple:
+    """Steepest ascent over single-line moves, block by block, passes until none improves (ER-117's climb)."""
     rounds = 0
+    pre = "" if tag == "as written" else f"{tag}: "
     while not r.matches and rounds < args.rounds:
         rounds += 1
         improved = False
@@ -517,7 +595,8 @@ def mode_climb(args) -> int:
                     orders[blk] = cands[k][0]
                     cur = scores[k].key
                     improved = True
-                    r.offer(cur, cands[k][1], f"block {blk[0]}-{blk[1]} order {cands[k][0]}", scores[k].match)
+                    r.offer(cur, cands[k][1], f"{pre}block {blk[0]}-{blk[1]} order {cands[k][0]}",
+                            scores[k].match)
                     if scores[k].match:
                         break
                 else:
@@ -526,7 +605,9 @@ def mode_climb(args) -> int:
                 break
         if not improved:
             break
-    return r.finish()
+    if tag != "as written":
+        r.say(f"{tag}: stopped at {list(cur)}")
+    return cur
 
 
 CASE_RE = re.compile(r"^\s*(case\b.*|default\s*):\s*$")
@@ -581,17 +662,173 @@ def mode_switch(args) -> int:
         if total > args.max:
             raise SystemExit(f"ordersearch: {total} orders (over --max {args.max}); use --search climb")
         r.evaluate([(f"order {list(p)}", build(list(p))) for p in itertools.permutations(common)])
-    else:
-        cur = base.key
-        while not r.matches:
-            cands = [(o, build(o)) for o in moves(cur_o)]
-            with cf.ThreadPoolExecutor(args.par) as ex:
-                scores = list(ex.map(lambda c: r.sc.score(c[1]), cands))
-            k = min(range(len(cands)), key=lambda q: scores[q].key)
-            if scores[k].key >= cur:
-                break
-            cur_o, cur = cands[k][0], scores[k].key
-            r.offer(cur, cands[k][1], f"order {cur_o}", scores[k].match)
+    elif not base.match:
+        def climb_from(start, key, tag):
+            steepest(r, args, start or cur_o, key if key is not None else base.key,
+                     lambda o: [(m, build(m), f"order {m}") for m in moves(o)], tag)
+
+        def random_start(rnd):
+            o = common[:]
+            rnd.shuffle(o)
+            return o, build(o)
+
+        restart_loop(r, args, climb_from, random_start)
+    return r.finish()
+
+
+def steepest(r: Run, args, state, cur: tuple, neigh, tag: str) -> tuple:
+    """Steepest ascent: neigh(state) -> [(state, text, label)]; move to the best neighbour while it beats cur
+    (ties keep the earlier neighbour). Returns the final key."""
+    pre = "" if tag == "as written" else f"{tag}: "
+    while not r.matches:
+        cands = neigh(state)
+        if not cands:
+            break
+        with cf.ThreadPoolExecutor(args.par) as ex:
+            scores = list(ex.map(lambda c: r.sc.score(c[1]), cands))
+        k = min(range(len(cands)), key=lambda q: scores[q].key)
+        if scores[k].key >= cur:
+            break
+        state, cur = cands[k][0], scores[k].key
+        r.offer(cur, cands[k][1], pre + cands[k][2], scores[k].match)
+    if tag != "as written":
+        r.say(f"{tag}: stopped at {list(cur)}")
+    return cur
+
+
+VAR_RE = re.compile(r"@(\w*)\{(.*?)@\}")
+
+
+@dataclass
+class VarSlot:
+    line: int            # 0-based line index in the template
+    start: int
+    end: int
+    var: int             # index of the variable (named slots share one)
+    alts: list[str]      # this slot's own alternatives (a shared variable picks the same index in every slot)
+
+
+def parse_variants(lines: list[str]):
+    """Find every `@{a@|b@|c@}` / `@name{a@|b@}` group (one line each). Returns (slots, variables) where variables
+    is a list of (name, first slot's alternatives); every slot of one name shares one variable, i.e. one choice
+    index (each slot keeps its own texts and must list the same number of alternatives). Alternative 0 is the
+    as-written one."""
+    slots: list[VarSlot] = []
+    vars_: list[tuple[str, list[str]]] = []
+    by_name: dict[str, int] = {}
+    for i, line in enumerate(lines):
+        for m in VAR_RE.finditer(line):
+            name, alts = m.group(1), m.group(2).split("@|")
+            if len(alts) < 2:
+                raise SystemExit(f"ordersearch: variants: line {i + 1}: a group needs two or more alternatives "
+                                 f"(separated by '@|'): {m.group(0)!r}")
+            if name and name in by_name:
+                v = by_name[name]
+                if len(vars_[v][1]) != len(alts):
+                    raise SystemExit(f"ordersearch: variants: line {i + 1}: group '{name}' has {len(alts)} "
+                                     f"alternatives here, {len(vars_[v][1])} at its first use")
+            else:
+                v = len(vars_)
+                vars_.append((name or f"L{i + 1}#{sum(1 for s in slots if s.line == i) + 1}", alts))
+                if name:
+                    by_name[name] = v
+            slots.append(VarSlot(i, m.start(), m.end(), v, alts))
+        rest = VAR_RE.sub("", line)
+        if re.search(r"@\w*\{|@\}|@\|", rest):
+            raise SystemExit(f"ordersearch: variants: line {i + 1}: an unclosed or stray '@{{' / '@|' / '@}}' "
+                             "(a group must open and close on one line)")
+    return slots, vars_
+
+
+def mode_variants(args) -> int:
+    path = Path(args.file)
+    r = Run(args, path)
+    slots, vars_ = parse_variants(r.lines)
+    if not vars_:
+        raise SystemExit("ordersearch: variants: no '@{a@|b@}' group in the file")
+    # the order blocks are found on the template's lines (markers or --lines / --text); a group may sit inside one
+    marker_lines = [l for l in r.lines if l.strip() in (MARK_START, MARK_END)]
+    blocks = find_blocks(r.lines, args.lines, args.text) if (args.lines or args.text or marker_lines) else []
+    cons = parse_before(args.before)
+    slots_by_line: dict[int, list[VarSlot]] = {}
+    for s in slots:
+        slots_by_line.setdefault(s.line, []).append(s)
+
+    def render(choice: tuple, orders: dict) -> str:
+        lines = r.lines[:]
+        for i, sl in slots_by_line.items():
+            line, out, pos = lines[i], [], 0
+            for s in sl:
+                out += [line[pos:s.start], s.alts[choice[s.var]]]
+                pos = s.end
+            lines[i] = "".join(out) + line[pos:]
+        return assemble(lines, orders) if orders else "\n".join(lines) + "\n"
+
+    def label(choice: tuple, orders: dict) -> str:
+        parts = [f"{vars_[v][0]}={c}:{vars_[v][1][c]!r}" for v, c in enumerate(choice) if c]
+        parts += [f"block {a}-{b} order {o}" for (a, b), o in orders.items() if o != list(range(a, b + 1))]
+        return "; ".join(parts) or "as written"
+
+    written_c = tuple(0 for _ in vars_)
+    written_o = {b: list(range(b[0], b[1] + 1)) for b in blocks}
+    n_choice = math.prod(len(a) for _n, a in vars_)
+    block_orders = {b: None for b in blocks}
+    n_orders = 1
+    for b in blocks:
+        n_orders *= math.factorial(b[1] - b[0] + 1)
+    total = n_choice * n_orders
+    search = args.search
+    if search == "auto":
+        search = "all" if total <= args.max else "climb"
+    base = r.start("variants", render(written_c, written_o))
+    r.say(f"{len(vars_)} variable(s) in {len(slots)} group(s): "
+          + ", ".join(f"{n}({len(a)})" for n, a in vars_)
+          + (f"; block(s) {', '.join(f'{a}-{b}' for a, b in blocks)}" if blocks else "")
+          + f"; {total} combination(s); search {search}")
+    r.offer(base.key, render(written_c, written_o), "as written", base.match)
+    if base.match:
+        return r.finish()
+
+    if search == "all":
+        if total > args.max:
+            raise SystemExit(f"ordersearch: {total} combinations (over --max {args.max}); use --search climb")
+        for b in blocks:
+            block_orders[b] = [list(p) for p in itertools.permutations(written_o[b]) if ok_order(list(p), cons)]
+        choices = list(itertools.product(*[range(len(a)) for _n, a in vars_]))
+        order_sets = [dict(zip(blocks, os_)) for os_ in itertools.product(*[block_orders[b] for b in blocks])] \
+            if blocks else [{}]
+        cands = []
+        for c in choices:
+            for o in order_sets:
+                cands.append((label(c, o), render(c, o)))
+        r.evaluate(cands)
+        return r.finish()
+
+    def neigh(state):
+        c, o = state
+        out = []
+        for v, (_n, alts) in enumerate(vars_):
+            for k in range(len(alts)):
+                if k != c[v]:
+                    c2 = c[:v] + (k,) + c[v + 1:]
+                    out.append(((c2, o), render(c2, o), label(c2, o)))
+        for b in blocks:
+            for m in moves(o[b]):
+                if ok_order(m, cons):
+                    o2 = dict(o)
+                    o2[b] = m
+                    out.append(((c, o2), render(c, o2), label(c, o2)))
+        return out
+
+    def climb_from(start, key, tag):
+        steepest(r, args, start or (written_c, written_o), key if key is not None else base.key, neigh, tag)
+
+    def random_start(rnd):
+        c = tuple(rnd.randrange(len(a)) for _n, a in vars_)
+        o = {b: random_order(written_o[b], cons, rnd) for b in blocks}
+        return (c, o), render(c, o)
+
+    restart_loop(r, args, climb_from, random_start)
     return r.finish()
 
 
@@ -703,9 +940,14 @@ def main() -> int:
     p.add_argument("--drift", action="store_true", help="print where the ours / game offset changes")
     common(p, search=False)
 
+    text_help = ("FILE holding the block's exact lines (blank lines ignored, whitespace-trimmed), found once in the "
+                 "input")
+    restart_help = "after the climb, N more climbs from random starts (from --seed); default 0"
+
     p = sub.add_parser("perm", help="every (or N random) order(s) of one block of lines")
     p.add_argument("file")
     p.add_argument("--lines", action="append", help="A-B: 1-based inclusive line numbers (default: markers)")
+    p.add_argument("--text", action="append", help=text_help)
     p.add_argument("--before", action="append", help="X,Y: line X must stay before line Y (file line numbers)")
     p.add_argument("--samples", type=int, default=0, help="N random orders instead of all (first: as written)")
     common(p)
@@ -713,8 +955,10 @@ def main() -> int:
     p = sub.add_parser("climb", help="steepest ascent over line moves, block by block")
     p.add_argument("file")
     p.add_argument("--lines", action="append", help="A-B, repeatable: one block each (default: markers)")
+    p.add_argument("--text", action="append", help=text_help + "; repeatable")
     p.add_argument("--before", action="append", help="X,Y: line X must stay before line Y")
     p.add_argument("--rounds", type=int, default=20, help="most passes over all blocks (default 20)")
+    p.add_argument("--restarts", type=int, default=0, help=restart_help)
     common(p)
 
     p = sub.add_parser("switch", help="one statement order shared by every case of a switch")
@@ -723,6 +967,23 @@ def main() -> int:
     p.add_argument("--key", default=r"^\s*([^=;{}]+?)\s*=[^=]",
                    help="regex whose group 1 names a line (default: left side of an assignment)")
     p.add_argument("--search", choices=("climb", "all"), default="climb")
+    p.add_argument("--restarts", type=int, default=0, help=restart_help + " (climb only)")
+    common(p)
+
+    p = sub.add_parser("variants", help="a template with alternatives (@{a@|b@}), plus optional order blocks",
+                       description="Every group `@{a@|b@|c@}` on a line is replaced by one of its alternatives; "
+                       "groups written `@name{...@}` share one choice wherever the name appears (variable reuse: "
+                       "the declaration and every use). An alternative may be empty (`@{@|s32 t;@}`), so a "
+                       "group can add or drop a line's text. Order blocks (/*ORDER*/ ... /*END*/, --lines, --text) "
+                       "are searched together with the choices. --search all tries every combination; climb "
+                       "changes one group or moves one line at a time; auto (default) is all when the combinations "
+                       "fit in --max. The first alternative of each group is the as-written start.")
+    p.add_argument("file")
+    p.add_argument("--lines", action="append", help="A-B, repeatable: order blocks (default: markers, if any)")
+    p.add_argument("--text", action="append", help=text_help + "; repeatable")
+    p.add_argument("--before", action="append", help="X,Y: line X must stay before line Y (order blocks)")
+    p.add_argument("--search", choices=("auto", "all", "climb"), default="auto")
+    p.add_argument("--restarts", type=int, default=0, help=restart_help + " (climb only)")
     common(p)
 
     p = sub.add_parser("decl", help="random orders of the local declarations")
@@ -769,6 +1030,8 @@ def main() -> int:
             return mode_switch(args)
         if args.mode == "group":
             return mode_group(args)
+        if args.mode == "variants":
+            return mode_variants(args)
         if args.mode == "dump":
             return mode_dump(args)
         return mode_sub(args)

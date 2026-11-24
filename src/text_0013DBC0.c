@@ -180,7 +180,7 @@ s32 func_0013DEE8(s8 *arg0) {
 extern int func_0012E568(int, int);
 extern void func_00130848(s8 **, f32);
 extern float func_001306E8(char *);
-extern void func_0013E410(void);
+extern void func_0013E410(char *, char *);
 extern s32 func_0012F8C8(s8 *, s32, s32, s32, s32, f32);
 extern u8 D_001FF451[];
 extern int func_001E9C70(void);
@@ -262,7 +262,82 @@ void func_0013DF90(char *a0, char *a1)
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E2F0);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E410);
+extern void func_001C9B18(void *, void *);
+extern f32 func_00130B60(void *, float);
+extern void func_001CA018(float *, char *, char *);
+extern s32 func_0012F9C0(void **, s32);
+extern float func_0012D7C0(char *a0, float a, float max);
+extern s16 func_0012C208(void **, s32);
+extern void func_00123DF8(void *, void *, void *, f32, f32, f32);
+extern void func_0013E990(void *, void *);
+extern void func_00150220(void *, void *);
+extern void func_001CA0C0(void *, void *);
+extern float sqrtf(float);
+extern f32 D_0035BB24;
+extern f32 D_0035BB28;
+extern f32 D_0035BB2C;
+typedef struct { char pad[0xDC]; f32 xDC; f32 xE0; char padE4[8]; f32 xEC; } G390;
+extern G390 D_001FF390;
+
+/* ER-196: by hand from the m2c draft; D_001FF390 read through a struct type (recipes 2.45: the game keeps the base in a
+   saved register; m2c's byte-offset casts fold the offsets). G390 here holds only the fields this file reads (the
+   name and fields as in text_001000C0, Unofficial). buf only sizes the frame (ruling 3.13: the game's three vectors
+   sit at sp+0x10-0x3F, nothing at sp+0). Names, types and offsets are Unconfirmed readings. */
+void func_0013E410(char *arg0, char *arg1) {
+    f32 buf[4]; /* ruling 3.13: sizes the frame only */
+    f32 a[4];
+    f32 b[4];
+    f32 c[4];
+    f32 x, y, z;
+    char *p;
+
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        arg0[8] = 0;
+        func_00150220(arg0, arg1 + 0x90);
+        (*(s16 *)(arg0 + 0x6E))++;
+        return;
+    case 1:
+        func_0013E990(arg0, arg1);
+        func_00130CE0(arg0, 1.0f);
+        if (func_0012F8C8((s8 *)arg0, 8, *(s16 *)(arg0 + 0x6C), 0x3C, 0, 0.1f) != 0) {
+            *(s16 *)(arg0 + 0x6C) = 0;
+            func_0012D7C0(arg0, -10.0f, 10000.0f);
+            (*(s16 *)(arg0 + 0x6E))++;
+        }
+        return;
+    case 2:
+        func_0012D7C0(arg0, 1.0f, 10000.0f);
+        if (*(s16 *)(arg0 + 0x6C) >= 0x1F) {
+            func_0012F9C0((void **)arg0, 3);
+            func_00130848((s8 **)arg0, D_0035BB24);
+            (*(s16 *)(arg0 + 0x6E))++;
+        }
+        return;
+    case 3:
+        if (func_00130B60(arg0, D_0035BB28) <= D_0035BB2C) {
+            func_00131000(arg0, func_0013DF90);
+        }
+        if (arg0[8] == 0) {
+            p = arg0 + 0x90;
+            func_001C9B18(a, *(void **)(arg0 + 0x130));
+            a[1] = D_001FF390.xEC;
+            func_001CA018(b, arg1 + 0x90, p);
+            b[1] += 30.0f;
+            func_001CA0C0(c, p);
+            x = *(f32 *)(arg0 + 0x90);
+            y = *(f32 *)(arg0 + 0x94);
+            z = *(f32 *)(arg0 + 0x98);
+            func_00123DF8(a, b, c, D_001FF390.xDC, D_001FF390.xE0, sqrtf(x * x + y * y + z * z));
+            if (*(s32 *)0x70000010 != 0) {
+                func_0012C208((void **)arg0, 0);
+                arg0[8] = 1;
+            }
+        }
+        return;
+    }
+
+}
 
 extern f32 func_0012E320(s32 *, s32 *, s32, s32, s32);
 void func_0013E818(s32 *);
@@ -361,7 +436,6 @@ s32 func_0013E838(void *arg0) {
     return 1;
 }
 
-extern void func_001C9B18(void *, void *);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain), declarations aligned with the file by hand; names, types and
    offsets are Unconfirmed readings. */
@@ -377,7 +451,59 @@ void func_0013E8C8(char *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E928);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E990);
+extern float func_00130378(char *, s32);
+extern void func_001C9FE8(void *, void *, void *);
+extern void func_001CA048(float *, float *, float);
+extern f32 D_0035BB0C;
+extern f32 D_0035BB14;
+extern f32 D_0035BB18;
+extern f32 D_0035BB20;
+extern f32 func_001E3DE0(f32);
+extern f32 func_001E3EC8(f32);
+
+/* ER-198: by hand from the m2c draft; func_00130378 called in its own statement (else arg0 + 0x4C is computed before it and kept in a saved register), stack vector filled before the call (recipes 2.46), the 0.2 / -1.0 choice through a temp; func_00130378 keeps the file prototype (char *, s32), the vector passed as (s32); names, types and offsets are Unconfirmed readings. */
+void func_0013E990(void *arg0, void *arg1) {
+    f32 v[4];
+    f32 w[4];
+    char *a = arg0;
+    char *b = arg1;
+    char *p;
+    char *q;
+    f32 h;
+    f32 s;
+    f32 len;
+    f32 x;
+    f32 z;
+    f32 t;
+
+    p = b + 0x90;
+    h = 1.5707964f;
+    v[0] = *(f32 *)(a + 0x40);
+    v[1] = *(f32 *)(a + 0x44);
+    v[2] = *(f32 *)(a + 0x48);
+    v[3] = 0.0f;
+    t = func_00130378(p, (s32)v);
+    func_0012E820(a + 0x4C, t, D_0035BB0C);
+    s = func_0012E640(D_0035BB14, D_0035BB18);
+    w[0] = func_001E3DE0(h - *(f32 *)(a + 0x4C));
+    t = 0.2f;
+    if (*(f32 *)(a + 0x44) <= *(f32 *)(b + 0x94) + *(f32 *)(a + 0x94) + D_0035BB1C) {
+        t = -1.0f;
+    }
+    q = a + 0x90;
+    w[1] = t;
+    w[2] = func_001E3EC8(h - *(f32 *)(a + 0x4C));
+    func_001CA048(w, w, s);
+    w[1] += D_0035BB1C;
+    func_001C9FE8(q, q, w);
+    x = *(f32 *)(a + 0x90);
+    z = *(f32 *)(a + 0x98);
+    len = sqrtf(x * x + z * z);
+    if (D_0035BB20 < len) {
+        func_001CA048((float *)q, (float *)q, D_0035BB20 / len);
+    }
+    func_001C9FE8(p, p, q);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013EB28);
 
@@ -556,7 +682,7 @@ void func_0013F468(void *arg0) {
 }
 
 extern void func_0012F978(void *, s32, s8);
-void func_0013F580(void);
+void func_0013F580(void **, s8 *);
 void func_0013FA88(void *arg0);
 void func_0013FAC8(void *, s32);
 void func_0013FBF8(void **arg0, void *arg1);
@@ -591,6 +717,16 @@ void func_0013F4C0(char *arg0) {
     func_00131000(arg0, func_0013F580);
 }
 
+extern s32 func_0012B890(void **, s32, s32, s32, s16, f32, s32);
+extern void func_00140250(void *, void *);
+extern s32 D_0032FEA0[];
+extern s32 D_0032FEB0[];
+extern f32 D_0035BB80;
+extern void func_00130D68(char *arg0, s32 arg1, s32 arg2, f32 arg4, void *arg3);
+extern float func_0012CD08(void *a0, int idx, void *a2);
+extern void func_00140098(void *, void *, void *);
+void func_0013F748();
+
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F580);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F748);
@@ -604,15 +740,42 @@ void func_0013FA88(void *arg0) {
     func_001407F0(arg0, *(void **)((char *)arg0 + 0xEC));
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013FAC8);
+extern void func_00132108(void *);
+void func_0013FBB8(void *, void *, s32);
+
+/* ER-198: by hand from the m2c draft; the failed func_00131430 test returns early so the last call stays a sibling j; arg1 copied to a u16 local (the file declares s32); func_0013FBB8 (defined after) needs the prototype void (void *, void *, s32), a reading; names, types and offsets are Unconfirmed readings. */
+void func_0013FAC8(void *arg0, s32 arg1) {
+    u16 m = arg1;
+    void *p;
+    s32 n;
+
+    if (*(u16 *)((char *)arg0 + 4) == 19) {
+        p = *(void **)((char *)arg0 + 0xEC);
+        n = 0x20;
+    } else if (*(u16 *)((char *)arg0 + 4) == 32) {
+        p = *(void **)((char *)arg0 + 0xE8);
+        n = 0x13;
+    } else {
+        return;
+    }
+    if (func_00131430(p, n) == 0) {
+        return;
+    }
+    if (m & 0x10) {
+        func_00132108(p);
+    }
+    func_0013FBB8(p, arg0, 2);
+    func_0013FBB8(p, arg0, 4);
+    func_0013FBB8(p, arg0, 5);
+    func_0013FBB8(p, arg0, 6);
+    func_0013FBB8(p, arg0, 7);
+    func_001407F0(arg0, p);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013FBB8);
 
-extern s32 func_0012B890(void *, s32, s32, s16, s32, s32, f32);
 extern s32 func_0014FF58(void **arg0, s32 arg1);
-extern void func_00140250(void *, void *);
 extern void func_0012DC10(s32, s32, s32, s32, void *);
-extern s32 D_0032FEA0[];
 extern f32 D_0035BB60;
 extern f32 D_0035BB64;
 
@@ -626,7 +789,7 @@ void func_0013FBF8(void **arg0, void *arg1) {
     if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
         *(f32 *)((char *)arg0 + 0x94) = -D_0035BB60;
     }
-    func_0012B890(arg0, 1, 3, *(s16 *)((char *)arg0 + 0x6C), 4, 0, 0.4f);
+    func_0012B890(arg0, 1, 3, *(s16 *)((char *)arg0 + 0x6C), 4, 0.4f, 0);
     if (func_0014FF58(arg0, 3) != 0) {
         func_00131000((char *)arg0, func_0013F580);
     }
@@ -646,7 +809,6 @@ void func_0013FBF8(void **arg0, void *arg1) {
 INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354938);
 INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354940);
 extern void func_001C9F60(void *, void *, void *);
-extern void func_001C9FE8(void *, void *, void *);
 extern s32 func_0012B540(void *, s32, s8, s32);
 extern s32 func_0013FF70(void *, void *, f32);
 extern f32 D_0035BB68;
@@ -692,7 +854,7 @@ void func_0013FCF8(char *arg0, char *arg1) {
         func_0012E820(*(char **)(arg1 + 0xE0) + 0xEB4, z, t);
         func_0012E820(*(char **)(arg1 + 0xE0) + 0xEB8, z, t);
         func_0012B540(arg1, 1, 2, 0);
-        if (func_0012B890(arg0, 0, 2, *(s16 *)(arg0 + 0x6C), 0x1E, 0, 0.1f) != 0) {
+        if (func_0012B890((void **)arg0, 0, 2, *(s16 *)(arg0 + 0x6C), 0x1E, 0.1f, 0) != 0) {
             *(f32 *)(arg0 + 0x30) = z;
             *(s16 *)(arg0 + 0x6C) = 0;
             *(s16 *)(arg0 + 0x6E) += 1;
@@ -871,7 +1033,6 @@ void func_00140B88(s8 *arg0, void *arg1) {
     }
 }
 
-extern f32 func_00130B60(void *, float);
 /* ER-165: both floats before the ints. The EABI passes them in $f12 / $f13 whatever their place in the list, so the
    registers are the same as for the definition's (void **, s32, s32, f32, f32) in text_001000C0 (an m2c reading), but
    gcc loads the argument registers in parameter order, and only this order gives the game's (x30, pi, then x6C in the
@@ -956,7 +1117,6 @@ extern double fabs(double);
 extern void func_00140B88(s8 *arg0, void *arg1);
 extern void func_0012CB70(float *, char *, char *);
 extern float func_00130758(char *);
-extern void func_001CA018(float *, char *, char *);
 extern void func_00130180(float *, char *, float *);
 extern s32 func_00131088(void *);
 
@@ -1076,7 +1236,6 @@ void func_00141748(s8 *arg0) {
     }
 }
 
-extern s32 func_0012F9C0(void **, s32);
 extern void func_001418B8();
 
 /* ER-165: drafted with m2c (tools/m2c_bulk.py --plain), func_0012F9C0 declared s32 (recipes 2.36); names, types and offsets are Unconfirmed readings. */
@@ -1113,6 +1272,10 @@ void func_00141E20(s8 *arg0) {
         }
     }
 }
+
+extern void func_00141748(s8 *arg0);
+extern f32 func_00130258(char *arg0);
+void func_00142058();
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00141EE8);
 
@@ -1159,7 +1322,6 @@ void func_00142608(s8 *arg0, s32 arg1) {
     }
 }
 
-extern void func_00141748(s8 *arg0);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00142668(s8 *arg0, s32 arg1) {
@@ -1358,7 +1520,6 @@ void func_00143420(void **arg0) {
 
 extern float func_0012E7B0(float a, float b);
 extern f32 func_001302C8(void *);
-extern float func_00130378(char *, s32);
 extern s32 func_00130FE0(char *arg0, void *arg1);
 extern void func_00143420(void **arg0);
 
@@ -1416,7 +1577,76 @@ void func_00143710(s8 *arg0, s32 arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00143790);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00143968);
+extern void func_00144010(void *arg0, s32 arg1);
+extern void *func_0012C360(void *, s32, s32, s32, void *);
+extern s32 func_0012F938(void *arg0, s32 arg1);
+void func_00144020(void *arg0, f32 fparg0);
+extern f32 D_0035BC48;
+
+/* ER-198: by hand from the m2c draft; switch cases in source order 0 (falls into 1), 1, 2, 3; the xA4 value read into a local before the x74 / x14 stores; clamp as c = -lim; if (!(f < c)) c = (lim < f) ? lim : f; abs in double (recipes 2.46) and one || condition; func_0012C360 gets a stack vector {0, x30, 0, 0}; func_00144020 (defined later in the file) needs its prototype above; names, types and offsets are Unconfirmed readings. */
+void func_00143968(void **arg0, void *arg1) {
+    f32 v[4];
+    char *a = (char *)arg0;
+    char *b = arg1;
+    f32 f;
+    f32 lim;
+    f32 c;
+    f32 r;
+    double d;
+
+    switch (*(s16 *)(a + 0x6E)) {
+    case 0:
+        func_0012F9C0(arg0, 4);
+        *(s16 *)(a + 0x6E) = 1;
+    case 1:
+        if (func_0012F8C8((s8 *)a, 9, *(s16 *)(a + 0x6C), 0x32, 0, 0.08f) != 0) {
+            if (func_0012F938(b, 9) != 0) {
+                r = *(f32 *)(b + 0xA4);
+                *(s16 *)(a + 0x74) = 0;
+                *(s32 *)(a + 0x14) = -1;
+                *(f32 *)(a + 0x30) = r;
+                func_00144010(b, 0);
+                *(s16 *)(a + 0x6E) = 2;
+            }
+        } else {
+            func_00130CE0(a, 10.0f);
+        }
+        break;
+    case 2:
+        f = func_00130258(a);
+        lim = (D_0035BC48 * 3.1415927f) / 180.0f;
+        c = -lim;
+        if (!(f < c)) {
+            c = (lim < f) ? lim : f;
+        }
+        func_0012E820(a + 0x30, *(f32 *)(b + 0xA4) + c, 20.0f);
+        func_00144020(b, *(f32 *)(a + 0x30));
+        d = f;
+        if (d < 0.0) {
+            d = 0.0 - d;
+        }
+        if (d > (D_0035BC48 * 3.1415927f) / 180.0f || *(s32 *)(a + 0x14) >= 0xB5 || func_00130780(a) >= 2) {
+            *(s32 *)(a + 0x10) = func_0012E568(0x14, 0x3C);
+            *(s16 *)(a + 0x6E) = 3;
+        }
+        break;
+    case 3:
+        if (--*(s32 *)(a + 0x10) < 0) {
+            func_00144010(b, 1);
+            func_00131000(a, func_00143480);
+        }
+        break;
+    }
+    if ((u16)(*(s16 *)(a + 0x6E) - 2) < 2) {
+        if ((++*(s32 *)(a + 0x14) & 0xF) == 0) {
+            v[0] = 0.0f;
+            v[1] = *(f32 *)(a + 0x30);
+            v[2] = 0.0f;
+            v[3] = 0.0f;
+            func_0012C360(a, 0x8D, 1, *(s32 *)(b + 0xE0) + 0x8F0, v);
+        }
+    }
+}
 
 extern void* func_00131020(char *arg0, s32 arg1, void *arg2, void *arg3);
 extern void func_001433C0(s8 *arg0);
@@ -1475,7 +1705,6 @@ void func_00143F10(char *arg0) {
     func_001441B0(arg0);
 }
 
-extern void func_00144010(void *arg0, s32 arg1);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00143F18(s8 *arg0, void *arg1) {
@@ -1698,7 +1927,35 @@ s32 func_00144BB8(void *arg0) {
     return func_00131088(temp_16) == *(s32 *)((char *)temp_16 + 0xC8);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00144BF0);
+extern f32 func_001304C8(void *, s32, f32);
+extern f32 func_00131548(f32, f32);
+
+/* ER-198: by hand from the m2c draft; fparg0 reused for func_001304C8 value (keeps it in $f20), the angle through a temp, the clamp as if / else if (!(max < x)) / else; func_001304C8 and func_00131548 prototypes are m2c readings; names, types and offsets are Unconfirmed readings. */
+void func_00144BF0(void *arg0, s32 arg1, f32 fparg0, f32 fparg1) {
+    char *p;
+    f32 t;
+    f32 a;
+    f32 x;
+    f32 v;
+
+    p = *(char **)arg0;
+    t = func_00130378(p + 0x90, arg1) + 6.2831855f;
+    a = (t - (f32)(s32)(t / 6.2831855f) * 6.2831855f) - 3.1415927f;
+    fparg0 = func_001304C8(p, arg1, fparg0);
+    x = *(f32 *)((char *)arg0 + 0x48) + fparg0;
+    *(f32 *)((char *)arg0 + 0x48) = x;
+    if (x < -fparg1) {
+        v = -fparg1;
+    } else if (!(fparg1 < x)) {
+        v = x;
+    } else {
+        v = fparg1;
+    }
+    *(f32 *)((char *)arg0 + 0x48) = v;
+    if (v * fparg0 < 0.0f || func_00131548(a, *(f32 *)(p + 0xA4)) <= fparg1) {
+        *(f32 *)((char *)arg0 + 0x48) *= 0.9f;
+    }
+}
 
 extern f32 D_0035BC50;
 
@@ -1750,7 +2007,31 @@ void func_00144F18(void *arg0, void *arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00144F90);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00145038);
+extern f32 func_001314C8(s32 arg0, s32 arg1);
+extern int func_001450F8(u8 *a0);
+
+/* ER-198: by hand from the m2c draft; xFC loaded after the call so it stays in a temp register; func_001450F8 needs this prototype above it (defined later in the file); names, types and offsets are Unconfirmed readings. */
+void func_00145038(char *arg0, char *arg1) {
+    f32 f;
+    char *p;
+    char *t;
+
+    if (*(s16 *)(arg0 + 0x6E) == 0) {
+        if (func_001450F8(arg0) != 0) {
+            t = *(char **)(arg0 + 0xEC);
+            func_00131000(t, *(void **)(t + 0xCC));
+        }
+        *(s16 *)(arg0 + 0x6E) += 1;
+    }
+    f = 1.0f - func_001314C8(*(s16 *)(arg0 + 0x6C), 0xB4);
+    p = *(char **)(arg1 + 0xFC);
+    *(f32 *)(arg1 + 0xB0) = *(f32 *)(p + 0x20) * f;
+    *(f32 *)(arg1 + 0xB4) = *(f32 *)(p + 0x24) * f;
+    *(f32 *)(arg1 + 0xB8) = *(f32 *)(p + 0x28) * f;
+    if (f <= 0.01f) {
+        func_001321E8(arg0);
+    }
+}
 
 /* ER-014. Types and offsets are Unconfirmed readings. */
 int func_001450F8(u8 *a0) {

@@ -1420,6 +1420,79 @@ func_001EBAA8 / func_001E9E8C / func_001E9A5C as vsprintf / strlen / memcpy, fun
 | func_00134790 (`text_001343E8`) | One word short (`func_00134790_best.c`): the game copies the flag word `D_0035B830` into a second register for the first seven tests and keeps the first for the `0x100` test and the call; gcc propagates our copy away |
 | func_001CA6B0 (`text_001CA0F0`) | A varargs wrapper (`fmt, ...` saved to the stack, `va_list` passed to func_001CA630): needs `<stdarg.h>`, which the build does not have (no include path to the compiler's own headers) |
 
+### 2.47 Base pointers, ER-188's relayed MATCHes and ER-189's remaining scanner hits (ER-197 + ER-196 + ER-198, Tue 24 Nov 2026; Confirmed by `make regress`, 35 functions)
+
+Branch `er-198-hits` (worktree `C:\rs\wt\er198`), commits `6735b37` (ER-197: func_0012B890 declared `(void **, s32,
+s32, s32, s16, f32, s32)` in `text_001000C0` (definition, extern, func_0012F8C8's call), `text_001388E8`,
+`text_0013DBC0` (its `s16` was 4th) and `text_0014C840`; same bytes, every file now agrees), `fe96fbc`, `d1d2f00`
+(ER-196), `f6f59d6` (ER-188's relayed MATCHes), `4334909`, `3aa654e` (ER-198). 35 functions, 9,984 bytes:
+ER-196 5 (964), ER-188's list 9 (1,208), ER-198 21 (7,812). ER-198's 41 workable hits were drafted by four helper
+agents (one per file group, cmpfunc only, `C:\rs\wt\er198_runs\A\` to `D\`), then placed and proven here; 25 matched
+under cmpfunc, 21 placed (4 parked at placement, below). Scratch (our C only): `C:\rs\wt\er198_runs\` (`s\`, `A\` to
+`D\`, the scan `bscan.py` / `bscan.txt`).
+
+| Lesson | Proved by |
+|---|---|
+| **2.45's base-pointer forms in `text_001000C0` / `text_0013DBC0`**: one `s16 *p = (s16 *)D_001FF890;` for a halfword pair added to and clamped (`p[2] += n; if (p[3] < p[2]) p[2] = p[3];`, the clamp reloading `p[3]`); a struct-type cast indexed in a counted loop (`((T890 *)D_001FF890)->x294[i] = ...x294[i + 1]`: the game rebuilds the base after the loop and keeps the up-counting `slti` because the index is used); the file's own struct object (`D_001FF390.xE4`, G390 gaining `xC6`, `xCE`, `xEC`) keeps the base in a register across a whole function. The scan of the three runs' diffs found 7 hits in our files (9 more in `text_00150878`, not ours) | func_0012B020, func_0012B058, func_00117F88, func_0011C7A0, func_0013E410 |
+| **A float computed in place keeps one register**: `f = n; f *= 0.125f; f += 1.0f;` (the square in an int `n`) and `f = t - x; if (f < c)` reusing the same float give the game's `$f2` chain; one expression or a new temporary takes other registers (4 to 15 words) | func_0011C7A0 |
+| **The frame's bottom vector with nothing in it** (three `f32[4]` at sp+0x10 to 0x3F, nothing at sp+0) is ruling 3.13's frame-sizing local, declared first | func_0013E410, func_0013D378 |
+| **A call in each arm of an `if / else` stays `jal`; a call followed by `return` becomes a sibling `j`.** Values the game holds across a load through the other pointer need the call's result kept in a local | func_00134BB0, func_001363C0, func_00139D28 |
+| **The same-file declaration must agree with the new definition**: `extern void func_X(void);` lines written for function-pointer uses (func_00132E80, func_00133290, func_0013BA50, func_0013F580, func_0013E410) and `s32` / `void` externs of float functions (func_00130CE0 float, func_0013D378 f32, func_0012F9C0 s32 in `text_001343E8`) were given the definition's types; same bytes for every other function of the file | the whole-file checks |
+| **A float parameter's place, again (2.42 / 2.46)**: func_0012B930 and func_0012B6B0 with the float before the last int in `text_001343E8` | func_00134958, func_00134F70 (parked) |
+| **ER-188's relayed plain MATCHes placed as drafted**, except func_0012DAF8, defined as the file's extern has it (`float (void *, s32, f32)`, returning func_0012E820's value; the draft's `void (s32 *, void *, f32)` matched too). Credit: ER-188's `m2c_bulk.py` rerun (label `rc0`) | func_00123D70, func_0012C020, func_0012C128, func_0012D3E8, func_00125AF0, func_00126968, func_0012C578, func_0012C630, func_0012DAF8 |
+| **Placement limits, each found only by `make regress`** (cmpfunc matched every one): a C jump table in `text_001343E8` (the file's `.rodata` is 8-aligned; the "No jump table in C in `text_001343E8` yet" row above); ruling 3.10's takeover refused by `tools/split.py` for a 16-byte symbol (D_00354720: a double plus 8 zero bytes, as func_0013AA28's D_00354800) and where a function with its own `.rodata` or an untaken symbol sits between the C function and the symbol (D_00354978, D_00354940). **Check `INCLUDE_RODATA` takeovers and jump tables before placing a batch** | func_00134F70, func_00137A10, func_00141EE8, func_0013F580 |
+
+Rulings used: 3.10 once (func_00134958 takes over D_003546D8), 3.13 twice (func_0013E410 `f32 buf[4]`,
+func_0013D378), 3.20 once (func_0013D378, with a `PORT NOTE`). Unofficial names: `T890` (`text_001000C0`'s, fields
+`x294`, `x297`), `G390` in `text_0013DBC0` (only `xDC`, `xE0`, `xEC`), G390's new `xC6`, `xCE`, `xEC`, `R14` / `R14F`
+(the 0x14-byte records of func_0012F2F0 / func_0012F418, read as menu records: Unconfirmed), every local. Readings
+(Unconfirmed): the halfword pairs of D_001FF890 at +4/+6 and +8/+0xA, the prototypes the helpers read from call sites
+(func_00135810, func_0012B540, func_00134B60, func_001313A8, func_0013B5B0, func_001318A0, func_001318D8),
+func_0013D378's f32 return, func_0013BA50's `(char *, void *)`.
+
+**Parked (scratch in `C:\rs\wt\er198_runs\`, game code not in git):**
+
+| Function | Cause |
+|---|---|
+| func_00134F70 (`text_001343E8`) | MATCH under cmpfunc (`B\final_func_00134F70.c`); its C jump table makes the object's `.rodata` 16-aligned and moves the file's constants (8 zero bytes after D_003546D8). Waits for the file cut |
+| func_00137A10 (`text_001343E8`) | MATCH under cmpfunc (`B\final_func_00137A10.c`); its literal must take over D_00354720, a 16-byte symbol: `split.py`'s 3.10 takeover accepts 4 or 8 bytes only |
+| func_00141EE8, func_0013F580 (`text_0013DBC0`) | MATCH under cmpfunc (`C\final_*.c`); the literal's symbol (D_00354978, D_00354940) is not next to the function in splat's order, so the takeover is refused and the C constant lands elsewhere |
+| func_00132480 (`text_001000C0`) | 17 words, same size (`s\func_00132480_best17.c`): `D_0032FC10` as an array of 0x14-byte records and the flag test read before the float stores give the size; the first half's scheduling (address stores against the three `* 180 / pi` values) is a tie; a climb over the first half tried |
+| func_00126338 (`text_001000C0`) | 5 words (`A\best_func_00126338.c`, ruling 3.13 `s32 buf[8]`): the game loads D_0035B810 after the 0.25f constant |
+| func_00125A38, func_001325E8, func_00129900 (`text_001000C0`) | 32 / 30 / 9 words (`A\best_*.c`): a copied D_0035B8A0 load; the `D_0035B830 & D_0035B834` copy in a `bc1fl` slot; a `%hi` register and one store swap |
+| func_00137CE0 (`text_001343E8`) | 15 words (`B\best_func_00137CE0.c`): the game loads s32 fields before f32 stores through the other pointer (reads ahead of the stores give 8 words but steer the order: not offered) |
+| func_001CD360, func_001CD068, func_001CCB08 (`text_001CB528`) | 6 / 7 / 52 words (`D\best_*.c`): the 6 and 7 need an `ok = i < 4` flag in the `for` test (plain but contrived: for LuciDin's judgement) and still miss the entry block's scheduling; func_001CCB08's shell sort would need ruling 3.18 for a stored-only flag array |
+| func_00146598 (`text_00145120`), func_0013D088 (`text_0013C510`) | 132 / 150 words (`D\best_*.c`): the angle-wrap loops keep a second pi; case 1's xA4 store sits below later loads |
+| func_0013FF70, func_00142118, func_00142F88 (`text_0013DBC0`) | best files in `C\` (the helper stopped when the machine was turned off; counts not recorded) |
+| func_0013F748, func_00140250, func_001418B8 (`text_0013DBC0`) | not attempted |
+
+### 2.48 `text_001CA8D8`: a 64-bit local for a byte compare, -fedge-lcm, a compare tree shaped by an empty case (ER-192, Tue 24 Nov 2026; Confirmed by `make regress`, 1 function placed, 1 rewritten)
+
+Branch `er-192-cab10` (worktree `C:\rs\wt\er192`), commits `d52e6ad` (func_001CA8D8) and `8707afa` (ruling 3.21: the
+file's `-fedge-lcm`; func_001CA9A8 as plain C). Scratch (our C only): `C:\rs\wt\er192_runs\`.
+
+| Lesson | Proved by |
+|---|---|
+| **The game's `andi 0xFF` before comparing a stored byte with an old byte needs a 64-bit old value**: `old = p->x17C;` (lbu at entry) compared with the byte just stored (`t = buf[1] >> 4; p->x17C = t; if (old != 0 && (u8)t != old)`) gives no `andi` with `old` typed `u8` / `s32` / `u32` (combine knows the shifted byte's high bits are zero), and the `andi` with `old` typed `s64` (or `long`, 64-bit on this compiler): the compare is then made in DImode, where combine's recorded SImode bits of `t` do not apply (reading from this compiler's `combine.c`, Unconfirmed). 256 spellings of the shift and the compare all gave the same 35-word miss first | func_001CA8D8 |
+| **`return 1;` once at the end of an if block, not after early returns, gives the game's tail**: `if (buf[0] == 0) { ...; copy; p->x102 = ~p->x102; } return 1;` puts `li $v0, 1` after the `sh` (the `nor` then takes `$v0`); two `return 1;` statements (`if (buf[0] != 0) return 1;` first) hoist the `li` above the `lhu` | func_001CA8D8 |
+| **A 0x24-byte struct assignment between two byte-aligned blocks is the `ldl` / `ldr` + `sdl` / `sdr` copy** (4 doublewords and one `lwl` / `lwr` word): `typedef struct { u8 b[0x24]; } B24;` copied with `*(B24 *)((char *)p + 0x100) = buf;` | func_001CA8D8 |
+| **`-fedge-lcm` shows as loop counters incremented at the exits**: with classic PRE (3.11's `-fno-edge-lcm`) the `slot + 1` of a `for` loop whose body has many exits is computed once at the top of the body and kept in a saved register; with edge LCM it stays at the increment and reorg copies `addiu $s0, $s2, 1` into each exit's delay slot, as the game has. The outer loop's `port + 1` is hoisted either way (spilled to `sp+0x10`). Also: flag words reloaded at joins with edge LCM let func_001CA9A8 match without cached locals (2.44) | func_001CA9A8, func_001CAB10's draft |
+| **A byte flag at `D + port + 0xE00` with `lbu 0xE00(reg)`** (the address `D + port` built first) comes from a struct field: `((F *)(D_01B72600 + port))->f` with `typedef struct { char pad[0xE00]; u8 f; } F;` (indexing `((u8 *)D_01B72600)[0xE00 + port]` folds `0xE00` into the symbol) | func_001CAB10's draft |
+| **An empty `case` above the others can shape a compare tree and vanish**: case 0's `switch (a)` (cases 2-3, 5-6 and 0x100 empty, 4 and 7 with bodies) gives the game's `== 0x100`, `> 0x100`, `== 7` only with one more empty case of 0x102 or more: gcc's balancer then splits the right side at 0x100, and the jump pass deletes the extra case's own test (its label is the default's). Which value it was cannot be read from the binary; the draft uses 0x200 (Unofficial). Ruling 3.9's explicit-case-label shape | func_001CAB10's draft |
+| **Statement order can decide which `x17A = K` stores reload and cross-jumping merge**: the `0xFD` / `0xFE` stores are reloaded constants (`li -3` / `li -2`, QImode), and `p->x181 = 0; p->x17A = -3;` (in that order) gives the game's `sb x17A` then `sb x181` with the right shared tail (+26 words) | func_001CAB10's draft |
+
+Plain C, no compiler-steering construct; ruling 3.21 (per-file flag) is new. Names `B24`, `F`, `old`, `t`, `buf`,
+`port`, `slot`, `a`, `b`, `r` and the P1C0 fields `x168`-`x181` are Unofficial; readings (Unconfirmed): func_001D6780
+reads a controller's 0x24-byte data block (byte 0 = status, byte 1 >> 4 = controller type), func_001D6BF0 with terms
+1 / 2 returns the controller ID / extended ID (libpad's `scePadInfoMode` shape), `x102` = buttons (inverted), `x17A` =
+the per-pad state. The case values 2, 3, 5, 6 and the extra 0x200 are Unofficial.
+
+**Parked:**
+
+| Function | Cause |
+|---|---|
+| func_001CAB10 | 0x704 bytes, the per-pad state machine. Best draft `C:\rs\wt\er192_runs\cab10_best_elcm.c` (score with the per-file flag: `os_elcm.py` in that folder, diff in `cab10_best_elcm.diff.txt`): 0x6F8 bytes, 429 / 449 equal register-blind, the first 0x370 bytes exact but one `addu` operand order (+0x5C, `D + port` built as `port + D`). Left: which register reload gives the `-2` / `-3` constants in cases 0x6F and 0x83 (game `$v0` / `$a1`, ours the other way) and so which tails cross-jumping shares (case 0x82's `li 0x83` falls into the shared `sb $v0`); case 0xFE's `andi 0xFF` (a `switch (p->x17F)` with the load merged at the join; as `if`s it is closer but has no `andi`); a missing `nop`. 120 declaration orders changed nothing |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1510,7 +1583,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23); three by ER-100 (2.24); func_001668E0, func_001668A8 (ER-095, 2.25: `char buf[0x80]`); func_00113ED8 (ER-115, 2.27); func_001198C0, func_00101ED0 (ER-125, 2.29); func_001033F0, func_00103470 (ER-149, 2.33); func_001636A0 (ER-153, 2.35: `s32 buf[4]`, with ruling 3.14's `(void)&buf`); func_0011C518 (ER-189, 2.46: `f32 buf[4]`) |
+| **Accepted, narrowly** | An unused local variable or array (func_00113C30, func_00113ED8: e.g. `float buf[16];`) whose only effect is the stack frame size, when nothing else in plain C gives the original frame and the rest of the function matches; read as a leftover from the original source (a removed or debug use). Each use carries a comment naming this ruling. Not a licence for other dead code: code that only steers register choice or scheduling, `volatile` keep-alives and `asm()` still need their own ruling. Used so far: func_00113C30 (ER-089, 2.23); three by ER-100 (2.24); func_001668E0, func_001668A8 (ER-095, 2.25: `char buf[0x80]`); func_00113ED8 (ER-115, 2.27); func_001198C0, func_00101ED0 (ER-125, 2.29); func_001033F0, func_00103470 (ER-149, 2.33); func_001636A0 (ER-153, 2.35: `s32 buf[4]`, with ruling 3.14's `(void)&buf`); func_0011C518 (ER-189, 2.46: `f32 buf[4]`); func_0013E410, func_0013D378 (ER-196 / ER-198, 2.47: `f32 buf[4]`) |
 
 ### 3.14 ER-100: an address-taken local that only stops a sibling call (Sun 22 Nov 2026, 16:40 Eastern, LuciDin in the ER-100 session)
 
@@ -1552,7 +1625,13 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | An early `return;` with no value in a function that returns a value, when that is the only C shape that gives the original's path to the epilogue with no `$v0` set (func_0017D968: `if (p == NULL) { func_0017CF08(); return; }`, where `return NULL;` adds a word and declaring the same-file `void` func_0017CF08 as returning a value is not covered by 3.19). Old-style C that this gcc accepts with a warning; ruling 3.4's fall-off-the-end shape, but early. Each use carries the comment `ruling 3.20` and a `PORT NOTE`: the caller gets whatever is left in `$v0`, and a PC build returns that as-shipped value explicitly. Used so far: func_0017D968 (ER-184, 2.42) |
+| **Accepted, narrowly** | An early `return;` with no value in a function that returns a value, when that is the only C shape that gives the original's path to the epilogue with no `$v0` set (func_0017D968: `if (p == NULL) { func_0017CF08(); return; }`, where `return NULL;` adds a word and declaring the same-file `void` func_0017CF08 as returning a value is not covered by 3.19). Old-style C that this gcc accepts with a warning; ruling 3.4's fall-off-the-end shape, but early. Each use carries the comment `ruling 3.20` and a `PORT NOTE`: the caller gets whatever is left in `$v0`, and a PC build returns that as-shipped value explicitly. Used so far: func_0017D968 (ER-184, 2.42); func_0013D378 (ER-198, 2.47) |
+
+### 3.21 ER-192: -fedge-lcm for `text_001CA8D8` only (Tue 24 Nov 2026, about 12:10 Eastern, LuciDin in the ER-192 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** (a per-file exception to 3.11) | `text_001CA8D8` (the pad state code, func_001CA8D8 to func_001CB500) is built with the edge-based LCM on: the Makefile adds `-fedge-lcm` after `CFLAGS` for `build/src/text_001CA8D8.s` only (commit `8707afa`). Evidence (ER-192, 2.48): func_001CA9A8 matches as plain C only with it (4 bytes short without; ER-185 had needed two cached flag-word locals, now dropped); without it, classic PRE hoists func_001CAB10's loop counter `slot + 1` to the top of the loop body, which no plain C found avoids (with it the draft lines up 429 / 449 register-blind instead of about 355); every function already placed in the file matches either way. Reading (Unconfirmed): this file was compiled with the compiler's default, unlike the rest of the game. Every other file keeps 3.11 |
 
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker, 3.18 only stores the game makes): park such functions with a
 one-line cause and ask.
