@@ -1265,6 +1265,31 @@ off). Drafts (game code, not in git) and scratch: `C:\rs\wt\er179_runs\`.
 Not compiler-steering: plain C, no ruling used. Names `temp_4`, `var_*` are m2c's (Unofficial); the parameter types
 come from the game's entry `andi` (Confirmed by the match), their meaning is Unconfirmed.
 
+### 2.42 `text_00150878` after round 3: early exits, a bare `return;`, float out values (ER-184, Mon 23 Nov 2026; Confirmed by `make regress`, 19 functions)
+
+Branch `er-184-00150878` (worktree `C:\rs\wt\er184`), commits `fd75cc4`, `9c570f9`, `a16f355`, `168622b`. 19 functions,
+2,008 bytes, all in `text_00150878`, by hand from ER-171's run `er171s0` drafts (`C:\rs\wt\er171_runs\er171s0_nm\`).
+Scratch (our C only): `C:\rs\wt\er184_runs\s\`. **Of the run's 11 same-size near misses at 3-8 words, 8 are
+ER-162's list** (func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001B34F8, func_001BE9C0, func_001C6F90, func_001C8600,
+func_001C8758): left to ER-162 as the card said. The other 3 are placed; 16 more came from the 9-16 word band.
+
+| Lesson | Proved by |
+|---|---|
+| **Write the early exit first**: m2c's `if (p != NULL) { ...; return 0; } return -1;` gives `beqz` to the exit; the game's `bnel p, $zero` with the body's first load in the likely slot and the exit (`jr $ra; li -1`) falling through needs `if (p == NULL) return -1;` before the body. The same for a second test (`if (x <= 0) return -1;`) and for float returns (`return 0.0f;` / `return 1.0f;`). Found by scanning the drafts' diffs for a likely branch on the game side only: 16 of the 16 hits placed (func_001C8758's hit is ER-162's tie) | func_0017D640, func_001A1838, func_00155BA0 and 13 more (the `arg0->x20` NULL test family at 0x17D598-0x1AB410) |
+| **A bare `return;` in a pointer-returning function** (ruling 3.20): func_0017D968's NULL path is `jal func_0017CF08; nop; b epilogue` with no `$v0` set; `if (p == NULL) { func_0017CF08(); return; }` gives it (`return NULL;` adds a word). At run time `$v0` still holds func_0017D0B8's NULL (func_0017CF08 is empty). Stores after it in the first matching order of 120 (`ordersearch perm`: the `id` store first) | func_0017D968 |
+| **`f32` out values, not m2c's `s32` slot**: func_001A91A8's two stack values are floats (no `cvt.s.w`); `*arg1 = (b < a) ? a : b;` matches (also `if / else` with a result variable). In func_001A0D90 the same max needs `if (a < b) r = b; else r = a;` (the game's `bc1f` with `mov.s` in the slot and a second `mov.s`): `r = a; if (a < b) r = b;` is one word short and `?:` inside the return expression duplicates the tail | func_001A91A8, func_001A0D90 |
+| **A halfword global that is not `$gp`-relative**: the game reads `D_001FF8B8` / `D_001FF8BA` with `lui` + `lh`, which `-G8` gives only for an object of unknown size: `extern s16 D_001FF8B8[];` read as `[0]` (m2c's `__attribute__((section(".data")))` not used). Two adjacent `s16`s, maybe one array (Unconfirmed) | func_0019CC70, func_001A9210 |
+| Recipes 2.40 again: m2c's frame array split into `f32 m[16]` and `f32 v[4]` (the vector's `x80` copy is a float: `lwc1` / `swc1`) | func_00159B20 |
+| `tools/split.py` (splat's C function pattern) does not see a definition spelled `void *func_X(`; the file's `void* func_X(` works | func_0017D968 |
+
+Lead, not placed: func_00152D58 (14 words) goes to 10 with its compare written `x6C > x74` (the game loads `x6C`
+first); the 10 left are the register allocation of the copy loop after it.
+
+Ruling 3.20 used once (func_0017D968, `PORT NOTE`). Nothing else compiler-steering. Names `pp`, `p`, `v`, `m`, `d`,
+`a`, `b`, `r`, `id`, `i` are Unofficial; the callee prototypes added (`func_0017D7A8` `s32 (void *, f32 *, f32 *, f32)`,
+`func_001A0858`, `func_001A3738`, `func_001A4E18` `s32 (void *)`, `func_001A6640`, `func_0017CEC0`, `func_0017DA38`
+`void (void *)`) are readings from the callers (Unconfirmed).
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1392,6 +1417,12 @@ Standing rulings; each applies until LuciDin changes it.
 | Ruling | Item |
 |---|---|
 | **Accepted** | In a file that does not define the callee, an `extern` prototype with a return type other than the definition's, when the caller matches only with that type and does not use the value (func_001C4838 in `text_00150878`: `extern s32 func_00101238(...)`, whose definition in `text_001000C0` is a `void` word copy; the `int` return makes the call set `$v0`, which gives the game's `$v0` / `$v1` choice after it, 2.36 / 2.38). Read as the original source declaring the callee differently (or not at all: an implicit `int`). The definition keeps its own type. Precedent in placed code before the ruling: `text_00150878` declares the `void` func_00113238, func_0012E3B0, func_001321D8, func_001321E8 `s32` (neutral there). Each use carries a comment naming this ruling. **Not** covered: changing a definition's type, or a same-file declaration that contradicts the definition (func_00113238 for func_00119FE0 in `text_001000C0`, recipes 2.37: still open). Used so far: func_001C4838 (ER-164, 2.38) |
+
+### 3.20 ER-184: a bare `return;` in a non-void function (Mon 23 Nov 2026, about 19:15 Eastern, LuciDin in the ER-184 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted, narrowly** | An early `return;` with no value in a function that returns a value, when that is the only C shape that gives the original's path to the epilogue with no `$v0` set (func_0017D968: `if (p == NULL) { func_0017CF08(); return; }`, where `return NULL;` adds a word and declaring the same-file `void` func_0017CF08 as returning a value is not covered by 3.19). Old-style C that this gcc accepts with a warning; ruling 3.4's fall-off-the-end shape, but early. Each use carries the comment `ruling 3.20` and a `PORT NOTE`: the caller gets whatever is left in `$v0`, and a PC build returns that as-shipped value explicitly. Used so far: func_0017D968 (ER-184, 2.42) |
 
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker, 3.18 only stores the game makes): park such functions with a
 one-line cause and ask.
