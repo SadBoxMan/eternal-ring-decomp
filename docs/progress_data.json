@@ -1892,11 +1892,11 @@
     {
       "code": "ER-177",
       "title": "GS capture compare tool",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Recomp 8764441: tools/recomp/er177_gs_diff.py (info / diff / summary / mutate) + ER-177_gs_diff.md + spike 21. Same file / copy diff to 0; one-byte mutated copies named at the right record and field. Not verified: two independent live captures of one frame, multi-frame captures."
     },
     {
       "code": "ER-178",
