@@ -65,6 +65,8 @@ Written Tue 17 Nov 2026, 11:52 Eastern, by the setup session.
 - **The port repository is GPL-3.0 and holds the local PS2Recomp patches** (LuciDin, Sun 22 Nov 2026; settles ER-019's
   licence question). Whether "GPL-3.0-only" or "-or-later" is not decided (open; `LICENSE` is the plain GPL-3.0 text).
 
+- **Port speed is the next port task** (LuciDin, Tue 24 Nov 2026, about 12:50 Eastern): once the port runs at as-shipped speed (60 FPS, 16.7 ms per frame), testing the rest of the port becomes much easier and more accurate. The speed cards (ER-139 design and build, ER-141 GS thread, ER-143 rasteriser, ER-145 small batch; ER-140 as an interim) take the recomp build slot after ER-200; every speed-up stays As-Shipped (guest-visible results unchanged, proven by compare mode and `er142_gs_replay` / `er177_gs_diff.py`). ER-139's xhigh design reads only and can run beside ER-200 (LuciDin starts it from the brief in the DISP-03 notes folder).
+
 ## Open questions for LuciDin
 
 1. ~~Tracker format~~ answered 17 Nov 2026, 12:05 Eastern: a tracker application (Decomp, Recomp and PC Port
