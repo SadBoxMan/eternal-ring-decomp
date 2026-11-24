@@ -2302,6 +2302,24 @@
       "model": "Opus, high",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-223",
+      "title": "func_00125B68 + func_00125A38 regalloc pass",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-224",
+      "title": "Rodata vector copies as extern const (m2c_bulk + drafts)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-217",
+      "notes": ""
     }
   ]
 }
