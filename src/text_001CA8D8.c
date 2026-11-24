@@ -49,9 +49,46 @@ u16 func_001CB2D8(s32 arg0, s32 arg1) {
     return *(u16 *)(p + 0x122);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001CA8D8", func_001CB300);
+/* ER-179: drafted with m2c (tools/m2c_bulk.py, narrow parameters arg2-arg4 u16, ER-172), rewritten as plain C by hand (`|= arg2` gives the game's `or` operand order); names, types and offsets are Unconfirmed readings. */
+void func_001CB300(s32 arg0, s32 arg1, u16 arg2, u16 arg3, u16 arg4) {
+    s32 temp_2;
+    s32 var_11;
+    s8 *var_10;
+    s8 *var_3;
+    s8 *var_5;
+    s8 *var_9;
+    char *temp_4;
 
-INCLUDE_ASM("asm/nonmatchings/text_001CA8D8", func_001CB388);
+    var_11 = 0;
+    temp_4 = (((arg0 * 4) + arg1) * 0x1C0) + D_01B72600;
+    var_10 = temp_4 + 0x124;
+    var_9 = temp_4 + 0x127;
+    var_5 = temp_4 + 0x126;
+    var_3 = temp_4 + 0x125;
+    *(u16 *)(temp_4 + 0x164) |= arg2;
+    do {
+        temp_2 = arg2 >> var_11;
+        var_11 += 1;
+        if (temp_2 & 1) {
+            *var_10 = arg3;
+            *var_3 = arg4;
+            *var_5 = 0;
+            *var_9 = 0;
+        }
+        var_9 += 4;
+        var_5 += 4;
+        var_3 += 4;
+        var_10 += 4;
+    } while (var_11 < 0x10);
+}
+
+/* ER-179: drafted with m2c (tools/m2c_bulk.py --plain, narrow parameter arg2 u16, ER-172); names, types and offsets are Unconfirmed readings. */
+void func_001CB388(s32 arg0, s32 arg1, u16 arg2) {
+    void *temp_4;
+
+    temp_4 = (((arg0 * 4) + arg1) * 0x1C0) + ((char *)D_01B72600);
+    *(u16 *)((char *)temp_4 + 0x164) = (u16) (*(u16 *)((char *)temp_4 + 0x164) & ~arg2);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001CA8D8", func_001CB3C0);
 

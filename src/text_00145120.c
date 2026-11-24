@@ -2038,7 +2038,7 @@ void func_00149920(void **arg0) {
 
 extern void func_00149AB8();
 extern f32 func_0012E7B0(f32, f32);
-extern s32 func_0012DA68(void *, s32, s32, f32, f32);
+extern s32 func_0012DA68(void **, f32, f32, s32, s32);
 
 /* ER-085: by hand from the m2c draft; names, types and offsets are Unconfirmed readings. */
 void func_00149978(void **arg0, void *arg1) {
@@ -2060,7 +2060,7 @@ void func_00149978(void **arg0, void *arg1) {
         temp_f13 = func_0012E7B0((temp_f0 - ((f32) (s32) (temp_f0 / 6.2831855f) * 6.2831855f)) - 3.1415927f, *(f32 *)((char *)arg0 + 0x30));
         temp_2 = *(s32 *)((char *)arg0 + 0x10) + 1;
         *(s32 *)((char *)arg0 + 0x10) = temp_2;
-        if (func_0012DA68(arg0, temp_2, 0x28, *(f32 *)((char *)arg0 + 0x30), temp_f13) != 0) {
+        if (func_0012DA68(arg0, *(f32 *)((char *)arg0 + 0x30), temp_f13, temp_2, 0x28) != 0) {
             func_00131000((char *) arg0, func_00149AB8);
         }
     }
@@ -2219,7 +2219,7 @@ void func_00149EE8(void **arg0, char *arg1) {
                 g = func_0012E7B0((t - ((f32)(s32)(t / 6.2831855f) * 6.2831855f)) - 3.1415927f, *(f32 *)((char *)arg0 + 0x30));
                 n = *(s32 *)((char *)arg0 + 0x14) + 1;
                 *(s32 *)((char *)arg0 + 0x14) = n;
-                if (func_0012DA68(arg0, n, 0x14, *(f32 *)((char *)arg0 + 0x30), g) != 0) {
+                if (func_0012DA68(arg0, *(f32 *)((char *)arg0 + 0x30), g, n, 0x14) != 0) {
                     *(s16 *)((char *)arg0 + 0x6E) = 1;
                     *(s16 *)((char *)arg0 + 0x6C) = 0;
                 }
@@ -2250,7 +2250,7 @@ void func_0014A0B8(void **arg0, char *arg1) {
             g = func_0012E7B0((t - ((f32)(s32)(t / 6.2831855f) * 6.2831855f)) - 3.1415927f, *(f32 *)((char *)arg0 + 0x30));
             n = *(s32 *)((char *)arg0 + 0x10) + 1;
             *(s32 *)((char *)arg0 + 0x10) = n;
-            if (func_0012DA68(arg0, n, 0x14, *(f32 *)((char *)arg0 + 0x30), g) != 0) {
+            if (func_0012DA68(arg0, *(f32 *)((char *)arg0 + 0x30), g, n, 0x14) != 0) {
                 func_00131140((char *)arg0, func_0014A3B0, func_0014A238, func_0014A500, func_00149EE8, func_00149D50);
             }
         }
@@ -2359,7 +2359,7 @@ void func_0014A500(void **arg0, char *arg1) {
                 g = func_0012E7B0((t - ((f32)(s32)(t / 6.2831855f) * 6.2831855f)) - 3.1415927f, *(f32 *)((char *)arg0 + 0x30));
                 n = *(s32 *)((char *)arg0 + 0x14) + 1;
                 *(s32 *)((char *)arg0 + 0x14) = n;
-                if (func_0012DA68(arg0, n, 0x14, *(f32 *)((char *)arg0 + 0x30), g) != 0) {
+                if (func_0012DA68(arg0, *(f32 *)((char *)arg0 + 0x30), g, n, 0x14) != 0) {
                     *(s16 *)((char *)arg0 + 0x6E) = 1;
                     *(s16 *)((char *)arg0 + 0x6C) = 0;
                 }
