@@ -32,31 +32,68 @@ typedef struct {
     u16 x122;
     E4 e[16];
     u16 x164;
+    u16 pad166;
+    s32 x168;
+    s32 x16C;
+    s32 x170;
+    u8 x174[6];
+    u8 x17A;
+    u8 x17B;
+    u8 x17C;
+    u8 x17D;
+    u8 x17E;
+    u8 x17F;
+    u8 x180;
+    u8 x181;
+    char pad182[0x3E];
 } P1C0;
+
+/* ER-192: the 0x24-byte block func_001D6780 fills and func_001CA8D8 copies to +0x100 (byte 0 tested, byte 1 >> 4 kept); Unconfirmed reading. */
+typedef struct {
+    u8 b[0x24];
+} B24;
 
 extern char D_01B72600[];
 extern s32 func_001D6308(s32);
 extern s32 func_001D6530(s32, s32, void *);
+extern s32 func_001D6780(s32, s32, B24 *);
 
-INCLUDE_ASM("asm/nonmatchings/text_001CA8D8", func_001CA8D8);
+/* ER-192: by hand; `old` must be 64-bit (s64; `long` on this compiler) for the game's `andi 0xFF` before the compare, and the copy sits in an if block with one `return 1;` at the end. Names, types and offsets are Unconfirmed readings. */
+s32 func_001CA8D8(P1C0 *arg0, s32 arg1, s32 arg2) {
+    B24 buf;
+    s64 old;
+    s32 t;
 
-/* ER-185: drafted with m2c (tools/m2c_bulk.py, ER-179 run), rewritten by hand; names, types and offsets are Unconfirmed readings. */
+    old = arg0->x17C;
+    if (func_001D6780(arg1, arg2, &buf) == 0) {
+        return 0;
+    }
+    if (buf.b[0] == 0) {
+        t = buf.b[1] >> 4;
+        arg0->x17C = t;
+        if (old != 0 && (u8)t != old) {
+            return -1;
+        }
+        *(B24 *)((char *)arg0 + 0x100) = buf;
+        arg0->x102 = ~arg0->x102;
+    }
+    return 1;
+}
+
+/* ER-185: drafted with m2c (tools/m2c_bulk.py, ER-179 run), rewritten by hand; ER-192: the two cached flag-word locals
+   dropped (this file is built with -fedge-lcm, ruling 3.21). Names, types and offsets are Unconfirmed readings. */
 void func_001CA9A8(P1C0 *arg0) {
     s32 i;
     E4 *e;
     u16 m;
-    u16 on;
-    u16 en;
 
     arg0->x122 = 0;
     i = 0;
-    on = arg0->x164;
-    en = arg0->x102;
     do {
         e = &arg0->e[i];
         m = 1 << i;
-        if (on & m) {
-            if (!(en & m)) {
+        if (arg0->x164 & m) {
+            if (!(arg0->x102 & m)) {
                 e->x3 = 0;
             } else if (arg0->x120 & m) {
                 arg0->x122 = m | arg0->x122;
@@ -67,8 +104,6 @@ void func_001CA9A8(P1C0 *arg0) {
                 e->x3 = 2;
                 e->x2 = e->x1;
             }
-            on = arg0->x164;
-            en = arg0->x102;
         }
         i++;
     } while (i < 16);

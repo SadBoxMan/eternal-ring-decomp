@@ -218,11 +218,11 @@ void func_001390F8(void *arg0, s32 arg1) {
 void func_00139148(void) {
 }
 
-extern s32 func_0012B890(void **arg0, s32 arg1, s32 arg2, s32 arg3, s16 arg4, s32 arg5, f32 fparg0);
+extern s32 func_0012B890(void **arg0, s32 arg1, s32 arg2, s32 arg3, s16 arg4, f32 fparg0, s32 arg5);
 
 /* ER-154: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00139150(void **arg0) {
-    func_0012B890(arg0, 1, 0, *(s32 *)((char *)arg0 + 0x2C), 0x14, 1, 0.1f);
+    func_0012B890(arg0, 1, 0, *(s32 *)((char *)arg0 + 0x2C), 0x14, 0.1f, 1);
 }
 
 INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139170);
@@ -246,7 +246,7 @@ void func_001392A8(void **arg0, void *arg1) {
             func_00139C98(arg0, (s32) func_00139170);
             return;
         }
-        if (func_0012B890(arg0, 1, 0xB, var_19, 0x14, 0, 0.1f) != 0) {
+        if (func_0012B890(arg0, 1, 0xB, var_19, 0x14, 0.1f, 0) != 0) {
             var_19 = 0;
             var_18 = 1;
         }
@@ -598,10 +598,49 @@ void func_00139D10(s8 *arg0) {
     func_0012F900(arg0, 0, (s32) *(s16 *)((char *)arg0 + 0x6C), 0x270F, 0, 0.01f);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139D28);
+extern int func_00131140(char *, void *, void *, void *, void *, void *);
+extern s32 func_0012E5C0(s32 lo, s32 hi);
+extern s32 func_0012F8A0(void **, s32, s32, f32 fparg0);
+extern s32 func_0012DA68(void **, f32, f32, s32, s32);
+extern void func_00139EE0(s8 *, void *);
+
+/* ER-198: by hand from the m2c draft; the early exit written first, the call's value kept in a local until the
+   arg1 +0xA4 copy is made (the game reads it before the halfword store), `--x > 0` for the s16 count (no ruling
+   needed: the game's jal to func_00131000 comes out as written); func_0012E5C0 / func_0012F8A0 / func_0012DA68
+   prototypes as other src/ files declare them; names, types and offsets are Unconfirmed readings. */
+void func_00139D28(s8 *arg0, void *arg1) {
+    s32 n;
+    s32 r;
+    f32 f;
+
+    if (func_00131140(arg0, func_00139EE0, func_00139EE0, func_00139EE0, func_00139EE0, NULL) != 0) {
+        return;
+    }
+    if (*(s16 *)(arg0 + 0x6E) == 0) {
+        r = func_0012E568(0x78, 0xF0);
+        *(f32 *)(arg0 + 0x30) = *(f32 *)((char *)arg1 + 0xA4);
+        *(u16 *)(arg0 + 0x74) = r;
+        f = (f32) func_0012E5C0(0x14, 0x46) * 3.1415927f;
+        *(f32 *)(arg0 + 0x34) = f / 180.0f;
+        *(s32 *)(arg0 + 0x10) = 0;
+        *(s16 *)(arg0 + 0x6E) += 1;
+    }
+    if (--*(s16 *)(arg0 + 0x74) > 0) {
+        func_0012F8A0((void **) arg0, 0, 1, 0.1f);
+        *(s16 *)(arg0 + 0x6C) = 0;
+    } else {
+        *(u16 *)(arg0 + 0x74) = 0;
+        if (func_0012F8C8(arg0, 9, *(s16 *)(arg0 + 0x6C), 6, 1, 0.3f) != 0) {
+            n = *(s32 *)(arg0 + 0x10) + 1;
+            *(s32 *)(arg0 + 0x10) = n;
+            if (func_0012DA68((void **) arg0, *(f32 *)(arg0 + 0x30), *(f32 *)(arg0 + 0x34), n, 0x14) != 0) {
+                func_00131000(arg0, func_00139D28);
+            }
+        }
+    }
+}
 
 extern float func_00130D00(char *, float);
-extern void func_00139EE0(s8 *, void *);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00139E70(s8 *arg0) {
@@ -611,7 +650,6 @@ void func_00139E70(s8 *arg0) {
     }
 }
 
-extern int func_00131140(char *, void *, void *, void *, void *, void *);
 extern void func_0013A050();
 extern void func_0013A1A0();
 extern f32 D_0035BA5C;

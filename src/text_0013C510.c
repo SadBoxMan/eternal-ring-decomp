@@ -173,7 +173,7 @@ void func_0013CAE8(s8 *arg0) {
 extern s32 func_0013CF78(void *, s32);
 extern void func_0013D068(void *arg0, s32 arg1);
 extern s32 func_0013D088(void *, s32);
-extern s32 func_0013D378(void *, s32);
+extern f32 func_0013D378(void *, s32);
 
 extern void func_0012B218(void *, int);
 
@@ -299,7 +299,34 @@ void func_0013D068(void *arg0, s32 arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013D088);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013C510", func_0013D378);
+float func_0012CD08(void *a0, int idx, void *a2);
+extern float func_0012E820(char *, float, float);
+
+/* ER-198: by hand from the m2c draft; returns func_0012E820's float (the game leaves $f0 to the jr; this file's
+   extern `s32 func_0013D378(void *, s32)` must become f32), the clamp as if / else if / else into its own local,
+   ruling 3.13 (buf only sizes the 0x40 frame), ruling 3.20 (bare return on the early exit; PORT NOTE: the caller
+   gets whatever is left in $f0, a PC build returns that as-shipped value explicitly); names, types and offsets are
+   Unconfirmed readings. */
+f32 func_0013D378(void *arg0, s32 arg1) {
+    f32 buf[4]; /* ruling 3.13 */
+    f32 a;
+    f32 t;
+    f32 v;
+
+    if (func_00131088(arg0) == (s32) func_0013C658) {
+        return; /* ruling 3.20 */
+    }
+    a = func_0012CD08((void *)arg1, 4, *(void **)((char *)arg0 + 0x130)) + 6.2831855f;
+    t = (a - ((f32) (s32) (a / 6.2831855f) * 6.2831855f)) - 3.1415927f;
+    if (t < -0.34906587f) {
+        v = -0.34906587f;
+    } else if (0.34906587f < t) {
+        v = 0.34906587f;
+    } else {
+        v = t;
+    }
+    return func_0012E820(*(char **)(arg1 + 0xE0) + 0x2D4, v, 30.0f);
+}
 
 extern void func_0012F978(void *, s32, s8);
 extern void func_0012B1B8(void *, s32, s32, s8);

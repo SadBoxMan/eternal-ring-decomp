@@ -88,6 +88,11 @@ $(BUILD)/src/%.s: src/%.c $(wildcard include/*.h)
 	@mkdir -p $(@D)
 	$(CC) -B$(GCC_DIR)/ $(CFLAGS) $(CPPFLAGS) -S $< -o $@
 
+# ER-192: text_001CA8D8 (the pad state code) is built with the edge-based LCM on (ruling docs/decomp_recipes.md 3.21,
+# LuciDin, Tue 24 Nov 2026): func_001CA9A8 matches as plain C only with it, and func_001CAB10's loop counter placement
+# needs it; every other function in the file matches either way. The later flag wins over CFLAGS' -fno-edge-lcm.
+$(BUILD)/src/text_001CA8D8.s: CFLAGS += -fedge-lcm
+
 $(BUILD)/src/%.o: $(BUILD)/src/%.s $(GP_INC) include/macro.inc include/labels.inc
 	$(AS) $(ASFLAGS) -o $@ $<
 
