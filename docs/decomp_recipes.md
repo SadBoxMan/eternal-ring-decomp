@@ -1493,6 +1493,47 @@ the per-pad state. The case values 2, 3, 5, 6 and the extra 0x200 are Unofficial
 |---|---|
 | func_001CAB10 | 0x704 bytes, the per-pad state machine. Best draft `C:\rs\wt\er192_runs\cab10_best_elcm.c` (score with the per-file flag: `os_elcm.py` in that folder, diff in `cab10_best_elcm.diff.txt`): 0x6F8 bytes, 429 / 449 equal register-blind, the first 0x370 bytes exact but one `addu` operand order (+0x5C, `D + port` built as `port + D`). Left: which register reload gives the `-2` / `-3` constants in cases 0x6F and 0x83 (game `$v0` / `$a1`, ours the other way) and so which tails cross-jumping shares (case 0x82's `li 0x83` falls into the shared `sb $v0`); case 0xFE's `andi 0xFF` (a `switch (p->x17F)` with the load merged at the join; as `if`s it is closer but has no `andi`); a missing `nop`. 120 declaration orders changed nothing |
 
+### 2.49 `text_00150878`: a record-array table, loads before stores, const `.rodata` vectors, the round-4 rerun (ER-194 + ER-195, Tue 24 Nov 2026; Confirmed by `make regress`, 7 functions)
+
+Branch `er-194-150878-r4` (worktree `C:\rs\wt\er194`), commits `4c53077` (func_00157B60, func_001BF8E0: ER-186's
+leads), `6beb28e` (func_00162960, func_001A3D00, func_001BF748: ER-198's base-pointer scan hits in this file,
+`C:\rs\wt\er198_runs\bscan.txt`), `f567ace` (func_0018D168, func_00193B68: the rerun's plain MATCHes). **7 functions,
+1,180 bytes.** Scratch (our C only): `C:\rs\wt\er194_runs\` (`x\` ER-186's leads, `b\` the scan hits).
+
+**ER-194, the round-4 rerun** (`m2c_bulk.py --file text_00150878 --plain --tag ER-194 --par 4 --gcc-timeout 30`, label
+`er194all`, run in a second detached worktree `C:\rs\wt\er194r` at `4c53077`, so this branch's `make regress` runs could
+not wipe it; table copied to `er194_runs\er194all_results.md`): 1,010 functions, 2,289 s; 653 compile; **2 plain MATCH**
+(func_0018D168, with the store order by offset; func_00193B68), placed as drafted; same size 3-8 words 8, 9+ 115; size
+differs 528. A first attempt (Tue 24 Nov, 03:07 Eastern) failed from item 291 on: every m2c call returned no output and
+the run exited (code 4) at 03:34. m2c worked again at 12:04 and the restart ran clean (1 `m2c failed`: func_001C3118).
+Cause not found (Unconfirmed: the machine, or the shared m2c folder, at that hour).
+
+| Lesson | Proved by |
+|---|---|
+| **A table read as `base + i * 8` takes the game's registers when the global is declared as an array of records** (`extern R330410 D_00330410[]; ... D_00330410[i].x4`), not when a `char []` global is cast at the use (`((R8 *)D_00330410)[i].x4`, `(i + (R8 *)D_x)->x4`, a typed local pointer, a scalar index: all 8 words, the index load and the table address with `$v0` / `$v1` swapped). A local `R8 *t = ...; t += i; t->x4` got half way (5 words) | func_00157B60 |
+| **Check the "relocation only" words before writing them off**: ER-186 counted 4 of func_00157B60's 8 words as `$gp` relocations; `cmpfunc` on the placed function showed `R_MIPS_GPREL16 D_0035B834 ..., game uses D_0035B830`: the two flag words of the `&` were in the wrong order (`D_0035B830 & D_0035B834`, the first loaded into the lower register). The scratch draft's m2c context had hidden it | func_00157B60 |
+| **Loads the game issues before an earlier store come from temporaries in the source**: with `-fno-strict-aliasing` a load from `arg0` cannot pass a store into a global, so the game's `lwc1 0x8` / `lw 0x30` ahead of the `0x120` store mean `a = arg0->x8; b = arg0->x30;` were read first. From that order a `climb` matched in 134 compiles (the `0x10C` store before `0x130`); ER-186's climbs from m2c's order stayed at 5 words | func_001BF8E0 |
+| **A struct copy from a `.rodata` vector needs the extern declared `const`**: `Vec4A a = D_00355E60;` with a plain extern puts the prologue's doubleword loads out of order (the `mov.s $f20, $f12`, or the second vector's first `ld`, one slot off); `extern const Vec4A D_00355E60;` (unchanging memory, free to schedule) gives the game's prologue. A local initializer with placeholder values showed the same order first, but the vectors are shared by several functions (`D_00355BE0` by both below), so they are named `.rodata` objects, not per-function initializers | func_001A3D00 (and func_0019D090's prologue) |
+| **The sine table indexed straight from the global** (`D_001F0380[b + 0x400]`, the file's `extern float D_001F0380[]`) keeps the game's `addiu 0x400; sll 2; addu base` at each use; a local `f32 *tab` copy folds the `+0x400` into a `0x1000` load offset | func_00162960; func_0015C020's shape |
+| Both records of func_001BF748 through one `char *` each (`D_00202990` source, `D_00202950` destination) and `D_001FF890`'s flag bytes through one `s8 *`, written 0x21A then 0x21B (the game stores 0x21B first; the other order is 2 words off) | func_001BF748 |
+
+Nothing compiler-steering; no ruling used. Unofficial names: `R330410` and its fields `x0` / `x4`, locals `sp`, `i`,
+`g`, `t`, `a`, `b`, `c`, `s`, `d`, `f`. Readings (Unconfirmed): `D_00330410` as 8-byte records; `func_0012F5F8`'s
+prototype repeated above func_00157B60 (the file's own is further down; the same text); the loop in func_00157B60 as a
+`u32` count to 9; `D_00355E60` / `D_00355E70` / `D_00355BE0` as 16-byte `const` float vectors; `D_00202950` /
+`D_00202990` as records with a word at 0x20 and a byte at 0x24; the store order of func_001A3D00's `D_00248880` words
+(`[1]`, the vector word, `[0]`, `[7]`: a `climb`'s result, not read from anywhere); func_00158AD8's prototype (as
+`text_001000C0` declares it).
+
+**Parked (scratch in `C:\rs\wt\er194_runs\`, game code not in git):**
+
+| Function | Cause |
+|---|---|
+| func_0017BC40 | 8 words, a register tie in the clear loop over `D_003496E0` (32 records of 0x100 bytes). gcc dump (`x\k2_dump\k2.c.greg`): loop reduces the store address to a new pointer (pseudo 103) whose start is built from `lui` / `addiu` temporaries (101, 94) local to the block before the loop; **local-alloc gives those `$v0` before global-alloc runs**, so the counter (86, live across them once loop reversal put its `li 31` there) conflicts with `$v0` and gets `$v1`, and the pointer takes `$v0` by preference. The game has the temporaries and the pointer in `$v1`, the counter in `$v0`. About 30 shapes tried (index up / down, `while (--i >= 0)`, `do`, explicit pointers up / down, a pointer local in and out of the loop, byte-offset index, `(*)[64]` rows, `u32` counter, declaration orders; files `x\k*`, `x\c*`, `x\d*`): all the same 8 words. ER-198's scan also lists it (`D_003496E0+0x1f00`): that is the loop's start address, already the game's form. Needs Opus high |
+| func_0015C020 | 13 words, same size (`b\c7.c`): the sine-table form of func_00162960, with both products in temporaries, gives the game's instructions; `j` and the `&D_001F0380[i + 0x400]` address take `$a1` / `$a2` the other way round (a local-alloc tie) and `lwc1 0x70` issues one slot early. A pointer for the address, `u32` indexes, fields read back, declaration orders tried |
+| func_0019D090 | 8 words, same size (`b\m7_os\best.c`): with the `const` vectors the prologue matches; the stores into `D_002488A0` / `D_00248880` after the first call keep 8 words out of place after `climb`s from m2c's order and from the game's order with temporaries. `D_00248880`'s word at 0x1C and its byte at 0x1F are both written: its layout there is not known |
+| func_001C1E38 | Not attempted: 190 instructions, a switch with shared tails (`goto`s in m2c's draft); the base-pointer hint (`D_001FEC00+0x10`) is a small part of its 156 words. Needs its own pass |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
