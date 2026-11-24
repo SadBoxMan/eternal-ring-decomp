@@ -1147,12 +1147,13 @@ def _const_decl(text: str, n: str) -> tuple[str, int]:
     return re.subn(rf"\bextern\s+((?:f32|float))\s+({n})\s*;", r"extern const \1 \2;", text)
 
 
-def const_variant(c_text: str, name: str, protos_h: Path | None, out: Path):
+def const_variant(c_text: str, name: str, protos_h: Path | None, out: Path, stem: str | None = None):
     """ER-101: the draft with every census-const .sdata float it reads (tools/sdata_consts.py: read by lwc1, never
     stored, address never taken) declared `extern const`. Recipes 2.21: with -fno-strict-aliasing gcc reloads a plain
     extern float after each store; a const one keeps the game's early loads (func_00145918, func_00147CF8). The
     census does not tell which ones the original declared const (func_00147F78's D_0035BD40 is never stored either
-    but must stay plain), so this is a variant, kept only on a MATCH. Returns (text, protos header, names) or None."""
+    but must stay plain), so this is a variant, kept only on a MATCH. The header copy is named per attempt (`stem`:
+    function, context and base; ER-217), as the ER-188 copies are. Returns (text, protos header, names) or None."""
     import sdata_consts
     consts = sdata_consts.const_floats()
     used = sorted({n for n in re.findall(r"\bD_[0-9A-F]{8}\b", c_text) if n in consts})
@@ -1169,7 +1170,7 @@ def const_variant(c_text: str, name: str, protos_h: Path | None, out: Path):
         return None
     ph2 = protos_h
     if protos_h and ph_text:
-        ph2 = out / "obj" / f"{name}.const.protos.h"
+        ph2 = out / "obj" / f"{stem or name}.const.protos.h"
         ph2.write_text(ph_text, encoding="utf-8", newline="\n")
         c_text = c_text.replace(f'#include "{protos_h.as_posix()}"', f'#include "{ph2.as_posix()}"')
     return c_text, ph2, done
@@ -1747,6 +1748,24 @@ S16_SIGN = True             # --no-s16-sign
 GAME_RET = True             # --no-game-ret
 STACK_VEC = True            # --no-stack-vec
 GLOBAL_BASE = True          # --no-global-base
+WHILE_FIX = True            # --no-while (ER-217)
+UNTOUCHED_DRAFT = True      # --no-untouched-draft (ER-217)
+KEEP_WORDS = True           # --no-keep-words: the ER-188 keep rule (size first) for the draft fixes (ER-217)
+
+
+def _closer(new, old) -> bool:
+    """ER-217 keep rule for the draft fixes (ER-188's compared (size off, words) as a tuple, so a fix that brought
+    the size closer was kept however many words it added: func_00132108 12 -> 4 bytes off, 33 -> 50 words). Closer
+    is: a MATCH; reaching the game's size from a size difference (the store orders and later variants then run);
+    else no farther in size and in words and nearer in one of them."""
+    if new.match:
+        return True
+    (ns, nw), (os_, ow) = _off(new), _off(old)
+    if not KEEP_WORDS:
+        return (ns, nw) < (os_, ow)
+    if ns == 0 and os_ > 0:
+        return True
+    return ns <= os_ and nw <= ow and (ns, nw) != (os_, ow)
 
 
 def _func_span(c_text: str, name: str):
@@ -2090,13 +2109,15 @@ _TSIZE = {"s8": 1, "u8": 1, "char": 1, "s16": 2, "u16": 2, "s32": 4, "u32": 4, "
 GFIELD_RE = re.compile(r"M2C_FIELD\((&?D_[0-9A-F]{8}), ([\w ]+?) \*, (0x[0-9A-Fa-f]+|\d+)\)")
 
 
-def global_base_variants(c_text: str, name: str) -> list[tuple[str, str]]:
+def global_base_variants(c_text: str, name: str, protos_h: Path | None = None, out: Path | None = None,
+                         stem: str | None = None) -> list[tuple[str, str, Path | None]]:
     """Recipes 2.45 (func_001C1880, func_001C1630, func_001BCCF8, func_001BCD30, func_001BF198; ER-186 follow-up 3):
     `M2C_FIELD(D_x, T *, off)` folds the offset into `%lo(D_x + off)`; the game builds `D_x` in a register and loads
     off it. The forms that keep the base: one typed pointer set from the global (`s16 *p = (s16 *)D_x;`, each access
     `p[off / size]`, another type through `(char *)p + off`), tried with each access type in turn (most used first,
-    at most 3); and the draft's own extern of D_x as an array of that type read by index (`D_001F6B90[9]`).
-    Returns [(note, text)]."""
+    at most 3); and D_x's extern as an array of that type read by index (`D_001F6B90[9]`): the draft's own line or
+    (ER-217, under --no-while's switch) the prototypes header's, as a copy under obj/. Returns [(note, text,
+    protos header)]."""
     sp = _func_span(c_text, name)
     if not sp or "M2C_FIELD(" not in c_text:
         return []
@@ -2142,7 +2163,7 @@ def global_base_variants(c_text: str, name: str) -> list[tuple[str, str]]:
         nl = new_body.split("\n")
         text = c_text[:m.end()] + "\n".join(nl[:k] + decls + nl[k:]) + after
         outs.append((f"global base pointer: " + ", ".join(f"{choice[g]} *{g}" for g in gl)
-                     + (f" (same-size fields as {t0})" if unify else ""), text))
+                     + (f" (same-size fields as {t0})" if unify else ""), text, protos_h))
     # index form: a global the draft declares itself, every access one type at aligned offsets
     for g in gl:
         if g.startswith("&"):
@@ -2152,14 +2173,172 @@ def global_base_variants(c_text: str, name: str) -> list[tuple[str, str]]:
         size = _TSIZE.get(t)
         if len(ts) != 1 or not size or any(o % size for _a, o in by_g[g]):
             continue
-        em = re.search(rf"^extern [^;\n]*\b{g}\b[^;\n]*;[^\n]*$", c_text[:m.start()], re.M)
-        if not em:
+        ext_re = re.compile(rf"^extern [^;\n(]*\b{g}\b[^;\n(]*;[^\n]*$", re.M)
+        em = ext_re.search(c_text[:m.start()])
+        ph = protos_h
+        if em:
+            text = c_text[:em.start()] + f"extern {t} {g}[];" + c_text[em.end():m.start()]
+        elif WHILE_FIX and protos_h and protos_h.exists() and out is not None and \
+                ext_re.search(protos_h.read_text(encoding="utf-8")):
+            # ER-217: the extern is in the prototypes header (func_001C1880): a copy with the array form
+            ph = out / "obj" / f"{stem or name}.garr.protos.h"
+            ph.write_text(ext_re.sub(f"extern {t} {g}[];", protos_h.read_text(encoding="utf-8"), count=1),
+                          encoding="utf-8", newline="\n")
+            text = c_text[:m.start()].replace(f'#include "{protos_h.as_posix()}"', f'#include "{ph.as_posix()}"')
+        else:
             continue
-        text = c_text[:em.start()] + f"extern {t} {g}[];" + c_text[em.end():m.start()]
         text += c_text[m.start():m.end()] + GFIELD_RE.sub(
             lambda mm: f"{g}[{int(mm[3], 0) // size}]" if mm[1] == g else mm[0], body) + after
-        outs.append((f"global as an array: extern {t} {g}[]", text))
+        outs.append((f"global as an array: extern {t} {g}[]", text, ph))
     return outs
+
+
+IF_ANY_RE = re.compile(r"^(\s*)if \((.*)\) \{$")
+
+
+def while_variants(c_text: str, name: str) -> list[tuple[str, str]]:
+    """ER-217 (ER-186's func_001C1880, recipes 2.45): m2c writes a `while` loop as `if (c) { do { .. } while (c); }`;
+    the game's source had `while (c) { .. }`. Only where the if-block holds nothing but the do-while and both tests
+    are the same text. Candidates: every such loop rewritten, then each alone when there are several (at most 3).
+    Returns [(note, text)]."""
+    sp = _func_span(c_text, name)
+    if not sp or "do {" not in c_text:
+        return []
+    m, lines, after = sp
+    head = c_text[:m.end()]
+    spots = []
+    for i in range(len(lines) - 3):
+        im = IF_ANY_RE.match(lines[i])
+        if not im or lines[i + 1] != im[1] + "    do {":
+            continue
+        ind, c = im[1], im[2]
+        j = next((j for j in range(i + 2, len(lines) - 1) if lines[j].startswith(ind + "    }")), None)
+        if j is None or lines[j] != f"{ind}    }} while ({c});" or lines[j + 1] != ind + "}":
+            continue
+        if any(ln.strip() and not ln.startswith(ind + "        ") for ln in lines[i + 2:j]):
+            continue
+        spots.append((i, j))
+
+    def rewrite(sel):
+        new = list(lines)
+        for i, j in sorted(sel, reverse=True):
+            ind = IF_ANY_RE.match(new[i])[1]
+            c = IF_ANY_RE.match(new[i])[2]
+            inner = [ln[4:] if ln.strip() else ln for ln in new[i + 2:j]]
+            new[i:j + 2] = [f"{ind}while ({c}) {{"] + inner + [ind + "}"]
+        return head + "\n".join(new) + after
+    if not spots:
+        return []
+    outs = [(f"while loop for m2c's if + do-while (x{len(spots)})", rewrite(spots))]
+    if len(spots) > 1:
+        for k, s in enumerate(spots[:3]):
+            outs.append((f"while loop for m2c's if + do-while (loop {k + 1} of {len(spots)})", rewrite([s])))
+    return outs
+
+
+_FLOAT_PARAM_RE = re.compile(r"^(?:const\s+)?(?:f32|f64|float|double)\s+\w+$")
+
+
+def shifted_calls(res, game: eematch.Game) -> dict[str, int]:
+    """ER-217: calls whose arguments sit d >= 1 registers higher in the game than in our build ({callee: d}): a
+    differing word where the game writes $a<i+d> and ours is the same instruction writing $a<i> (other operands
+    equal). The callee is found as in passthrough_calls (the j / jal whose delay slot holds the word, else the next
+    within 16 words); a callee seen with two different shifts is left out. passthrough_calls is the d = 1 case with
+    looser operand checks; this one also reads func_00130120 ($a3 for our $a0: three arguments passed on)."""
+    found: dict[str, set[int]] = {}
+    if res is None or res.game_size is None or res.our_size != res.game_size:
+        return {}
+    for w in res.words:
+        if w.ok or not w.ours or w.game is None:
+            continue
+        vram = res.addr + w.off
+        gm, gops = _ops(w.game, vram)
+        om, oops = _ops(w.ours, vram)
+        if om != gm or len(oops) != len(gops) or not gops or gops[0] not in ARG_REGS or oops[0] not in ARG_REGS \
+                or oops[1:] != gops[1:]:
+            continue
+        d = ARG_REGS.index(gops[0]) - ARG_REGS.index(oops[0])
+        if d < 1:
+            continue
+        target = _call_target(game.word(vram - 4), vram - 4) if w.off >= 4 else None
+        off = w.off
+        while target is None and off < min(res.game_size, w.off + 64):
+            target = _call_target(game.word(res.addr + off), res.addr + off)
+            off += 4
+        if target is None:
+            continue
+        found.setdefault(game.name_at.get(target) or f"func_{target:08X}", set()).add(d)
+    return {c: next(iter(ds)) for c, ds in found.items() if len(ds) == 1}
+
+
+def untouched_draft_variants(c_text: str, name: str, res, game: eematch.Game, protos_h: Path | None, out: Path,
+                             stem: str | None = None):
+    """ER-217 (ER-188 follow-up 4: func_0012D388, func_00130120 at 1 word after the stack vector): a call whose
+    arguments sit d registers higher in the game (shifted_calls) gets the function's own first d integer parameters
+    as new first arguments (the function hands $a0.. on untouched), the callee's prototype d leading `s32`. The
+    ER-147 untouched-args retry re-drafts with m2c before the draft fixes, and its callee scan needs the callee's
+    splat asm (a placed callee has none), so it cannot follow the stack-vector fix; this is the same change on the
+    draft. Integer parameters the function lacks are added (`s32 argN`, after its last integer parameter, or first):
+    floats and integers take separate registers in this ABI (func_0012D388 takes only `f32 fparg0`, in $f12).
+    Returns [(note, text, protos header)]."""
+    calls = shifted_calls(res, game)
+    sp = _func_span(c_text, name)
+    if not calls or not sp:
+        return []
+    m, lines, after = sp
+    params = [] if m[3].strip() in ("", "void") else [" ".join(p.split()) for p in _split_top(m[3])]
+    if any("..." in p or "(" in p for p in params):
+        return []
+    ints = [k for k, p in enumerate(params) if not _FLOAT_PARAM_RE.match(p)]
+    need = max(calls.values())
+    names = [re.findall(r"\w+", params[k])[-1] for k in ints[:need]]
+    new_params = list(params)
+    added = []
+    n = len(ints)
+    while len(names) < need:
+        v = f"arg{n}" if not re.search(rf"\barg{n}\b", c_text) else f"uarg{n}"
+        names.append(v)
+        added.append(f"s32 {v}")
+        n += 1
+    if added:
+        at = ints[-1] + 1 if ints else 0
+        new_params[at:at] = added
+    sig = c_text[m.start():m.end()].replace(f"{name}({m[3]})", f"{name}({', '.join(new_params)})", 1)
+    body = "\n".join(lines)
+    pre = c_text[:m.start()]
+    ph = protos_h
+    ph_text = ph.read_text(encoding="utf-8") if ph and ph.exists() else None
+    ph_changed = False
+    for callee in sorted(calls):
+        d = calls[callee]
+        lead = ", ".join(names[:d])
+        body, k = re.subn(rf"\b{callee}\((\s*\))?",
+                          lambda mm, c=callee: f"{c}({lead})" if mm[1] else f"{c}({lead}, ", body)
+        if not k:
+            return []
+        pat = re.compile(rf"^((?:extern\s+)?[A-Za-z_][\w \*]*?\s*\b{callee})\(([^)]*)\)", re.M)
+
+        def fix(mm, d=d):
+            ps = [] if mm[2].strip() in ("", "void") else [mm[2].strip()]
+            return f"{mm[1]}({', '.join(['s32'] * d + ps)})"
+        if pat.search(pre):
+            pre = pat.sub(fix, pre, count=1)
+        elif ph_text is not None and pat.search(ph_text):
+            ph_text = pat.sub(fix, ph_text, count=1)
+            ph_changed = True
+        else:
+            return []
+    if added:
+        own_pat = re.compile(rf"^((?:extern\s+)?[A-Za-z_][\w \*]*?\s*\b{name})\([^)]*\)\s*;", re.M)
+        pre = own_pat.sub(lambda mm: f"{mm[1]}({', '.join(new_params)});", pre, count=1)
+    if ph_changed:
+        p2 = out / "obj" / f"{stem or name}.uarg.protos.h"
+        p2.write_text(ph_text, encoding="utf-8", newline="\n")
+        pre = pre.replace(f'#include "{ph.as_posix()}"', f'#include "{p2.as_posix()}"')
+        ph = p2
+    note = "untouched argument(s) passed on: " + ", ".join(f"{c} gets {', '.join(names[:calls[c]])} first"
+                                                           for c in sorted(calls))
+    return [(note + (f" ({', '.join(added)} added)" if added else ""), pre + sig + body + after, ph)]
 
 
 def store_variants(c_text: str):
@@ -2274,12 +2453,18 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
     # ER-188: draft fixes from hand matches (early exit, s16 sign test, the game's return type, stack vector, global
     # base), each kept when it matches or comes strictly closer; `pres` holds the states before each kept change, so
     # the variants kept only on a MATCH can run again from them (no match lost)
+    # ER-217: `while` loops first (kept when no farther: the same loop in the game's spelling, which the global base
+    # may need, func_001C1880), the untouched argument after the stack vector; the keep rule is _closer
     pres: list[tuple] = []
-    for fix in ("early", "s16", "gret", "svec", "gbase"):
+    for fix in ("while", "early", "s16", "gret", "svec", "uarg", "gbase"):
         if res.match:
             break
         cands: list[tuple[str, str, Path | None]] = []
-        if fix == "early" and EARLY_EXIT and likely_gap(res, game, addr):
+        if fix == "while" and WHILE_FIX:
+            cands = [(n, t, at.protos_h) for n, t in while_variants(c_text, name)]
+        elif fix == "uarg" and UNTOUCHED_DRAFT:
+            cands = untouched_draft_variants(c_text, name, res, game, at.protos_h, out, c_path.stem)
+        elif fix == "early" and EARLY_EXIT and likely_gap(res, game, addr):
             cands = [(n, t, at.protos_h) for n, t in early_exit_variants(c_text, name)]
         elif fix == "s16" and S16_SIGN:
             cands = [(n, t, at.protos_h) for n, t in s16_sign_variants(c_text, name)]
@@ -2288,18 +2473,18 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
         elif fix == "svec" and STACK_VEC:
             cands = stack_vec_variants(c_text, name, game, addr, at.protos_h, out, c_path.stem)
         elif fix == "gbase" and GLOBAL_BASE:
-            cands = [(n, t, at.protos_h) for n, t in global_base_variants(c_text, name)]
+            cands = global_base_variants(c_text, name, at.protos_h, out, c_path.stem)
         best = None
         for k, (note, alt, ph) in enumerate(cands[:8]):
             fpath = c_path.with_suffix(f".{fix}{k}.c")
             r2 = compile_compare(name, addr, alt, fpath, out, game)[0]
-            if r2 and (best is None or (not best[0].match and (r2.match or _off(r2) < _off(best[0])))):
+            if r2 and (best is None or (not best[0].match and _closer(r2, best[0]))):
                 best = (r2, alt, note, ph, fpath)
             if r2 and r2.match:
                 break
         if not cands:
             continue
-        if best and (best[0].match or _off(best[0]) < _off(res)):
+        if best and (_closer(best[0], res) or (fix == "while" and _off(best[0]) == _off(res))):
             was = sum(not w.ok for w in res.words)
             pres.append((res, c_text, c_draft, s_base, at.protos_h))
             res, c_text, c_draft, s_base = best[0], best[1], best[1], best[4].with_suffix(".s")
@@ -2347,7 +2532,7 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
                         f" (best: {diff_class(best[0])}, {sum(not w.ok for w in best[0].words)} words)"
                         if best else ""))
 
-    def later(res, c_text, c_draft, s_base):
+    def later(res, c_text, c_draft, s_base, tag=""):
         """The variants kept only on a MATCH (store orders, ruling 3.14, const floats) on one base draft. Returns
         (res, c_text, notes, protos_h or None, consts or None)."""
         notes: list[str] = []
@@ -2391,7 +2576,7 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
                     notes.append(f"ruling 3.14 tried ({', '.join(v for v, _s in svs)}), no match" + (
                         f" (best: {diff_class(best)}, {sum(not w.ok for w in best.words)} words)" if best else ""))
         if not res.match and CONST_VARIANT:
-            cv = const_variant(c_text, name, at.protos_h, out)
+            cv = const_variant(c_text, name, at.protos_h, out, c_path.stem + tag)
             if cv:
                 alt, ph2, used = cv
                 res2, _msg2 = compile_compare(name, addr, alt, c_path.with_suffix(".const.c"), out, game)
@@ -2420,11 +2605,12 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
         if st[0].match:
             break
         at.protos_h = pre[4]
-        st2 = later(*pre[:4])
+        st2 = later(*pre[:4], tag=f".pre{depth}")
         if st2[0].match:
             what = "narrow parameter" if narrow_pre and depth == 0 else "draft fix"
             dropped = [n for n in at.notes if n.startswith(("narrow parameter kept", "early exit first", "s16 sign",
-                                                            "returns the last call", "stack ", "global "))
+                                                            "returns the last call", "stack ", "global ",
+                                                            "while loop", "untouched argument"))
                        and "tried" not in n][-(depth + 1):]
             st = (st2[0], st2[1], [f"{what} dropped: a later variant matches without the last {depth + 1} kept "
                                    f"change(s) of {n_pres} ({'; '.join(dropped)})"] + st2[2], st2[3], st2[4])
@@ -3479,6 +3665,14 @@ def main() -> int:
     ap.add_argument("--no-global-base", action="store_true",
                     help="skip the global-base fix (M2C_FIELD on a global through a typed pointer or as an array; "
                          "ER-188, recipes 2.45)")
+    ap.add_argument("--no-while", action="store_true",
+                    help="skip the while fix (m2c's `if (c) { do { .. } while (c); }` as `while (c) { .. }`; ER-217)")
+    ap.add_argument("--no-untouched-draft", action="store_true",
+                    help="skip the untouched-argument fix on the draft (a call whose arguments sit one register higher "
+                         "in the game gets the function's own first integer argument first; ER-217)")
+    ap.add_argument("--no-keep-words", action="store_true",
+                    help="ER-188's keep rule for the draft fixes (size first, then words) instead of ER-217's (no "
+                         "farther in size or in words, unless it reaches the game's size)")
     ap.add_argument("--store-limit", type=int, default=48,
                     help="most permuted store orders compiled per draft (default 48; ER-147)")
     ap.add_argument("--rerun-diffs", metavar="RESULTS",
@@ -3494,7 +3688,10 @@ def main() -> int:
     sys.stdout.reconfigure(line_buffering=True)
     global GCC_TIMEOUT, TAG, SLOT_MOVE, CONST_VARIANT, STORE_SORT, SIBCALL_314, FRAME_FIX, PACKER_VARIANT, \
         UNTOUCHED_RETRY, REG_BYTES, STORE_LIMIT, NARROW_VARIANT, RT_FIX, NARROW_KEEP, EARLY_EXIT, S16_SIGN, GAME_RET, \
-        STACK_VEC, GLOBAL_BASE
+        STACK_VEC, GLOBAL_BASE, WHILE_FIX, UNTOUCHED_DRAFT, KEEP_WORDS
+    WHILE_FIX = not args.no_while
+    UNTOUCHED_DRAFT = not args.no_untouched_draft
+    KEEP_WORDS = not args.no_keep_words
     EARLY_EXIT = not args.no_early_exit
     S16_SIGN = not args.no_s16_sign
     GAME_RET = not args.no_game_ret
@@ -3542,6 +3739,9 @@ def main() -> int:
         print(f"m2c_bulk: no asm for {len(missing)} function(s) (placed as C already?): {' '.join(missing[:10])}",
               file=sys.stderr)
         names = [n for n in names if n in idx]
+        if not names:
+            print("m2c_bulk: nothing left to draft", file=sys.stderr)
+            return 1
     game = eematch.Game()
     if not game.have_syms:
         print("m2c_bulk: build/SLUS_200.15.syms.elf missing (run make regress first)", file=sys.stderr)
