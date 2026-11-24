@@ -727,7 +727,45 @@ extern float func_0012CD08(void *a0, int idx, void *a2);
 extern void func_00140098(void *, void *, void *);
 void func_0013F748();
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F580);
+INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354938);
+
+/* ER-198: by hand from the m2c draft; the count test after the angle wrap, abs in double (recipes 2.46) with an early return when it exceeds the limit; func_0012B890 with the float before the last int; func_00130D68 declared (char *, s32, s32, f32, void *): the float before the pointer puts mov.s in the jal slot (its definition in text_001000C0 has the float after arg0; ER-183 found before arg3 also matches there); the double literal 0.05235988f takes the place of D_00354940 (ruling 3.10; masked compare only); names, types and offsets are Unconfirmed readings. */
+void func_0013F580(void **arg0, s8 *arg1) {
+    f32 v[4];
+    f32 f;
+    f32 a;
+    double d;
+    s32 n;
+
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        *(s32 *)((char *)arg0 + 0x10) = 0;
+        *(s16 *)((char *)arg0 + 0x6E) += 1;
+    }
+    func_0012B890(arg0, 1, 9, *(s16 *)((char *)arg0 + 0x6C), 0x1E, 0.1f, 0);
+    func_0012B890(arg0, 0, 0, *(s16 *)((char *)arg0 + 0x6C), 0x3C, 0.05f, 1);
+    func_00140098(v, arg0, arg1);
+    func_00140250(arg1, v);
+    func_00130D68(arg1, 0x17, 0x16, 0.0f, D_0032FEA0);
+    func_00130D68(arg1, 0x18, 0x17, 0.0f, D_0032FEB0);
+    if (func_001114E8(*(char **)(arg1 + 0xE0) + 0xF30, *(float **)((char *)arg0 + 0x130)) <= D_0035BB80) {
+        f = func_0012CD08(arg1, 0x17, *(void **)((char *)arg0 + 0x130)) + 6.2831855f;
+        n = *(s32 *)((char *)arg0 + 0x10) + 1;
+        *(s32 *)((char *)arg0 + 0x10) = n;
+        a = (f - (f32)(s32)(f / 6.2831855f) * 6.2831855f) - 3.1415927f;
+        if (n < 0xB5) {
+            d = a;
+            if (d < 0.0) {
+                d = 0.0 - d;
+            }
+            if (d > 0.05235988f) {
+                return;
+            }
+        }
+        func_00131000((char *)arg0, func_0013F748);
+    } else {
+        *(s32 *)((char *)arg0 + 0x10) = 0;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F748);
 
@@ -806,8 +844,6 @@ void func_0013FBF8(void **arg0, void *arg1) {
     func_0012DC10((s32)arg1, 0x17, 0x16, (s32)&s[4], D_0032FEA0);
 }
 
-INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354938);
-INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354940);
 extern void func_001C9F60(void *, void *, void *);
 extern s32 func_0012B540(void *, s32, s8, s32);
 extern s32 func_0013FF70(void *, void *, f32);
@@ -1277,11 +1313,135 @@ extern void func_00141748(s8 *arg0);
 extern f32 func_00130258(char *arg0);
 void func_00142058();
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00141EE8);
+INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354968);
+INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354970);
+
+/* ER-198: by hand from the m2c draft; abs value in double (recipes 2.46), the 0xC result in the else arm (assigned after the compare), s16 counter --x74 < 0, ruling 3.14 for the last call jal; the double literal 1.7453293f takes the place of D_00354978 (0x3FFBECDE60000000, ruling 3.10: its INCLUDE_RODATA must go; masked compare only, make regress judges); func_00142058 needs a prototype above (defined later), a reading; names, types and offsets are Unconfirmed readings. */
+void func_00141EE8(s8 *arg0) {
+    f32 f;
+    double d;
+    s32 r;
+
+    (void)&arg0; /* ruling 3.14 */
+    if (func_00131140(arg0, func_001418B8, func_001418B8, NULL, NULL, NULL) == 0) {
+        if (*(s16 *)(arg0 + 0x6E) == 0) {
+            *(s32 *)(arg0 + 0x10) = -1;
+            *(s16 *)(arg0 + 0x6E) += 1;
+        }
+        f = func_00130258(arg0);
+        d = f;
+        if (d < 0.0) {
+            d = 0.0 - d;
+        }
+        if (d > 1.7453293f) {
+            r = 0xE;
+            if (f > 0.0f) {
+                r = 0xD;
+            }
+        } else {
+            r = 0xC;
+        }
+        if (r != *(s32 *)(arg0 + 0x10)) {
+            *(s16 *)(arg0 + 0x6C) = 0;
+            *(s32 *)(arg0 + 0x10) = r;
+            *(u16 *)(arg0 + 0x74) = func_0012E568(0x1E, 0xB4);
+        }
+        if (func_0012F8C8(arg0, *(s32 *)(arg0 + 0x10), *(s16 *)(arg0 + 0x6C), 0xF, 0, 0.3f) != 0) {
+            if (--*(s16 *)(arg0 + 0x74) < 0) {
+                func_00131140(arg0, func_001418B8, func_001418B8, func_001418B8, func_00142058, func_00141748);
+            }
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00142058);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00142118);
+void func_001423E0();
+extern s32 func_0012F8C8(s8 *, s32, s32, s32, s32, f32);
+extern f32 func_0012E6B8(f32, f32);
+extern float func_0012E7B0(float a, float b);
+extern float func_001114E8(char *, float *);
+extern float func_00130378(char *, s32);
+extern void func_00130848(s8 **, f32 fparg0);
+extern void func_001C9FE8(void *, void *, void *);
+extern void func_00131000(char *, void *);
+extern void func_00142118();
+extern void func_00142788(f32 *, f32, f32);
+extern void func_001427F0(f32 *, f32, f32);
+void func_001423E0();
+extern const f32 D_0035BBC0;
+extern const f32 D_0035BBC4;
+extern const f32 D_0035BBC8;
+extern const f32 D_0035BBE4;
+extern const f32 D_0035BBEC;
+extern const f32 D_0035BBF8;
+extern const f32 D_0035BBFC;
+extern const f32 D_0035BC00;
+extern const f32 D_0035BC08;
+
+/* ER-202 (placed by ER-201): by hand from ER-198's draft; the two angle wraps written on the field (`+=`, then `while (> pi) -= 2pi; while (< -pi) += 2pi;`); ruling 3.13 for buf (frame size); `const` on D_0035BBC0 .. D_0035BC08 (a reading, recipes 2.50); the double literal 0.52359879f takes the place of D_00354980 (ruling 3.10: a double plus 8 zero bytes, the padding before text_00145120's 16-aligned .rodata); names, types and offsets are Unconfirmed readings. */
+void func_00142118(char *arg0, char *arg1) {
+    f32 buf[4]; /* ruling 3.13 */
+    char *p;
+    f32 t;
+    f32 r;
+    f32 a;
+    f32 b;
+    f32 dist;
+    f32 ang;
+    f32 x;
+    double d;
+    u16 k;
+
+    if (*(s16 *)(arg0 + 0x6E) == 0) {
+        if (func_0012F8C8((s8 *)arg0, 8, *(s16 *)(arg0 + 0x6C), 5, 1, 0.3f) == 0) {
+            return;
+        }
+        *(f32 *)(arg0 + 0x30) = func_0012E6B8((D_0035BBEC * 3.1415927f) / 180.0f, (D_0035BBEC * 3.1415927f) / 180.0f);
+        *(f32 *)(arg0 + 0x40) = D_0035BBC8;
+        *(s16 *)(arg0 + 0x6E) += 1;
+        *(f32 *)(arg0 + 0x3C) = 0.0f;
+    }
+    p = arg1 + 0x90;
+    dist = func_001114E8(p, *(float **)(arg0 + 0x130));
+    t = func_00130378(p, *(s32 *)(arg0 + 0x130)) + 6.2831855f;
+    ang = func_0012E7B0((t - (f32)(s32)(t / 6.2831855f) * 6.2831855f) - 3.1415927f, *(f32 *)(arg1 + 0xA4));
+    if (*(s16 *)(arg0 + 0x6C) >= 0x79) {
+        r = D_0035BBE4;
+        if (!(ang >= 0.0f)) {
+            r = -r;
+        }
+        func_00142788((f32 *)(arg0 + 0x30), r, D_0035BC00);
+    } else {
+        func_001427F0((f32 *)(arg0 + 0x30), D_0035BBF8, D_0035BBFC);
+    }
+    k = *(u16 *)(*(char **)(arg1 + 0xE0) + 0x8C);
+    if (k == 1) {
+        *(f32 *)(arg0 + 0x3C) = D_0035BBC0;
+        *(f32 *)(arg0 + 0x40) = D_0035BBC4;
+    } else if (k == 0xC) {
+        *(f32 *)(arg0 + 0x40) = D_0035BBC8;
+    }
+    *(f32 *)(arg1 + 0xA4) += *(f32 *)(arg0 + 0x30);
+    while (*(f32 *)(arg1 + 0xA4) > 3.1415927f) {
+        *(f32 *)(arg1 + 0xA4) -= 6.2831855f;
+    }
+    while (*(f32 *)(arg1 + 0xA4) < -3.1415927f) {
+        *(f32 *)(arg1 + 0xA4) += 6.2831855f;
+    }
+    func_00130848((s8 **)arg0, *(f32 *)(arg0 + 0x3C));
+    func_001C9FE8(arg1 + 0x90, arg1 + 0x90, arg0 + 0x90);
+    *(f32 *)(arg0 + 0x3C) *= *(f32 *)(arg0 + 0x40);
+    if (*(s16 *)(arg0 + 0x6C) >= 0x79) {
+        d = ang;
+        if (d < 0.0) {
+            d = 0.0 - d;
+        }
+        if (d <= 0.52359879f && dist <= D_0035BC08) {
+            func_00131000(arg0, func_001423E0);
+        }
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_001423E0);
 
@@ -2050,7 +2210,27 @@ void func_00144F18(void *arg0, void *arg1) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00144F90);
+extern int func_001450F8(u8 *a0);
+extern s32 func_00131088(void *);
+extern void func_00144308(s8 *, void *);
+extern void func_00131000(char *, void *);
+void func_00144A48(void **arg0, s32 arg1);
+void func_00144F10(void);
+
+/* ER-188: drafted with m2c (tools/m2c_bulk.py --plain), placed by ER-201; `--x < 0` on the s16 counter; names, types and offsets are Unconfirmed readings. */
+void func_00144F90(u8 *arg0) {
+
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        if ((func_001450F8(arg0) != 0) && (func_00131088(arg0) != func_00144308)) {
+            func_00131000(*(s8 **)((char *)arg0 + 0xEC), func_00144A48);
+        }
+        *(u16 *)((char *)arg0 + 0x74) = 0x3CU;
+        *(s16 *)((char *)arg0 + 0x6E) = (s16) ((u16) *(s16 *)((char *)arg0 + 0x6E) + 1);
+    }
+    if (--*(s16 *)((char *)arg0 + 0x74) < 0) {
+        func_00131000((s8 *) arg0, func_00144F10);
+    }
+}
 
 extern f32 func_001314C8(s32 arg0, s32 arg1);
 extern int func_001450F8(u8 *a0);
@@ -2087,8 +2267,4 @@ int func_001450F8(u8 *a0) {
     }
     return (*(u64 *)(p + 0x58) & 0xC00000) == 0;
 }
-INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354968);
-INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354970);
-INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354978);
-INCLUDE_RODATA("asm/nonmatchings/text_0013DBC0", D_00354980);
 
