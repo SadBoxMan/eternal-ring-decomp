@@ -11,7 +11,7 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 1320,
+          "done": 1321,
           "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
@@ -21,7 +21,7 @@
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 148984,
+          "done": 149324,
           "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
@@ -2117,20 +2117,20 @@
     {
       "code": "ER-202",
       "title": "ER-198's near misses",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium / high",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Tue 24 Nov 2026 (branch er-202-near-misses, commit c56a962; recipes 2.50): func_00142F88 placed (340 bytes). MATCH under cmpfunc but blocked: func_00142118 (D_00354980 takeover, ER-201), func_00137CE0 (jump table, text_001343E8 cut), func_00126338 (extern const D_0035B810, LuciDin). Parked: func_0013D088 (2 words, fall-off-the-end ruling), func_00129900 (2), func_0013FF70 (ee-as .align nops), func_0013F748 (8), func_00132480 (11), func_001325E8 (28), func_00125A38 (32), func_001CCB08 (52), func_00140250 (186), func_001418B8 (draft only)."
     },
     {
       "code": "ER-203",
       "title": "Align func_0012B6B0 / func_0012B930 parameter order",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Sonnet, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Tue 24 Nov 2026 with ER-202 (commit c14ef34): func_0012B6B0 / func_0012B930 declared with the float before the last int in text_001000C0, text_001388E8, text_0013C510; same bytes, make regress PASS."
     },
     {
       "code": "ER-204",

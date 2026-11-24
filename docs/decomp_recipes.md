@@ -1543,6 +1543,49 @@ prototype repeated above func_00157B60 (the file's own is further down; the same
 | func_0019D090 | 8 words, same size (`b\m7_os\best.c`): with the `const` vectors the prologue matches; the stores into `D_002488A0` / `D_00248880` after the first call keep 8 words out of place after `climb`s from m2c's order and from the game's order with temporaries. `D_00248880`'s word at 0x1C and its byte at 0x1F are both written: its layout there is not known |
 | func_001C1E38 | Not attempted: 190 instructions, a switch with shared tails (`goto`s in m2c's draft); the base-pointer hint (`D_001FEC00+0x10`) is a small part of its 156 words. Needs its own pass |
 
+### 2.50 ER-198's near misses: reads ahead into locals, hidden placement limits, a toolchain nop (ER-202 + ER-203, Tue 24 Nov 2026; Confirmed by `make regress`, 1 function placed, 2 prototypes aligned)
+
+Branch `er-202-near-misses` (worktree `C:\rs\wt\er202`), commits `c14ef34` (ER-203: func_0012B6B0 and func_0012B930
+declared with the float before the last int in `text_001000C0` (definition, forward declaration, func_0012F8A0's and
+func_0012F900's calls), `text_001388E8` and `text_0013C510` (externs and five calls); `text_001343E8`'s comment
+updated; same bytes, every file now agrees) and `c56a962` (func_00142F88, 340 bytes). The 14 functions were worked
+by three helper agents (one per file group, cmpfunc and `tools/ordersearch.py` at `--par 1`, scratch
+`C:\rs\wt\er202_runs\A\` to `C\`, each with a `REPORT.md`; brief `BRIEF.md`), then placed and proven here. Five
+reached MATCH under cmpfunc; one placed, four blocked (below).
+
+| Lesson | Proved by |
+|---|---|
+| **2.21's `extern const` float, again**: `D_0035BC40` declared `const` lets the game's early `$gp` load stand; one local for `D_0035BC3C` shared by both clamps | func_00142F88 |
+| **Values read into ordinary locals ahead of stores through another pointer** give the game's load-before-store order (with `-fno-strict-aliasing` gcc cannot move a load above a store, so the source read first). Plain C; ER-198 had held the form back as steering. A second float local per `case` where the game uses another register (sharing one put the sum in `$f13`) | func_00137CE0 (MATCH under cmpfunc, blocked), func_0013D088 (2 words), func_0013F748 (8 words) |
+| **A `const` on a global can decide a scheduler tie** (step 5 of `rank_for_schedule`, 8.2): func_00126338 matches with `extern const int D_0035B810;` because the stores after the load no longer anti-depend on it, and step 6 (source order) gives the game's order. Not placed: func_001000C0 in the same `src/` file writes D_0035B810, so the `const` is only true if the original file boundary falls between them (LuciDin's judgement; a cast `*(const int *)&` does not work) | func_00126338 |
+| **A callee's argument count from its own asm**: func_0010D8F8 never reads `$a4` (`$8`), so it takes 4 arguments; declaring 5 shifted every register word (func_00129900: 9 words to 2) | func_00129900 |
+| **A `void` function whose epilogue has `ld $ra` in a `beqz` slot returns a value**: func_0013D088 gives the game's size only declared `s32` (as the file's extern already has it), `$v0` live at the epilogue; but the C then needs a bare `return;` (3.20) and falling off the end after a `switch` (3.4 covers only a plain call) | func_0013D088 |
+| **Placement limits found again**: func_00142118's `.rodata` literal must take over D_00354980, which follows func_00141EE8's untaken D_00354978: `split.py` refuses (ER-201's change); func_00137CE0's C jump table in `text_001343E8` (2.5's "No jump table in C in `text_001343E8` yet" row, waits for the file cut) | func_00142118, func_00137CE0 |
+| **Two hazard nops after `mtc1 $0, $f20` at a loop label's `.align 3`**: ee-as emits them from `mips_emit_delays` in `s_align`, a path ruling 3.5's copmove patch (which covers `append_insn`) does not reach; with the `.align` removed from gcc's `.s` by hand, ee-as r4 gives the game's words (helper C's check; not repeated here). A toolchain question, not C | func_0013FF70 |
+
+Rulings used: 3.13 (func_00142118's `f32 buf[4]`, not placed). Unofficial names: every local of the drafts.
+Readings (Unconfirmed): `const` on D_0035BC40 (and D_0035BBC0 .. D_0035BC08 in func_00142118's draft), D_0035BB7C
+not `const`, func_0010D8F8 with 4 arguments, func_0012F550 `(u16, u16, u16, float *, float, float, float, int)`,
+func_001418B8 `(char *, char *)`, func_001CB808 unprototyped, func_001D03E0 `(s32)`, the drafts' other prototypes.
+
+**Parked (scratch in `C:\rs\wt\er202_runs\`, game code not in git):**
+
+| Function | Cause |
+|---|---|
+| func_00142118 (`text_0013DBC0`) | MATCH under cmpfunc (`C\final_func_00142118.c`, 3.13); its literal takes over D_00354980, refused by `split.py` (after func_00141EE8's untaken D_00354978): waits for ER-201 |
+| func_00137CE0 (`text_001343E8`) | MATCH under cmpfunc (`B\final_func_00137CE0.c`, plain C); its C jump table (`jtbl_00354730`) waits for `text_001343E8`'s cut |
+| func_00126338 (`text_001000C0`) | 5 words; MATCH with `extern const int D_0035B810` (`A\best_func_00126338.c`), but func_001000C0 in the same file writes it: for LuciDin's judgement |
+| func_0013D088 (`text_0013C510`) | 2 words, same size (`B\best_func_0013D088.c`): case 1's `mul.s` / `add.s` take `$f0` where the game has `$f2`; needs a ruling for falling off the end after the `switch` (with 3.20's bare `return;` in case 0); C jump table `jtbl_00354870` (the file takes tables) |
+| func_00129900 (`text_001000C0`) | 2 words (`A\best_func_00129900.c`): `sw` of `b[0]` and `addiu $a1, sp, 0x10` swapped at +0x2B0; sched1 tie at step 5 (forward deps 35 against 34); a 994-compile climb found nothing |
+| func_0013FF70 (`text_0013DBC0`) | 2 nops, 8 bytes long (`C\best_func_0013FF70.c`): ee-as's hazard nops at `.align 3` (above); needs a toolchain card |
+| func_0013F748 (`text_0013DBC0`) | 8 words (was 25; `C\best_func_0013F748.c`): case 3's D_0035BB7C load ahead of the 0x40 load (tie), FP registers and store order in the `>= 0x3D` block |
+| func_00132480 (`text_001000C0`) | 11 words (was 17; `A\best_func_00132480.c`, fresh temporaries for the second half): sched2 priority (step 1): the D_0032FC10 stores (priority 17 through output deps) beat the `+0xB8` / `+0x114` / `+0x118` address adds (16) for the `div.s` slots |
+| func_001325E8 (`text_001000C0`) | 28 words, 4 bytes short (`A\best_func_001325E8.c`): loop.c hoists `b0 & b1` before the second `while`, so a plain `bc1f` slot where the game has `bc1fl`; reading the globals in the `if` fixes the size but loses the early loads |
+| func_00125A38 (`text_001000C0`) | 32 words (`A\best_func_00125A38.c`): the game copies D_0035B8A0's register into `$a1` and builds the post-loop pointer from the copy; a register-allocation question |
+| func_001CCB08 (`text_001CB528`) | 52 words, same size (`B\best_func_001CCB08.c`, 3.18 for `u8 f[16]`: the game makes the stores): the shell sort's inner loop exits (game `bnez` + `b L; copy`, ours `bnel` / `beql`, 6 words short in the closest shape) |
+| func_00140250 (`text_0013DBC0`) | 186 words, 0x4B0 against 0x444 (`C\best_func_00140250.c`, fresh m2c draft): six angle-wrap loops keep the pointer and reload the float in the game; a loop.c / alias question |
+| func_001418B8 (`text_0013DBC0`) | raw m2c draft only (`C\best_func_001418B8.c`): about 0x600 bytes, two irregular switches, soft-double compares against D_00354968 / D_00354970 (3.10 literals) |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.

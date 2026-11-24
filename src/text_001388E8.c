@@ -281,7 +281,7 @@ void func_001392A8(void **arg0, void *arg1) {
     }
 }
 
-extern s32 func_0012B6B0(void **arg0, s32 arg1, s32 arg2, s32 arg3, f32 fparg0);
+extern s32 func_0012B6B0(void **arg0, s32 arg1, s32 arg2, f32 fparg0, s32 arg3);
 
 /* ER-154: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00139450(void **arg0) {
@@ -290,7 +290,7 @@ void func_00139450(void **arg0) {
         *(s8 *)((char *)arg0 + 0xE) = 0;
         *(u8 *)((char *)arg0 + 0x5A) = (u8) (*(u8 *)((char *)arg0 + 0x5A) & 0xF7);
     }
-    func_0012B6B0(arg0, 1, 3, 0, 0.3f);
+    func_0012B6B0(arg0, 1, 3, 0.3f, 0);
 }
 
 void func_0012B218(void *arg0, s32 arg1);

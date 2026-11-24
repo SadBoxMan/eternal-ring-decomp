@@ -2276,7 +2276,7 @@ extern s32 func_0012BAE0(void *, s32, s32, f32 fparg0);
 extern s32 func_0012B540(void *, s32, s32, s32);
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
-s32 func_0012B6B0(void **arg0, s32 arg1, s32 arg2, s32 arg3, f32 fparg0) {
+s32 func_0012B6B0(void **arg0, s32 arg1, s32 arg2, f32 fparg0, s32 arg3) {
     s32 temp_19;
     s32 temp_6;
     void *temp_3;
@@ -3345,12 +3345,12 @@ s32 func_0012F870(void *arg0, u32 arg1) {
 }
 
 extern s32 func_0012F8A0(void **, s32, s32, f32 fparg0);
-s32 func_0012B6B0(void **arg0, s32 arg1, s32 arg2, s32 arg3, f32 fparg0);
+s32 func_0012B6B0(void **arg0, s32 arg1, s32 arg2, f32 fparg0, s32 arg3);
 
 /* ER-112: drafted with m2c (tools/m2c_bulk.py --plain); returns func_0012B6B0's value, second parameter s32 (the
    file's extern said void and s8); names, types and offsets are Unconfirmed readings. */
 s32 func_0012F8A0(void **arg0, s32 arg1, s32 arg2, f32 fparg0) {
-    return func_0012B6B0(arg0, 0, arg1, arg2, fparg0);
+    return func_0012B6B0(arg0, 0, arg1, fparg0, arg2);
 }
 
 extern s32 func_0012B890(void **, s32, s32, s32, s16, f32, s32);
@@ -3360,12 +3360,12 @@ s32 func_0012F8C8(void **arg0, s32 arg1, s32 arg2, s16 arg3, s32 arg4, f32 fparg
     return func_0012B890(arg0, 0, arg1 & 0xFF, arg2, arg3, fparg0, arg4);
 }
 
-extern s32 func_0012B930(char *, s32, s32, s32, s16, s32, f32);
+extern s32 func_0012B930(char *, s32, s32, s32, s16, f32, s32);
 
 /* ER-137: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings.
    The float in $f12 passes through untouched to func_0012B930 (the callers in this file pass 0.1f; Unconfirmed). */
 s32 func_0012F900(char *arg0, s32 arg1, s32 arg2, s16 arg3, s32 arg4, f32 arg5) {
-    return func_0012B930(arg0, 0, arg1, arg2, arg3, arg4, arg5);
+    return func_0012B930(arg0, 0, arg1, arg2, arg3, arg5, arg4);
 }
 
 extern s32 func_0012BA30(void *, s32, s32);
