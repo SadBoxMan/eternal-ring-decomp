@@ -2284,6 +2284,24 @@
       "model": "Opus, high",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-221",
+      "title": "Cut text_001343E8; place its 3 waiting functions",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-222",
+      "title": "func_0013AA28 (9-word gap)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
