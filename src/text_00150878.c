@@ -6142,7 +6142,21 @@ float func_001B8BC0(float x) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8C50);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8CB0);
+/* ER-213: from ER-188's rs0 draft; the bit test as an if (`!= 0` gives srl / andi 1, the game has andi / sltu).
+   arg0 + 0x20 points at a record pointer whose record holds a pointer at 0x11C to a block with flags at 0x1E4:
+   Unconfirmed reading. */
+s32 func_001B8CB0(char *arg0) {
+    void **pp;
+
+    pp = *(void ***)(arg0 + 0x20);
+    if (pp == NULL) {
+        return 1;
+    }
+    if (*(u16 *)(*(char **)((char *)*pp + 0x11C) + 0x1E4) & 0x40) {
+        return 1;
+    }
+    return 0;
+}
 
 /* ER-034. Same code as func_001B8BC0. */
 float func_001B8CD8(float x) {
@@ -6157,7 +6171,19 @@ float func_001B8CD8(float x) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8D68);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8DC8);
+/* ER-213: from ER-188's rs0 draft; the same shape as func_001B8CB0 (bit 0x20; the record reading is Unconfirmed). */
+s32 func_001B8DC8(char *arg0) {
+    void **pp;
+
+    pp = *(void ***)(arg0 + 0x20);
+    if (pp == NULL) {
+        return 1;
+    }
+    if (*(u16 *)(*(char **)((char *)*pp + 0x11C) + 0x1E4) & 0x20) {
+        return 1;
+    }
+    return 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8DF0);
 
@@ -6165,7 +6191,20 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8F18);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8F58);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B8FC8);
+/* ER-213: from ER-188's rs0 draft; the game shifts the flag byte in 64 bits (`dsrl`), which only a 64-bit return
+   type with the byte read into a 64-bit local first gives (`return b >> 7;` narrows to `srl`). The u64 type is a
+   reading (Unconfirmed); its one caller (func_001ADA10) only tests the value against zero. */
+u64 func_001B8FC8(char *arg0) {
+    void **pp;
+    u64 v;
+
+    pp = *(void ***)(arg0 + 0x20);
+    if (pp == NULL) {
+        return 1;
+    }
+    v = *(u8 *)(*(char **)((char *)*pp + 0x11C) + 0x1E4);
+    return v >> 7;
+}
 
 /* ER-034. Same code as func_001B8BC0. */
 float func_001B8FF0(float x) {
@@ -7509,7 +7548,22 @@ void func_001C4DF0(void) {
 void func_001C4DF8(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C4E00);
+extern s32 func_001C4EB0();
+extern s32 func_001E3360(s32, void *, void *);
+
+/* ER-213: from ER-188's rs0 draft; m2c's `D_001FEC00 + 0x24` (an s32 pointer step) written as the element
+   addresses &D_001FEC00[9] / [2]. func_001E3360's prototype is a reading from this call (Unconfirmed). */
+s32 func_001C4E00(void) {
+    if (D_001FEC00[4] == 0) {
+        D_001FEC00[4] = func_001C4EB0();
+    }
+    if (D_001FEC00[1] != 0) {
+        if (func_001E3360(1, &D_001FEC00[9], &D_001FEC00[2]) == 1) {
+            D_001FEC00[10] = D_001FEC00[9];
+        }
+    }
+    return (D_001FEC00[4] == -1) ? -1 : 0;
+}
 
 extern s32 func_001E3C98(s32, s32);
 
