@@ -1006,12 +1006,17 @@ def run_killable(cmd: list[str], timeout: int) -> tuple[int | None, str, str]:
 
 
 def compile_draft(c_path: Path, obj_dir: Path) -> tuple[Path | None, str]:
-    """Compile with exactly the Makefile's CC / CFLAGS / CPPFLAGS / AS / ASFLAGS (eematch.settings) into obj_dir.
+    """Compile with exactly the Makefile's CC / CFLAGS / CPPFLAGS / AS / ASFLAGS (eematch.settings; CFLAGS those of
+    the function's home src file, eematch.scratch_cflags) into obj_dir.
     A gcc or ee-as call that runs longer than GCC_TIMEOUT is killed with its children; the message then starts with
     TIMEOUT_TAG."""
     st = eematch.settings()
     s_path, o_path = obj_dir / (c_path.stem + ".s"), obj_dir / (c_path.stem + ".o")
-    cc = [st["CC"], f"-B{st['GCC_DIR']}/", *st["CFLAGS"].split(),
+    try:
+        cflags = eematch.scratch_cflags(c_path)     # the home src file's flags (ER-205)
+    except SystemExit as e:
+        return None, str(e)
+    cc = [st["CC"], f"-B{st['GCC_DIR']}/", *cflags,
           *[f.replace("-I", "-I" + str(ROOT) + "/", 1) if f.startswith("-I") else f for f in st["CPPFLAGS"].split()],
           "-S", str(c_path), "-o", str(s_path)]
     rc, out, err = run_killable(cc, GCC_TIMEOUT)

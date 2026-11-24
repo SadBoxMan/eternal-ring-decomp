@@ -2144,11 +2144,11 @@
     {
       "code": "ER-205",
       "title": "Scratch compiles pick up per-file CFLAGS",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Scratch compiles (eematch compile_c, ordersearch dump, m2c_bulk) use the home src file's Makefile CFLAGS (make asked for build/src/<home>.s); func_001CA9A8 scratch MATCH with no flag; --cflags still overrides; os_elcm.py no longer needed; regress PASS. Tue 24 Nov 2026."
     },
     {
       "code": "ER-206",

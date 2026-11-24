@@ -2,7 +2,8 @@
 
 - build settings read from the Makefile itself (make --eval), so the tools always compile like the build does
 - compile one C file to an object: a file under src/ through `make build/src/<file>.o` (the real rule), any other
-  file (a scratch file) with the same gcc / ee-as command lines into build/scratch/
+  file (a scratch file) with the same gcc / ee-as command lines into build/scratch/, with the CFLAGS of the
+  function's home src file (Makefile target-specific lines included; ER-205)
 - read a relocatable EE object: sections, symbols, REL relocations (implicit addends)
 - compare one function of an object with the original ELF's bytes: exact where no relocation applies; where one
   does, the instruction's fixed part is compared and the game's target is resolved and checked against the symbol
@@ -18,6 +19,7 @@ import re
 import struct
 import subprocess
 import sys
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -73,14 +75,134 @@ def settings() -> dict[str, str]:
     return _SETTINGS
 
 
-def compile_c(c_path: Path, extra_cflags: list[str] | None = None) -> Path:
-    """Compile a C file to an object and return its path. Raises SystemExit with gcc's / ee-as's message on error."""
+# --- per-file CFLAGS (ER-205) -----------------------------------------------------------------------------------
+# The Makefile can give one src file its own flags with a target-specific line (`$(BUILD)/src/X.s: CFLAGS += ...`,
+# ruling docs/decomp_recipes.md 3.21). A scratch copy of a function from that file must compile with the same flags,
+# so the Makefile stays the one source of truth: make itself is asked for CFLAGS as it applies to build/src/X.s (a
+# phony order-only prerequisite inherits the target's variables; -n, so nothing is built).
+
+_LOCK = threading.Lock()
+_FILE_CFLAGS: dict[str, str] = {}
+_HOME: dict[str, str] | None = None
+_DEF_NAME = re.compile(r"\b([A-Za-z_]\w*)\s*\(")
+_INCLUDE_ASM = re.compile(r"INCLUDE_ASM\s*\(\s*\"[^\"]*\"\s*,\s*([A-Za-z_]\w*)\s*\)")
+
+
+def file_cflags(src_rel: str) -> str:
+    """CFLAGS exactly as the Makefile applies them to src/<file>.c (target-specific lines included)."""
+    stem = src_rel[len("src/"):-len(".c")]
+    with _LOCK:
+        if stem not in _FILE_CFLAGS:
+            tgt = f"build/src/{stem}.s"
+            r = subprocess.run([str(MSYS / "make.exe"), "-n", "-s", "--no-print-directory", "--eval=.PHONY: ermatch_cf",
+                                f"--eval={tgt}: | ermatch_cf",
+                                "--eval=ermatch_cf: ; @:$(info ermatch_cflags|$(CFLAGS))", tgt],
+                               cwd=ROOT, env=clean_env(), capture_output=True, text=True, stdin=subprocess.DEVNULL)
+            got = [ln.split("|", 1)[1] for ln in r.stdout.splitlines() if ln.startswith("ermatch_cflags|")]
+            if r.returncode != 0 or len(got) != 1:
+                raise SystemExit(f"eematch: cannot read the Makefile's CFLAGS for {src_rel}:\n{r.stdout}{r.stderr}")
+            _FILE_CFLAGS[stem] = got[0].strip()
+        return _FILE_CFLAGS[stem]
+
+
+def _strip_c(text: str) -> str:
+    """Comments, strings and preprocessor lines blanked (so braces and names in them do not count)."""
+    text = re.sub(r"/\*.*?\*/|//[^\n]*|\"(?:\\.|[^\"\\\n])*\"|'(?:\\.|[^'\\\n])*'",
+                  lambda m: " " if not m[0].startswith("\"") else "\"\"", text, flags=re.S)
+    return re.sub(r"(?m)^[ \t]*#(?:[^\n]*\\\n)*[^\n]*", "", text)
+
+
+def defined_functions(text: str) -> list[str]:
+    """Names of the functions a C text defines: `name (...)` at brace depth 0 whose closing parenthesis is followed
+    by `{` (prototypes, calls and initialisers do not count)."""
+    s = _strip_c(text)
+    out, depth, i = [], 0, 0
+    while i < len(s):
+        c = s[i]
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth = max(0, depth - 1)
+        elif depth == 0 and (c.isalpha() or c == "_") and (i == 0 or not (s[i - 1].isalnum() or s[i - 1] == "_")):
+            m = _DEF_NAME.match(s, i)
+            if m:
+                j, par = m.end(), 1
+                while j < len(s) and par:
+                    par += {"(": 1, ")": -1}.get(s[j], 0)
+                    j += 1
+                k = j
+                while k < len(s) and s[k].isspace():
+                    k += 1
+                if k < len(s) and s[k] == "{":
+                    out.append(m[1])
+                i = j
+                continue
+            while i < len(s) and (s[i].isalnum() or s[i] == "_"):
+                i += 1
+            continue
+        i += 1
+    return out
+
+
+def home_index() -> dict[str, str]:
+    """Function name -> the src file (root-relative, posix) that defines it or pulls it in with INCLUDE_ASM."""
+    global _HOME
+    with _LOCK:
+        if _HOME is None:
+            idx: dict[str, str] = {}
+            for p in sorted((ROOT / "src").rglob("*.c")):
+                rel = p.relative_to(ROOT).as_posix()
+                text = p.read_text(errors="replace")
+                for n in defined_functions(text) + _INCLUDE_ASM.findall(_strip_c_keep_strings(text)):
+                    idx.setdefault(n, rel)
+            _HOME = idx
+        return _HOME
+
+
+def _strip_c_keep_strings(text: str) -> str:
+    return re.sub(r"/\*.*?\*/|//[^\n]*", " ", text, flags=re.S)
+
+
+def scratch_cflags(c_path: Path, home: str | Path | None = None) -> list[str]:
+    """The CFLAGS for compiling c_path outside the make rule: those of its home src file. The home is `home` when
+    given, else c_path itself when it is under src/, else the src file(s) that hold the functions c_path defines
+    (home_index). Functions from files with different flags in one scratch file are an error; a scratch file with
+    no known function gets the global CFLAGS."""
+    c_path = Path(c_path).resolve()
+    if home is None:
+        try:
+            rel = c_path.relative_to(ROOT).as_posix()
+        except ValueError:
+            rel = None
+        if rel and rel.startswith("src/") and rel.endswith(".c"):
+            home = rel
+    if home is not None:
+        h = Path(home)
+        h = (h if h.is_absolute() else ROOT / h).resolve().relative_to(ROOT).as_posix()
+        if not (h.startswith("src/") and h.endswith(".c") and (ROOT / h).exists()):
+            raise SystemExit(f"eematch: home file {home} is not a src/*.c file")
+        return file_cflags(h).split()
+    idx = home_index()
+    homes = sorted({idx[n] for n in defined_functions(c_path.read_text(errors="replace")) if n in idx})
+    if not homes:
+        return settings()["CFLAGS"].split()
+    flags = {h: file_cflags(h) for h in homes}
+    if len(set(flags.values())) > 1:
+        raise SystemExit(f"eematch: {c_path.name} holds functions from src files with different CFLAGS ("
+                         + "; ".join(f"{h}: {f}" for h, f in flags.items()) + "): split it, or pass the home file")
+    return flags[homes[0]].split()
+
+
+def compile_c(c_path: Path, extra_cflags: list[str] | None = None, home: str | Path | None = None) -> Path:
+    """Compile a C file to an object and return its path. Raises SystemExit with gcc's / ee-as's message on error.
+    A scratch compile uses the CFLAGS of the function's home src file (scratch_cflags), then extra_cflags (which,
+    coming later on the command line, win over them)."""
     c_path = c_path.resolve()
     try:
         rel = c_path.relative_to(ROOT).as_posix()
     except ValueError:
         rel = None
-    if rel and rel.startswith("src/") and not extra_cflags:
+    if rel and rel.startswith("src/") and not extra_cflags and home is None:
         obj = ROOT / "build" / (rel[:-2] + ".o")
         r = subprocess.run([str(MSYS / "make.exe"), "-s", f"build/{rel[:-2]}.o"], cwd=ROOT, env=clean_env(),
                            capture_output=True, text=True, stdin=subprocess.DEVNULL)
@@ -91,7 +213,7 @@ def compile_c(c_path: Path, extra_cflags: list[str] | None = None) -> Path:
     SCRATCH.mkdir(parents=True, exist_ok=True)
     stem = c_path.stem
     s_path, o_path = SCRATCH / f"{stem}.s", SCRATCH / f"{stem}.o"
-    cc = [st["CC"], f"-B{st['GCC_DIR']}/", *st["CFLAGS"].split(), *(extra_cflags or []),
+    cc = [st["CC"], f"-B{st['GCC_DIR']}/", *scratch_cflags(c_path, home), *(extra_cflags or []),
           *[f.replace("-I", "-I" + str(ROOT) + "/", 1) if f.startswith("-I") else f for f in st["CPPFLAGS"].split()],
           "-S", str(c_path), "-o", str(s_path)]
     r = subprocess.run(cc, cwd=ROOT, capture_output=True, text=True, stdin=subprocess.DEVNULL)
