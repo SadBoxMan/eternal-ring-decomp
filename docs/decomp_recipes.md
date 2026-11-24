@@ -1322,6 +1322,36 @@ Ruling 3.20 used once (func_0017D968, `PORT NOTE`). Nothing else compiler-steeri
 `func_001A0858`, `func_001A3738`, `func_001A4E18` `s32 (void *)`, `func_001A6640`, `func_0017CEC0`, `func_0017DA38`
 `void (void *)`) are readings from the callers (Unconfirmed).
 
+### 2.44 `text_001CA8D8` near misses by hand: narrow types from the stores, cached flag words, an indexed record pointer (ER-185, Mon 23 Nov 2026; Confirmed by `make regress`, 6 functions)
+
+Branch `er-185-001ca8d8` (worktree `C:\rs\wt\er185`), commit `30a4403`. 6 functions, 568 bytes, all in
+`text_001CA8D8`, by hand from ER-179's drafts (`C:\rs\wt\er179_runs\m2c_bulk_text_001CA8D8\`): func_001CA9A8,
+func_001CAA58, func_001CAAC0, func_001CB3C0, func_001CB410, func_001CB478. Scratch (our C only):
+`C:\rs\wt\er185_runs\s\`.
+
+| Lesson | Proved by |
+|---|---|
+| **`addiu 0xFF` is a `u8` store, `addiu -1` an `s8` one**: m2c's `s8` fields stored `0xFF` give `li -1`; the game's `li 0xFF` needs `u8` fields. With them (and a 0x1C0-byte record type walked by a pointer), the ruling 3.14 retry that `m2c_bulk.py` had already tried matches | func_001CAA58 |
+| **A shared base in a register: name it once**: the game builds `D_01B72600` in one register and takes both the flag byte (`base + 0xE00 + arg0`) and the record (`base + i * 0x1C0`) from it; `char *b = D_01B72600; char *f = b + 0xE00; f[arg0] |= ...` gives it (indexing `D_01B72600[0xE00 + arg0]` or `(D_01B72600 + 0xE00)[arg0]` folds the `0xE00` into the index, 7-14 words). The callee's value is returned (2.42): `void` gives a tail `j` | func_001CAAC0 |
+| **A narrow parameter only stored needs no narrowing**: a `s8` / `u8` parameter written only by `sb` makes gcc extend it at entry (`sll; sra` / `andi`, +1-2 instructions); the game has none, so the parameter is `s32` (m2c's `+2` draft). A parameter that is tested and stored (func_001CB410) keeps its `andi 0xFF`: `u8` | func_001CB478, func_001CB410 |
+| **Copy loop through a named destination pointer**: `char *d = p + 0x174; for (i...) d[i] = src[i];` keeps the game's two `addu` per pass; `p[0x174 + i]` strength-reduces to fewer instructions (-2) | func_001CB3C0 |
+| **Flag words the game keeps in registers across the loop and reloads after the stores**: func_001CA9A8 loads `x164` / `x102` before the loop and again only at the end of the branch that stores; an experiment with `-fedge-lcm` gives the game's size (37 words still differ), so the edge-based LCM that ruling 3.11 turns off may be what placed them (reading, Unconfirmed). Plain C gives it with two locals read before the loop and re-read at the end of that branch (`on = p->x164; en = p->x102;`). Reading (Unconfirmed): the source cached the flags; live code, no ruling form | func_001CA9A8 |
+| **`e = &arr[i]` at the top of the body keeps the counter's increment at the loop's bottom**: a pointer `e++` beside `i++` moves gcc's `addiu; slti` up into the first block (with everything else matching, 9 words for `arr[i].x` written each time). **`u16 m = 1 << i;` with `x = m | x`** gives the game's `or $v0, m, $v0` (a `s32` mask or `x |= m` swap it; 2.41's opposite case was a parameter) | func_001CA9A8 |
+
+Ruling 3.14 used once (func_001CAA58, `(void)&arg0`, as `m2c_bulk.py` drafted). Nothing else compiler-steering. Unofficial
+names: the record types `R1C0` / `P1C0` (one 0x1C0-byte record per pad port and slot, two views of it), `E4` (4-byte
+entry, 16 at +0x124), fields `xNNN`, locals `p`, `b`, `f`, `d`, `e`, `m`, `on`, `en`, `i`. Readings (Unconfirmed):
+the callees func_001D6308 `s32 (s32)` and func_001D6530 `s32 (s32, s32, void *)` (libpad; returned or passed through
+as the callers use them); `D_01B72600` read as an array of 8 records (2 ports x 4 slots) with a flag byte per port at
++0xE00.
+
+**Parked:**
+
+| Function | Cause |
+|---|---|
+| func_001CAB10 | 0x704 bytes, the per-port / per-slot state machine on `x17A` (calls func_001CA8D8, func_001CA9A8 and ten libpad routines). m2c's draft does not compile (a `case` outside its switch, func_001D7030 given 3 arguments: the game passes 2). A clean `switch` draft by hand (`C:\rs\wt\er185_runs\s\cab10_b.c`) compiles 7 instructions short, 338 / 449 equal register-blind. Lead: case 0's compare tree on the controller ID (game: `<7`, `==0x100`, `<0x101`, `==7`, then `<5`, `<2`, `<4` with `x17A = 0x28` for 4) is not the draft's `switch (a) { case 4; case 7; case 0x100; }`; the frame keeps `port + 1` at `sp+0x10` |
+| func_001CA8D8 | not tried (m2c draft 15 instructions short with 16 `M2C_ERROR`s) |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1418,7 +1448,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32); by ER-154: func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.34); by ER-153: func_001636A0 (`(void)&buf` on ruling 3.13's array, 2.35); by ER-164: func_0013F3B0 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.38); by ER-165: func_001417E8 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.39); by ER-171: func_00154CA8, func_00133F28 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.40) |
+| **Accepted, narrowly** | `(void)&local;` (or `&` on an existing local or parameter), only where it is the sole blocker of a sibling call and the rest of the function matches: the game has `jal` + epilogue where plain C gives a tail `j`, because the compiler's Cygnus sibcall pass refuses sibcalls in a function that uses ADDRESSOF (2.24). Read as the original source taking some local's address. Each use carries the comment `ruling 3.14`. Used by ER-100: func_00149EE8, func_0014A500, func_0014A0B8, func_0014B528, func_00148BE0, func_00148D28, func_0014C110, func_001485A8; by ER-137: func_00162108, func_00165080 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.31); by ER-148: func_0014A238 (`(void)&arg0`, 2.32); by ER-154: func_00134618, func_00136D88, func_00137428 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.34); by ER-153: func_001636A0 (`(void)&buf` on ruling 3.13's array, 2.35); by ER-164: func_0013F3B0 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.38); by ER-165: func_001417E8 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.39); by ER-171: func_00154CA8, func_00133F28 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.40); by ER-185: func_001CAA58 (`(void)&arg0`, drafted by `m2c_bulk.py`, 2.44) |
 
 ### 3.15 ER-095: a 16-byte aligned float vector type (Sun 22 Nov 2026, about 17:35 Eastern, LuciDin in the DISP-03 session)
 
