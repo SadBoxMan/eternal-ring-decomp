@@ -2185,6 +2185,24 @@
       "model": "Sonnet, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-210",
+      "title": "Run ER-169's hw kernels on recomp and PCSX2",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "ER-200",
+      "notes": ""
+    },
+    {
+      "code": "ER-211",
+      "title": "ps2autotests VU lower tests for VU0 edges (optional)",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
