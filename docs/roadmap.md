@@ -37,7 +37,7 @@ ring/gem magic system, maps, enemies, sound).
    captures) on recorded routes.
 4. Enhanced (EX) options afterwards, each optional with the as-shipped path kept.
 
-**Port frame rate (LuciDin, Mon 23 Nov 2026):** the target is **60 FPS**, as the game runs on PCSX2 (about 16.7 ms of host time per guest frame).
+**Port frame rate (LuciDin, Mon 23 Nov 2026):** the target is **60 FPS**, as the game runs on PCSX2 (about 16.7 ms of host time per guest frame). **Speed comes next** (LuciDin, Tue 24 Nov 2026): reaching as-shipped speed first makes testing the rest of the port easier and more accurate.
 
 **Port controls (LuciDin, 17-18 Nov 2026).**
 - **First: DualShock-family controllers** (Sony DualShock 4 and DualSense, USB or Bluetooth), mapped to the
