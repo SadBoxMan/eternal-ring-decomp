@@ -1251,6 +1251,20 @@ func_001C87E0, func_00154CA8. Drafts (game code, not in git) and scratch: `C:\rs
 Not compiler-steering beyond ruling 3.14 (func_00154CA8, func_00133F28, both drafted with it by `m2c_bulk.py`).
 Names `v`, `m`, `r`, `a`, `b`, `c`, `h` are Unofficial.
 
+### 2.41 `text_001CA8D8`: a narrow-parameter draft finished by hand, `|=` and the `or` operand order (ER-179, Mon 23 Nov 2026; Confirmed by `make regress`, 2 functions)
+
+Branch `er-179-001ca8d8` (worktree `C:\rs\wt\er179`), commit `ee31088`. 2 functions, 188 bytes: func_001CB388 (ER-172's
+plain MATCH, `u16 arg2`, placed as drafted) and func_001CB300 (ER-172's narrowed draft, `arg2`-`arg4` `u16`, 1 word
+off). Drafts (game code, not in git) and scratch: `C:\rs\wt\er179_runs\`.
+
+| Lesson | Proved by |
+|---|---|
+| **`x |= a` and `x = a | x` give different `or` operand orders**: m2c's `*(u16 *)(p + 0x164) = (u16)(t | *(u16 *)(p + 0x164))` (with `t = arg2` copied to an `s32`) gave `or $v0, $v0, $a2`; the game has `or $v0, $a2, $v0`, which `*(u16 *)(p + 0x164) |= arg2;` gives. The swapped spelling `= (u16)(*(...) | t)` and `|= t` (the `s32` copy) both kept the wrong order; the copy `t` was not needed at all (the loop's `arg2 >> i` matches with the parameter itself) | func_001CB300 |
+| **Four strength-reduced byte pointers stay as m2c wrote them**: a loop index with `p[0x124 + i * 4]` stores, a `q[0..3]` pointer, or a 4-byte struct array indexed by `i` all compile 5 instructions short (one pointer instead of the game's four) | func_001CB300 |
+
+Not compiler-steering: plain C, no ruling used. Names `temp_4`, `var_*` are m2c's (Unofficial); the parameter types
+come from the game's entry `andi` (Confirmed by the match), their meaning is Unconfirmed.
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
