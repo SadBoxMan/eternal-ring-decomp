@@ -2225,11 +2225,11 @@
     {
       "code": "ER-214",
       "title": "extern const .rodata copies scan (other files)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Tue 24 Nov 2026 with ER-216 (recipes 2.52): 346 unmatched functions copy an INCLUDE_RODATA symbol with ld; no near-miss bulk draft in this card's files; func_00125B68 by hand 39 to 5 words; func_0018C938 listed for ER-212"
     },
     {
       "code": "ER-215",
@@ -2243,11 +2243,11 @@
     {
       "code": "ER-216",
       "title": "ER-202's scheduling / register ties",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Tue 24 Nov 2026 (branch er-216-ties, docs only; recipes 2.52): nothing placed; func_00125A38 32 to 14 words right size; func_00129900, func_00132480, func_001325E8, func_001CCB08 parked with causes from gcc dumps"
     },
     {
       "code": "ER-217",
