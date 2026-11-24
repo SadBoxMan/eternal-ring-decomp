@@ -2676,7 +2676,9 @@ def attempt(name: str, addr: int | None, a_out: Path, out: Path, m2c_dir: Path, 
                 res, msg, c_text, c_draft = r2, m2, xs[0], xs[0]
                 at.files["c"] = c_text
                 at.notes.append(xs[1])
-            else:
+            else:                   # keep the rescued draft and its errors: they show what is left to fix
+                msg = m2
+                at.files["c"] = xs[0]
                 at.notes.append(xs[1] + ": still no compile")
     if res is None:
         at.files["err.txt"] = msg
