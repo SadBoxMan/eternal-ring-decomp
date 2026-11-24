@@ -3172,7 +3172,30 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017B810);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017BBB8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017BC40);
+extern s32 D_0034B6E0[];
+extern s32 D_003496E0[];
+
+/* ER-212: stores in the order of ER-186's climb (the x1A halfword last); the clear loop walks 32 records of
+   0x100 bytes. ruling 3.22: func_0017A2E0 (void, defined above) is called as returning int, as the original caller
+   saw it (undeclared, implicit int, or declared so in another source file: Unconfirmed); the int return sets $v0 at
+   the call, which gives the game's registers in the loop. */
+void func_0017BC40(void) {
+    char *p = (char *)D_0034B6E0;
+    s32 i;
+    D_0034B6E0[0] = 0;
+    D_003496C0[0] = 0;
+    D_003496C0[1] = 0;
+    *(s32 *)(p + 4) = 0;
+    *(s16 *)(p + 0xE) = 0;
+    *(s16 *)(p + 0x10) = 0;
+    *(s16 *)(p + 0x12) = 0;
+    *(s16 *)(p + 0x18) = 0;
+    *(s16 *)(p + 0x1A) = 0;
+    ((s32 (*)(void))func_0017A2E0)(); /* ruling 3.22 */
+    for (i = 0; i < 32; i++) {
+        D_003496E0[i * 64] = 0;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017BCB8);
 
@@ -6594,7 +6617,6 @@ void func_001BE158(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BE178);
 
-extern s32 D_0034B6E0[];
 extern void func_0017BC40(void);
 
 /* ER-080: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
