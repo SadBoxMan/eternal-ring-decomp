@@ -2048,7 +2048,25 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-186",
+      "waits_on": "none",
+      "notes": ""
+    },
+    {
+      "code": "ER-195",
+      "title": "text_00150878: ER-186's lead batch",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-196",
+      "title": "Base-pointer scan in the other files",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-189",
       "notes": ""
     }
   ]

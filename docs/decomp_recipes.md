@@ -1352,7 +1352,7 @@ as the callers use them); `D_01B72600` read as an array of 8 records (2 ports x 
 | func_001CAB10 | 0x704 bytes, the per-port / per-slot state machine on `x17A` (calls func_001CA8D8, func_001CA9A8 and ten libpad routines). m2c's draft does not compile (a `case` outside its switch, func_001D7030 given 3 arguments: the game passes 2). A clean `switch` draft by hand (`C:\rs\wt\er185_runs\s\cab10_b.c`) compiles 7 instructions short, 338 / 449 equal register-blind. Lead: case 0's compare tree on the controller ID (game: `<7`, `==0x100`, `<0x101`, `==7`, then `<5`, `<2`, `<4` with `x17A = 0x28` for 4) is not the draft's `switch (a) { case 4; case 7; case 0x100; }`; the frame keeps `port + 1` at `sp+0x10` |
 | func_001CA8D8 | not tried (m2c draft 15 instructions short with 16 `M2C_ERROR`s) |
 
-### 2.44 `text_00150878`: a counted sign loop, globals as base pointers (ER-186, Mon 23 Nov 2026; Confirmed by `make regress`, 6 functions)
+### 2.45 `text_00150878`: a counted sign loop, globals as base pointers (ER-186, Mon 23 Nov 2026; Confirmed by `make regress`, 6 functions)
 
 Branch `er-186-00150878` (worktree `C:\rs\wt\er186`), commits `6fd3268` (func_0012DA68 declared `(void **, f32, f32,
 s32, s32)` in `text_00150878`, its extern and one call; same bytes: every file now agrees), `4010d03`
