@@ -2104,6 +2104,33 @@
       "model": "Opus, high",
       "waits_on": "",
       "notes": "Filed 24 Nov 2026 on LuciDin's word; folds in ER-129, ER-135, ER-127; step 1 asks LuciDin for every fault seen"
+    },
+    {
+      "code": "ER-201",
+      "title": "split.py: wider ruling-3.10 takeovers (3 functions)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-202",
+      "title": "ER-198's near misses",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium / high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-203",
+      "title": "Align func_0012B6B0 / func_0012B930 parameter order",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
