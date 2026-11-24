@@ -2023,6 +2023,15 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-192",
+      "title": "func_001CAB10 (pad state machine) + func_001CA8D8",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
