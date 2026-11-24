@@ -2363,8 +2363,8 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Sonnet, medium",
-      "waits_on": "LuciDin's ruling",
-      "notes": ""
+      "waits_on": "",
+      "notes": "Ruled 24 Nov 2026 15:55: ruling 3.18 applies (LuciDin)"
     },
     {
       "code": "ER-230",

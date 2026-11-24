@@ -1806,6 +1806,8 @@ Standing rulings; each applies until LuciDin changes it.
 | Ruling | Item |
 |---|---|
 | **Accepted, narrowly** | A local that the code fills and never reads, where the game's binary really contains those stores (func_001486F0: four stores `-x70, 1.0, -x78, 0` to a 16-byte local at `sp+0` before `func_0012C578`, which reads only `$a0`-`$a3`): gcc keeps dead stores to stack memory, so the C reproduces stores the original made. Reading (Unconfirmed): a leftover, or an argument dropped from the call. Not for stores the game does not have, nor for code that only steers registers or scheduling. Each use carries a comment naming this ruling. Used so far: func_001486F0 (ER-148, 2.32: `f32 s[4];`) |
+| **Accepted** (applies 3.18, Tue 24 Nov 2026, 15:55 Eastern, LuciDin in the DISP-05 session) | The same for a local filled by a struct copy from `.rodata` and never read, where the game's binary has that copy's `ld` / `sd` to the stack: func_001037F8 (`text_001000C0`, ER-224 / ER-229: `Vec4 v; v = D_003540D0;`, copied to `0($sp)`, never loaded). Each use carries the comment `ruling 3.18`. |
+
 
 ### 3.19 ER-164: a cross-file prototype declared as the caller saw it (Mon 23 Nov 2026, 16:41 Eastern, LuciDin in the ER-164 session)
 
