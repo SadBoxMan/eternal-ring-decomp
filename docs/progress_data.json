@@ -2032,6 +2032,24 @@
       "model": "Opus, high",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-193",
+      "title": "Place func_0013C4E0 (text_0013B748)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-194",
+      "title": "Rerun text_00150878 with m2c_bulk round 4",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-186",
+      "notes": ""
     }
   ]
 }
