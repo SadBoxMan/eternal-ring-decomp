@@ -2207,7 +2207,7 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012B7C0);
 
 /* ER-125: drafted with m2c (tools/m2c_bulk.py --plain), the 0xFF store made u8 by hand; names, types and offsets are
    Unconfirmed readings. */
-s32 func_0012B890(void **arg0, s32 arg1, s32 arg2, s32 arg3, s16 arg4, s32 arg5, f32 fparg0) {
+s32 func_0012B890(void **arg0, s32 arg1, s32 arg2, s32 arg3, s16 arg4, f32 fparg0, s32 arg5) {
     s32 b;
     char *p;
 
@@ -3108,11 +3108,11 @@ s32 func_0012F8A0(void **arg0, s32 arg1, s32 arg2, f32 fparg0) {
     return func_0012B6B0(arg0, 0, arg1, arg2, fparg0);
 }
 
-extern s32 func_0012B890(void **, s32, s32, s32, s16, s32, f32 fparg0);
+extern s32 func_0012B890(void **, s32, s32, s32, s16, f32, s32);
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 s32 func_0012F8C8(void **arg0, s32 arg1, s32 arg2, s16 arg3, s32 arg4, f32 fparg0) {
-    return func_0012B890(arg0, 0, arg1 & 0xFF, arg2, arg3, arg4, fparg0);
+    return func_0012B890(arg0, 0, arg1 & 0xFF, arg2, arg3, fparg0, arg4);
 }
 
 extern s32 func_0012B930(char *, s32, s32, s32, s16, s32, f32);

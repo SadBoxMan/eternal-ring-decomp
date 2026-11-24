@@ -608,7 +608,7 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013FAC8);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013FBB8);
 
-extern s32 func_0012B890(void *, s32, s32, s16, s32, s32, f32);
+extern s32 func_0012B890(void **, s32, s32, s32, s16, f32, s32);
 extern s32 func_0014FF58(void **arg0, s32 arg1);
 extern void func_00140250(void *, void *);
 extern void func_0012DC10(s32, s32, s32, s32, void *);
@@ -626,7 +626,7 @@ void func_0013FBF8(void **arg0, void *arg1) {
     if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
         *(f32 *)((char *)arg0 + 0x94) = -D_0035BB60;
     }
-    func_0012B890(arg0, 1, 3, *(s16 *)((char *)arg0 + 0x6C), 4, 0, 0.4f);
+    func_0012B890(arg0, 1, 3, *(s16 *)((char *)arg0 + 0x6C), 4, 0.4f, 0);
     if (func_0014FF58(arg0, 3) != 0) {
         func_00131000((char *)arg0, func_0013F580);
     }
@@ -692,7 +692,7 @@ void func_0013FCF8(char *arg0, char *arg1) {
         func_0012E820(*(char **)(arg1 + 0xE0) + 0xEB4, z, t);
         func_0012E820(*(char **)(arg1 + 0xE0) + 0xEB8, z, t);
         func_0012B540(arg1, 1, 2, 0);
-        if (func_0012B890(arg0, 0, 2, *(s16 *)(arg0 + 0x6C), 0x1E, 0, 0.1f) != 0) {
+        if (func_0012B890((void **)arg0, 0, 2, *(s16 *)(arg0 + 0x6C), 0x1E, 0.1f, 0) != 0) {
             *(f32 *)(arg0 + 0x30) = z;
             *(s16 *)(arg0 + 0x6C) = 0;
             *(s16 *)(arg0 + 0x6E) += 1;

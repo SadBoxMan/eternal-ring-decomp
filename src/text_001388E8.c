@@ -218,11 +218,11 @@ void func_001390F8(void *arg0, s32 arg1) {
 void func_00139148(void) {
 }
 
-extern s32 func_0012B890(void **arg0, s32 arg1, s32 arg2, s32 arg3, s16 arg4, s32 arg5, f32 fparg0);
+extern s32 func_0012B890(void **arg0, s32 arg1, s32 arg2, s32 arg3, s16 arg4, f32 fparg0, s32 arg5);
 
 /* ER-154: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00139150(void **arg0) {
-    func_0012B890(arg0, 1, 0, *(s32 *)((char *)arg0 + 0x2C), 0x14, 1, 0.1f);
+    func_0012B890(arg0, 1, 0, *(s32 *)((char *)arg0 + 0x2C), 0x14, 0.1f, 1);
 }
 
 INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139170);
@@ -246,7 +246,7 @@ void func_001392A8(void **arg0, void *arg1) {
             func_00139C98(arg0, (s32) func_00139170);
             return;
         }
-        if (func_0012B890(arg0, 1, 0xB, var_19, 0x14, 0, 0.1f) != 0) {
+        if (func_0012B890(arg0, 1, 0xB, var_19, 0x14, 0.1f, 0) != 0) {
             var_19 = 0;
             var_18 = 1;
         }
