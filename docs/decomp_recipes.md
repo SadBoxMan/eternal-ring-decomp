@@ -1493,12 +1493,13 @@ the per-pad state. The case values 2, 3, 5, 6 and the extra 0x200 are Unofficial
 |---|---|
 | func_001CAB10 | 0x704 bytes, the per-pad state machine. Best draft `C:\rs\wt\er192_runs\cab10_best_elcm.c` (score with the per-file flag: `os_elcm.py` in that folder, diff in `cab10_best_elcm.diff.txt`): 0x6F8 bytes, 429 / 449 equal register-blind, the first 0x370 bytes exact but one `addu` operand order (+0x5C, `D + port` built as `port + D`). Left: which register reload gives the `-2` / `-3` constants in cases 0x6F and 0x83 (game `$v0` / `$a1`, ours the other way) and so which tails cross-jumping shares (case 0x82's `li 0x83` falls into the shared `sb $v0`); case 0xFE's `andi 0xFF` (a `switch (p->x17F)` with the load merged at the join; as `if`s it is closer but has no `andi`); a missing `nop`. 120 declaration orders changed nothing |
 
-### 2.49 `text_00150878`: a record-array table, loads before stores, const `.rodata` vectors, the round-4 rerun (ER-194 + ER-195, Tue 24 Nov 2026; Confirmed by `make regress`, 7 functions)
+### 2.49 `text_00150878`: a record-array table, loads before stores, const `.rodata` vectors, the round-4 rerun, ER-188's rs0 list (ER-194 + ER-195, Tue 24 Nov 2026; Confirmed by `make regress`, 17 functions)
 
 Branch `er-194-150878-r4` (worktree `C:\rs\wt\er194`), commits `4c53077` (func_00157B60, func_001BF8E0: ER-186's
 leads), `6beb28e` (func_00162960, func_001A3D00, func_001BF748: ER-198's base-pointer scan hits in this file,
-`C:\rs\wt\er198_runs\bscan.txt`), `f567ace` (func_0018D168, func_00193B68: the rerun's plain MATCHes). **7 functions,
-1,180 bytes.** Scratch (our C only): `C:\rs\wt\er194_runs\` (`x\` ER-186's leads, `b\` the scan hits).
+`C:\rs\wt\er198_runs\bscan.txt`), `f567ace` (func_0018D168, func_00193B68: the rerun's plain MATCHes), `ba9aa1e` (10 plain MATCHes of **ER-188's**
+whole-file rerun with its new tool, label `rs0`, drafted at `4f4c8df`, relayed by DISP-05; placed as drafted from
+`C:\rs\wt\er188_runs\rs0\c\`). **17 functions, 2,208 bytes.** Scratch (our C only): `C:\rs\wt\er194_runs\` (`x\` ER-186's leads, `b\` the scan hits).
 
 **ER-194, the round-4 rerun** (`m2c_bulk.py --file text_00150878 --plain --tag ER-194 --par 4 --gcc-timeout 30`, label
 `er194all`, run in a second detached worktree `C:\rs\wt\er194r` at `4c53077`, so this branch's `make regress` runs could
@@ -1507,6 +1508,14 @@ not wipe it; table copied to `er194_runs\er194all_results.md`): 1,010 functions,
 differs 528. A first attempt (Tue 24 Nov, 03:07 Eastern) failed from item 291 on: every m2c call returned no output and
 the run exited (code 4) at 03:34. m2c worked again at 12:04 and the restart ran clean (1 `m2c failed`: func_001C3118).
 Cause not found (Unconfirmed: the machine, or the shared m2c folder, at that hour).
+
+**ER-188's rs0 list** (1,028 bytes): global base pointers func_0016E368 (`s32 *` over `D_0035C518`, the tail `j`'s
+slot moved), func_001BF238 (`D_001F65E8`), func_001C40F0 and func_001C4E88 (`D_001FEC00`, return-wrapper form),
+func_001C4F88 (`D_0034D178`; prototype of func_001D1B50 added above it); `f32` stack arrays func_00153ED0, func_0018A3B0,
+func_0018FC10 (with offset store order), func_001C1378 (three soft-double calls written as C); early exit first
+func_001C7538. Its func_0018D168 and func_00193B68 were already placed from this card's own rerun. Every prototype the
+drafts put above first use has the same text as the file's other declarations (func_001C9F60 as at its later
+extern; func_0017D670, func_00165170, func_001D1B50 have no C definition yet), so no same-file contradiction.
 
 | Lesson | Proved by |
 |---|---|
