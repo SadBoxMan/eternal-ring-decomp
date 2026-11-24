@@ -2158,6 +2158,24 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-207",
+      "title": "GS capture format 2: GIF path per packet",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "ER-200",
+      "notes": ""
+    },
+    {
+      "code": "ER-208",
+      "title": "er177_gs_diff.py resync (optional)",
+      "status": "Queued",
+      "track": "port",
+      "model": "Sonnet, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
