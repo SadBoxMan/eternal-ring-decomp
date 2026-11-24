@@ -2266,6 +2266,24 @@
       "model": "Opus, high",
       "waits_on": "speed cards (ER-139 / ER-141 / ER-143)",
       "notes": ""
+    },
+    {
+      "code": "ER-219",
+      "title": "Recomp: the shake (bisect, then re-apply ER-200's findings)",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-220",
+      "title": "Recomp: 2D UI text spacing, blur, colours",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
