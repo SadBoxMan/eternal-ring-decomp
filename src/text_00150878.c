@@ -4168,7 +4168,24 @@ void func_0018C730(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018C780);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018C938);
+extern const Vec4A D_00355BD0;
+extern const Vec4A D_00355BF0;
+extern s32 func_00158AD8(s32, s32, void *, void *, void *, void *);
+
+/* ER-213 (DISP-05's relay of ER-216's .rodata copy scan): both vectors copied from `extern const` .rodata objects
+   (recipes 2.49; plain externs leave 2 words). Vec4A is ruling 3.15's type; names Unconfirmed. */
+void func_0018C938(char *arg0) {
+    Vec4A a = D_00355BD0;
+    Vec4A b = D_00355BF0;
+
+    func_00162CB8(D_00248880, (s32)(arg0 + 0x10));
+    *(s32 *)(arg0 + 0x10) = 0;
+    *(s32 *)(arg0 + 4) = 2;
+    D_00248880[1] = 1;
+    D_00248880[7] = 0x01000000;
+    *(s32 *)(arg0 + 0x18) = func_00158AD8(*(s32 *)(arg0 + 0x14), 0xE, arg0 + 0x50, arg0 + 0x60, &a, &b);
+    *(s8 *)(arg0 + 0x78) = 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018C9E8);
 
@@ -5266,7 +5283,6 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A3A40);
 extern const Vec4A D_00355E60;
 extern const Vec4A D_00355E70;
 extern const Vec4A D_00355BE0;
-extern s32 func_00158AD8(s32, s32, void *, void *, void *, void *);
 /* ER-195: ER-198's base-pointer scan hit (recipes, ER-195): three 16-byte vectors copied from .rodata, declared
    const (the loads then schedule as the game's). Names, types and offsets are Unconfirmed readings. */
 void func_001A3D00(s32 arg0, f32 f) {

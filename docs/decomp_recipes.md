@@ -1649,11 +1649,11 @@ and D_00354938 are vectors was not checked).
 | func_001325E8 (`text_001000C0`) | 28 words, 4 bytes short: PRE's hoist of `b0 & b1` (above); `(b0 & 0x2000) && (b1 & 0x2000)` gives the size but other code (13 words) |
 | func_001CCB08 (`text_001CB528`) | 52 words: inner-loop shapes tried (for with `&&` or `break`, `if / else`, locals, index j: 52; `while` + `break` 0x278; `while (k >= m && cmp)` 0x288); the game's `b L; copy` exits and plain `bnez` look like dbr choices from block layout and its liveness scan (Unconfirmed) |
 
-### 2.53 `text_00150878`: a callee's int return in a void caller, cross-jumped tails, 64-bit flags (ER-212 + ER-134 + ER-213, Tue 24 Nov 2026; Confirmed by `make regress`, 7 functions)
+### 2.53 `text_00150878`: a callee's int return in a void caller, cross-jumped tails, 64-bit flags (ER-212 + ER-134 + ER-213, Tue 24 Nov 2026; Confirmed by `make regress`, 8 functions)
 
 Branch `er-212-150878` (worktree `C:\rs\wt\er212`), commits `d832ee1` (ER-212: func_0017BC40, new ruling 3.22),
 `ed6c763` (func_001B8CB0, func_001B8DC8, func_001B8FC8, func_001C4E00), `e209b20` (func_0016E3C8), `2f27739`
-(func_001C1E38). **7 functions, 1,060 bytes.** Scratch (our C only): `C:\rs\wt\er212_runs\` (`k\` func_0017BC40,
+(func_001C1E38), `01e1fb6` (func_0018C938, DISP-05's relay of ER-216's `.rodata` copy scan). **8 functions, 1,232 bytes.** Scratch (our C only): `C:\rs\wt\er212_runs\` (`k\` func_0017BC40,
 `s\` the small ones, `e38\` func_001C1E38, `c0e0\` func_0015C0E0).
 
 | Lesson | Proved by |
@@ -1663,6 +1663,7 @@ Branch `er-212-150878` (worktree `C:\rs\wt\er212`), commits `d832ee1` (ER-212: f
 | **A global struct read through a cast at every use keeps the symbol as the base** (2.45) **and lets gcse keep the `%hi` in a saved register across calls**: the game rebuilds `D_001FEC00` with `addiu $a0, $s3, %lo` after each join; a `char *g` local (0x238 bytes) or byte offsets on the symbol (base `D_001FEC00+0x10`, 147 words) do not. The cast is a `#define` used only by this function (`#undef` after it; `tools/place.py c` drops the `#undef`, add it by hand) | func_001C1E38 |
 | **A one-bit test the game makes with `andi` + `sltu`** is `if (x & 0x40) return 1; return 0;`; `return (x & 0x40) != 0;` and `?:` give `srl` + `andi 1` | func_001B8CB0, func_001B8DC8 |
 | **A `dsrl` on a loaded byte**: only a 64-bit return type with the byte read into a 64-bit local first (`v = b; return v >> 7;`) keeps the shift in DImode; `return (u64)b >> 7;` is narrowed by combine to `srl`, and 64-bit bitfields load a doubleword. The caller only tests `$v0` against zero | func_001B8FC8 |
+| **2.49's `extern const` vector once more**: func_0018C938 copies D_00355BD0 / D_00355BF0 into two stack vectors for func_00158AD8; with plain externs 2 words differ, with both `const` it matches as first written. ER-216's scan (`C:\rs\wt\er216_runs\scan214.tsv`) lists 305 such copy functions in this file; only this one was tried | func_0018C938 |
 | m2c's `s32 *` pointer steps (`D_001FEC00 + 0x24`) are element addresses (`&D_001FEC00[9]`); store pairs in the order a `variants` run found | func_001C4E00, func_0016E3C8 |
 
 Rulings used: **3.22** (new) once (func_0017BC40). Unofficial names: `TEC00` and its fields `x0`-`x34`, `b4B4`,
