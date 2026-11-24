@@ -1265,6 +1265,38 @@ off). Drafts (game code, not in git) and scratch: `C:\rs\wt\er179_runs\`.
 Not compiler-steering: plain C, no ruling used. Names `temp_4`, `var_*` are m2c's (Unofficial); the parameter types
 come from the game's entry `andi` (Confirmed by the match), their meaning is Unconfirmed.
 
+### 2.42 `text_001000C0` round-3 near misses: callee values the caller keeps, a float parameter's place (ER-181 + ER-183, Mon 23 Nov 2026; Confirmed by `make regress`, 12 functions)
+
+Branch `er-181-183` (worktree `C:\rs\wt\er181`), commits `ea73097` (ER-181: `func_0012DA68` declared `(void **, f32,
+f32, s32, s32)` in its definition and in `text_00145120` / `text_0014A968`, same bytes; `text_00150878` still has the
+m2c order, not this card's file) and `9b45a99` (ER-183). 12 of the 14 same-size near misses of ER-171's run `er171c0`,
+1,924 bytes: 3 by hand (func_0012FEE0, func_00130B18, func_00130D68), 9 by three helper agents from the m2c drafts
+(each verified with registers before placing). Scratch (our C only): `C:\rs\wt\er181_runs\` (`s\`, `A\`, `B\`, `C\`).
+
+| Lesson | Proved by |
+|---|---|
+| **Return the callee's value when the game leaves it untouched to the `jr $ra`**: a live `$v0` / `$f0` changes the caller's allocation and scheduling even with nothing after the call reading it. func_0012FEE0 (`void *`, `return func_0017D968(...)`) puts the `s8` parameter's `sll` after the `$s1` save (ER-125's parked "prologue tie", 2 words); func_00130B18 (`f32 r = func_0012D8B8(...); ...stores...; return r;`, the shape of the function before it) keeps the sums out of `$f0` (8 words). The return types are readings (Unconfirmed): the callers in other files declare them `s32` / `void` | func_0012FEE0, func_00130B18 |
+| **A float parameter's place in the list moves a local-alloc tie** (2.39's lesson from the callee side): gcc copies the parameters in list order, so a float placed before the last int parameter delays that copy, shortens its life by one insn and gives it the earlier callee-saved register. func_00130D68's `arg1` / `arg3` take the game's `$s3` / `$s2` with the float after `arg0`, after `arg1` or before `arg3`; m2c's float-last order swaps them (4 words). The callers' load orders are scheduled around, so they do not pin the place; after `arg0` is kept (as func_0012DA68), Unconfirmed | func_00130D68 |
+| **The callee's return type, again (2.36 / 2.38)**: an address set up after a `jal` in `$v1` where ours uses `$v0` means the callee returns a value the caller ignores. func_001107F8 (INCLUDE_ASM in this file; tail `j func_00104548`, which returns 0x105) declared `s32`; func_001636A0 (defined `void` in `text_00150878`; its last call is the syscall stub func_001D03E0) declared `s32` by ruling 3.19 | func_00128940, func_00101740 |
+| **m2c's frame array holding `sw $0` then `lwc1` reloads is two vectors, the second built from the first** (`t = {-d[0], d[1], -d[2], d[3]}`: the inlined negate-x-and-z shape of func_0012D318): every element is read, so no ruling 3.18 store | func_0012CA68, func_00130040, func_00130848 |
+| **A pointer taken from a parameter before another load stays in a saved register**: `v = a0 + 0x90` written before `o = *a0` gives the game's `addiu $s1, $a0, 0x90` (3 words otherwise) | func_00130848 |
+| **`base[i].field` for `lw off(base + i * N)`**: a record-array type keeps the field offset in the load; the byte-offset sum folds it into the base. **`a & b` of two globals: the operand order is the load order** (seen in the `gp_rel` immediates) | func_00132278 |
+| **An int counter over a record array** gives the game's pointer loop with a signed `slt` and an `addu` end pointer; a pointer loop written directly gives `sltu` | func_00101898 |
+| `?:` for a sign choice at the return (an `if` gives a branch, 8 words; the float twin of func_0012E5C0) | func_0012E6B8 |
+| **splat's function regex**: a pointer-returning definition must be spelled `void* func_X(` (as func_00103E30), or `tools/split.py` misses it and fails the order check | func_0012FEE0 |
+
+The G390 layout (`D_001FF390`) moved from above func_0011B9D0 to above func_00101898, which names it (also what
+ER-167 needs). Rulings used: 3.19 once (func_00101740). Unofficial names: `T32FB70` (an 8-byte record, callback at +4)
+and `R180` (0x180-byte record, `x15B`), locals `v`, `t`, `d`, `q`, `o`, `p`, `r`, `lo`, `hi`, `sp`; `D_0032FB70`,
+`D_00230880`, `D_0032F3A0` (a table of `void (*)(void)`) read as typed arrays (Unconfirmed).
+
+**Parked (scratch in `C:\rs\wt\er181_runs\`, game code not in git):**
+
+| Function | Cause |
+|---|---|
+| func_0012D9B8 | 4 words: the game schedules `sh $0, 0x5C($a0)` after `mtc1; sb 0x5A; c.le.s`, ours right after the `andi` (sched1 priority 16 against 10). **Matches as plain C with the `-fstrict-aliasing` diagnostic** (ER-106 evidence: under `-fno-strict-aliasing` the byte store and the halfword store get another dependence than the game's). 120 statement orders, struct types, a bitfield, `u16` / `s8` / `~2` spellings, a flag pointer, early return tried (`B\func_0012D9B8_best.c`) |
+| func_00125790 | 5 words: in the second call's setup the game loads `D_0035B848` before `D_0035B8A0`, so the store base takes `$a0` and the `sw` comes before the argument moves; ours loads `D_0035B8A0` first (equal priority, tie not pinned). Every order of the setup lines, `s32 *` bases, reading the field back, `void *` prototypes, a `const` pointer tried (`A\func_00125790_best5.c`) |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1391,7 +1423,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted** | In a file that does not define the callee, an `extern` prototype with a return type other than the definition's, when the caller matches only with that type and does not use the value (func_001C4838 in `text_00150878`: `extern s32 func_00101238(...)`, whose definition in `text_001000C0` is a `void` word copy; the `int` return makes the call set `$v0`, which gives the game's `$v0` / `$v1` choice after it, 2.36 / 2.38). Read as the original source declaring the callee differently (or not at all: an implicit `int`). The definition keeps its own type. Precedent in placed code before the ruling: `text_00150878` declares the `void` func_00113238, func_0012E3B0, func_001321D8, func_001321E8 `s32` (neutral there). Each use carries a comment naming this ruling. **Not** covered: changing a definition's type, or a same-file declaration that contradicts the definition (func_00113238 for func_00119FE0 in `text_001000C0`, recipes 2.37: still open). Used so far: func_001C4838 (ER-164, 2.38) |
+| **Accepted** | In a file that does not define the callee, an `extern` prototype with a return type other than the definition's, when the caller matches only with that type and does not use the value (func_001C4838 in `text_00150878`: `extern s32 func_00101238(...)`, whose definition in `text_001000C0` is a `void` word copy; the `int` return makes the call set `$v0`, which gives the game's `$v0` / `$v1` choice after it, 2.36 / 2.38). Read as the original source declaring the callee differently (or not at all: an implicit `int`). The definition keeps its own type. Precedent in placed code before the ruling: `text_00150878` declares the `void` func_00113238, func_0012E3B0, func_001321D8, func_001321E8 `s32` (neutral there). Each use carries a comment naming this ruling. **Not** covered: changing a definition's type, or a same-file declaration that contradicts the definition (func_00113238 for func_00119FE0 in `text_001000C0`, recipes 2.37: still open). Used so far: func_001C4838 (ER-164, 2.38); func_00101740 (ER-183, 2.42: `extern s32 func_001636A0(void)` in `text_001000C0`) |
 
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker, 3.18 only stores the game makes): park such functions with a
 one-line cause and ask.
