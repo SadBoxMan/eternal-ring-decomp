@@ -11,7 +11,7 @@
           "id": "m-dec-funcs",
           "phase": "Phase 1: matching",
           "name": "Functions matched (EE ELF)",
-          "done": 1302,
+          "done": 1303,
           "total": 3609,
           "unit": "functions",
           "source": "ER-003 split, ER-004 census",
@@ -21,7 +21,7 @@
           "id": "m-dec-bytes",
           "phase": "Phase 1: matching",
           "name": "Code bytes matched (EE ELF .text)",
-          "done": 146568,
+          "done": 146776,
           "total": 984916,
           "unit": "bytes",
           "source": "ER-003 split",
@@ -2027,11 +2027,11 @@
     {
       "code": "ER-192",
       "title": "func_001CAB10 (pad state machine) + func_001CA8D8",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Tue 24 Nov 2026 (branch er-192-cab10, commits d52e6ad, 8707afa): func_001CA8D8 placed (208 bytes); ruling 3.21 per-file -fedge-lcm for text_001CA8D8, func_001CA9A8 as plain C; func_001CAB10 parked at 429/449 register-blind (recipes 2.48)"
     },
     {
       "code": "ER-193",
