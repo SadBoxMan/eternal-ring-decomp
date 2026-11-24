@@ -80,23 +80,20 @@ s32 func_001CA8D8(P1C0 *arg0, s32 arg1, s32 arg2) {
     return 1;
 }
 
-/* ER-185: drafted with m2c (tools/m2c_bulk.py, ER-179 run), rewritten by hand; names, types and offsets are Unconfirmed readings. */
+/* ER-185: drafted with m2c (tools/m2c_bulk.py, ER-179 run), rewritten by hand; ER-192: the two cached flag-word locals
+   dropped (this file is built with -fedge-lcm, ruling 3.21). Names, types and offsets are Unconfirmed readings. */
 void func_001CA9A8(P1C0 *arg0) {
     s32 i;
     E4 *e;
     u16 m;
-    u16 on;
-    u16 en;
 
     arg0->x122 = 0;
     i = 0;
-    on = arg0->x164;
-    en = arg0->x102;
     do {
         e = &arg0->e[i];
         m = 1 << i;
-        if (on & m) {
-            if (!(en & m)) {
+        if (arg0->x164 & m) {
+            if (!(arg0->x102 & m)) {
                 e->x3 = 0;
             } else if (arg0->x120 & m) {
                 arg0->x122 = m | arg0->x122;
@@ -107,8 +104,6 @@ void func_001CA9A8(P1C0 *arg0) {
                 e->x3 = 2;
                 e->x2 = e->x1;
             }
-            on = arg0->x164;
-            en = arg0->x102;
         }
         i++;
     } while (i < 16);
