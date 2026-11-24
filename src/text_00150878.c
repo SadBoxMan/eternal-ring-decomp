@@ -1254,7 +1254,38 @@ void func_00159830(char *a0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001598A8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00159B20);
+extern void func_001E9B0C(void *, s32, s32);
+extern float D_001F0380[];
+extern float D_001FF180[];
+extern void func_001C9F60(void *, void *, void *);
+extern void func_001D7450(void *, float *);
+
+/* ER-184: by hand from the m2c draft (run er171s0; m2c's frame array split into a 16-float matrix and a 4-float vector, recipes 2.40); names and types Unconfirmed. */
+void func_00159B20(void *arg0) {
+    f32 m[16];
+    f32 v[4];
+    f32 d;
+    s32 i;
+
+    func_001E9B0C(v, 0, 0x10);
+    v[2] = 0.0f;
+    *(s32 *)((char *)arg0 + 0xC) = *(s32 *)((char *)arg0 + 0x50);
+    v[3] = 0.0f;
+    i = (s32) ((*(f32 *)((char *)arg0 + 0x28) * 4096.0f) / 6.2831855f) & 0xFFF;
+    v[1] = D_001F0380[i];
+    v[0] = D_001F0380[i + 0x400];
+    *(s32 *)((char *)arg0 + 0x68) = i;
+    func_001D7450(m, D_001FF180);
+    func_001C9F60(v, m, v);
+    d = (f32) (*(s32 *)((char *)arg0 + 0x50) - *(s32 *)((char *)arg0 + 0x54));
+    *(s8 *)((char *)arg0 + 2) = 1;
+    *(f32 *)((char *)arg0 + 0x78) = v[0];
+    *(f32 *)((char *)arg0 + 0x7C) = v[1];
+    *(f32 *)((char *)arg0 + 0x80) = v[2];
+    *(f32 *)((char *)arg0 + 0x84) = (*(f32 *)((char *)arg0 + 0x84) - *(f32 *)((char *)arg0 + 0x40)) / d;
+    *(f32 *)((char *)arg0 + 0x88) = (*(f32 *)((char *)arg0 + 0x88) - *(f32 *)((char *)arg0 + 0x44)) / d;
+    *(f32 *)((char *)arg0 + 0x8C) = (*(f32 *)((char *)arg0 + 0x8C) - *(f32 *)((char *)arg0 + 0x48)) / d;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00159C70);
 
@@ -4928,7 +4959,19 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A8DC8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A8F58);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A91A8);
+extern s32 func_0017D7A8(void *, f32 *, f32 *, f32);
+
+/* ER-184: by hand from the m2c draft (run er171s0; the two out values are floats, the larger one returned by ?:); names and types Unconfirmed. */
+s32 func_001A91A8(void *arg0, f32 *arg1) {
+    f32 a;
+    f32 b;
+
+    if ((*(s32 *)((char *)arg0 + 0x20) == 0) || (func_0017D7A8(arg0, &a, &b, 0.05f) != 0)) {
+        return -1;
+    }
+    *arg1 = (b < a) ? a : b;
+    return 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A9210);
 
