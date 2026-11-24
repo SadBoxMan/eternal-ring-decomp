@@ -2147,7 +2147,7 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-188, ER-176",
+      "waits_on": "",
       "notes": ""
     },
     {
@@ -2246,6 +2246,15 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-217",
+      "title": "m2c_bulk.py round 6",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
     }
