@@ -14,7 +14,8 @@
    have in the object). `--fix-includes` inserts missing INCLUDE_RODATA lines into the C files (run once when a
    file first owns its .rodata, then commit the C files); a wrong order is always an error. One exception
    (ER-077, ruling 3.10): a standalone float / double that a single C function of the file uses is gcc's anonymous
-   constant in that C, so its INCLUDE_RODATA line may go (`_anon_takeovers` has the conditions).
+   constant in that C, so its INCLUDE_RODATA line may go (`_anon_takeovers` has the conditions; ER-201 added a
+   double plus 8 zero bytes of padding, and symbols not next to their function, moving the untaken symbols between).
 
 3. Per-file .lit4 (ER-024). gas, not gcc, makes .lit4: `li.s $f, c` (c with non-zero low 16 bits) becomes `lwc1
    $f, off($gp)` plus a word in the object's own .lit4, in source order and never merged (docs/decomp_recipes.md 2.2).
@@ -74,7 +75,8 @@ MipsSymbolBase.SymbolBase.isDouble = is_double
 FIX_INCLUDES = False
 ERRORS: list[str] = []
 SUMMARY = {"lit4_files": 0, "lit4_asm": 0, "lit4_c": 0, "ro_files": 0, "ro_standalone": 0, "ro_inserted": 0,
-           "align4": 0, "align3": 0, "align_skipped": [], "data_files": [], "data_syms": 0, "ro_anon": []}
+           "align4": 0, "align3": 0, "align_skipped": [], "data_files": [], "data_syms": 0, "ro_anon": [],
+           "ro_moved": []}
 
 INC_RE = re.compile(r"\b(INCLUDE_ASM|INCLUDE_RODATA)\s*\(\s*\"([^\"]*)\"\s*,\s*(\w+)\s*\)\s*;")
 LWC1_RE = re.compile(r"^(\s*/\*[^*]*\*/\s*)lwc1(\s+)(\$f\d+), \((\w+)\)(?:\s*/\* gp_rel: \(\w+\) \*/)?\s*$")
@@ -107,45 +109,79 @@ def _defined_in_c(c_path: Path) -> set:
                                       r"\s*(?:\[[^\]]*\]\s*)*=", text)}
 
 
-def _anon_takeovers(entries, c_funcs: set) -> dict:
-    """ER-077, ruling 3.10: standalone .rodata symbols that a C function's own literal may replace.
+def _anon_takeovers(entries, c_funcs: set, keep: set, aligned16: bool):
+    """ER-077 / ER-201, ruling 3.10: standalone .rodata symbols that a C function's own literal may replace.
 
     gcc writes a function's float / double literal (`x < 0.17453293f` promoted to double, `fabs(d) <= c`) as an
     anonymous `.rodata` constant ($LCn), in the function's own place in the object's .rodata, after the function's
     jump tables (the game has jtbl_003547E0 then D_00354800 for func_0013AA28, likewise func_0013BD90 and
     func_0013DF90). So such a symbol has no C name and its INCLUDE_RODATA line goes. Allowed only when all of these
     hold (else the line stays required and the order check fails as before):
-      - the symbol is standalone (splat did not migrate it) and 4 or 8 bytes long (one float or one double);
+      - the symbol is standalone (splat did not migrate it) and is one float or one double: 4 or 8 bytes, or
+        (ER-201) 16 bytes that are a double plus 8 zero bytes, on a 16-byte boundary, in a file whose range starts
+        16-aligned: the zeros are the padding before the next 16-aligned item, which `_rodata_align` (or the next
+        object's own alignment, at the end of the range) makes again once the double comes from C. Not in a file
+        whose range is not 16-aligned (text_001343E8): nothing would make the padding there;
       - exactly one function references it, from code, and that function is defined in C in this file (not
-        INCLUDE_ASM); no data refers to it;
-      - between that function and the symbol, splat's order has only functions without .rodata of their own, or
-        other symbols taken over by the same function: so the anonymous constant lands where the symbol was.
-    Where the bytes land is still proven by make regress (whole ELF and per function)."""
-    order = []  # ("func", name, has_rodata) or ("rodata", name, sym)
+        INCLUDE_ASM); no data refers to it; the file has no INCLUDE_RODATA line or C definition for it (`keep`);
+      - the anonymous constant lands where the symbol was: in address order it comes after the last .rodata of
+        its own function and of every function before it, and before the first .rodata of every function after
+        it (functions with .rodata of their own, migrated by splat, and the other constants taken over here).
+    (ER-201) The symbol need not be next to its function in splat's order: a standalone symbol that is not taken
+    over and sits between the two (its INCLUDE_RODATA line among functions without .rodata) has no fixed place
+    there, and moves to the other side of the C function in the expected order (`moves`), so the bytes keep their
+    address order. Where the bytes land is still proven by make regress (whole ELF and per function).
+
+    Returns (takeovers {symbol: function}, moves {symbol: ("before" | "after", function)})."""
+    order = []  # ("func", name, [own rodata vrams]) or ("rodata", name, sym)
     for e in entries:
         if e.function is not None:
-            order.append(("func", e.function.getNameUnquoted(), bool(e.rodataSyms) or bool(e.lateRodataSyms)))
+            own = [s.vram for s in list(e.rodataSyms) + list(e.lateRodataSyms)]
+            order.append(("func", e.function.getNameUnquoted(), own))
         else:
             for s in e.rodataSyms:
                 order.append(("rodata", s.getNameUnquoted(), s))
-    cand = {}  # rodata name -> owning C function
+    pos = {(k, n): i for i, (k, n, _) in enumerate(order)}
+    cand = {}  # rodata name -> (owning C function, vram)
     for k, n, s in order:
-        if k != "rodata":
+        if k != "rodata" or n in keep:
             continue
         cs = s.contextSym
         refs = {f.getName() for f in cs.referenceFunctions}
-        if s.sizew * 4 in (4, 8) and len(refs) == 1 and not cs.referenceSymbols and refs <= c_funcs:
-            cand[n] = next(iter(refs))
-    out = {}
-    pos = {(k, n): i for i, (k, n, _) in enumerate(order)}
-    for n, owner in cand.items():
-        i, j = sorted((pos[("rodata", n)], pos.get(("func", owner), -1)))
-        if i < 0:
-            continue  # the function is not in this text range
-        between = order[i + 1:j]
-        if all((k == "func" and not x) or (k == "rodata" and cand.get(m) == owner) for k, m, x in between):
-            out[n] = owner
-    return out
+        size = s.sizew * 4
+        pad16 = (size == 16 and aligned16 and s.vram % 16 == 0 and list(s.words[2:4]) == [0, 0])
+        if (size in (4, 8) or pad16) and len(refs) == 1 and not cs.referenceSymbols and refs <= c_funcs:
+            owner = next(iter(refs))
+            if ("func", owner) in pos:  # else the function is not in this text range
+                cand[n] = (owner, s.vram)
+    base = [(i, v) for i, (k, _n, x) in enumerate(order) if k == "func" for v in x]  # (order index, vram)
+
+    def fits(i, v, anchors):
+        """v placed at order index i (after that function's own .rodata) keeps the anchors in address order."""
+        return all(av < v for ai, av in anchors if ai <= i) and all(av > v for ai, av in anchors if ai > i)
+
+    out = {n: o for n, (o, v) in cand.items() if fits(pos[("func", o)], v, base)}
+    # constants accepted one by one must also agree with each other (two C functions, two constants); a function's
+    # own constants among themselves are left to make regress (their order inside the function is gcc's)
+    while True:
+        taken = [(pos[("func", o)], cand[n][1], n) for n, o in out.items()]
+        bad = [n for i, v, n in taken if not fits(i, v, base + [(j, w) for j, w, m in taken if j != i])]
+        if not bad:
+            break
+        for n in bad:
+            del out[n]
+    anchors = base + [(pos[("func", o)], cand[n][1]) for n, o in out.items()]
+    moves = {}
+    for t, (k, n, s) in enumerate(order):
+        if k != "rodata" or n in out:
+            continue
+        before = [ai for ai, av in anchors if av < s.vram]  # anchors that must come before this symbol
+        after = [ai for ai, av in anchors if av > s.vram]
+        if before and max(before) > t:
+            moves[n] = ("after", order[max(before)][1])
+        elif after and min(after) < t:
+            moves[n] = ("before", order[min(after)][1])
+    return out, moves
 
 
 def _check_rodata_order(seg, entries, c_path: Path):
@@ -155,17 +191,27 @@ def _check_rodata_order(seg, entries, c_path: Path):
     actual = _c_sequence(c_path, CommonSegC.strip_c_comments, C_FUNC_RE)
     c_funcs = {n for k, n, _ in actual if k == "c"}
     included = {n for k, n, _ in actual if k == "rodata"}
-    takeovers = {n: f for n, f in _anon_takeovers(entries, c_funcs).items() if n not in included}
+    takeovers, moves = _anon_takeovers(entries, c_funcs, included | in_c, seg.siblings[".rodata"].vram_start % 16 == 0)
     for n, f in sorted(takeovers.items()):
         SUMMARY["ro_anon"].append(f"{n} ({f})")
     expected = []  # (kind, name) with kind "func" or "rodata"
+    held = {}  # function -> symbols moved to just before / after it (ER-201)
+    for n, (side, f) in moves.items():
+        held.setdefault((side, f), []).append(n)
     for e in entries:
         if e.function is not None:
-            expected.append(("func", e.function.getNameUnquoted()))
+            f = e.function.getNameUnquoted()
+            expected += [("rodata", n) for n in held.get(("before", f), []) if n not in in_c]
+            expected.append(("func", f))
+            expected += [("rodata", n) for n in held.get(("after", f), []) if n not in in_c]
         else:
             for s in e.rodataSyms:
-                if s.getNameUnquoted() not in in_c and s.getNameUnquoted() not in takeovers:
-                    expected.append(("rodata", s.getNameUnquoted()))
+                n = s.getNameUnquoted()
+                if n not in in_c and n not in takeovers and n not in moves:
+                    expected.append(("rodata", n))
+    for n, (side, f) in sorted(moves.items()):
+        if n not in in_c:
+            SUMMARY["ro_moved"].append(f"{n} {side} {f}")
     exp_funcs = {n for k, n in expected if k == "func"}
     # C definitions of names that are not functions of this text range (none expected) are left out of the check
     act = [(("func" if k in ("asm", "c") else "rodata"), n, line) for k, n, line in actual
@@ -454,7 +500,8 @@ if __name__ == "__main__":
           f" {s['align4']} .rodata items, .align 3 on {s['align3']} (not in {', '.join(s['align_skipped']) or '-'}: range not 16-aligned);"
           f" owned .data / .sdata: {len(s['data_files'])} ranges, {s['data_syms']} symbols"
           f"{'; %d INCLUDE lines inserted in C files' % s['ro_inserted'] if s['ro_inserted'] else ''}"
-          f"{'; anonymous C constants in place of (3.10): ' + ', '.join(s['ro_anon']) if s['ro_anon'] else ''}")
+          f"{'; anonymous C constants in place of (3.10): ' + ', '.join(s['ro_anon']) if s['ro_anon'] else ''}"
+          f"{'; INCLUDE_RODATA moved across a C function for them: ' + ', '.join(s['ro_moved']) if s['ro_moved'] else ''}")
     if ERRORS:
         for e in ERRORS:
             print("split.py: ERROR:", e, file=sys.stderr)

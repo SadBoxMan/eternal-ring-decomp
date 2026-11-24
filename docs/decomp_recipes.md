@@ -1586,6 +1586,69 @@ func_001418B8 `(char *, char *)`, func_001CB808 unprototyped, func_001D03E0 `(s3
 | func_00140250 (`text_0013DBC0`) | 186 words, 0x4B0 against 0x444 (`C\best_func_00140250.c`, fresh m2c draft): six angle-wrap loops keep the pointer and reload the float in the game; a loop.c / alias question |
 | func_001418B8 (`text_0013DBC0`) | raw m2c draft only (`C\best_func_001418B8.c`): about 0x600 bytes, two irregular switches, soft-double compares against D_00354968 / D_00354970 (3.10 literals) |
 
+### 2.51 Wider ruling-3.10 takeovers: a double plus its padding, a constant several functions away (ER-201, Tue 24 Nov 2026; Confirmed by `make regress`, 5 functions placed)
+
+Branch `er-201-takeovers` (worktree `C:\rs\wt\er201`), commits `83ec9c4` (`tools/split.py`, `docs/build.md` 3.2) and
+`c6eee81` (placements). `_anon_takeovers` now judges a takeover in address order (`docs/build.md` 3.2, "Wider
+takeovers"). With no `src/` change the split's `asm/` and `linker/` trees are byte-identical to the old tool's.
+
+| Lesson | Proved by |
+|---|---|
+| **A 16-byte standalone symbol can be a double plus 8 zero bytes of padding**: spimdisasm folds the pad before a 16-aligned jump table (or the next object's 16-aligned `.rodata`) into the double. The C literal takes over the double; `.align 4` makes the pad again, so only in files whose `.rodata` range starts 16-aligned | func_0013F580 (`D_00354940`), func_00142118 (`D_00354980`, the end of `text_0013DBC0`'s range) |
+| **A constant need not sit next to its function in splat's order**: splat puts a standalone symbol just before the next function with migrated `.rodata`. Untaken standalone symbols in between move to the other side of the C function: write their `INCLUDE_RODATA` lines just before it (each split lists the moves; a line left in the old place is an order error) | func_0013F580 (`D_00354938` moved before it), func_00141EE8 (`D_00354978`; `D_00354968` / `D_00354970` moved before it) |
+| **Not in `text_001343E8`**: its `.rodata` starts at 0x003546D8 (8 mod 16), so `.align 4` would move the whole object. LuciDin (Tue 24 Nov 2026): wait for the file's cut, no explicit `.space` padding | func_00137A10 (`D_00354720`), parked |
+| **A placed draft needs every prototype the scratch file had**: cmpfunc on the scratch file matched, but in `src/` func_0012E7B0 was declared only further down, so its floats were promoted (`fptodp` calls, +0x18 bytes, the whole ELF moved). Copy the draft's whole extern block; duplicates of the same type are harmless | func_00142118 |
+
+Also placed: ER-188's plain m2c MATCHes func_00144F90 (`text_0013DBC0`) and func_00138370 (`text_001343E8`, `s32 sp[8]`,
+no jump table: its switch is a compare tree), as drafted (prototypes from the drafts). Rulings used: 3.10 (three
+takeovers), 3.13 (func_00142118's `f32 buf[4]`), 3.14 (func_00141EE8). Unofficial names: every local of the
+drafts. Readings (Unconfirmed): ER-198's and ER-202's prototypes and `const` readings as recorded in 2.47 and 2.50;
+the drafts' prototypes of func_00142788 / func_001427F0 `(f32 *, f32, f32)`, func_00131088 `(void *)`, func_00144308
+`(s8 *, void *)`. func_0013AA28 (`text_0013A410`): `D_00354800` meets the 16-byte rule (16-aligned range, the next
+item a jump table at 0x00354810), not proven by a placement because the C is still 9 words off (2.22).
+
+### 2.52 ER-202's ties read in the dumps, and ER-214's `.rodata` copy scan (ER-216 + ER-214, Tue 24 Nov 2026; nothing placed)
+
+Branch `er-216-ties` (worktree `C:\rs\wt\er216`), docs only. The five `text_001000C0` / `text_001CB528` ties from
+2.50 were reread with `tools/ordersearch.py dump` (sched, sched2, `--passes all`) and searched with `variants` /
+`climb --restarts`; two moved (func_00125A38 32 to 14 words at the right size; func_00125B68, an ER-214 hit, 39 to
+5), none matched. Scratch, best files and `REPORT.md`: `C:\rs\wt\er216_runs\` (game code, not in git).
+
+| Lesson | Proved by |
+|---|---|
+| **A register copy the game keeps comes from a variable that is redefined after the copy**: `p = D_0035B8A0; b = p; p += 0x180;` keeps `daddu $a1` (copy propagation cannot fold `b`, p changes); `q = D_0035B8A0; b = q; p = q + 0x180;` and `p = (b = ...) + 0x180` lose it (cprop folds `b` into `q`). The extra word also puts the loop label on the game's alignment nop | func_00125A38 (right size, 14 words) |
+| **A store that sits in a call's delay slot after the call's argument load**: read the argument into a local before the store (`e = *(void **)(p + 0xEC); D_0035B848->x4 = r; f(p, e, &v);`), as 2.50's reads ahead | func_00125A38, func_00125B68 |
+| **2.49's `extern const` vector fixes the prologue again**: `extern const Vec4 D_003543A0;` makes the first 13 words of func_00125B68 the game's; its 0x182-pass loop is `i = 0x181; do { i--; ... } while (i >= 0);` | func_00125B68 (5 words) |
+| **Classic PRE hoists an expression into a loop preheader** (2.48's `-fedge-lcm` family): the `.gcse` dump says `PRE/HOIST: end of bb 10, insn 551` for func_001325E8's `b0 & b1` (game: at the join after the second wrap loop, so dbr puts the `and` in a `bc1fl` slot). `-fedge-lcm` on a scratch compile is worse (79 words), so this file is not 3.21's case | func_001325E8 |
+| **Reading a first-scheduler tie in full**: before reload, step 2 (register weight) counts every SET (stores too) as +1 and every REG_DEAD / REG_UNUSED note as -1, so the one store that carries the constant's REG_DEAD issues first among equal stores (func_00129900's `b[0]`). Step 5 counts anti dependences: 32 stack stores after a load from an unknown pointer all anti-depend on it, so a load can outrank a constant that feeds the same stores (35 against 33). The scalar/struct rule of `alias.c` never fires on these addresses (`rtx_addr_varies_p` is 0 for an address with no MEM inside), and the pending-list flush starts only past 32 memory references | func_00129900 |
+| **After reload a hard register set twice has no alias base**: sched2 reruns `init_alias_analysis`; `$v0` set by `lui` / `addiu` for a table and later by `lw D_0035B830` gets no base value, so every store through it may alias every other store (prologue saves, `$gp` floats): output dependences that raise its priority | func_00132480 (reading; why the game's order differs is not found) |
+| **An output dependence on a hard register can break a scheduler tie**: in func_00125B68's tail the game's D_0035B848 pointer is in `$a0`, which the delay-slot `daddu $a0, $v0` rewrites; that adds a forward dependence and the source order wins; ours allocates `$v1` and the D_0035B8A0 load goes first (4 forward deps against 3) | func_00125B68 (reading) |
+
+Nothing compiler-steering; no ruling used (3.18's `u8 f[16]` stays in func_001CCB08's scratch draft). Unofficial: every
+local name. Unconfirmed: the readings in the table; func_001139C8 and func_00115700 prototypes as the file declares
+them; the dbr reading for func_001CCB08 below.
+
+**ER-214's scan** (`C:\rs\wt\er216_runs\scan214.py`, output `scan214.tsv`): unmatched functions whose asm loads an
+`INCLUDE_RODATA` symbol with `ld` (direct `%lo` or through an `addiu %lo` base): **346** (`text_00150878` 305,
+`text_001000C0` 28, `text_0013DBC0` 5, `text_001343E8` 3, `text_001388E8` 2, `text_0013A410` 2, `text_0013B748` 1).
+No ER-188 bulk draft among this card's files is a near miss (compile errors from other causes, or 20+ words with a
+size difference), so the lists placed nothing; func_00125B68 was drafted by hand (above). For other owners:
+`text_00150878` (ER-212) func_0018C938, 12 words at the right size (passes D_00355BD0 by value twice, copies
+D_00355BF0), and func_0019D090 (2.49); `text_001343E8` func_00135378 (D_003546F8, 106 words), `text_0013DBC0`
+func_0013E2F0 (D_00354938, 66 words), the rest of ER-201's hits are 3.10 doubles already worked (whether D_003546F8
+and D_00354938 are vectors was not checked).
+
+**Parked (scratch in `C:\rs\wt\er216_runs\`):**
+
+| Function | Cause |
+|---|---|
+| func_00129900 (`text_001000C0`) | 2 words: the sched1 tie above (652 against 655 at step 5, 35 against 33 forward deps); callee declared `s32` or unprototyped: same deps. No plain C found that changes the counts |
+| func_00125B68 (`text_001000C0`) | 5 words, right size: the tail's two `$gp` loads (register allocation of D_0035B848's pointer, above); about 390 variant compiles over orders, temporaries and types |
+| func_00132480 (`text_001000C0`) | 11 words: sched2 priority from the `$v0` output dependences (above); variants climb with a table-pointer local and 4 restarts, 2,829 compiles |
+| func_00125A38 (`text_001000C0`) | 14 words, right size: the game loads D_0035B8A0 into a temporary (`$v0`) and builds the loop pointer from it; ours loads straight into the pointer's register; n in `$a0` (game `$a2`) |
+| func_001325E8 (`text_001000C0`) | 28 words, 4 bytes short: PRE's hoist of `b0 & b1` (above); `(b0 & 0x2000) && (b1 & 0x2000)` gives the size but other code (13 words) |
+| func_001CCB08 (`text_001CB528`) | 52 words: inner-loop shapes tried (for with `&&` or `break`, `if / else`, locals, index j: 52; `while` + `break` 0x278; `while (k >= m && cmp)` 0x288); the game's `b L; copy` exits and plain `bnez` look like dbr choices from block layout and its liveness scan (Unconfirmed) |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.

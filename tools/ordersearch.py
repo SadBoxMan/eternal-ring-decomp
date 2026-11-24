@@ -326,15 +326,19 @@ def assemble(lines: list[str], orders: dict[tuple[int, int], list[int]]) -> str:
 
 
 def moves(order: list) -> list[list]:
-    """Every order reachable by moving one element to another place (no duplicates)."""
-    n, out = len(order), []
+    """Every order reachable by moving one element to another place, each listed once. ER-209: an adjacent swap is
+    both "element i one place later" and "element i + 1 one place earlier"; only the first is kept (the order of the
+    list is otherwise unchanged, and a later duplicate could never win a tie, so a climb takes the same path)."""
+    n, out, seen = len(order), [], set()
     for i in range(n):
         for j in range(n):
             if i != j and j != i + 1:
                 c = order[:]
                 x = c.pop(i)
                 c.insert(j if j < i else j - 1, x)
-                out.append(c)
+                if tuple(c) not in seen:
+                    seen.add(tuple(c))
+                    out.append(c)
     return out
 
 
@@ -879,7 +883,7 @@ def mode_dump(args) -> int:
     shutil.copyfile(src, out / src.name)
     st = eematch.settings()
     flags = ["-da"] if args.passes == "all" else ["-dS", "-dR"]
-    cc = [st["CC"], f"-B{st['GCC_DIR']}/", *st["CFLAGS"].split(), *(args.cflags.split() if args.cflags else []),
+    cc = [st["CC"], f"-B{st['GCC_DIR']}/", *eematch.scratch_cflags(src), *(args.cflags.split() if args.cflags else []),
           *[f.replace("-I", "-I" + eematch.ROOT.as_posix() + "/", 1) if f.startswith("-I") else f
             for f in st["CPPFLAGS"].split()],
           "-I" + src.parent.as_posix(), "-S", *flags, f"-fsched-verbose-{args.verbose}", src.name,

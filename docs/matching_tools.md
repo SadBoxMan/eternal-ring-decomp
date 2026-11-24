@@ -42,8 +42,22 @@ python -I tools/cmpfunc.py <file.c> [func ...] [--addr 0x...] [--full] [--contex
   and `AS` / `ASFLAGS` (read through `make --eval`, so a flag change in the Makefile reaches the tool at once) into
   `build/scratch/`. With no names, every `func_XXXXXXXX` in it is compared.
 - **A `src/` file** is built with the real rule (`make build/src/<file>.o`); name the function(s).
+- **Per-file flags (ER-205, Tue 24 Nov 2026).** A scratch compile uses the `CFLAGS` of the function's home `src/`
+  file, so a Makefile target-specific line (`$(BUILD)/src/text_001CA8D8.s: CFLAGS += -fedge-lcm`, ruling 3.21)
+  reaches scratch copies with no flag given. The home is the `src/*.c` file that defines each function the scratch
+  file defines, or pulls it in with `INCLUDE_ASM`; the flags are asked of make itself (`CFLAGS` as it applies to
+  `build/src/<home>.s`), so there is no second list in Python. A scratch file with no known function gets the global
+  `CFLAGS`; one holding functions from files with different flags is refused (split it). The same applies to
+  `ordersearch.py` (every mode, `dump` included) and `m2c_bulk.py`'s compiles (`eematch.scratch_cflags`). A `src/`
+  file compiled with `--cflags` now keeps its own flags too (before, it fell back to the global ones). `--cflags`
+  still comes last on the gcc line, so it overrides (`--cflags=-fno-edge-lcm` turns the edge LCM back off). ER-192's
+  wrapper `C:\rs\wt\er192_runs\os_elcm.py` (ordersearch with `-fedge-lcm` added) is no longer needed. Proofs:
+  func_001CA9A8 as a scratch copy (the file's types and externs plus the function) MATCH through cmpfunc and
+  `ordersearch score` with no flag (DIFF, 43 words, with the tools before ER-205 and with `--cflags=-fno-edge-lcm`);
+  a whole-file scratch copy of `text_0014C840.c` gives a byte-identical cmpfunc report before and after (30 MATCH).
 - `--addr` for a function not named after its address; `--full` prints every word with its relocation note;
-  `--cflags` adds gcc flags to a scratch compile (experiments only: a flag in the build needs a ruling).
+  `--cflags` adds gcc flags to a scratch compile (experiments only: a flag in the build needs a ruling; a value
+  starting with `-` needs the `=` form, `--cflags=-fno-edge-lcm`).
 - Exit 0 = every compared function matches, 1 = a difference, 2 = compile error (gcc's message is printed).
 
 **What it compares.** Our function's bytes (size from the symbol, trailing alignment zeros dropped) against the
@@ -191,6 +205,8 @@ python -I tools/m2c_bulk.py --list picks.txt                     one name per li
    [--no-early-exit] [--no-s16-sign] [--no-game-ret]             skip the ER-188 draft fixes: early exit first, s16 sign
    [--no-stack-vec] [--no-global-base]                           test, the game's return type, stack vector, global
                                                                  base (6.22)
+   [--no-while] [--no-untouched-draft] [--no-keep-words]         skip the while fix / the untouched-argument fix on the
+                                                                 draft; ER-188's keep rule for the draft fixes (6.23)
 python -I tools/sdata_consts.py [--all] [--names D_X ...]        census of the never-stored .sdata floats (6.10)
 python -I tools/m2c_bulk.py --rerun-diffs build/m2c_bulk/<label> --chunk 8 --plain    an earlier run's same-size DIFFs in small lists (6.6)
 ```
@@ -310,19 +326,26 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
      of 3 or more ORed terms, each reading a parameter, is written as the flat list in parameter order (`a1 | a2 <<
      k2 | ...`, recipes 2.31); terms without a parameter, or an operator weaker than `|` outside parentheses, leave
      the expression alone. Kept as the frame fix is (Notes: `OR terms in parameter order (packer)`);
-   - **ER-188 draft fixes** (6.22), after the packer, in this order, each kept when it matches or comes strictly
-     closer (then the base of everything below; when nothing below matches, the variants kept only on a MATCH run
-     again from each earlier state, so no match is lost: Notes `draft fix dropped: ...`):
-     **early exit first** (only where the game has more forward branch-likelies than our build; `if (c) { ..; return
+   - **ER-188 draft fixes** (6.22; ER-217's in 6.23), after the packer, in this order, each kept when it matches or
+     comes closer (ER-217's rule, `--no-keep-words` for ER-188's: no farther in size and in words and nearer in one,
+     or reaching the game's size from a size difference; then the base of everything below; when nothing below
+     matches, the variants kept only on a MATCH run again from each earlier state, so no match is lost: Notes `draft
+     fix dropped: ...`):
+     **while loop** (ER-217, `--no-while`: m2c's `if (c) { do { .. } while (c); }`, the if-block holding only the
+     loop and both tests the same text, -> `while (c) { .. }`; kept also when exactly as far off, since the global
+     base may need it), **early exit first** (only where the game has more forward branch-likelies than our build; `if (c) { ..; return
      X; } return Y;` at the end of the body -> `if (!c) { return Y; } ..; return X;`, up to 3 levels, a void
      function's last `if` -> `if (!c) { return; }`; recipes 2.43), **s16 sign test** (`t = x - 1; x = t; if (t &
      0x8000)` -> `if (--x < 0)` on an `s16`, else `(s16) t < 0`; recipes 2.46), **the game's return type** (a `void`
      draft ending in a call, where the game's callers read `$v0` / `$f0`: `return g(..);` typed `f32` / `s32`, the
      callee's prototype retyped too when it differs; recipes 2.42), **stack vector** (where the game moves floats
      through its stack locals: m2c's `sp` array typed `f32`; a call passing `sp` and then 1-4 values becomes the
-     stores `sp[i] = v;` and the call with `sp` last, the callee cut after it as `f32 *`; recipes 2.46), **global
-     base** (`M2C_FIELD(D_x, T *, off)` through `T *gb0 = (T *)D_x;` and `gb0[off / size]`, each access type in turn
-     and same-size fields unified; a draft-declared global as `extern T D_x[];`; recipes 2.45);
+     stores `sp[i] = v;` and the call with `sp` last, the callee cut after it as `f32 *`; recipes 2.46),
+     **untouched arguments on the draft** (ER-217, `--no-untouched-draft`: a call whose arguments sit d registers
+     higher in the game than in our build gets the function's own first d integer parameters first, added as `s32
+     argN` when the function lacks them, and the callee d leading `s32`), **global base** (`M2C_FIELD(D_x, T *, off)`
+     through `T *gb0 = (T *)D_x;` and `gb0[off / size]`, each access type in turn and same-size fields unified; the
+     global's extern, in the draft or (ER-217) in its prototypes header, as `extern T D_x[];`; recipes 2.45);
    - **store order**: same size as the game's: first (ER-124) each run of 2 or more consecutive
      `M2C_FIELD(base, T *, off) = rhs;` lines at one indentation (inside blocks too; ER-138: also `*p = x;` at offset
      0 and `p[N] = x;` at N times the element size, for a parameter, local or `extern T D_X[];` of known element type)
@@ -1278,7 +1301,55 @@ ER-189's `er189c0`):
 - Merging main or committing (the hooks run regress) while a run's folder is still being copied out of `build/`
   loses its tail: `rs0`'s `obj/` lost some scratch files that way (its `c/` and results were complete).
 - Header copies (`.gret` / `.svec`) are named per attempt (function and context), so one context's copy cannot
-  overwrite another's. `const_variant`'s `{func}.const.protos.h` is still per function only (older; not changed here).
+  overwrite another's. `const_variant`'s `{func}.const.protos.h` is still per function only (older; not changed here;
+  ER-217 made it per attempt, 6.23).
+
+### 6.23 While loops, untouched arguments on the draft, the keep rule, per-attempt const headers (ER-217, Tue 24 Nov 2026)
+
+Written by ER-217 + ER-209 (Opus 5.5, medium). Changes in `tools/m2c_bulk.py` (step 6 above); nothing placed in
+`src/`. Worktree `C:\rs\wt\er217`, branch `er-217-m2c-r6`. Runs and drafts (game code, not in git):
+`C:\rs\wt\er217_runs\`.
+
+| ER-188 follow-up | Change | Switch |
+|---|---|---|
+| (a) func_001C1880 still 9 words with the global base | **while loop**: m2c's `if (c) { do { .. } while (c); }` (the if-block holding only the loop, both tests the same text) -> `while (c) { .. }`; first in the draft-fix chain, kept also when exactly as far off (the global base may need it). The global base's array form now also takes an extern that only the prototypes header declares (a copy under obj/, `.garr`): func_001C1880's `D_001F6B90` is declared there, so the array form was never tried on it | `--no-while` (both parts) |
+| (b) func_00132108 33 -> 50 words kept because its size came closer | **keep rule** for the draft fixes (`_closer`): a MATCH; or reaching the game's size from a size difference; or no farther in size and in words and nearer in one. The best candidate inside one fix is picked by the same rule | `--no-keep-words` (ER-188's: size first, then words) |
+| (c) func_0012D388 / func_00130120 at 1 word after the stack vector | **untouched arguments on the draft**, after the stack vector: a call whose arguments sit d registers higher in the game (`shifted_calls`: the game writes `$a<i+d>` where ours is the same instruction writing `$a<i>`) gets the function's first d integer parameters as new first arguments, added as `s32 argN` when the function lacks them (floats and integers take separate registers), and the callee d leading `s32` (draft line or a `.uarg` header copy) | `--no-untouched-draft` |
+| (d) `const_variant`'s header per function | named per attempt (`<func>.<context>[.preN].const.protos.h`) | none (a fix of the file name, not a draft fix) |
+
+Why (c) is a new fix and not ER-147's retry moved: the untouched-args retry re-drafts with m2c from a widened
+context, so it runs before the draft fixes, never after one; and its callee scan reads the callee's splat asm, which a
+placed callee no longer has (func_0012D318 and func_0012C9D8 were placed). The draft change uses only the compare
+result, as the pass-through retry's detection does (that one finds d = 1 only, and func_00130120's is d = 3: `sp` in
+`$a3`, three arguments passed on, as ER-189 placed it).
+
+**A/B** as ER-188's (6.22): the 9 files set back in the worktree (`text_00150878` at `fd75cc4^`, the 8 others at
+`c5ea17b^`, the rest of `src/` at main `0ee0500`; regress PASS on that state), main's tool (copied aside as
+`tools/_m2c_bulk_main.py`, never committed) against this one on ER-188's 68 functions, which hold ER-186's six
+(func_00152D58 and the five globals as base pointers of recipes 2.45); same arguments (`--plain --tag ER-217
+--gcc-timeout 30 --par 4`). Labels `exA` / `exB` / `exC`, 107 / 113 / 100 s.
+
+| Run | Functions | MATCH (plain) | Lost |
+|---|---|---|---|
+| main's tool (`exA`; the same rows as ER-188's `exB`, one for one) | 68 | 29 (28) | |
+| this tool (`exB`) | 68 | **32 (31)** | none |
+| this tool, `--no-while --no-untouched-draft --no-keep-words` (`exC`) | 68 | 29 (28), every row as `exA` | none |
+
+- New: **func_001C1880** (while loop 9 -> 8 words, then `extern s32 D_001F6B90[];` from the header: the plain draft
+  is ER-186's placed C line for line), **func_0012D388** (`s32 arg0` added, func_0012D318 gets it first),
+  **func_00130120** (`s32 arg0, arg1, arg2` added). All three are placed on main already (ER-186, ER-189), so there is
+  nothing new to place.
+- Other rows changed: func_00132108 50 -> 33 words (the global base is refused: 12 -> 4 bytes off would have cost 17
+  words), func_001CA630 17 -> 8 words (the array form from the header, `D_01B31D80`). No other row changed.
+- All 68 are placed on main (that is how the set was chosen), so the set cannot give a new MATCH there; no
+  whole-file rerun was made by this card.
+- Also fixed: a run whose every named function is already placed stopped with an IndexError; it now says "nothing
+  left to draft" and exits 1.
+
+Not verified (ER-217): only the 68-function set (no whole-file run, so the new fixes' hit rate on the remaining
+near misses is not measured); the while fix only met loops whose two tests are the same text (m2c can also write
+the loop test with a different temporary: not handled); a function with more than four integer parameters in the
+untouched-argument fix was not met; (d) changes only file names, so no run can show it beyond the A/B being equal.
 
 ## 7. Not verified
 
@@ -1377,7 +1448,7 @@ or `--func` (and `--addr` for a name that is not an address). The input file is 
 | `decl` | random orders of the local declarations (default block: after the function's opening `{` up to the first blank line; 200 samples) | ER-093 `declperm.py` |
 | `group` | sort each run of lines starting with one of `--prefixes` by prefix, for every order of the prefixes | ER-132 `reorder.py`, `reorder2.py` |
 | `sub` | apply `OLD NEW` string replacements (variable reuse, types, spellings; `\n` allowed) to a copy, then `score` it | ER-132 `var.py`; ER-158's `var.py` (one substitution set per call) |
-| `dump` | gcc dumps with the Makefile's `CC` / `CFLAGS` / `CPPFLAGS`: `-dS -dR -fsched-verbose-6` (default) or `-da` (every pass), into `<stem>_dump/` | ER-123 / ER-132 `dump.sh` |
+| `dump` | gcc dumps with the Makefile's `CC` / `CFLAGS` (the home file's, ER-205: section 2) / `CPPFLAGS`: `-dS -dR -fsched-verbose-6` (default) or `-da` (every pass), into `<stem>_dump/` | ER-123 / ER-132 `dump.sh` |
 
 ER-085's `perm.py` (DISP-02's notes folder, `ER-085_c/`: every order of a statement list between a head and a tail
 file, serial, stops at the first MATCH) and the `perm.py` of ER-123, ER-132 and ER-093 (the same with constraints or
@@ -1472,10 +1543,14 @@ a time.
 - `--range` counts differing words by game offset; with a size difference the offsets drift and the range means less.
 - ER-132's `normlib.py` masking (negative offsets, `addiu -0x...`, zero offsets) is not reproduced: `score` follows
   `sc.py`, which masks from the asm file instead, so ER-132's `731 / 902` figures are not comparable with it.
-- (ER-176) The `compiles` count in the final line can differ by a few between runs at `--par` above 1: `moves()`
-  lists every adjacent swap twice, and when two threads score the same text at once both compile it before the
-  cache holds it. The path and the result do not change (ER-117's climb proof: the same six improvements and the
-  same MATCH, 91 compiles then, 86 in ER-176's rerun).
+- (ER-176) The `compiles` count in the final line could differ by a few between runs at `--par` above 1: `moves()`
+  listed every adjacent swap twice, and when two threads scored the same text at once both compiled it before the
+  cache held it. **Fixed by ER-209** (8.5): each move is listed once.
+- (ER-217) `moves()` never moves an element to the **last place** of a block (`j` runs to n - 1, and "insert at
+  j - 1" stops one short), except the element next to it (by the swap). With 6 lines it lists 21 of the 25 single
+  moves (with 4 lines, 7 of 9); the four missing ones are each of the first four lines moved to the end. Left as it
+  is: adding them changes the neighbours of every climb, so earlier proofs would no longer be reproduced step for
+  step. A climb can still reach those orders in two steps.
 
 ### 8.4 `variants` and restarts (ER-176, Tue 24 Nov 2026)
 
@@ -1535,3 +1610,24 @@ one; `--search all` with order blocks was not run on a real case (the code path 
 enumeration, but untested here); `--text` was run only on `perm` (func_0011BB90's six stores given as a file:
 it found block 82-87 and the same 3 MATCH orders of 720 as 8.1, 27 s), not on `climb` or `variants`; restarts
 on `climb` were not run on a case that needed them (only `switch` and `variants`).
+
+### 8.5 Each move listed once (ER-209, Tue 24 Nov 2026)
+
+Written by ER-217 + ER-209 (Opus 5.5, medium). `moves()` (the neighbours of `climb`, the `switch` climb and the
+`variants` climb) listed each adjacent swap twice: "line i one place later" and "line i + 1 one place earlier" give
+the same order. It now keeps the first of the two and drops the other; nothing else in the list changes. A later
+duplicate could never win, since ties keep the earlier candidate, so every climb takes the same path; it only
+compiles less, and the count no longer depends on two threads scoring the same text at once.
+
+**Proof** (ER-117's climb: func_0011BB90 from the reversed order, `climb --lines 82-87`, input copied from
+`C:\rs\wt\er176_runs\p1\bb90_rev.c`; runs in `C:\rs\wt\er217_runs\climb\`, game-derived, outside git). Main's tool
+(`tools/_ordersearch_main.py`, a copy, never committed) against this one, three runs each at `--par 4`:
+
+| Tool | Compiles (3 runs at --par 4) | --par 1 | Path |
+|---|---|---|---|
+| main | 93, 94, 90 | (ER-176: 86 and 91 seen) | as written 40 words -> 7 -> 4 -> 3 -> 2 -> MATCH `[86, 87, 85, 84, 83, 82]` |
+| ER-209 | **84, 84, 84** | **84** | the same lines (`best` / `MATCH` lines of the seven logs identical) |
+
+Moves per block of 6 lines: 25 listed before, 21 now. The four adjacent swaps away from the end were listed twice;
+the swap of the last two only once, because of the last-place gap in 8.3, which is a separate matter, left as it
+is.
