@@ -2099,11 +2099,11 @@
     {
       "code": "ER-200",
       "title": "Recomp: graphical bug fixes (2D UI and the rest)",
-      "status": "Queued",
+      "status": "Done",
       "track": "port",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": "Filed 24 Nov 2026 on LuciDin's word; folds in ER-129, ER-135, ER-127; step 1 asks LuciDin for every fault seen"
+      "notes": "Done in part 24 Nov 2026 (Recomp 6f6a3fc, spike 22): mirrored sprites fixed (patch 16 er200_sprite_flip, LuciDin confirmed corners / borders); logo / movie shake traced (movie field buffers half a line apart vs ER-058 presenter; HLE sceGsSyncV returns the opposite field), draft reverted at LuciDin's word; UI text spacing / blur / colours and ER-127 flicker not started"
     },
     {
       "code": "ER-201",
