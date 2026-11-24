@@ -3342,7 +3342,36 @@ int func_0017D930(int a0) {
     return 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D968);
+extern void func_00101200(int *p, u32 n);
+extern void func_0017DA38(void *);
+extern void func_0017CEC0(void *);
+
+/* ER-184: by hand from the m2c draft (run er171s0; stores in the first matching order of 120); names and types Unconfirmed.
+   The NULL path ends in a bare `return;` (no value): only that shape gives the game's `jal func_0017CF08; nop` and
+   the jump to the epilogue with no `$v0` set (`return NULL;` adds a word, `return func_0017CF08();` needs a value).
+   PORT NOTE (ruling 3.20): on that path the caller gets whatever is left in $v0, which is still the NULL that
+   func_0017D0B8 returned (func_0017CF08 is empty); a PC build must return NULL there explicitly. */
+void* func_0017D968(s16 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
+    s32 id;
+    char *p;
+
+    p = (char *)func_0017D0B8(&id);
+    if (p == NULL) {
+        func_0017CF08();
+        return; /* ruling 3.20 */
+    }
+    func_00101200((int *)p, 0x28);
+    *(u16 *)(p + 0) = id;
+    *(s16 *)(p + 2) = arg0;
+    *(s32 *)(p + 0xC) = arg4;
+    *(s32 *)(p + 0x70) = arg3;
+    *(s8 *)(p + 0x7B) = -1;
+    func_0017CEC0(p);
+    func_001C9B18((s32)(p + 0x50), (void *)arg1);
+    func_001C9B18((s32)(p + 0x60), (void *)arg2);
+    func_0017DA38(p);
+    return p;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017DA38);
 
