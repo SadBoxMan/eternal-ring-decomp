@@ -176,7 +176,54 @@ INCLUDE_ASM("asm/nonmatchings/text_0013A410", func_0013B3D0);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013A410", func_0013B3F0);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013A410", func_0013B438);
+extern s32 func_001313A8(char *);
+extern s32 *func_0013B5B0(char *, s32, f32 *);
+extern float func_00130378(char *, s32);
+extern float func_0012E7B0(float, float);
+extern f32 D_0035BA7C;
+extern f32 D_0035BA84;
+
+/* ER-198: by hand from the m2c draft; both early exits written first (2.43), 500.0f is v[0] of a stack vector passed
+   to func_0013B5B0 (2.46; its prototype s32 *(char *, s32, f32 *) is a reading), the step stored in each arm (gcc
+   merges the tails, so x48 is reloaded) and a fresh local for the clamp; names, types and offsets are Unconfirmed
+   readings. */
+s32 func_0013B438(char *arg0, char *arg1) {
+    f32 v[4];
+    s32 t;
+    s32 *r;
+    f32 a;
+    f32 d;
+    f32 lim;
+    f32 x;
+    f32 y;
+
+    t = func_001313A8(arg0);
+    if (t == 0) {
+        return 0;
+    }
+    v[0] = 500.0f;
+    r = func_0013B5B0(arg0, t, v);
+    if (r == NULL) {
+        return 0;
+    }
+    a = func_00130378(arg1 + 0x90, *r + 0x90) + 6.2831855f;
+    d = func_0012E7B0((a - (f32)(s32)(a / 6.2831855f) * 6.2831855f) - 3.1415927f, *(f32 *)(arg1 + 0xA4));
+    x = *(f32 *)(arg0 + 0x48);
+    if (d >= 0.0f) {
+        *(f32 *)(arg0 + 0x48) = x + -((D_0035BA84 * 3.1415927f) / 180.0f) * 4.0f;
+    } else {
+        *(f32 *)(arg0 + 0x48) = x + ((D_0035BA84 * 3.1415927f) / 180.0f) * 4.0f;
+    }
+    lim = (D_0035BA7C * 3.1415927f) / 180.0f;
+    y = *(f32 *)(arg0 + 0x48);
+    if (y < -lim) {
+        y = -lim;
+    } else if (lim < y) {
+        y = lim;
+    }
+    *(f32 *)(arg0 + 0x48) = y;
+    return 1;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013A410", func_0013B5B0);
 
