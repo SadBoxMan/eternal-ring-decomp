@@ -1272,7 +1272,7 @@ a call (func_0012FAA8, func_0014FE30). Hence the callee-side conditions in step 
   tool kills the driver only (not tested). Why small lists matched 4 more drafts for ER-062 is still not traced
   (no new match from them in ER-064).
 
-## 8. `tools/ordersearch.py`: register-blind score, order search, gcc dumps (ER-117, Mon 23 Nov 2026)
+## 8. `tools/ordersearch.py`: register-blind score, order search, gcc dumps (ER-117, Mon 23 Nov 2026; ER-176 round 2, Tue 24 Nov 2026)
 
 Written by ER-117 (Opus 5.5, medium). One tool for the near-miss work that several cards did with one-off scripts in
 the notes folders. It builds on `tools/eematch.py` (the same compile and compare as `tools/cmpfunc.py`, in process),
@@ -1282,14 +1282,16 @@ result at any `--par` (checked: a climb at `--par 1` and `--par 4` wrote the sam
 it is a plain script.
 
 ```
-python -I tools/ordersearch.py score  a.c [b.c ...] [--func F] [--diff] [--regs] [--drift]
-python -I tools/ordersearch.py perm   a.c [--lines A-B] [--before X,Y ...] [--samples N] [--all]
-python -I tools/ordersearch.py climb  a.c [--lines A-B ...] [--before X,Y ...] [--range LO:HI] [--metric noreg]
-python -I tools/ordersearch.py switch a.c [--lines A-B] [--key REGEX] [--search climb|all]
-python -I tools/ordersearch.py decl   a.c [--lines A-B] [--samples N]
-python -I tools/ordersearch.py group  a.c --prefixes 'col.,uv.,v[,q['
-python -I tools/ordersearch.py sub    a.c OLD NEW [OLD NEW ...] [-o out.c]
-python -I tools/ordersearch.py dump   a.c [--passes sched|all] [--verbose 6]
+python -I tools/ordersearch.py score    a.c [b.c ...] [--func F] [--diff] [--regs] [--drift]
+python -I tools/ordersearch.py perm     a.c [--lines A-B | --text F] [--before X,Y ...] [--samples N] [--all]
+python -I tools/ordersearch.py climb    a.c [--lines A-B ... | --text F ...] [--before X,Y ...] [--range LO:HI]
+                                            [--metric noreg] [--restarts N]
+python -I tools/ordersearch.py switch   a.c [--lines A-B] [--key REGEX] [--search climb|all] [--restarts N]
+python -I tools/ordersearch.py variants t.c [--search auto|all|climb] [--restarts N] [order blocks]   (ER-176)
+python -I tools/ordersearch.py decl     a.c [--lines A-B] [--samples N]
+python -I tools/ordersearch.py group    a.c --prefixes 'col.,uv.,v[,q['
+python -I tools/ordersearch.py sub      a.c OLD NEW [OLD NEW ...] [-o out.c]
+python -I tools/ordersearch.py dump     a.c [--passes sched|all] [--verbose 6]
 ```
 
 `--help` on the tool and on each mode lists every option. The function is the one `func_XXXXXXXX` the file defines,
@@ -1301,6 +1303,7 @@ or `--func` (and `--addr` for a name that is not an address). The input file is 
 | `perm` | every order of one block of lines, or `--samples N` random orders (the first as written) when there are more than `--max` (default 8! = 40,320); `--before X,Y` keeps line X before line Y; `--all` goes on after the first MATCH and lists every matching order | ER-089 `lineperm.py`; the `perm.py` of ER-085, ER-123, ER-132 and ER-093 |
 | `climb` | steepest ascent over single-line moves (every line to every other place), block by block (each `--lines` / marker block in turn), passes over all blocks until none improves (`--rounds`, default 20) | ER-123 `climb.py`; ER-132 `climb2.py` (its per-range score: `--range`) |
 | `switch` | one statement order shared by every `case` of a switch: lines whose `--key` (default: the left side of `x = ...;`) is found once in every case are reordered together; other lines (`break;`) keep their place | ER-093 `swperm.py` (`climb` / `all`) |
+| `variants` | a template: every `@{a@\|b@\|c@}` group picks one alternative, searched together with the file's order blocks; every combination (`--search all`) or a climb (one group changed or one line moved per step); 8.4 (ER-176) | ER-132 / ER-158 `var.py` run by hand, set after set |
 | `decl` | random orders of the local declarations (default block: after the function's opening `{` up to the first blank line; 200 samples) | ER-093 `declperm.py` |
 | `group` | sort each run of lines starting with one of `--prefixes` by prefix, for every order of the prefixes | ER-132 `reorder.py`, `reorder2.py` |
 | `sub` | apply `OLD NEW` string replacements (variable reuse, types, spellings; `\n` allowed) to a copy, then `score` it | ER-132 `var.py`; ER-158's `var.py` (one substitution set per call) |
@@ -1308,12 +1311,22 @@ or `--func` (and `--addr` for a name that is not an address). The input file is 
 
 ER-085's `perm.py` (DISP-02's notes folder, `ER-085_c/`: every order of a statement list between a head and a tail
 file, serial, stops at the first MATCH) and the `perm.py` of ER-123, ER-132 and ER-093 (the same with constraints or
-`@@PERM@@` templates, 4 threads) are all covered by `perm`. Other order scripts in the notes folders
-(`perm_stores.py` of ER-080 / ER-095, `permg.py` of ER-100 / ER-120) were not read for this tool.
+`@@PERM@@` templates, 4 threads) are all covered by `perm`. ER-176 read the last two (DISP-03's notes folder):
+`perm_stores.py` (ER-080 / ER-095: every order of a statements file pasted at an `@@PERM@@` line, serial,
+counting only candidates of the game's size) is `perm` with markers (a size difference already ranks last);
+`permg.py` (ER-100 / ER-120, the same two files: every order of a block named by a file of its exact lines, found
+in the source by text) is `perm --text F`, which ER-176 added (also on `climb` and `variants`).
 
-**Blocks.** `--lines A-B` (1-based, inclusive, file line numbers; repeat it for several `climb` blocks), or mark the
-lines in the file: a line `/*ORDER*/` before the block and a line `/*END*/` after it (several pairs for `climb`). The
-lines are moved as whole lines, so put one statement on each.
+**Blocks.** `--lines A-B` (1-based, inclusive, file line numbers; repeat it for several `climb` blocks), `--text F`
+(`perm`, `climb`, `variants`: a file holding the block's exact lines, blank lines ignored and whitespace trimmed,
+which must be found once and consecutive in the input), or mark the lines in the file: a line `/*ORDER*/` before
+the block and a line `/*END*/` after it (several pairs for `climb`). The lines are moved as whole lines, so put one
+statement on each.
+
+**Restarts** (ER-176; `climb`, `switch` climb, `variants` climb): `--restarts N` runs N more climbs after the first,
+each from a random start (every block shuffled, `--before` kept; for `variants` also a random alternative in every
+group), random from `--seed`. The log marks each (`restart i/N: start [...]`, `restart i: stopped at [...]`);
+`best.c` is the best over all climbs, and the run stops at the first MATCH.
 
 **Scores** (tuples, lower is better): `words` (default) = (size differs, differing words in `--range LO:HI` game
 offsets or in all, differing words); `noreg` = (size differs, game instructions not equal register-blind, differing
@@ -1389,3 +1402,66 @@ a time.
 - `--range` counts differing words by game offset; with a size difference the offsets drift and the range means less.
 - ER-132's `normlib.py` masking (negative offsets, `addiu -0x...`, zero offsets) is not reproduced: `score` follows
   `sc.py`, which masks from the asm file instead, so ER-132's `731 / 902` figures are not comparable with it.
+- (ER-176) The `compiles` count in the final line can differ by a few between runs at `--par` above 1: `moves()`
+  lists every adjacent swap twice, and when two threads score the same text at once both compile it before the
+  cache holds it. The path and the result do not change (ER-117's climb proof: the same six improvements and the
+  same MATCH, 91 compiles then, 86 in ER-176's rerun).
+
+### 8.4 `variants` and restarts (ER-176, Tue 24 Nov 2026)
+
+Written by ER-176 (Opus 5.5, medium) for ER-134's "orders plus variable reuse and types".
+
+**Template.** Any line may hold groups `@{a@|b@|c@}`: each is replaced by one of its alternatives (`@|` separates
+them; text with no C meaning, so `|` and `||` stay usable). The **first alternative is the as-written start**. An
+alternative may be empty, so a group can add or drop text (`@{@|s32 t;@}` adds a declaration). A group must open
+and close on one line; a stray `@{`, `@|` or `@}` is an error. **Named groups** `@name{...@}` share one choice
+index wherever the name appears, each place keeping its own texts (and the same number of alternatives): that is
+variable reuse or a new temporary, the declaration and every use switched together. Unnamed groups are independent
+(the log calls them `L<line>#<n>`). The template may also hold order blocks (`/*ORDER*/` ... `/*END*/`, or
+`--lines` / `--text`, with `--before`): they are searched together with the groups; marker lines stay in the
+candidates as comments.
+
+```
+    @{float@|f32@} f;
+    @t{@|s32 t;@}
+...
+        @t{D_00248880[0] = func_001E9C70() % 45 + 45;@|t = func_001E9C70(); D_00248880[0] = t % 45 + 45;@}
+```
+
+**Search.** `--search all` tries every combination (groups times every order of every block, `--before` kept);
+`climb` is steepest ascent where a step changes one group to another alternative or moves one line inside one
+block (all such neighbours scored, the best taken if it beats the current); `auto` (default) is `all` when the
+combinations fit in `--max` (40,320), else `climb`. `--restarts N` adds N climbs from random starts (a random
+alternative per group, a random order per block). Labels list only what differs from the as-written start
+(`t=1:'s32 t;'; block 39-46 order [...]`). A MATCH from `variants` is proven like any other: place and
+`make regress` (3.1); a candidate may change the meaning of the C (an alternative read before its store), which a
+byte match settles but a near miss does not.
+
+**Tried on func_0015C0E0** (ER-123's 33-word draft, `ER-123_c\func_0015C0E0.c` in DISP-03's notes folder; scratch
+copies and template in `C:\rs\wt\er176_runs\c0e0\`, game-derived, outside git). Template: two order blocks (the
+eight lines from `c = D_00354D80;` to `*(float *)(a0 + 0x14) = f;`, and the seven stores after `% 45`) plus four
+variables: `f` as `float` / `f32`; a temporary `t` for the `func_001E9C70()` result (named group: declaration and
+use); `D_00248880[2] = (s32)` of `f` or of `*(float *)(a0 + 0x14)`; `*(float *)(a0 + 0x14) =` `f` or `p[1]`.
+
+| Run | Result |
+|---|---|
+| groups only (markers removed), `--search all` | 16 combinations, 16 compiles, 1 s: none better than as written (33 words) |
+| groups + both blocks, `climb --restarts 3` | 1,376 compiles, 46 s: the first climb stays at 33; restart 1 reaches **31 words** (both blocks reordered, every group at its first alternative); restarts 2 and 3 stop at 41 and 35. **No MATCH** |
+
+So these four alternatives do not move this function; the 31-word order (`v2\best.c`) is only a lower count, not
+a lead that was checked by hand. ER-134 should bring its own alternatives (types of `c` / `s`, where `f` dies,
+the `% 45` operands).
+
+**Restarts on ER-093's switch** (ER-117's `sw_sorted.c`: the eight pad lines of func_00119FE0's switch in
+alphabetical order, lines 60-101; ER-117's climb stopped at 34 words): `switch --restarts 8`: the first climb again
+34 (logged inside the run), the restarts stop at 27, **11**, 19, 31, **11**, 26, 34, **11** words (1,287 compiles,
+70 s). Three of eight restarts reach 11 words from random starts, so restarts do escape the 34-word optimum, but
+none reaches ER-093's 3-word draft (which was climbed from m2c's order). **ER-117's climb proof** (func_0011BB90,
+`climb --lines 82-87` from the reversed order) was rerun after the refactor: the same improvements in the same
+order and the same MATCH.
+
+Not verified (ER-176): `variants` on one function only, with no MATCH, so the tool has not yet been seen to find
+one; `--search all` with order blocks was not run on a real case (the code path is shared with `perm`'s
+enumeration, but untested here); `--text` was run only on `perm` (func_0011BB90's six stores given as a file:
+it found block 82-87 and the same 3 MATCH orders of 720 as 8.1, 27 s), not on `climb` or `variants`; restarts
+on `climb` were not run on a case that needed them (only `switch` and `variants`).
