@@ -2315,11 +2315,11 @@
     {
       "code": "ER-224",
       "title": "Rodata vector copies as extern const (m2c_bulk + drafts)",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "m2c_bulk .rodata vector copy fix (--no-rodata-vec) + extra? rescue (--no-extra-stores) + void literal loads; A/B 68: 32 -> 32, none lost; func_0018C938 known-good plain MATCH; 28 text_001000C0: 4 -> 16 compile, func_001037F8 matched by hand (ruling question), func_00126190 8 words; matching_tools 6.24"
     },
     {
       "code": "ER-225",

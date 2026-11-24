@@ -207,6 +207,8 @@ python -I tools/m2c_bulk.py --list picks.txt                     one name per li
                                                                  base (6.22)
    [--no-while] [--no-untouched-draft] [--no-keep-words]         skip the while fix / the untouched-argument fix on the
                                                                  draft; ER-188's keep rule for the draft fixes (6.23)
+   [--no-rodata-vec] [--no-extra-stores]                         skip the .rodata vector copy fix / the rescue of
+                                                                 m2c's `/* extra? */` arguments (6.24)
 python -I tools/sdata_consts.py [--all] [--names D_X ...]        census of the never-stored .sdata floats (6.10)
 python -I tools/m2c_bulk.py --rerun-diffs build/m2c_bulk/<label> --chunk 8 --plain    an earlier run's same-size DIFFs in small lists (6.6)
 ```
@@ -307,6 +309,15 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
 
 5. **Compile** with exactly the Makefile's `CC` / `CFLAGS` / `CPPFLAGS` / `AS` / `ASFLAGS` (`eematch.settings()`)
    into `obj/`, **compare** with `eematch.compare_function` (the cmpfunc check: relocation targets checked).
+   (ER-224, 6.24) Before that, m2c's `*(void *)0x70000010` (a load from a literal address whose type m2c did not
+   find, EE scratchpad in `text_001000C0`) is written `*(s32 *)0x70000010` (Notes: `N literal-address load(s) of type
+   void as s32`). A draft that fails with "too many arguments" and holds m2c's `/* extra? */` arguments is rescued
+   once (`--no-extra-stores`): each such call is matched by order to the game's `jal` of the same callee (only when
+   the draft has as many calls to it as the asm has jals), and its n extras become `*(T *)((s8 *)sp + N) = v;` before
+   the statement, N the n lowest offsets the game stores to N($sp) since the previous jal (delay slot included),
+   below the draft's first named stack local, T from the store (`sw` s32, `swc1` f32, `sd` s64, `sh` s16, `sb` s8);
+   where that does not fit, or the call sits in a loop test or after a `}`, the extras are dropped. Notes: `extra?
+   arguments: N as stores into sp, M dropped` (`: still no compile` when the rescue did not compile either).
 
 6. **Two shape variants** on a compiled draft that does not match, both from confirmed recipes
    (`docs/decomp_recipes.md` 2.1):
@@ -331,6 +342,12 @@ which the build does not have: place the `--plain` form instead (`c/func_X.plain
      or reaching the game's size from a size difference; then the base of everything below; when nothing below
      matches, the variants kept only on a MATCH run again from each earlier state, so no match is lost: Notes `draft
      fix dropped: ...`):
+     **.rodata vector copy** (ER-224, `--no-rodata-vec`, 6.24: m2c's halves `spN = M2C_FIELD(&D_x, s64 *, 0);` /
+     `sp<N+8> = M2C_FIELD(&D_x, s64 *, 8);`, the frame array's `(*(s64 *)&sp[k]) = ...` and the rescue's
+     `*(s64 *)((s8 *)sp + N) = ...`, for an `INCLUDE_RODATA` D_x, -> one struct copy `spN = D_x;` with
+     `extern const Vec4 D_x;` and the target file's own vector typedef (`Vec4` in `text_001000C0`, `Vec4A` in
+     `text_00150878`; else `Vec4`, Unofficial, ruling 3.15); a second candidate as initializers when every copy is a
+     named local at the top of the body; recipes 2.49 / 2.52),
      **while loop** (ER-217, `--no-while`: m2c's `if (c) { do { .. } while (c); }`, the if-block holding only the
      loop and both tests the same text, -> `while (c) { .. }`; kept also when exactly as far off, since the global
      base may need it), **early exit first** (only where the game has more forward branch-likelies than our build; `if (c) { ..; return
@@ -1350,6 +1367,65 @@ Not verified (ER-217): only the 68-function set (no whole-file run, so the new f
 near misses is not measured); the while fix only met loops whose two tests are the same text (m2c can also write
 the loop test with a different temporary: not handled); a function with more than four integer parameters in the
 untouched-argument fix was not met; (d) changes only file names, so no run can show it beyond the A/B being equal.
+
+### 6.24 `.rodata` vector copies as `extern const`, the `/* extra? */` rescue, void literal loads (ER-224, Tue 24 Nov 2026)
+
+Written by ER-224 (Opus 5.5, medium). Changes in `tools/m2c_bulk.py` (steps 5 and 6 above); nothing placed in `src/`.
+Worktree `C:\rs\wt\er224`, branch `er-224-vec-const`. Runs and drafts (game code, not in git): `C:\rs\wt\er224_runs\`.
+
+Why: recipes 2.49 / 2.52 found that a function copying an `INCLUDE_RODATA` vector with `ld` / `sd` gets the game's
+prologue only from a struct copy of an `extern const` vector (func_001A3D00, func_00126F00, func_00125B68); ER-214's
+scan lists 346 unmatched functions with such a copy. m2c writes the copy as two `s64` halves, or, when the copy
+lands in the lowest stack slots, as `/* extra? */` arguments of the next call, which do not compile.
+
+| Change | What it does | Switch |
+|---|---|---|
+| **.rodata vector copy** (first of the draft fixes) | `spN = M2C_FIELD(&D_x, s64 *, 0);` + `sp<N+8> = M2C_FIELD(&D_x, s64 *, 8);` (also the frame array's `(*(s64 *)&sp[k])` and the rescue's `*(s64 *)((s8 *)sp + N)` spellings) for an `INCLUDE_RODATA` D_x -> `spN = D_x;` with `Vec4 spN;`, `extern const Vec4 D_x;` (the draft's extern, or the prototypes header's as a copy `.rvec.protos.h`) and the target file's own typedef (`Vec4` in `text_001000C0`, `Vec4A` in `text_00150878`, else `Vec4`: Unofficial, ruling 3.15). A named local used other than as `&spN`, or whose upper half is used, is left alone. Second candidate: initializers, when every copy is a named local at the top of the body above any label. Kept by the usual rule only (`_closer`: kept also when as far off, it took the halves the global base would have used, func_001254F8 80 -> 154 words) | `--no-rodata-vec` |
+| **`/* extra? */` rescue** (before the compare) | a draft failing with "too many arguments" that holds m2c's extras: each call matched by order to the game's `jal` of the same callee (counts must agree); its n extras -> `*(T *)((s8 *)sp + N) = v;` before the statement from the game's n lowest stores to N($sp) since the previous jal (delay slot included), below the first named stack local; else dropped (also in a loop test or a line opening with `}`). A rescue that still fails keeps its draft and errors in `c/` | `--no-extra-stores` |
+| **void literal loads** (clean step) | `*(void *)0x70000010` -> `*(s32 *)0x70000010` (gcc refuses a void value; only drafts that could not compile change) | none |
+| `--plain` | the typedef line goes first in the plain file, the draft's `extern const` line before the file's own; Plain notes: the file's typedef line (drop the plain copy; it must sit above the function), or ruling 3.15 for an Unofficial one; a file line declaring D_x otherwise | |
+
+**A/B** as ER-188 / ER-217's (6.22, 6.23): the 9 files set back in the worktree (`text_00150878` at `fd75cc4^`, the
+8 others at `c5ea17b^`, the rest of `src/` at `af36081`; regress PASS on that state), main's tool (copied aside, never
+committed) against this one on ER-188's 68 functions, same arguments (`--plain --tag ER-224 --gcc-timeout 30 --par
+4`). Labels `exA` / `exB` / `exC`, 109 / 105 / 125 s.
+
+| Run | Functions | MATCH (plain) | Lost |
+|---|---|---|---|
+| main's tool (`exA`) | 68 | 32 (31) | |
+| this tool (`exB`) | 68 | **32 (31)** | none |
+| this tool, `--no-rodata-vec --no-extra-stores` (`exC`) | 68 | 32 (31), every row as `exA` | none |
+
+- Rows changed in `exB`: func_0013C468 16 -> 10 words, func_001308B8 26 -> 25 (both by the rescue: one context that
+  failed to compile now compiles). The set has no `.rodata` vector copy, so it shows only that nothing is lost.
+- **Known-good check**: func_0018C938 (`text_00150878`, placed by ER-213 with `extern const Vec4A` vectors, recipes
+  2.53) set back to INCLUDE_ASM in the worktree only: this tool drafts a **plain MATCH** (rescue: 2 stores into sp;
+  vector copy D_00355BF0, D_00355BD0, 9 -> 8 words; then a store order), `--no-rodata-vec --no-extra-stores` 12 words.
+
+**The 28 `text_001000C0` functions of ER-214's scan** (main `21cb14c` merged, label `f28`; before this card all but 4
+failed to compile, ER-188's `rc0`):
+
+| Result | Functions |
+|---|---|
+| plain MATCH from the draft | none |
+| **matched by hand from the draft** (cmpfunc, masked) | func_001037F8: the draft's vector copy (20 -> 8 words) plus `s32 t = arg0 + 0x10; arg0 = t - r;` for the align-up and the sum built in `arg0` (`arg0 += ...; return arg0;`). The copied local is never read (the game copies it and never loads it): ruling 3.13 covers only frame-sizing locals, so the dispatcher asks LuciDin |
+| 8 words, same size | func_00126190 (rescue 4 stores + both vector copies, 12 -> 8): `$v0` / `$v1` swapped around the two copies; named `Vec4` locals are worse (26+ words) and initializers move the copies into the prologue |
+| compiles, 28-80 words | func_00125F18 28, func_00125D00 29 (scheduling, same size), func_00125B68 39, func_00125A38 43 (2.52's ties), func_0010DC60 70, func_001276B0 73, func_001254F8 80 |
+| `M2C_ERROR` (VU0 `lqc2` / `ldl` from sp) | func_001245A8, func_001045E8, func_0010AAA0, func_00121720, func_0011CF80, func_0011D9E0, func_00106A38 (these compiled only after the void-load fix) |
+| still no compile (m2c-side causes) | `/* extra? */` rescued but other errors: func_00104D48, func_0010C090 (128-bit VU0 values), func_00106230, func_001145F8, func_001220A0 (subscripted scalar), func_0012A1A0 (`unksp24`); func_0010B188 (`saved_reg_s3`), func_00124BE8 (`unksp14`), func_0011E488, func_0011F818 (m2c declares `sp5F4` / `sp5E0` twice), func_00127868 (too few arguments to func_001E9910: its prototype has more parameters than the game passes), func_00127E28 (`*` on an integer from a byte offset) |
+
+Compiling drafts went from 4 to 16 of 28 (9 diff, 7 with `M2C_ERROR`).
+
+**func_00135378 (`text_001343E8`) and func_0013E2F0 (`text_0013DBC0`)** (label `f2`): their `.rodata` symbols
+(D_003546F8, D_00354938) are **doubles**, not vectors: the drafts compare them with `dpcmp` (recipes 3.10 doubles), so
+the vector fix does not apply. 106 words (same size) and 54 words (8 bytes long), as before.
+
+Not verified (ER-224): no whole-file run (`text_00150878`'s 305 hits are ER-225's); the vector fix only handles 16-byte
+copies (two halves at 0 and 8; larger structs not); the call-argument spelling where both halves are ordinary
+arguments in the middle of a call (some `text_00150878` drafts) is not rewritten; the rescue's store scan is a
+straight line (branches ignored) and relies on m2c giving extras in the order of the lowest stack offsets (true in
+every case read: func_00125D00, func_00126190, func_0018C938); `vec_type` reads only the one-line-or-multi-line
+`typedef struct { float/f32 v[4]; } __attribute__((aligned(16))) Name;` form.
 
 ## 7. Not verified
 
