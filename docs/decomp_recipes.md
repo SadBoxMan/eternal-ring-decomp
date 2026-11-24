@@ -1586,6 +1586,27 @@ func_001418B8 `(char *, char *)`, func_001CB808 unprototyped, func_001D03E0 `(s3
 | func_00140250 (`text_0013DBC0`) | 186 words, 0x4B0 against 0x444 (`C\best_func_00140250.c`, fresh m2c draft): six angle-wrap loops keep the pointer and reload the float in the game; a loop.c / alias question |
 | func_001418B8 (`text_0013DBC0`) | raw m2c draft only (`C\best_func_001418B8.c`): about 0x600 bytes, two irregular switches, soft-double compares against D_00354968 / D_00354970 (3.10 literals) |
 
+### 2.51 Wider ruling-3.10 takeovers: a double plus its padding, a constant several functions away (ER-201, Tue 24 Nov 2026; Confirmed by `make regress`, 5 functions placed)
+
+Branch `er-201-takeovers` (worktree `C:\rs\wt\er201`), commits `83ec9c4` (`tools/split.py`, `docs/build.md` 3.2) and
+`c6eee81` (placements). `_anon_takeovers` now judges a takeover in address order (`docs/build.md` 3.2, "Wider
+takeovers"). With no `src/` change the split's `asm/` and `linker/` trees are byte-identical to the old tool's.
+
+| Lesson | Proved by |
+|---|---|
+| **A 16-byte standalone symbol can be a double plus 8 zero bytes of padding**: spimdisasm folds the pad before a 16-aligned jump table (or the next object's 16-aligned `.rodata`) into the double. The C literal takes over the double; `.align 4` makes the pad again, so only in files whose `.rodata` range starts 16-aligned | func_0013F580 (`D_00354940`), func_00142118 (`D_00354980`, the end of `text_0013DBC0`'s range) |
+| **A constant need not sit next to its function in splat's order**: splat puts a standalone symbol just before the next function with migrated `.rodata`. Untaken standalone symbols in between move to the other side of the C function: write their `INCLUDE_RODATA` lines just before it (each split lists the moves; a line left in the old place is an order error) | func_0013F580 (`D_00354938` moved before it), func_00141EE8 (`D_00354978`; `D_00354968` / `D_00354970` moved before it) |
+| **Not in `text_001343E8`**: its `.rodata` starts at 0x003546D8 (8 mod 16), so `.align 4` would move the whole object. LuciDin (Tue 24 Nov 2026): wait for the file's cut, no explicit `.space` padding | func_00137A10 (`D_00354720`), parked |
+| **A placed draft needs every prototype the scratch file had**: cmpfunc on the scratch file matched, but in `src/` func_0012E7B0 was declared only further down, so its floats were promoted (`fptodp` calls, +0x18 bytes, the whole ELF moved). Copy the draft's whole extern block; duplicates of the same type are harmless | func_00142118 |
+
+Also placed: ER-188's plain m2c MATCHes func_00144F90 (`text_0013DBC0`) and func_00138370 (`text_001343E8`, `s32 sp[8]`,
+no jump table: its switch is a compare tree), as drafted (prototypes from the drafts). Rulings used: 3.10 (three
+takeovers), 3.13 (func_00142118's `f32 buf[4]`), 3.14 (func_00141EE8). Unofficial names: every local of the
+drafts. Readings (Unconfirmed): ER-198's and ER-202's prototypes and `const` readings as recorded in 2.47 and 2.50;
+the drafts' prototypes of func_00142788 / func_001427F0 `(f32 *, f32, f32)`, func_00131088 `(void *)`, func_00144308
+`(s8 *, void *)`. func_0013AA28 (`text_0013A410`): `D_00354800` meets the 16-byte rule (16-aligned range, the next
+item a jump table at 0x00354810), not proven by a placement because the C is still 9 words off (2.22).
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
