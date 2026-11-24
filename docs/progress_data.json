@@ -1568,7 +1568,7 @@
     {
       "code": "ER-141",
       "title": "Recomp: GS on its own thread",
-      "status": "Queued",
+      "status": "In progress",
       "track": "port",
       "model": "Opus, high",
       "waits_on": "",
