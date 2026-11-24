@@ -1420,6 +1420,33 @@ func_001EBAA8 / func_001E9E8C / func_001E9A5C as vsprintf / strlen / memcpy, fun
 | func_00134790 (`text_001343E8`) | One word short (`func_00134790_best.c`): the game copies the flag word `D_0035B830` into a second register for the first seven tests and keeps the first for the `0x100` test and the call; gcc propagates our copy away |
 | func_001CA6B0 (`text_001CA0F0`) | A varargs wrapper (`fmt, ...` saved to the stack, `va_list` passed to func_001CA630): needs `<stdarg.h>`, which the build does not have (no include path to the compiler's own headers) |
 
+### 2.47 `text_001CA8D8`: a 64-bit local for a byte compare, -fedge-lcm, a compare tree shaped by an empty case (ER-192, Tue 24 Nov 2026; Confirmed by `make regress`, 1 function placed, 1 rewritten)
+
+Branch `er-192-cab10` (worktree `C:\rs\wt\er192`), commits `d52e6ad` (func_001CA8D8) and `8707afa` (ruling 3.21: the
+file's `-fedge-lcm`; func_001CA9A8 as plain C). Scratch (our C only): `C:\rs\wt\er192_runs\`.
+
+| Lesson | Proved by |
+|---|---|
+| **The game's `andi 0xFF` before comparing a stored byte with an old byte needs a 64-bit old value**: `old = p->x17C;` (lbu at entry) compared with the byte just stored (`t = buf[1] >> 4; p->x17C = t; if (old != 0 && (u8)t != old)`) gives no `andi` with `old` typed `u8` / `s32` / `u32` (combine knows the shifted byte's high bits are zero), and the `andi` with `old` typed `s64` (or `long`, 64-bit on this compiler): the compare is then made in DImode, where combine's recorded SImode bits of `t` do not apply (reading from this compiler's `combine.c`, Unconfirmed). 256 spellings of the shift and the compare all gave the same 35-word miss first | func_001CA8D8 |
+| **`return 1;` once at the end of an if block, not after early returns, gives the game's tail**: `if (buf[0] == 0) { ...; copy; p->x102 = ~p->x102; } return 1;` puts `li $v0, 1` after the `sh` (the `nor` then takes `$v0`); two `return 1;` statements (`if (buf[0] != 0) return 1;` first) hoist the `li` above the `lhu` | func_001CA8D8 |
+| **A 0x24-byte struct assignment between two byte-aligned blocks is the `ldl` / `ldr` + `sdl` / `sdr` copy** (4 doublewords and one `lwl` / `lwr` word): `typedef struct { u8 b[0x24]; } B24;` copied with `*(B24 *)((char *)p + 0x100) = buf;` | func_001CA8D8 |
+| **`-fedge-lcm` shows as loop counters incremented at the exits**: with classic PRE (3.11's `-fno-edge-lcm`) the `slot + 1` of a `for` loop whose body has many exits is computed once at the top of the body and kept in a saved register; with edge LCM it stays at the increment and reorg copies `addiu $s0, $s2, 1` into each exit's delay slot, as the game has. The outer loop's `port + 1` is hoisted either way (spilled to `sp+0x10`). Also: flag words reloaded at joins with edge LCM let func_001CA9A8 match without cached locals (2.44) | func_001CA9A8, func_001CAB10's draft |
+| **A byte flag at `D + port + 0xE00` with `lbu 0xE00(reg)`** (the address `D + port` built first) comes from a struct field: `((F *)(D_01B72600 + port))->f` with `typedef struct { char pad[0xE00]; u8 f; } F;` (indexing `((u8 *)D_01B72600)[0xE00 + port]` folds `0xE00` into the symbol) | func_001CAB10's draft |
+| **An empty `case` above the others can shape a compare tree and vanish**: case 0's `switch (a)` (cases 2-3, 5-6 and 0x100 empty, 4 and 7 with bodies) gives the game's `== 0x100`, `> 0x100`, `== 7` only with one more empty case of 0x102 or more: gcc's balancer then splits the right side at 0x100, and the jump pass deletes the extra case's own test (its label is the default's). Which value it was cannot be read from the binary; the draft uses 0x200 (Unofficial). Ruling 3.9's explicit-case-label shape | func_001CAB10's draft |
+| **Statement order can decide which `x17A = K` stores reload and cross-jumping merge**: the `0xFD` / `0xFE` stores are reloaded constants (`li -3` / `li -2`, QImode), and `p->x181 = 0; p->x17A = -3;` (in that order) gives the game's `sb x17A` then `sb x181` with the right shared tail (+26 words) | func_001CAB10's draft |
+
+Plain C, no compiler-steering construct; ruling 3.21 (per-file flag) is new. Names `B24`, `F`, `old`, `t`, `buf`,
+`port`, `slot`, `a`, `b`, `r` and the P1C0 fields `x168`-`x181` are Unofficial; readings (Unconfirmed): func_001D6780
+reads a controller's 0x24-byte data block (byte 0 = status, byte 1 >> 4 = controller type), func_001D6BF0 with terms
+1 / 2 returns the controller ID / extended ID (libpad's `scePadInfoMode` shape), `x102` = buttons (inverted), `x17A` =
+the per-pad state. The case values 2, 3, 5, 6 and the extra 0x200 are Unofficial.
+
+**Parked:**
+
+| Function | Cause |
+|---|---|
+| func_001CAB10 | 0x704 bytes, the per-pad state machine. Best draft `C:\rs\wt\er192_runs\cab10_best_elcm.c` (score with the per-file flag: `os_elcm.py` in that folder, diff in `cab10_best_elcm.diff.txt`): 0x6F8 bytes, 429 / 449 equal register-blind, the first 0x370 bytes exact but one `addu` operand order (+0x5C, `D + port` built as `port + D`). Left: which register reload gives the `-2` / `-3` constants in cases 0x6F and 0x83 (game `$v0` / `$a1`, ours the other way) and so which tails cross-jumping shares (case 0x82's `li 0x83` falls into the shared `sb $v0`); case 0xFE's `andi 0xFF` (a `switch (p->x17F)` with the load merged at the join; as `if`s it is closer but has no `andi`); a missing `nop`. 120 declaration orders changed nothing |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1553,6 +1580,12 @@ Standing rulings; each applies until LuciDin changes it.
 | Ruling | Item |
 |---|---|
 | **Accepted, narrowly** | An early `return;` with no value in a function that returns a value, when that is the only C shape that gives the original's path to the epilogue with no `$v0` set (func_0017D968: `if (p == NULL) { func_0017CF08(); return; }`, where `return NULL;` adds a word and declaring the same-file `void` func_0017CF08 as returning a value is not covered by 3.19). Old-style C that this gcc accepts with a warning; ruling 3.4's fall-off-the-end shape, but early. Each use carries the comment `ruling 3.20` and a `PORT NOTE`: the caller gets whatever is left in `$v0`, and a PC build returns that as-shipped value explicitly. Used so far: func_0017D968 (ER-184, 2.42) |
+
+### 3.21 ER-192: -fedge-lcm for `text_001CA8D8` only (Tue 24 Nov 2026, about 12:10 Eastern, LuciDin in the ER-192 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** (a per-file exception to 3.11) | `text_001CA8D8` (the pad state code, func_001CA8D8 to func_001CB500) is built with the edge-based LCM on: the Makefile adds `-fedge-lcm` after `CFLAGS` for `build/src/text_001CA8D8.s` only (commit `8707afa`). Evidence (ER-192, 2.47): func_001CA9A8 matches as plain C only with it (4 bytes short without; ER-185 had needed two cached flag-word locals, now dropped); without it, classic PRE hoists func_001CAB10's loop counter `slot + 1` to the top of the loop body, which no plain C found avoids (with it the draft lines up 429 / 449 register-blind instead of about 355); every function already placed in the file matches either way. Reading (Unconfirmed): this file was compiled with the compiler's default, unlike the rest of the game. Every other file keeps 3.11 |
 
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker, 3.18 only stores the game makes): park such functions with a
 one-line cause and ask.
