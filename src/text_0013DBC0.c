@@ -1241,7 +1241,40 @@ void func_00143420(void **arg0) {
     func_00131140((s8 *) arg0, func_00143710, func_001435C8, func_00143C10, func_00143D00, func_00143480);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00143480);
+extern float func_0012E7B0(float a, float b);
+extern f32 func_001302C8(void *);
+extern float func_00130378(char *, s32);
+extern s32 func_00130FE0(char *arg0, void *arg1);
+extern void func_00143420(void **arg0);
+
+/* ER-189: m2c draft by hand: the early exit first (recipes 2.43), the x30 store first (ordersearch perm). Names, types
+   and offsets are Unconfirmed readings. */
+void func_00143480(void **arg0, void *arg1) {
+    f32 temp_f0;
+    s16 temp_3;
+
+    temp_3 = *(s16 *)((char *)arg0 + 0x6E);
+    switch (temp_3) {                               /* irregular */
+    case 0:
+        if (func_001302C8(arg0) <= 0.17453294f) {
+            func_00130CE0((char *) arg0, 15.0f);
+            func_00131000((char *) arg0, func_00143420);
+            return;
+        }
+        if (func_0012F8C8(arg0, 0xD, (s32) *(s16 *)((char *)arg0 + 0x6C), 0x14, 0, 0.2f) != 0) {
+            *(f32 *)((char *)arg0 + 0x30) = *(f32 *)((char *)arg1 + 0xA4);
+            *(s16 *)((char *)arg0 + 0x6C) = 0;
+            *(s16 *)((char *)arg0 + 0x6E) += 1;
+        }
+        return;
+    case 1:
+        temp_f0 = func_00130378((char *)arg1 + 0x90, *(s32 *)((char *)arg0 + 0x130)) + 6.2831855f;
+        if (func_0012DA68(arg0, *(f32 *)((char *)arg0 + 0x30), func_0012E7B0((temp_f0 - ((f32) (s32) (temp_f0 / 6.2831855f) * 6.2831855f)) - 3.1415927f, *(f32 *)((char *)arg0 + 0x30)), (s32) *(s16 *)((char *)arg0 + 0x6C), 0x28) != 0) {
+            func_00130FE0((char *) arg0, func_00143420);
+        }
+        break;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_001435C8);
 

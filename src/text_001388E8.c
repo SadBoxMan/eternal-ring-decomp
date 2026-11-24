@@ -293,7 +293,34 @@ void func_00139450(void **arg0) {
     func_0012B6B0(arg0, 1, 3, 0, 0.3f);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001388E8", func_00139488);
+void func_0012B218(void *arg0, s32 arg1);
+void func_0012C788(void *arg0);
+void func_00139A70(void *, void *);
+void func_00139AD0(void *arg0, void *arg1);
+void func_001C9B18(void *, void *);
+
+/* ER-189: m2c draft by hand: the x4C callback called with arg0 (a reading: $a0 still holds it at the jalr; Unconfirmed)
+   gives the game's registers. Names, types and offsets are Unconfirmed readings. */
+void func_00139488(void *arg0, void *arg1) {
+    s32 sp[8];
+
+    (*(s32 *)((char *)arg0 + 0x2C)) = (s32) ((*(s32 *)((char *)arg0 + 0x2C)) + 1);
+    (*(void (**)(void *))((char *)arg0 + 0x4C))(arg0);
+    func_001C9B18(sp, (*(char **)((char *)arg1 + 0xE0)) + 0x2D0);
+    func_001C9B18(&sp[4], (*(char **)((char *)arg1 + 0xE0)) + 0xA50);
+    (*(s8 *)((char *)((*(void **)((char *)arg1 + 0xE0))) + 0x308)) = (s8) ((*(s8 *)((char *)arg0 + 0xD)) != 0);
+    func_0012B218(arg0, 1);
+    func_0012B218(arg0, 2);
+    func_0012C788(arg1);
+    if ((*(s8 *)((char *)arg0 + 0xD)) != 0) {
+        func_00139A70(arg0, arg1);
+    }
+    if ((*(s8 *)((char *)arg0 + 0xE)) != 0) {
+        func_001C9B18((*(char **)((char *)arg1 + 0xE0)) + 0xA50, &sp[4]);
+        func_00139AD0(arg0, arg1);
+    }
+    (*(s8 *)((char *)arg0 + 0xB)) = 0;
+}
 
 extern float func_00130378(char *, s32);
 extern float func_0012E820(char *, float, float);
