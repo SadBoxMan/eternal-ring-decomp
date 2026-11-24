@@ -6338,9 +6338,25 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BC810);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCBF0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCCF8);
+/* ER-186: D_001FF890 read as s16 fields through one pointer (the game's lui + addiu base); a value clamped to
+   its maximum. Field meanings Unconfirmed; p is Unofficial. */
+void func_001BCCF8(s32 arg0) {
+    s16 *p = (s16 *)D_001FF890;
+    p[2] += arg0;
+    if (p[3] < p[2]) {
+        p[2] = p[3];
+    }
+}
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BCD30);
+/* ER-186: D_001FF890 read as s16 fields through one pointer (the game's lui + addiu base); a value clamped to
+   its maximum. Field meanings Unconfirmed; p is Unofficial. */
+void func_001BCD30(s32 arg0) {
+    s16 *p = (s16 *)D_001FF890;
+    p[4] += arg0;
+    if (p[5] < p[4]) {
+        p[4] = p[5];
+    }
+}
 
 /* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.20); names, types and offsets are Unconfirmed readings. */
 void func_001BCD68(s32 *arg0, s32 arg1, s32 arg2) {
@@ -6888,7 +6904,25 @@ s32 func_001C1610(void) {
     return func_001D9498();
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C1630);
+extern s8 D_001F6BB0[];
+extern s32 func_001D8F10(s32, s32, s32, void *);
+extern s32 func_001D97C8(s32);
+
+/* ER-186: from the m2c draft; the four flag bytes written through one byte pointer to D_001F6B90 (the game's
+   lui + addiu base), in the first matching order of 24. Types and the name p are Unconfirmed / Unofficial. */
+s32 func_001C1630(s32 arg0, s32 arg1) {
+    s8 *p = (s8 *)D_001F6B90;
+    p[0x21] = 1;
+    p[0x20] = 0;
+    p[0x22] = 0;
+    p[0x23] = 0;
+    func_001D03E0(0);
+    do {
+    } while (func_001D8F10(arg0, 0x10, arg1, D_001F6BB0) == 0);
+    func_001D97C8(0);
+    func_001D03E0(0);
+    return 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C16C0);
 
@@ -6901,7 +6935,14 @@ s32 func_001C17D0(void) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C17F0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C1880);
+extern void func_001C17F0(void);
+
+/* ER-186: D_001F6B90 read as the file's s32 array (lui + addiu, then the 0x24 load); field 9 is an Unconfirmed reading. */
+void func_001C1880(void) {
+    while (D_001F6B90[9] != 0) {
+        func_001C17F0();
+    }
+}
 
 extern s32 D_001FEC00[];
 
