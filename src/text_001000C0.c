@@ -223,13 +223,18 @@ typedef struct {
     s32 xB4;
     char padB8[0xC];
     u8 xC4;
-    char padC5[0x13];
+    char padC5[1];
+    s8 xC6;
+    char padC7[7];
+    s16 xCE;
+    char padD0[8];
     char *xD8;
     char padDC[4];
     float xE0;
     float xE4;
     float xE8;
-    char padEC[0x10];
+    float xEC;
+    char padF0[0xC];
     char *fc;
     u8 x100;
     u8 x101;
@@ -1311,7 +1316,20 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00117418);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00117630);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00117F88);
+/* ER-196: three bytes of D_001FF890 at 0x294-0x297 read through a struct type (recipes 2.45: the game rebuilds the
+   global's address after the loop; a byte-offset cast folds the offset). T890 and its field names are Unofficial. */
+typedef struct { char pad[0x294]; u8 x294[3]; u8 x297; } T890;
+
+/* ER-196: by hand from the m2c draft: shift three bytes down one place and clear the last; names, types and offsets
+   are Unconfirmed readings. */
+void func_00117F88(void) {
+    s32 i;
+
+    for (i = 0; i < 3; i++) {
+        ((T890 *)D_001FF890)->x294[i] = ((T890 *)D_001FF890)->x294[i + 1];
+    }
+    ((T890 *)D_001FF890)->x297 = 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00117FC0);
 
@@ -1709,7 +1727,35 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0011C598);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0011C620);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0011C7A0);
+/* ER-196: by hand from the m2c draft, D_001FF390 read through G390's fields (recipes 2.45: the game keeps the base in
+   a register; m2c's byte-offset casts fold the offsets), which gained xC6, xCE and xEC (layout-neutral); the square
+   taken in an int and the step built in place in one float; names, types and offsets are Unconfirmed readings. */
+void func_0011C7A0(void) {
+    f32 f;
+    f32 t;
+    s32 n;
+
+    D_001FF390.xC6 = 1;
+    if (D_001FF390.xE4 > D_001FF390.xEC) {
+        n = D_001FF390.xCE * D_001FF390.xCE;
+        f = n;
+        f *= 0.125f;
+        f += 1.0f;
+        if (f < 6.0f) {
+            f = 6.0f;
+        }
+        if (f > 32.0f) {
+            f = 32.0f;
+        }
+        t = D_001FF390.xE4 - f;
+        D_001FF390.xE4 = t;
+        f = t - D_001FF390.xEC;
+        if (f < 0.0002f) {
+            D_001FF390.xE4 = D_001FF390.xEC;
+        }
+    }
+    D_001FF390.xCE++;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0011C858);
 
@@ -2113,9 +2159,28 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012A8C8);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012AA70);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012B020);
+/* ER-196: by hand from the m2c draft, D_001FF890 read through one s16 pointer (recipes 2.45: the game keeps the base in a
+   register); a halfword pair (value at +4, limit at +6) added to and clamped; names, types and offsets are Unconfirmed
+   readings. */
+void func_0012B020(s32 arg0) {
+    s16 *p = (s16 *)D_001FF890;
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012B058);
+    p[2] += arg0;
+    if (p[3] < p[2]) {
+        p[2] = p[3];
+    }
+}
+
+/* ER-196: by hand from the m2c draft, the shape of func_0012B020 on the pair at +8 / +0xA; names, types and offsets
+   are Unconfirmed readings. */
+void func_0012B058(s32 arg0) {
+    s16 *p = (s16 *)D_001FF890;
+
+    p[4] += arg0;
+    if (p[5] < p[4]) {
+        p[4] = p[5];
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012B090);
 
