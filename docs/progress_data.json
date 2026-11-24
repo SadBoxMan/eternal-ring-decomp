@@ -1820,20 +1820,20 @@
     {
       "code": "ER-169",
       "title": "Hardware reference for opcode edges (ps2autotests)",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, medium",
       "waits_on": "LuciDin's yes to fetch",
-      "notes": ""
+      "notes": "Tue 24 Nov 2026, Recomp 8229ef5: ps2autotests real-hardware FPU answers (recomp_opcodes.md 7.6). N1 and N4: recomp right; N3: PCSX2 right (denormals as zero); e255 compares ordered as numbers; F8: add.s / cvt.s.w chop, div.s nearest on the one telling case, mul.s operand-order quirk. VU0 unanswerable (no tests). 115 HW cases + 11 hw_* kernels + hw_check.py; not run yet."
     },
     {
       "code": "ER-170",
       "title": "N5: StartThread / SleepThread return values",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Tue 24 Nov 2026, Recomp 8229ef5: 5 call sites (recomp_opcodes.md 7.7); only libsdr 0x001E2B84 reads StartThread's result (< 0 check, 0 passes like a thread id). No fix needed."
     },
     {
       "code": "ER-171",
