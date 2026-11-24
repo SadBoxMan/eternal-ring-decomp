@@ -2005,6 +2005,24 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-190",
+      "title": "Pad test sweep (only on an issue)",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-191",
+      "title": "EX controls: remapping, lightbar",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
