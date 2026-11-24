@@ -2318,7 +2318,25 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "ER-217",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-225",
+      "title": "Whole-file m2c_bulk reruns with round 6",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-224",
+      "notes": ""
+    },
+    {
+      "code": "ER-226",
+      "title": "ordersearch.py: moves to a block's last place",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, medium",
+      "waits_on": "",
       "notes": ""
     }
   ]
