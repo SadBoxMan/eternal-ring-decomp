@@ -3497,7 +3497,27 @@ void func_00130848(char *a0, float a) {
     func_001C9F60(v, o + 0x50, t);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001308B8);
+/* ER-189: by hand in func_00130848's shape (recipes 2.42: two vectors, the second built from the first); t[3] copies q[1]
+   (the game stores the reloaded 0 there). Names, types and offsets are Unconfirmed readings. */
+void func_001308B8(char *a0, float a, float b) {
+    float q[4];
+    float t[4];
+    char *o;
+    float *v;
+
+    q[0] = a;
+    q[1] = 0.0f;
+    q[2] = b;
+    q[3] = 0.0f;
+    v = (float *)(a0 + 0x90);
+    o = *(char **)a0;
+    t[0] = -q[0];
+    t[1] = q[1];
+    t[2] = -q[2];
+    t[3] = q[1];
+    func_0012C778(o);
+    func_001C9F60(v, o + 0x50, t);
+}
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00130930(void *arg0, void *arg1) {
@@ -3872,7 +3892,28 @@ void func_001320B8(void *arg0, u16 arg1) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00132108);
+extern float D_001FF47C[];
+extern f32 func_0012E640(f32 fparg0, f32 fparg1);
+
+/* ER-189: by hand (m2c had the vector as arguments): the offset from the camera point scaled by func_0012E640, then
+   added; D_001FF47C read as an array (%hi / %lo, recipes 2.6). Names, types and offsets are Unconfirmed readings. */
+void func_00132108(void *arg0) {
+    f32 v[4];
+    char *a;
+    char *b;
+
+    a = (char *)arg0 + 0x110;
+    b = (char *)arg0 + 0x120;
+    func_001C9B18(a, *(char **)arg0 + 0x90);
+    v[0] = D_001FF340[0] - *(f32 *)((char *)arg0 + 0x110);
+    v[1] = D_001FF47C[0] - *(f32 *)((char *)arg0 + 0x114);
+    v[2] = D_001FF340[2] - *(f32 *)((char *)arg0 + 0x118);
+    func_001CA048(v, v, func_0012E640(0.2f, 0.99f));
+    func_001C9FE8(a, a, v);
+    func_001C9B18(b, D_001FF340 + 4);
+    *(char **)((char *)arg0 + 0x130) = a;
+    *(char **)((char *)arg0 + 0x134) = b;
+}
 
 extern void func_00131930(void *, s32, u16);
 
