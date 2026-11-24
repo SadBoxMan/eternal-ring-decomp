@@ -6683,7 +6683,25 @@ void func_001BF150(void *arg0) {
     *(s32 *)arg0 = 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF198);
+/* ER-186: three bytes of D_001FF890 at 0x21C-0x21E read through a struct type (the game rebuilds the global's
+   address in each block; a byte-pointer cast folds the offset). T890 and its field names are Unofficial. */
+typedef struct { u8 pad[0x21C]; u8 x21C; u8 x21D; u8 x21E; } T890;
+
+/* ER-186: from the m2c draft; arg0 read as s32 fields (Unconfirmed): a counter at 0x84 stepping two values
+   saved at 0x88 / 0x8C down to 0 over arg0[2] steps. */
+void func_001BF198(s32 *arg0) {
+    if (arg0[0x22] == 0) {
+        arg0[0x22] = ((T890 *)D_001FF890)->x21D;
+        arg0[0x23] = ((T890 *)D_001FF890)->x21E;
+    }
+    arg0[0x21]++;
+    ((T890 *)D_001FF890)->x21D = (arg0[0x22] * (arg0[2] - arg0[0x21])) / arg0[2];
+    ((T890 *)D_001FF890)->x21E = (arg0[0x23] * (arg0[2] - arg0[0x21])) / arg0[2];
+    if (arg0[0x21] >= arg0[2]) {
+        ((T890 *)D_001FF890)->x21C = 0;
+        arg0[0] = 0;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF238);
 
