@@ -1969,6 +1969,24 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-186",
+      "title": "text_00150878: func_0012DA68 extern order",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Sonnet, medium",
+      "waits_on": "ER-184",
+      "notes": ""
+    },
+    {
+      "code": "ER-187",
+      "title": "Return-the-callee's-value retry (recipes 2.42)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
