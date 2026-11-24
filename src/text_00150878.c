@@ -2783,7 +2783,23 @@ void func_0016E390(void) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0016E3C8);
+extern void *D_01ADE978[];
+
+/* ER-213: from ER-188's rs0 draft; both store pairs in the order an `ordersearch variants` run found (m2c had each
+   pair the other way round). D_01ADE978 read as a table of 6 record pointers (Unconfirmed). */
+void func_0016E3C8(void) {
+    u16 *p = D_0035C518;
+    s32 i;
+    char *r;
+
+    p[2] = 0;
+    *(s32 *)(p + 0x10) = 0;
+    for (i = 0; i < 6; i++) {
+        r = D_01ADE978[i];
+        *(s32 *)(r + 0x30) = 0;
+        *(s8 *)(r + 0x34) = 0;
+    }
+}
 
 INCLUDE_RODATA("asm/nonmatchings/text_00150878", D_00355160);
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0016E408);
