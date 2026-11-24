@@ -180,7 +180,7 @@ s32 func_0013DEE8(s8 *arg0) {
 extern int func_0012E568(int, int);
 extern void func_00130848(s8 **, f32);
 extern float func_001306E8(char *);
-extern void func_0013E410(void);
+extern void func_0013E410(char *, char *);
 extern s32 func_0012F8C8(s8 *, s32, s32, s32, s32, f32);
 extern u8 D_001FF451[];
 extern int func_001E9C70(void);
@@ -262,7 +262,82 @@ void func_0013DF90(char *a0, char *a1)
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E2F0);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013E410);
+extern void func_001C9B18(void *, void *);
+extern f32 func_00130B60(void *, float);
+extern void func_001CA018(float *, char *, char *);
+extern s32 func_0012F9C0(void **, s32);
+extern float func_0012D7C0(char *a0, float a, float max);
+extern s16 func_0012C208(void **, s32);
+extern void func_00123DF8(void *, void *, void *, f32, f32, f32);
+extern void func_0013E990(void *, void *);
+extern void func_00150220(void *, void *);
+extern void func_001CA0C0(void *, void *);
+extern float sqrtf(float);
+extern f32 D_0035BB24;
+extern f32 D_0035BB28;
+extern f32 D_0035BB2C;
+typedef struct { char pad[0xDC]; f32 xDC; f32 xE0; char padE4[8]; f32 xEC; } G390;
+extern G390 D_001FF390;
+
+/* ER-196: by hand from the m2c draft; D_001FF390 read through a struct type (recipes 2.45: the game keeps the base in a
+   saved register; m2c's byte-offset casts fold the offsets). G390 here holds only the fields this file reads (the
+   name and fields as in text_001000C0, Unofficial). buf only sizes the frame (ruling 3.13: the game's three vectors
+   sit at sp+0x10-0x3F, nothing at sp+0). Names, types and offsets are Unconfirmed readings. */
+void func_0013E410(char *arg0, char *arg1) {
+    f32 buf[4]; /* ruling 3.13: sizes the frame only */
+    f32 a[4];
+    f32 b[4];
+    f32 c[4];
+    f32 x, y, z;
+    char *p;
+
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        arg0[8] = 0;
+        func_00150220(arg0, arg1 + 0x90);
+        (*(s16 *)(arg0 + 0x6E))++;
+        return;
+    case 1:
+        func_0013E990(arg0, arg1);
+        func_00130CE0(arg0, 1.0f);
+        if (func_0012F8C8((s8 *)arg0, 8, *(s16 *)(arg0 + 0x6C), 0x3C, 0, 0.1f) != 0) {
+            *(s16 *)(arg0 + 0x6C) = 0;
+            func_0012D7C0(arg0, -10.0f, 10000.0f);
+            (*(s16 *)(arg0 + 0x6E))++;
+        }
+        return;
+    case 2:
+        func_0012D7C0(arg0, 1.0f, 10000.0f);
+        if (*(s16 *)(arg0 + 0x6C) >= 0x1F) {
+            func_0012F9C0((void **)arg0, 3);
+            func_00130848((s8 **)arg0, D_0035BB24);
+            (*(s16 *)(arg0 + 0x6E))++;
+        }
+        return;
+    case 3:
+        if (func_00130B60(arg0, D_0035BB28) <= D_0035BB2C) {
+            func_00131000(arg0, func_0013DF90);
+        }
+        if (arg0[8] == 0) {
+            p = arg0 + 0x90;
+            func_001C9B18(a, *(void **)(arg0 + 0x130));
+            a[1] = D_001FF390.xEC;
+            func_001CA018(b, arg1 + 0x90, p);
+            b[1] += 30.0f;
+            func_001CA0C0(c, p);
+            x = *(f32 *)(arg0 + 0x90);
+            y = *(f32 *)(arg0 + 0x94);
+            z = *(f32 *)(arg0 + 0x98);
+            func_00123DF8(a, b, c, D_001FF390.xDC, D_001FF390.xE0, sqrtf(x * x + y * y + z * z));
+            if (*(s32 *)0x70000010 != 0) {
+                func_0012C208((void **)arg0, 0);
+                arg0[8] = 1;
+            }
+        }
+        return;
+    }
+
+}
 
 extern f32 func_0012E320(s32 *, s32 *, s32, s32, s32);
 void func_0013E818(s32 *);
@@ -361,7 +436,6 @@ s32 func_0013E838(void *arg0) {
     return 1;
 }
 
-extern void func_001C9B18(void *, void *);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain), declarations aligned with the file by hand; names, types and
    offsets are Unconfirmed readings. */
@@ -871,7 +945,6 @@ void func_00140B88(s8 *arg0, void *arg1) {
     }
 }
 
-extern f32 func_00130B60(void *, float);
 /* ER-165: both floats before the ints. The EABI passes them in $f12 / $f13 whatever their place in the list, so the
    registers are the same as for the definition's (void **, s32, s32, f32, f32) in text_001000C0 (an m2c reading), but
    gcc loads the argument registers in parameter order, and only this order gives the game's (x30, pi, then x6C in the
@@ -956,7 +1029,6 @@ extern double fabs(double);
 extern void func_00140B88(s8 *arg0, void *arg1);
 extern void func_0012CB70(float *, char *, char *);
 extern float func_00130758(char *);
-extern void func_001CA018(float *, char *, char *);
 extern void func_00130180(float *, char *, float *);
 extern s32 func_00131088(void *);
 
@@ -1076,7 +1148,6 @@ void func_00141748(s8 *arg0) {
     }
 }
 
-extern s32 func_0012F9C0(void **, s32);
 extern void func_001418B8();
 
 /* ER-165: drafted with m2c (tools/m2c_bulk.py --plain), func_0012F9C0 declared s32 (recipes 2.36); names, types and offsets are Unconfirmed readings. */
