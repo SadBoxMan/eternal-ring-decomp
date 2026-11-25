@@ -1818,6 +1818,47 @@ duplicates removed); every placed function of the file still matches (30 / 30).
 | func_001CB808 | 4 bytes short with `stdarg.h` (`hb808_v3.c`): the game computes `mode == 0` after the `0x80000` test (from a copy of `$a0`), ours at the top; 6 forms. Placing it also needs `stdarg.h` on the build's include path (`include/` holds none): a dispatcher / LuciDin decision |
 | func_001CDFD0 and the 15 size-off drafts | not tried in this pass (ER-235's table, matching_tools 6.26) |
 
+(ER-246 / ER-247 placed func_001CBE90, func_001CD9C8, func_001CDFD0 and eight of the size-off drafts; the rows
+above are brought up to date in 2.59.)
+
+### 2.59 `text_001CB528`: copies merged after allocation, reused locals, a constant in a local (ER-246 + ER-247, Wed 25 Nov 2026; Confirmed by `make regress`, 11 functions)
+
+Branch `er-246-cb528-rest` (worktree `C:\rs\wt\er246`), commits `e6658ed` (ER-246), `000b9a8` and `08b4663`
+(ER-247): **11 functions, 2,372 bytes**, all plain C under ruling 3.23's per-file flag. ER-246: func_001CD9C8,
+func_001CBE90 (ER-237's parked close ones). ER-247: func_001CBE48, func_001CC8B0, func_001CCAB0, func_001CD1D0,
+func_001CD468, func_001CDCE0, func_001CDF78, func_001CDFD0 (ER-235's M2C_ERROR draft), func_001CE038. Scratch (our C
+only): `C:\rs\wt\er246_runs\` (`tools\var.py` the variant runner with a per-compile timeout, `tools\put.py` the
+placer, `d9c8\`, `be90\`, `c348\`, `e247\` the tries, `best\` the parked bests). Every C function of the file still
+matches (41 / 41); 8 asm functions are left in it.
+
+| Lesson | Proved by |
+|---|---|
+| **Code the game shares between paths may be written out in each path: gcc's post-reload cross-jumping merges the copies, but register allocation has already counted every copy's references.** A pseudo's allocation priority is `floor_log2(refs) * refs / live_length` (the `.greg` dump lists it); written once, func_001CD9C8's record pointer (6 refs) lost to the global's pointer and the registers rotated; with switch cases 0 and 1 written out in full (no shared-tail `goto`) it has 8 and the three registers fall as in the game. func_001CBE90's `slot` lost `$s3` to `arg2` (2·7/202 against 2·4/84); writing any one failure exit as its own `{ func_001CC9B0(slot); return -1; }` (all 63 non-empty subsets of the six `goto fail;` sites were tried) gives it the game's register | func_001CD9C8, func_001CBE90 |
+| **A callee-saved register holding several values means one reused local.** func_001CC348 keeps the slot loop's index in `$s0`, where it later holds the DMA id: written `i = func_001D0520(...)` (no separate `id`) the index crosses calls and the prologue, the argument copies and most registers match (181 -> 54 words). func_001CBE90 keeps the second `func_001CE038` size in the first one's `$s1`: `n = func_001CE038(arg2)` | func_001CC348 (scratch), func_001CBE90 |
+| **The `0x4C0` block, game reloading `p->xC` only after the `0x4C0` store**: the source reads `p->xC` from memory in the second test (`if (p->xC == 0) p->xC = b->x4C0; n = p->x14; if (p->xC >= b->x4C0) b->x4C0 = p->xC + n; a = p->xC;`); gcse's PRE then reloads it on the store path only (17 -> 9 words in func_001CC348). Where the game loads D_0035C554 on both paths and keeps `0x1FFFFF` in `$s2` across calls (func_001CBE90), func_001CC6A0's if / else form gives the loads, but cse no longer follows the if / else to reuse the constant: with the limit in a local (`lim = 0x1FFFFF;` just before its first use; Unconfirmed reading, live code) it matches. Declaring `extern void *const D_0035C554` also brought func_001CBE90 to 12 words, but func_001CB528 in this file writes the global, so that form was dropped | func_001CBE90, func_001CC348 (scratch) |
+| **func_001D3378 returns a value** (`$v0` set on every path of its asm; `text_00150878` declares it `s32`): the file's `void` reading is corrected at the top. With `s32` the register after its call in func_001CC348 matches; func_001CCAB0 / func_001CD468 test it | func_001CCAB0, func_001CD468, func_001CC348 (scratch) |
+| **A struct copy of the 24-byte `+0x440` record is the game's `ldl` / `ldr` / `sdl` / `sdr` pairs** (`Rec24`, `s32 w[6]`, Unofficial); the source pointer in a local (`s = (Rec24 *)(b + arg0 * 0x18 + 0x440); *dst = *s;`) gives the game's `addu D, index` order, an inline source expression the reverse | func_001CDFD0 |
+| **The failure block inside the last test** (`if (call(...) != 0) { fail: ...; return -1; } func_001D03E0(0); return slot;`) gives the game's block order; the success path first puts the fail block after it | func_001CD1D0 |
+| **A packet's twin store order follows the scheduler, not the source**: func_001CD468's `e[0] = 0; e[1] = 0;` comes out as the game's `sw 4; sw 0` | func_001CD468 |
+
+Names (`b`, `p`, `e`, `n`, `m`, `w`, `lim`, `slot`, `fd`, `Rec24`) and record offsets are Unofficial; callee types
+(`s32 func_001D2BB0(s32, s32)`, `s32 func_001D2DC0(s32, s32, s32)`, `void func_001D2D08(s32)` as `text_00150878`
+has it) are read from their use (Unconfirmed); func_001CE038 as open / seek-to-end / close of a file (the size rounded
+up to 64) is a reading by shape (Unconfirmed).
+
+**Parked (best files in `C:\rs\wt\er246_runs\best\`):**
+
+| Function | Cause |
+|---|---|
+| func_001CC348 | same size, 7 words (`c348_7w.c`; was 181): with the lessons above only `b` (D_0035C554) and `n` (`p->x14`) swap `$a0` / `$v1`; `b`'s priority (2·6/20) beats `n`'s (1·3/11) and no reused local, declaration order or form tried moved it; about 60 variants |
+| func_001CB918 | same size, 11 words (`b918_11w.c`): the `D_01B73E30[3]` rounding loop needs gcc's one-`nop` short-loop pad and a fresh base register at once; a base-pointer local gives the pad (12 words) but reuses the early base and swaps `andi` / `sw`; plus the `0x4000` arm's `lui` / `lw` order; about 40 variants, a shared `static inline` helper with func_001CBA08 tried too |
+| func_001CBA08 | 4 bytes short, 39 words (`ba08_inline_39w.c`, `ba08_45w.c`): func_001CB918's tail (the same loop) |
+| func_001CCE58 | same size, 6 words (`ce58_6w.c`): the `0x4D6` load's temporary takes `$v1` (game `$a0`, so `$v1` is busy there in the game) and the prologue's store order follows; the loop is `i = 4; while (--i != -1)`, the base a local; 12 head forms |
+| func_001CCF60 | same size, 10 words (`cf60_10w.c`): func_001CCE58's twin (flag 1), the same temporary (game `$a1`) |
+| func_001CB528 | same size, 55 words (`b528_55w.c`): the init (retry loop, a busy wait, four table clears); the loop counters and pointers fall in other registers (game counter `$a0`, pointer `$v0`) and the game does not reload D_0035C554 between the `0x200` and `0x240` clears; 5 forms |
+| func_001CB808 | varargs, waits on ER-245 / ER-199 (`stdarg.h`); not tried |
+| func_001CC9B0 | ER-162's; not tried |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
