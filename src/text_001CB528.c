@@ -13,6 +13,8 @@ extern s32 func_001D3308(s32);
 extern void func_001D3378(s32);
 extern s32 func_001D0520(s32 *, s32);
 extern s32 func_001D0500(s32);
+extern s32 func_001CE038(s32);
+extern s32 func_001CE0D8(s32, s32);
 extern s32 D_01B73E20[];
 extern s32 D_01B73E78[];
 
@@ -133,7 +135,102 @@ void func_001CBD00(void) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CBE48);
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CBE90);
+/* ER-246: by hand; plain C with the file's -fedge-lcm (ruling 3.23); names, types and offsets are Unconfirmed readings. Each failure exit written out (gcc merges them after register allocation, which gives slot its register); n reused for the second size; the 0x1FFFFF limit in a local (kept in $s2 across the calls; Unconfirmed reading); the 0x4C0 block as func_001CC6A0's */
+s32 func_001CBE90(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+    char *p = D_0035C554;
+    s32 i;
+    s32 slot;
+    s32 n;
+    s32 m;
+    s32 m2;
+    u32 v;
+    s32 w;
+    u32 lim;
+    char *b;
+
+    for (i = 0; i < 0x10; i++, p += 0x20) {
+        if (*(s32 *)p == 0) {
+            slot = i;
+            break;
+        }
+    }
+    if (i >= 0x10) {
+        return -2;
+    }
+    *(s8 *)(p + 0x1B) = arg3;
+    if (arg0 == -1) {
+        arg0 = slot;
+    }
+    *(s16 *)(p + 0x18) = arg0;
+    n = func_001CE038(arg1);
+    if (n < 0) {
+        return -1;
+    }
+    *(s32 *)(p + 0x10) = n;
+    *(s32 *)p = func_001D3308(n);
+    m = func_001D3308(n);
+    *(s32 *)(p + 4) = m;
+    if (*(s32 *)p == 0 || m == 0) {
+        func_001CC9B0(slot);
+        return -1;
+    }
+    lim = 0x1FFFFF;
+    if ((u32)(*(s32 *)p + *(s32 *)(p + 0x10)) > lim || (u32)(m + *(s32 *)(p + 0x10)) > lim) {
+        func_001CC9B0(slot);
+        return -1;
+    }
+    if (func_001CE0D8(arg1, *(s32 *)p) != 0) {
+        return -1;
+    }
+    func_001CB808(1, 0x1070, *(s32 *)(p + 4), *(s32 *)p, n);
+    if (arg2 == 0) {
+        return slot;
+    }
+    n = func_001CE038(arg2);
+    if (n < 0) {
+        func_001CC9B0(slot);
+        return -1;
+    }
+    v = *(u32 *)(p + 0xC);
+    *(s32 *)(p + 0x14) = n;
+    if (v == 0) {
+        u32 t;
+        b = D_0035C554;
+        t = *(u32 *)(b + 0x4C0);
+        *(u32 *)(p + 0xC) = t;
+        v = t;
+    } else {
+        b = D_0035C554;
+    }
+    if (v >= *(u32 *)(b + 0x4C0)) {
+        *(u32 *)(b + 0x4C0) = v + *(s32 *)(p + 0x14);
+    }
+    m2 = func_001D3308(n);
+    *(s32 *)(p + 8) = m2;
+    if (m2 == 0 || (u32)(m2 + *(s32 *)(p + 0x14)) > lim) {
+        func_001CC9B0(slot);
+        return -1;
+    }
+    if (func_001CE0D8(arg2, m2) != 0) {
+        func_001CC9B0(slot);
+        return -1;
+    }
+    if ((s32)(0x1E7FBF - *(u32 *)(p + 0xC)) < *(s32 *)(p + 0x14)) {
+        func_001CC9B0(slot);
+        return -1;
+    }
+    if (*(s32 *)(p + 0x1C) != 0) {
+        w = *(s32 *)p;
+    } else {
+        w = *(s32 *)(p + 4);
+    }
+    if (func_001CB808(1, 0x1010, *(s16 *)(p + 0x18), *(u32 *)(p + 0xC), w, *(s8 *)(p + 0x1B)) != 0) {
+        func_001CC9B0(slot);
+        return -1;
+    }
+    func_001D03E0(0);
+    return slot;
+}
 
 /* ER-237: by hand; plain C with the file's -fedge-lcm (ruling 3.23); names, types and offsets are Unconfirmed readings. 16-byte rounding loops; the second allocation in its own local */
 s32 func_001CC0C8(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5) {
@@ -445,9 +542,6 @@ INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CCE58);
 
 INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CCF60);
 
-extern s32 func_001CE038(s32);
-extern s32 func_001CE0D8(s32, s32);
-
 /* ER-233: by hand (ER-198's draft without its `ok` flag; func_001CD360's shape); plain C with the file's -fedge-lcm
    (ruling 3.23); names, types and offsets are Unconfirmed readings. */
 s32 func_001CD068(s32 arg0, s32 arg1, s32 arg2) {
@@ -727,7 +821,61 @@ s32 func_001CD8D8(u32 arg0) {
     return 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CD9C8);
+/* ER-246: by hand; plain C with the file's -fedge-lcm (ruling 3.23); names, types and offsets are Unconfirmed readings. Packet writer (see func_001CD6B8); cases 0 and 1 written out in full (gcc merges their tails after register allocation; the shared-tail goto gives a register rotation) */
+s32 func_001CD9C8(s32 arg0, u32 arg1, s32 arg2) {
+    s32 *q;
+    u8 *w;
+    char *e;
+    char *r;
+
+    if (*(u16 *)((char *)D_0035C554 + 0x4D6) == 0 || arg1 >= 0x7E) {
+        return -1;
+    }
+    q = (s32 *)(*(s32 *)((char *)D_0035C554 + 0x4CC) | 0x20000000);
+    if ((u32)(*q + 0xA) >= 0x3FC) {
+        return -2;
+    }
+    w = (u8 *)((s32)(&((char *)q)[*q + 4]) | 0x20000000);
+    e = (char *)D_0035C554 + ((arg1 << 2) + 0x240);
+    r = (char *)D_0035C554 + (*(s8 *)e << 5);
+    *w++ = 0xFF;
+    *w++ = *(u8 *)(r + 0x18);
+    *w++ = 7;
+    switch (arg0) {
+    case 0:
+        *w++ = 0xFD;
+        *w++ = 0;
+        *w++ = *(u8 *)(e + 1);
+        *w++ = *(u8 *)(e + 2);
+        *w++ = arg1;
+        w[0] = arg2;
+        w[1] = 0;
+        break;
+    case 1:
+        if (*(u16 *)((char *)D_0035C554 + 0x4D4) == 0 || *(s32 *)(r + 0x1C) == 0) {
+            arg2 = 0x3F;
+        }
+        *w++ = 0xFD;
+        *w++ = 1;
+        *w++ = *(u8 *)(e + 1);
+        *w++ = *(u8 *)(e + 2);
+        *w++ = arg1;
+        w[0] = arg2;
+        w[1] = 0;
+        break;
+    case 2:
+        *w++ = 0xFD;
+        *w++ = arg0;
+        *w++ = *(u8 *)(e + 1);
+        *w++ = *(u8 *)(e + 2);
+        *w++ = arg1;
+        w[0] = arg2 & 0x7F;
+        w[1] = ((arg2 >> 7) + 0x40) & 0x7F;
+        break;
+    }
+    *q += 0xA;
+    return 0;
+}
 
 /* ER-237: by hand; plain C with the file's -fedge-lcm (ruling 3.23); names, types and offsets are Unconfirmed readings. Packet writer (see func_001CD6B8) */
 s32 func_001CDB60(s32 arg0, s8 arg1, s8 arg2) {
