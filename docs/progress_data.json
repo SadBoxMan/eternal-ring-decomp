@@ -2392,6 +2392,15 @@
       "model": "Sonnet, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-233",
+      "title": "-fedge-lcm for text_001CB528 (ruling first)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "LuciDin's ruling",
+      "notes": ""
     }
   ]
 }
