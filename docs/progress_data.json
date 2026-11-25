@@ -2500,6 +2500,33 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-245",
+      "title": "stdarg.h for func_001CB808 (with ER-199)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "LuciDin's decision (ER-199)",
+      "notes": ""
+    },
+    {
+      "code": "ER-246",
+      "title": "Three close ones in text_001CB528 (ER-237 follow-up)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-247",
+      "title": "The rest of text_001CB528 by hand (ER-237 follow-up)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
