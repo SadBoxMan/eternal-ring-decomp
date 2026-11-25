@@ -2401,6 +2401,33 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": "Ruling 3.23 given 24 Nov 2026 19:08 (LuciDin)"
+    },
+    {
+      "code": "ER-234",
+      "title": "m2c_bulk --plain: global-as-array draft types",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-235",
+      "title": "Per-file flags in m2c_bulk runs (check first)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "ER-233",
+      "notes": ""
+    },
+    {
+      "code": "ER-236",
+      "title": "Same-size near misses by hand (ER-225's list)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
