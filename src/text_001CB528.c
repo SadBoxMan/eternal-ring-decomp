@@ -653,7 +653,64 @@ s32 func_001CD068(s32 arg0, s32 arg1, s32 arg2) {
     return slot;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CD1D0);
+/* ER-247: by hand; plain C with the file's -fedge-lcm (ruling 3.23); names, types and offsets are Unconfirmed readings. Allocates a 16-byte entry at +0x200, loads it through func_001CB918 / func_001CBA08 and registers it (func_001CD068's shape) */
+s32 func_001CD1D0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+    char *b = D_0035C554;
+    s32 *e = (s32 *)(b + 0x200);
+    char *p;
+    s32 i;
+    s32 slot;
+    s32 m;
+    s32 w;
+
+    for (i = 0; i < 4; i++, e += 4) {
+        if (*e == 0) {
+            slot = i;
+            break;
+        }
+    }
+    if (i >= 4) {
+        return -2;
+    }
+    if (arg0 == -1) {
+        arg0 = slot;
+    } else if ((u32)arg0 >= 4) {
+        return -1;
+    }
+    e[3] = arg0;
+    p = b + (arg1 << 5);
+    e[2] = arg1;
+    while (arg3 & 0xF) {
+        arg3++;
+    }
+    e[1] = arg3;
+    m = func_001D3308(arg3);
+    e[0] = m;
+    if (m == 0) {
+        goto fail;
+    }
+    if ((u32)(m + e[1]) > 0x1FFFFF) {
+        goto fail;
+    }
+    func_001CB918(m, arg2, e[1]);
+    while (func_001CBA08() == 0) {
+    }
+    if (*(s32 *)(p + 0x1C) != 0) {
+        w = *(s32 *)p;
+    } else {
+        w = *(s32 *)(p + 4);
+    }
+    if (func_001CB808(1, 0x1010, e[3], *(s32 *)(p + 0xC), w, *(s8 *)(p + 0x1B)) != 0) {
+        goto fail;
+    }
+    if (func_001CB808(1, 0x2000, e[3], e[0]) != 0) {
+fail:
+        func_001CD468(slot);
+        return -1;
+    }
+    func_001D03E0(0);
+    return slot;
+}
 
 /* ER-233: by hand (ER-198's draft; ER-206); plain C with the file's -fedge-lcm (ruling 3.23); names, types and
    offsets are Unconfirmed readings. */
