@@ -1,5 +1,10 @@
 #include "common.h"
 
+/* Unofficial: a 16-byte aligned float vector, copied by assignment (ld / sd pairs). */
+typedef struct {
+    float v[4];
+} __attribute__((aligned(16))) Vec4;
+
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001000C0);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00100C30);
@@ -384,7 +389,24 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00103598);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001036D0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001037F8);
+extern const Vec4 D_003540D0;
+
+/* ER-229: ER-224's draft by hand. v is filled from the .rodata vector D_003540D0 and never read: the game's binary
+   has that copy's ld / sd to 0($sp) (ruling 3.18). Names and types are Unconfirmed readings. */
+s32 func_001037F8(s32 arg0, void *arg1) {
+    Vec4 v; /* ruling 3.18: filled, never read */
+    s32 r;
+
+    r = arg0 & 0xF;
+    v = D_003540D0;
+    if (r != 0) {
+        s32 t = arg0 + 0x10;
+        arg0 = t - r;
+    }
+    *(s32 *)((char *)arg1 + 0xE0) = arg0;
+    arg0 += *(u16 *)((char *)arg1 + 4) * 0xA0;
+    return arg0;
+}
 
 /* ER-014. Two float quads (0, 0, 0, 1) at word offsets 0x24 and 0x28; types Unconfirmed. */
 void func_00103848(float *a0) {
@@ -1478,7 +1500,8 @@ float func_0011BAB0(float *a0, float *a1, float a, float lim) {
 extern char D_001FFAA4[];
 extern float D_001FF180[];
 extern float D_001FF100[];
-extern void func_001E9B0C(void *, s32, s32);
+/* ER-223: memset by shape (Unconfirmed); it returns its first argument in $v0 (asm/nonmatchings/sdk/libc). */
+extern void *func_001E9B0C(void *, s32, s32);
 extern void func_001CA048(float *, float *, float);
 extern void func_001D73D0(float *, float *);
 extern float func_001114E8(char *, float *);
@@ -1934,7 +1957,32 @@ void func_00125AF0(void) {
     *(u8 *)((char *)temp_4_4 + 0x5A) = (u8) (*(u8 *)((char *)temp_4_4 + 0x5A) | 2);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00125B68);
+typedef struct { s32 x0; s32 x4; } S848; /* Unofficial: the record D_0035B848 points to (only x4 is known) */
+extern const Vec4 D_003543A0;
+extern void func_00115700(void *, void *, void *);
+
+/* ER-223 (from ER-214 / ER-216's draft): 0x182 passes of func_00115700 over the 0x180-byte records with the const
+   vector D_003543A0 (recipes 2.49), then two func_001139C8 calls. The store into D_0035B848's record is written
+   through a struct type: then the following D_0035B8A0 load does not depend on it (alias.c's fixed-scalar /
+   varying-struct rule), the scheduler takes the D_0035B848 load first and its pointer gets the game's $a0.
+   Names, types and offsets are Unconfirmed readings. */
+void func_00125B68(void) {
+    Vec4 v = D_003543A0;
+    s32 i;
+    char *p;
+    void *r;
+
+    p = D_0035B8A0;
+    i = 0x181;
+    do {
+        i--;
+        func_00115700(p, *(void **)(p + 0xEC), &v);
+        p += 0x180;
+    } while (i >= 0);
+    r = func_001139C8(((S848 *)D_0035B848)->x4, D_0035B8A0 + 0x24300);
+    ((S848 *)D_0035B848)->x4 = (s32)r;
+    ((S848 *)D_0035B848)->x4 = (s32)func_001139C8((s32)r, D_0035B8A0 + 0x24600);
+}
 
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
@@ -1968,7 +2016,32 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00125EA0);
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00125F18);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00126190);
+extern s32 func_00158AD8(s32, s32, void *, void *, void *, void *);
+extern s32 D_0024889C[];
+extern const Vec4 D_00354390;
+
+/* ER-223 (ER-224's f28 draft by hand): two cleared vectors with w = 1.0, two const .rodata vectors (recipes 2.49),
+   then func_00158AD8. func_001E9B0C (memset by shape) returns its first argument in $v0; with that return type
+   the call sets $v0, which gives the game's $v0 / $v1 choice for the vector copies after it (recipes 2.36 / 2.38).
+   Names, types and offsets are Unconfirmed readings. */
+void func_00126190(void) {
+    f32 a[4];
+    f32 b[4];
+    Vec4 c;
+    Vec4 d;
+
+    func_001E9B0C(a, 0, 0x10);
+    a[3] = 1.0f;
+    func_001E9B0C(b, 0, 0x10);
+    D_0024889C[0] = 0x10000000;
+    c = D_00354390;
+    b[3] = 1.0f;
+    d = D_003543A0;
+    a[0] = 0;
+    a[1] = 0;
+    a[2] = 0;
+    func_00158AD8(0x35, 0x11, a, b, &c, &d);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00126250);
 
@@ -2019,16 +2092,9 @@ void func_00126EB0(void) {
     func_00115408(temp_16, *(s32 **)((char *)temp_16 + 0xEC), 0x50, 0.8f);
 }
 
-/* Unofficial: a 16-byte aligned float vector, copied by assignment (ld / sd pairs). */
-typedef struct {
-    float v[4];
-} __attribute__((aligned(16))) Vec4;
-
 extern const Vec4 D_003543C0;
 extern const Vec4 D_003543B0;
-extern const Vec4 D_00354390;
 extern s32 func_001E9C70();
-extern s32 func_00158AD8(s32, s32, void *, void *, void *, void *);
 
 /* ER-094: ER-063's draft; the three vector constants are const (they sit in .rodata): only then does the scheduler
    issue each copy's %lo load before its +8 load, as the game does. Names, types and offsets are Unconfirmed
@@ -2712,7 +2778,19 @@ void func_0012D388(s32 arg0, f32 a) {
     func_0012D318((s8 *)arg0, v);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D3B8);
+extern void func_0012D3B8(char *, float, float);
+
+/* ER-223 (ER-225's rc6 plain MATCH): {a, 0, b, 0} to func_0012D318, as func_0012D388 beside it. Names, types and
+   offsets are Unconfirmed readings. */
+void func_0012D3B8(char *arg0, float fparg0, float fparg1) {
+    f32 v[4];
+
+    v[0] = fparg0;
+    v[1] = 0;
+    v[2] = fparg1;
+    v[3] = 0;
+    func_0012D318((s8 *)arg0, v);
+}
 
 extern f32 func_001E3DE0(f32);
 extern f32 func_001E3EC8(f32);
@@ -3588,7 +3666,17 @@ void func_00130120(float *arg0, void *arg1, s32 arg2, f32 x, f32 z) {
     func_0012C9D8(arg0, arg1, arg2, v);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00130150);
+/* ER-223 (ER-225's rc6 plain MATCH): {0, a, b, 0} to func_0012C9D8. Names, types and offsets are Unconfirmed
+   readings. */
+void func_00130150(f32 *arg0, void *arg1, s32 arg2, f32 fparg0, f32 fparg1) {
+    f32 v[4];
+
+    v[0] = 0;
+    v[1] = fparg0;
+    v[2] = fparg1;
+    v[3] = 0;
+    func_0012C9D8(arg0, arg1, arg2, v);
+}
 
 /* ER-171: drafted with m2c (tools/m2c_bulk.py --plain), frame array split into typed locals; names, types and offsets are Unconfirmed readings. */
 void func_00130180(void *arg0, s8 *arg1, void *arg2) {
@@ -4452,7 +4540,6 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00132F80);
 extern float func_0012CE18(char *, char *);
 extern float func_00130D00(char *, float);
 extern s32 func_0012F900(char *, s32, s32, s16, s32, f32);
-extern void func_0012D3B8(char *, float, float);
 extern s32 func_00131140(char *, void *, void *, void *, void *, void *);
 
 /* ER-035. A state handler (a reading): on its first frame (+0x6E == 0) sets step 0.08 and limit 1.5; leaves through
