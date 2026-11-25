@@ -1568,11 +1568,11 @@
     {
       "code": "ER-141",
       "title": "Recomp: GS on its own thread",
-      "status": "In progress",
+      "status": "Done",
       "track": "port",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done 24 Nov 2026 (Recomp 5937683): patch 17 er141_gs_thread, GS backend on its own thread, default on (PS2X_GS_THREAD=0 original, check = shadow compare); proven AS (8 captures off/on/check identical, 2 live threaded captures identical via original path, live check 8,400 compares 0 mismatches); gameplay busy ms/frame 107->95 corridor, 163->134 beach, 55->41 save room; game thread now 86% VU1 (ER-139 next)"
     },
     {
       "code": "ER-142",
