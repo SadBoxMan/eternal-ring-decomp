@@ -2153,11 +2153,11 @@
     {
       "code": "ER-206",
       "title": "-fedge-lcm evidence scan",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Evidence only: text_001CB528 gains 2 MATCHes with -fedge-lcm (func_001CD360, func_001CCB08; all 15 placed survive; regress-proved in a test build); 6 files neutral; 10 files lose placed functions. Table: notes ER-206_elcm_scan.md. Awaits LuciDin's ruling."
     },
     {
       "code": "ER-207",
@@ -2372,6 +2372,24 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-231",
+      "title": "GS thread spin / wake tuning (optional)",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-232",
+      "title": "er177_gs_diff: field-wise backend-state compare",
+      "status": "Queued",
+      "track": "port",
+      "model": "Sonnet, medium",
       "waits_on": "",
       "notes": ""
     }
