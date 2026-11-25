@@ -2545,6 +2545,15 @@
       "model": "Opus, high",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-250",
+      "title": "Dependency-tracked StoreImage drain (optional, port)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "after ER-139",
+      "notes": ""
     }
   ]
 }
