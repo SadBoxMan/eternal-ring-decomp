@@ -1469,7 +1469,7 @@ void func_00159830(char *a0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001598A8);
 
-extern void func_001E9B0C(void *, s32, s32);
+extern void *func_001E9B0C(void *, s32, s32);
 extern float D_001F0380[];
 extern float D_001FF180[];
 extern void func_001D7450(void *, float *);
@@ -2000,7 +2000,7 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001608F0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00160AE8);
 
-extern void func_001E9B0C(void *, s32, s32);
+extern void *func_001E9B0C(void *, s32, s32);
 extern s32 func_001E9C70();
 
 /* ER-096: by hand from ER-080's draft; the two sin products are separate temporaries (one shared temporary swaps
@@ -4063,7 +4063,22 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001891C8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00189200);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00189360);
+extern const Vec4A D_00355BD0;
+extern const Vec4A D_00355BE0;
+
+/* ER-239: drafted with m2c (ER-225's run rs6); matches once func_001E9B0C returns `void *` (recipes 2.56). The four
+   vectors are filled and never read: the game makes these stores (ruling 3.18). Vec4A is ruling 3.15's type; names
+   Unconfirmed. */
+void func_00189360(void) {
+    Vec4A v[4]; /* filled and never read: the game makes these stores (ruling 3.18) */
+
+    func_001E9B0C(&v[0], 0, 0x10);
+    v[0].v[3] = 1.0f;
+    func_001E9B0C(&v[1], 0, 0x10);
+    v[1].v[3] = 1.0f;
+    v[2] = D_00355BD0;
+    v[3] = D_00355BE0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001893E0);
 
@@ -4254,7 +4269,6 @@ void func_0018C730(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018C780);
 
-extern const Vec4A D_00355BD0;
 extern const Vec4A D_00355BF0;
 extern s32 func_00158AD8(s32, s32, void *, void *, void *, void *);
 
@@ -4509,7 +4523,39 @@ void func_00191DC8(void *arg0) {
     *(s32 *)((char *)arg0 + 4) = 0x6E;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00191E10);
+extern s16 D_001FFB02[];
+extern const Vec4A D_00355D10;
+void func_00191F10(void);
+void func_00192088(void);
+void func_001922C0(void *);
+
+/* ER-239: drafted with m2c (ER-225's run rs6); matches once func_001E9B0C returns `void *` (recipes 2.56). The four
+   vectors are filled and never read: the game makes these stores (ruling 3.18). Vec4A is ruling 3.15's type; names,
+   types and offsets Unconfirmed. */
+void func_00191E10(void *arg0) {
+    Vec4A v[4]; /* filled and never read: the game makes these stores (ruling 3.18) */
+
+    func_001E9B0C(&v[0], 0, 0x10);
+    v[0].v[3] = 1.0f;
+    func_001E9B0C(&v[1], 0, 0x10);
+    v[1].v[3] = 1.0f;
+    v[2] = D_00355BD0;
+    v[3] = D_00355D10;
+    if (*(u32 *)((char *)arg0 + 4) == 0x6E) {
+        func_00191F10();
+    }
+    if (*(u32 *)((char *)arg0 + 4) == 0x50) {
+        func_00192088();
+        func_001650E8(0x213, 0x3C006C);
+        func_001650E8(0x214, 0x3C006C);
+    }
+    if (*(u32 *)((char *)arg0 + 4) < 0x50U) {
+        func_001922C0(arg0);
+    }
+    if (*(u32 *)((char *)arg0 + 4) == 0x3C) {
+        D_001FFB02[0] = 0;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00191F10);
 
@@ -5395,7 +5441,6 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A3A40);
 
 extern const Vec4A D_00355E60;
 extern const Vec4A D_00355E70;
-extern const Vec4A D_00355BE0;
 /* ER-195: ER-198's base-pointer scan hit (recipes, ER-195): three 16-byte vectors copied from .rodata, declared
    const (the loads then schedule as the game's). Names, types and offsets are Unconfirmed readings. */
 void func_001A3D00(s32 arg0, f32 f) {
@@ -5479,7 +5524,35 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A58B0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A5BA0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A5DE0);
+extern const Vec4A D_00355ED0;
+void func_001A5360(void *arg0, void *arg1);
+
+/* ER-239: drafted with m2c (ER-225's run rs6); matches once func_001E9B0C returns `void *` (recipes 2.56). Vec4A is
+   ruling 3.15's type; names, types and offsets Unconfirmed. */
+void func_001A5DE0(void *arg0, f32 fparg0) {
+    Vec4A v[4];
+    u8 *p;
+
+    func_001E9B0C(&v[0], 0, 0x10);
+    v[0].v[3] = 1.0f;
+    func_001E9B0C(&v[1], 0, 0x10);
+    v[1].v[3] = 1.0f;
+    v[2] = D_00355ED0;
+    v[3] = D_00355BE0;
+    func_001A5360(arg0, &v[0]);
+    D_00248880[0] = 1;
+    D_00248880[1] = 0;
+    D_00248880[7] = 0;
+    if (0.95f < fparg0) {
+        p = (u8 *)&D_00248880[7];
+        p[2] |= 0x10;
+    }
+    v[1].v[0] = 0.0f;
+    v[1].v[1] = 0.0f;
+    v[1].v[2] = 0.0f;
+    func_001CA048(&v[3], &v[3], fparg0);
+    func_00158AD8(0x98, 0xA, &v[0], &v[1], &v[2], &v[3]);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A5F00);
 
