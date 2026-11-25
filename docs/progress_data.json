@@ -2378,11 +2378,11 @@
     {
       "code": "ER-231",
       "title": "GS thread spin / wake tuning (optional)",
-      "status": "Queued",
+      "status": "Done",
       "track": "port",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Wed 25 Nov 2026 (Recomp f9a5662; spike 24): GS thread worker spin 128 pauses + wake at 16 KiB / VBlank / waiter kick; same FPS, process CPU -16 to -22%, GS thread CPU -40 to -60%; replays off/on/check identical, live check 0 mismatches; StoreImage drain 2.5-2.9 ms/frame, not cut"
     },
     {
       "code": "ER-232",
