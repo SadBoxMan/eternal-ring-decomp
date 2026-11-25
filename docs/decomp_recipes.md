@@ -1689,7 +1689,7 @@ at `0x1E4`), the state values of func_001C1E38.
 
 Branch `er-221-cut` (worktree `C:\rs\wt\er221`). **func_00135740 placed** (ER-225's plain m2c MATCH from the rsm6
 rerun, as drafted; `func_001301F8` / `func_001CA018` externs and func_001CA048's prototype moved above it): 1 function,
-208 bytes. **`text_001343E8` not cut** (LuciDin, Wed 25 Nov 2026, about 02:45 Eastern: "Don't cut yet", the seam has
+208 bytes. **`text_001343E8` not cut** (LuciDin, Wed 25 Nov 2026, about 02:10 Eastern: "Don't cut yet", the seam has
 no evidence). func_00134F70, func_00137A10 and func_00137CE0 stay parked ("needs the file cut").
 
 | Lesson | Proved by |
