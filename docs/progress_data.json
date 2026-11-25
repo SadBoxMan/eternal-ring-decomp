@@ -2437,6 +2437,15 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-238",
+      "title": "Cut text_001343E8 at S3 and place its three (ER-221's cut part)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "LuciDin's ruling on the S3 start",
+      "notes": ""
     }
   ]
 }
