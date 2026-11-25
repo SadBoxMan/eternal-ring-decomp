@@ -65,7 +65,95 @@ INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CC9B0);
 
 INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CCAB0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CCB08);
+extern void func_001D03E0(s32);
+
+/* ER-233: by hand (ER-202's draft, recipes 2.50; ER-206); plain C with the file's -fedge-lcm (ruling 3.23); names,
+   types and offsets are Unconfirmed readings. */
+s32 func_001CCB08(void) {
+    char *p[16];
+    u8 f[16]; /* ruling 3.18: filled with zeros and never read; the game makes the stores */
+    char *e;
+    char *a;
+    char *b;
+    char *s;
+    char *d;
+    s32 i;
+    s32 m;
+    s32 k;
+    s32 gap;
+    u32 total;
+    u32 c;
+    s32 r;
+    s32 v;
+
+    for (i = 15; i != -1; i--) {
+        p[i] = (char *)D_0035C554 + i * 0x20;
+        f[i] = 0;
+    }
+    for (gap = 8; gap != 0; gap /= 2) {
+        for (m = 0; m < gap; m++) {
+            for (i = m + gap; i < 16; i += gap) {
+                k = i - gap;
+                if (k >= m) {
+                    do {
+                        a = p[k];
+                        b = p[k + gap];
+                        if (*(u32 *)(b + 0xC) >= *(u32 *)(a + 0xC)) {
+                            break;
+                        }
+                        p[k] = b;
+                        p[k + gap] = a;
+                        k -= gap;
+                    } while (k >= m);
+                }
+            }
+        }
+    }
+    total = *(u32 *)((char *)D_0035C554 + 0x4BC);
+    for (i = 0; i < 16; i++) {
+        e = p[i];
+        if (*(s32 *)(e + 8) != 0 && (c = *(u32 *)(e + 0xC)) != 0) {
+            if (total < c) {
+                *(u32 *)(e + 0xC) = total;
+                func_001CB808(1, 0x80, *(s8 *)(e + 0x1A), 1);
+                r = func_001CB808(1, 0x90, *(s8 *)(e + 0x1A), 0, *(s32 *)(e + 8), *(u32 *)(e + 0xC), *(s32 *)(e + 0x14));
+                if (r != *(s32 *)(e + 0x14)) {
+                    return -1;
+                }
+                total += r;
+                func_001CB808(1, 0x80, *(s8 *)(e + 0x1A), 1);
+                if (*(s32 *)(e + 0x1C) != 0) {
+                    v = *(s32 *)e;
+                } else {
+                    v = *(s32 *)(e + 4);
+                }
+                if (func_001CB808(1, 0x1010, *(s16 *)(e + 0x18), *(u32 *)(e + 0xC), v, *(s8 *)(e + 0x1B)) != 0) {
+                    return -1;
+                }
+            } else {
+                total = c + *(s32 *)(e + 0x14);
+            }
+        }
+    }
+    d = D_0035C554;
+    *(u32 *)(d + 0x4C0) = total;
+    s = d + 0x200;
+    for (i = 0; i < 4; i++, s += 0x10) {
+        if (*(s32 *)s != 0 && *(s32 *)(s + 8) != -1) {
+            e = (char *)D_0035C554 + (*(s32 *)(s + 8) << 5);
+            if (*(s32 *)(e + 0x1C) != 0) {
+                v = *(s32 *)e;
+            } else {
+                v = *(s32 *)(e + 4);
+            }
+            if (func_001CB808(1, 0x1010, *(s32 *)(s + 0xC), *(s32 *)(e + 0xC), v, *(s8 *)(e + 0x1B)) != 0) {
+                return -1;
+            }
+        }
+    }
+    func_001D03E0(0);
+    return 0;
+}
 
 
 /* ER-154: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
@@ -106,11 +194,118 @@ INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CCE58);
 
 INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CCF60);
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CD068);
+extern s32 func_001CE038(s32);
+extern s32 func_001D3308(s32);
+extern s32 func_001CE0D8(s32, s32);
+
+/* ER-233: by hand (ER-198's draft without its `ok` flag; func_001CD360's shape); plain C with the file's -fedge-lcm
+   (ruling 3.23); names, types and offsets are Unconfirmed readings. */
+s32 func_001CD068(s32 arg0, s32 arg1, s32 arg2) {
+    char *b = D_0035C554;
+    s32 *e = (s32 *)(b + 0x200);
+    char *p;
+    s32 i;
+    s32 slot;
+    s32 v;
+    s32 n;
+    s32 m;
+
+    for (i = 0; i < 4; i++, e += 4) {
+        if (*e == 0) {
+            slot = i;
+            break;
+        }
+    }
+    if (i >= 4) {
+        return -2;
+    }
+    if (arg0 == -1) {
+        arg0 = slot;
+    } else if ((u32)arg0 >= 4) {
+        return -1;
+    }
+    p = b + (arg1 << 5);
+    e[3] = arg0;
+    e[2] = arg1;
+    n = func_001CE038(arg2);
+    if (n < 0) {
+        return -1;
+    }
+    e[1] = n;
+    m = func_001D3308(n);
+    e[0] = m;
+    if (m == 0) {
+        return -1;
+    }
+    if ((u32)(m + e[1]) > 0x1FFFFF) {
+        return -1;
+    }
+    if (func_001CE0D8(arg2, m) != 0) {
+        return -1;
+    }
+    if (*(s32 *)(p + 0x1C) != 0) {
+        v = *(s32 *)p;
+    } else {
+        v = *(s32 *)(p + 4);
+    }
+    if (func_001CB808(1, 0x1010, e[3], *(s32 *)(p + 0xC), v, *(s8 *)(p + 0x1B)) != 0) {
+        return -1;
+    }
+    if (func_001CB808(1, 0x2000, e[3], e[0]) != 0) {
+        return -1;
+    }
+    func_001D03E0(0);
+    return slot;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CD1D0);
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CD360);
+/* ER-233: by hand (ER-198's draft; ER-206); plain C with the file's -fedge-lcm (ruling 3.23); names, types and
+   offsets are Unconfirmed readings. */
+s32 func_001CD360(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+    char *b = D_0035C554;
+    s32 *e = (s32 *)(b + 0x200);
+    char *p;
+    s32 i;
+    s32 slot;
+    s32 v;
+
+    for (i = 0; i < 4; i++, e += 4) {
+        if (*e == 0) {
+            slot = i;
+            break;
+        }
+    }
+    if (i >= 4) {
+        return -2;
+    }
+    if (arg0 == -1) {
+        arg0 = slot;
+    } else if ((u32)arg0 >= 4) {
+        return -1;
+    }
+    p = b + (arg1 << 5);
+    e[3] = arg0;
+    e[1] = arg3;
+    e[2] = arg1;
+    e[0] = arg2;
+    if (arg2 == 0) {
+        return -1;
+    }
+    if (*(s32 *)(p + 0x1C) != 0) {
+        v = *(s32 *)p;
+    } else {
+        v = *(s32 *)(p + 4);
+    }
+    if (func_001CB808(1, 0x1010, e[3], *(s32 *)(p + 0xC), v, *(s8 *)(p + 0x1B)) != 0) {
+        return -1;
+    }
+    if (func_001CB808(1, 0x2000, e[3], e[0]) != 0) {
+        return -1;
+    }
+    func_001D03E0(0);
+    return slot;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CD468);
 

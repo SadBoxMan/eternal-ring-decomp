@@ -93,6 +93,11 @@ $(BUILD)/src/%.s: src/%.c $(wildcard include/*.h)
 # needs it; every other function in the file matches either way. The later flag wins over CFLAGS' -fno-edge-lcm.
 $(BUILD)/src/text_001CA8D8.s: CFLAGS += -fedge-lcm
 
+# ER-233: text_001CB528 is built with the edge-based LCM on too (ruling docs/decomp_recipes.md 3.23, LuciDin, Tue 24 Nov
+# 2026): func_001CD360 and func_001CCB08 match as plain C only with it (ER-206's scan); every function placed in the
+# file before it matches either way. The later flag wins over CFLAGS' -fno-edge-lcm.
+$(BUILD)/src/text_001CB528.s: CFLAGS += -fedge-lcm
+
 $(BUILD)/src/%.o: $(BUILD)/src/%.s $(GP_INC) include/macro.inc include/labels.inc
 	$(AS) $(ASFLAGS) -o $@ $<
 
