@@ -1459,8 +1459,9 @@ operands): func_001766F8, func_001BFA90 (`rs6`); func_0013F288, func_001431A0, f
   func_0012B218, func_0012E820, func_0012F9C0, func_001BE018).
 - Relayed to DISP-05 for their owners: func_0012D3B8, func_00130150 (`text_001000C0`), func_00135740
   (`text_001343E8`). `text_001CA8D8` / `text_001CA0F0` (no writer) have no MATCH.
-- **Not scored with the file's flags:** `text_001CA8D8` (ruling 3.21) and `text_001CB528` (3.23, Makefile change not
-  on main yet) were compiled without `-fedge-lcm`: `m2c_bulk.py` has no per-file flags.
+- **File flags:** drafts compile with their home file's Makefile flags (`eematch.scratch_cflags`, ER-205), so
+  `text_001CA8D8` got ruling 3.21's `-fedge-lcm`. `text_001CB528` was compiled without it: ruling 3.23's Makefile
+  line was not on main yet (ER-233 adds it). Rerun that file once it lands.
 
 Not verified (ER-225): why func_00151F68 was missed by `rs0` (ER-206 also found it with a default run); the
 same-size near misses were not examined.
