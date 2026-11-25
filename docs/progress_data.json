@@ -2554,6 +2554,15 @@
       "model": "Opus, high",
       "waits_on": "after ER-139",
       "notes": ""
+    },
+    {
+      "code": "ER-251",
+      "title": "func_00134790 by hand (text_001343E8)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
