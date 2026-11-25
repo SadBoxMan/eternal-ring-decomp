@@ -2399,8 +2399,8 @@
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "LuciDin's ruling",
-      "notes": ""
+      "waits_on": "",
+      "notes": "Ruling 3.23 given 24 Nov 2026 19:08 (LuciDin)"
     }
   ]
 }

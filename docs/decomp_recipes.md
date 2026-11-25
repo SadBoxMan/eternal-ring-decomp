@@ -1833,5 +1833,11 @@ Standing rulings; each applies until LuciDin changes it.
 |---|---|
 | **Accepted** (the same-file case 3.19 left open) | A call through a cast to an `int`-returning function type, `((s32 (*)(void))func_X)();`, when the callee is defined `void` earlier in the same `src/` file (so no `extern` with another return type can be written there) and the caller matches only with the call setting `$v0` (func_0017BC40: the int return moves its clear loop's registers to the game's, 2.53). Read as the original caller seeing the callee undeclared (implicit `int`) or declared so in another source file (Unconfirmed). The definition keeps its own type. Each use carries the comment `ruling 3.22`. Used so far: func_0017BC40 (ER-212, 2.53) |
 
+### 3.23 ER-206: -fedge-lcm for `text_001CB528` too (Tue 24 Nov 2026, 19:08 Eastern, LuciDin in the DISP-05 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** (a second per-file exception to 3.11, as 3.21) | `text_001CB528` is built with `-fedge-lcm` (Makefile target-specific CFLAGS, as 3.21's line for `text_001CA8D8`). Evidence (ER-206, notes file `ER-206_elcm_scan.md` in the DISP-04 notes folder): with the flag func_001CD360 (plain C) and func_001CCB08 (plain C + ruling 3.18's `u8 f[16]`) match and all 15 functions already placed in the file still match (whole-ELF test build PASS); without it the same placement fails. Every other file keeps 3.11's `-fno-edge-lcm` (10 files lose placed functions with the flag, 6 are neutral). ER-233 adds the line and places the two |
+
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker, 3.18 only stores the game makes): park such functions with a
 one-line cause and ask.
