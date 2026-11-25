@@ -4761,7 +4761,59 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00194DF8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00194E40);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00194F58);
+extern const Vec4A D_00355E00;
+extern void (*D_0034BFA0[])(s8 *);
+extern void func_001A1880(void *);
+extern void func_001A2528(void *, s32, f32);
+extern void func_001A24A8(void *);
+extern void func_001A1B90(void *);
+extern void func_001A1E10(void *);
+extern void func_001A2000(void *);
+extern void func_001A21B8(void *);
+
+/* ER-244: by hand from ER-225's rs6 m2c draft (recipes 2.56's `void *` memset). D_0034BFA0 is read as a table of
+   handlers (absolute `lui` / `lw`, not `$gp`); Vec4A is ruling 3.15's type; names, types and offsets Unconfirmed. */
+void func_00194F58(s8 *arg0) {
+    Vec4A v[4];
+    s8 *q;
+    u8 *p;
+
+    q = arg0 + 0x50;
+    func_001E9B0C(&v[0], 0, 0x10);
+    v[0].v[3] = 1.0f;
+    func_001E9B0C(&v[1], 0, 0x10);
+    v[2] = D_00355E00;
+    v[3] = D_00355BE0;
+    v[1].v[3] = 1.0f;
+    func_001C9B18((s32)D_0034C0B0, q);
+    D_0034BFA0[0](arg0);
+    func_0017C738(arg0, 2, 1.0f);
+    D_00248880[7] = 0;
+    D_00248880[0] = 1;
+    p = (u8 *)&D_00248880[7];
+    D_00248880[1] = 0;
+    p[2] |= 0x10;
+    func_00158AD8(0x75, 0xA, q, arg0 + 0x60, &v[2], &v[3]);
+    func_001A1880(q);
+    func_001C9B18((s32)&v[0], q);
+    v[0].v[1] = *(f32 *)(arg0 + 0x3C);
+    func_001A2528(&v[0], 0x3C, 1.0f);
+    func_001C9B18((s32)&v[1], q);
+    func_001A24A8(&v[1]);
+    if (*(f32 *)(arg0 + 0x54) > v[1].v[1]) {
+        func_001A1B90(&v[1]);
+        func_001A1E10(&v[1]);
+        func_001A2000(&v[1]);
+        func_001A21B8(&v[1]);
+        func_00165170(0x20D, 0x3C0080, q, 5120.0f);
+        *(s32 *)(arg0 + 4) = 0x5A;
+        *(s32 *)(arg0 + 0x24) = *(s32 *)(arg0 + 0x20);
+        *(s32 *)(arg0 + 0x18) = 2;
+        *(f32 *)(arg0 + 0x54) = v[1].v[1] + 100.0f;
+        return;
+    }
+    *(s32 *)(arg0 + 4) = 2;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00195138);
 
@@ -5363,8 +5415,6 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A2000);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A21B8);
 
-extern void func_001A24A8(void *);
-
 /* ER-184: by hand from the m2c draft (run er171s0; the early exit written first, recipes 2.42); names and types Unconfirmed. */
 s32 func_001A2438(void *arg0) {
     char **pp;
@@ -5480,7 +5530,24 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A40A0);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A4270);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A4710);
+extern const Vec4A D_00355EB0;
+
+/* ER-244: by hand from ER-225's rs6 m2c draft; matches with func_001E9B0C returning `void *` (recipes 2.56). Vec4A is
+   ruling 3.15's type; names, types and offsets Unconfirmed. */
+void func_001A4710(s32 arg0, void *arg1) {
+    Vec4A v[2];
+
+    func_001E9B0C(&v[0], 0, 0x10);
+    v[0].v[3] = 1.0f;
+    v[1] = D_00355EB0;
+    D_00248880[0] = 1;
+    D_00248880[1] = 0;
+    D_00248880[7] = 0;
+    v[0].v[0] = 0.0f;
+    v[0].v[1] = 0.0f;
+    v[0].v[2] = 0.0f;
+    func_00158AD8(0x8F, 0xA, (void *)(arg0 + 0x50), &v[0], &v[1], arg1);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A47B0);
 
@@ -5558,7 +5625,42 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A5F00);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A6140);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001A64E8);
+extern const Vec4A D_00355D80;
+
+/* ER-244: by hand from ER-225's rs6 m2c draft (recipes 2.56's `void *` memset). The angle wrap subtracts in each arm,
+   0 and -2pi included, as the game does (`sub.s` by both); z is the game's FP zero for the two stores. Vec4A is ruling
+   3.15's type; names, types and offsets Unconfirmed. */
+void func_001A64E8(void *arg0) {
+    Vec4A v[3];
+    f32 a;
+    f32 z;
+    u8 *p;
+
+    func_001E9B0C(&v[0], 0, 0x10);
+    v[0].v[3] = 1.0f;
+    v[1] = D_00355D80;
+    v[2] = D_00355BE0;
+    func_001C9B18((s32)&v[0], (char *)arg0 + 0x60);
+    a = v[0].v[1] + 3.1415927f;
+    v[0].v[1] = a;
+    if (3.1415927f < a) {
+        a = a - 6.2831855f;
+    } else if (a < -3.1415927f) {
+        a = a - -6.2831855f;
+    } else {
+        a = a - 0.0f;
+    }
+    z = 0.0f;
+    D_00248880[7] = 0;
+    v[0].v[2] = z;
+    v[0].v[1] = a;
+    D_00248880[1] = 0;
+    v[0].v[0] = z;
+    p = (u8 *)&D_00248880[7];
+    p[2] |= 0x10;
+    D_00248880[0] = 0x5A;
+    *(s32 *)((char *)arg0 + 0x24) = func_00158AD8(0x79, 0xA, (char *)arg0 + 0x50, &v[0], &v[1], &v[2]);
+}
 
 extern void func_001A6640(void *);
 
