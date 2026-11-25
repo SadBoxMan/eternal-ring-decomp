@@ -1568,11 +1568,11 @@
     {
       "code": "ER-141",
       "title": "Recomp: GS on its own thread",
-      "status": "In progress",
+      "status": "Done",
       "track": "port",
       "model": "Opus, high",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done 24 Nov 2026 (Recomp 5937683): patch 17 er141_gs_thread, GS backend on its own thread, default on (PS2X_GS_THREAD=0 original, check = shadow compare); proven AS (8 captures off/on/check identical, 2 live threaded captures identical via original path, live check 8,400 compares 0 mismatches); gameplay busy ms/frame 107->95 corridor, 163->134 beach, 55->41 save room; game thread now 86% VU1 (ER-139 next)"
     },
     {
       "code": "ER-142",
@@ -2153,11 +2153,11 @@
     {
       "code": "ER-206",
       "title": "-fedge-lcm evidence scan",
-      "status": "Queued",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Evidence only: text_001CB528 gains 2 MATCHes with -fedge-lcm (func_001CD360, func_001CCB08; all 15 placed survive; regress-proved in a test build); 6 files neutral; 10 files lose placed functions. Table: notes ER-206_elcm_scan.md. Awaits LuciDin's ruling."
     },
     {
       "code": "ER-207",
@@ -2374,6 +2374,33 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-231",
+      "title": "GS thread spin / wake tuning (optional)",
+      "status": "Queued",
+      "track": "port",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-232",
+      "title": "er177_gs_diff: field-wise backend-state compare",
+      "status": "Queued",
+      "track": "port",
+      "model": "Sonnet, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-233",
+      "title": "-fedge-lcm for text_001CB528 (ruling first)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": "Ruling 3.23 given 24 Nov 2026 19:08 (LuciDin)"
     }
   ]
 }
