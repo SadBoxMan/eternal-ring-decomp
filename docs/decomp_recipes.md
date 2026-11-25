@@ -1707,7 +1707,7 @@ MATCH.
 | Function | Cause |
 |---|---|
 | func_001CC9B0 | 11 words, same size, with or without the flag (`C:\rs\wt\er189_runs\s\func_001CC9B0_best11.c`, 2.46's loop register tie): stays ER-162's |
-| the file's other 28 asm functions | the rerun's closest are 14-16 words at the same size (func_001CDEA0, func_001CD620, func_001CD4C8); 15 differ in size, 13 drafts do not compile (m2c context: `void value not ignored`, `invalid type argument`); not tried by hand |
+| the file's other 28 asm functions | ER-237 placed 12 of them by hand (2.57); the rest are listed there |
 
 ### 2.55 S3 checked again: the cut still waits; func_00135740 placed (ER-221, Wed 25 Nov 2026; Confirmed by `make regress`, 1 function)
 
@@ -1752,6 +1752,43 @@ prototypes of func_00115700 and func_001139C8 as written.
 |---|---|
 | func_00125A38 (`text_001000C0`) | 12 words, right size (`a38\best_func_00125A38.c`; `a38\alt13_func_00125A38.c` has the game's head instructions at 13): the head's registers, game `n` `$a2`, `w` (D_0035B848) `$a0`, `b` `$a1`, ours `$a0` / `$a2` / `$a1` or `$a0` / `$a1` / `$a2`: global-alloc takes `n` first (3 refs over 8 insns against 2 over 15 / 17), so it gets the first free `$a0`; the game's choice needs `n` to conflict with `$a0` / `$a1` or rank below `w` and `b`. Tail: the game's `lw $a1, 0xEC($a0)` reads the argument copy, which regmove gives only when the load comes after `a0 = p` in the RTL (an inline `p->xEC` argument), but then it must also come after the D_0035B848 store in the source, and the game has it before (the store sits in the call's delay slot). 120 head orders, 720 with the vector copy, 48 loop forms and types, 72 + 9 structural variants tried |
 | func_0013AA28 (`text_0013A410`, ER-222) | 4 words, right size (`aa28\best_func_0013AA28.c`, 9 before; D_00354800's takeover already passes `split.py`): case 1's `li $v0, 2` before `swc1 0x94($s1)` and case 2's `D_0035BA9C` / `+0x54` load order. Case 1 needs the `0x6E($s0)` halfword store to be independent of the `0x94($s1)` float store (the `-fstrict-aliasing` diagnostic gives it; under ruling 3.6 the two stores keep an output dependence). Case 2: reading D_0035BA9C first gives the order but the game's FP registers (`c` `$f2`, `+0x54` `$f0`, `+0x94` `$f1`) need the `+0x94` load ahead of the subtraction in the first scheduler, i.e. independent of the `+0x30` store, which again only type-based aliasing allows; 48 temporaries / orders tried, 2 words left even with the diagnostic. All 10 placed functions of `text_0013A410` match with `-fstrict-aliasing` (diagnostic compile, nothing adopted) |
+
+### 2.57 `text_001CB528` by hand under `-fedge-lcm`: countdown loops, packet writers, a varargs call (ER-237, Wed 25 Nov 2026; Confirmed by `make regress`, 12 functions)
+
+Branch `er-237-cb528` (worktree `C:\rs\wt\er237`), commit `9cf0ba2`: **12 functions, 3,456 bytes**, all plain C
+under ruling 3.23's per-file flag. ER-235's three same-size near misses (func_001CD4C8, func_001CD620, func_001CDEA0)
+and nine of its 13 drafts that did not compile (func_001CB750, func_001CBBC0, func_001CBD00, func_001CC0C8,
+func_001CC6A0, func_001CD6B8, func_001CD8D8, func_001CDB60, func_001CDC08). Scratch (our C only):
+`C:\rs\wt\er237_runs\` (`s\` the near misses, `nc\` the drafts and hand versions, `best\` the parked bests).
+
+| Lesson | Proved by |
+|---|---|
+| **The 13 "no compile" drafts were m2c's own local types, not the file's declarations**: a `void *` local dereferenced bare (`*var_16`, "void value not ignored") or an `s32` local used as a pointer (`*temp_9`, "invalid type argument"), plus one `saved_reg_s1` (a varargs function, below). A cast at the line compiles them, but the drafts then score far off (wrong record strides, m2c's two stores at offset 0 for `*w++`); every match came from a hand rewrite | all 13 |
+| **A `li N; ...; bgezl` countdown is gcc reversing an up-counting `for` whose index the body never uses.** Written `for (i = 15; i >= 0; i--)` the hoisted loop constant (`li 1`, `li -1`) lands after the counter's `li` (2 words); written `for (i = 0; i < 16; i++)` loop reversal emits the counter after the hoisted constants, as the game | func_001CBBC0, func_001CBD00 |
+| **The slot search with the game's kept `slti` flag (`bnez $t5` after the loop) is still the plain `for ... break; if (i >= N) return -2;`** under the flag (2.54 again, 24-byte and 32-byte records) | func_001CDEA0, func_001CBE90 (head), func_001CC0C8, func_001CC6A0, func_001CC348 (head) |
+| **Two early exits written apart give the game's shared `b; li -1` block**: `if (x4D6 == 0) return -1; if (arg0 >= 5) return -1;` matches, the `||` form misses by 10 words | func_001CD4C8, func_001CD620 |
+| **The packet writers into the uncached buffer** (`q = (s32 *)(*(s32 *)(b + 0x4CC) \| 0x20000000)`, length word first): the write pointer is `(u8 *)((s32)(&((char *)q)[*q + 4]) \| 0x20000000)` (`(s32)q + *q + 4` and `(char *)q + *q + 4` reassociate to `q + 4` first), then `*w++ = ...` per byte; the record read for the second byte before the `0xFF` store; the last two bytes `w[0] = a; w[1] = b;` give the game's `sb 1; sb 0`. splat marks the `addiu $a0, $a0, 1` after the first byte as `%lo(D_20000001)`: our plain `1` assembles to the same word and func_check passes | func_001CDB60, func_001CD8D8, func_001CD6B8 |
+| **A field the game reads before a store in source order needs its own local**: `a = b->x4CC; D_01B73E78[1] = b->x4C4; D_01B73E78[0] = a;` (the plain order is 10 words off) | func_001CDC08 |
+| **The `0x4C0` allocation block** (`if (v == 0) { v = b->x4C0; p->xC = v; } if (v >= b->x4C0) b->x4C0 = v + p->x14;`): the game's then-arm `lw; daddu v; b; sw` needs a temporary (`u32 t = ...; p->xC = t; v = t;`); in func_001CC6A0, where the game loads D_0035C554 on each path and the then-arm skips the merge's load, it matched only with `b = D_0035C554;` in both arms of an `if / else` (Unconfirmed reading: the original may have had another shape; it is live code, no ruling form) | func_001CC0C8, func_001CC6A0 |
+| **A reused local for a second allocation result costs registers**: func_001CC0C8 matched only with the second `func_001D3308` result in its own variable | func_001CC0C8 |
+| **func_001CB808 is varargs** (`s32 func_001CB808(s32 mode, ...)`: `sd $a1-$t3` into the va area, the command read with `va_arg`, eight words copied into the send buffer D_01B73840, then func_001D23A8 with send / receive sizes 0xA0 / 0xA0 or 0x40 / 0x10). With the toolchain's own `stdarg.h` (scratch `-I` only) the head and copy loop match; see the parked row | func_001CB808 (scratch) |
+
+Names (`p`, `b`, `e`, `q`, `w`, `slot`, `chunk`, `size`, `Rec` in scratch) and record offsets are Unofficial; callee
+types (`s32 func_001CB918(s32, s32, u32)`, `s32 func_001CBA08(void)`, `s32 func_001CC9B0(u32)`, `s32 func_001CD468(s32)`,
+`void func_001D3378(s32)`, `s32 func_001D0520(s32 *, s32)`, `s32 func_001D0500(s32)`) are read from their use
+(Unconfirmed); func_001D0520 / func_001D0500 as a DMA send and its status poll, func_001D3308 / func_001D3378 as an
+allocator and its free, are readings by shape (Unconfirmed). A declarations block now heads the file (three later
+duplicates removed); every placed function of the file still matches (30 / 30).
+
+**Parked (best files in `C:\rs\wt\er237_runs\best\`):**
+
+| Function | Cause |
+|---|---|
+| func_001CBE90 | 8 bytes short, 82 words (`hbe90_O1.c`): the `0x4C0` block's then-arm reuse of D_0035C554 (func_001CC6A0's both-arms form makes it 4 bytes long and drops the kept `0x1FFFFF` register), the prologue's store order; 20 variants |
+| func_001CC348 | same size, 181 words but 205 / 213 instructions line up register-blind (`hc348c.c`): the rounding loop's copy of `arg4`, the `0x4C0` block, the tail order of the chunk loop's three updates; about 12 variants |
+| func_001CD9C8 | 16 words, same instructions (`hd9c8c.c`): one register rotation (game D_0035C554 `$t1`, `arg0` `$t2`, the record pointer `$t0`; ours `$t0` / `$t1` / `$t2`); 120 declaration orders, 5 address forms |
+| func_001CB808 | 4 bytes short with `stdarg.h` (`hb808_v3.c`): the game computes `mode == 0` after the `0x80000` test (from a copy of `$a0`), ours at the top; 6 forms. Placing it also needs `stdarg.h` on the build's include path (`include/` holds none): a dispatcher / LuciDin decision |
+| func_001CDFD0 and the 15 size-off drafts | not tried in this pass (ER-235's table, matching_tools 6.26) |
 
 ## 3. Rulings (LuciDin)
 
