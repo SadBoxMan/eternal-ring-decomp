@@ -1685,6 +1685,30 @@ at `0x1E4`), the state values of func_001C1E38.
 | func_00151670 | 4 words (2 real): FP local-alloc tie, `D_0035BF34` and the product take `$f0`, pi `$f1` (game the other way), and the loads follow; `const`, operand orders, temporaries, return shapes, declaration orders (432) |
 | ER-162's eight (func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001B34F8, func_001BE9C0, func_001C6F90, func_001C8600, func_001C8758) | Not retried: the round-4 rerun's and ER-188's 3-8 word lists are these, with ER-153's causes (scheduler ties, 2.35) standing; they stay ER-162's |
 
+### 2.54 `text_001CB528` with `-fedge-lcm`: three loops matched as plain C (ER-233 + ER-235, Wed 25 Nov 2026; Confirmed by `make regress`, 3 functions)
+
+Branch `er-233-elcm` (worktree `C:\rs\wt\er233`), commit `17b1f59` (the Makefile line of ruling 3.23 and the three
+functions). Scratch (our C only): `C:\rs\wt\er233_runs\` (`s\` drafts, `rcb7\` the rerun, regress logs).
+
+| Lesson | Proved by |
+|---|---|
+| **A second per-file `-fedge-lcm` line is written like 3.21's**: `$(BUILD)/src/text_001CB528.s: CFLAGS += -fedge-lcm` with a comment naming the ruling. cmpfunc, ordersearch and m2c_bulk pick it up for scratch copies with no flag given (ER-205's `scratch_cflags`): ER-198's and ER-202's drafts compared MATCH at once | func_001CD360, func_001CCB08 |
+| **A search loop's `ok = i < 4` flag was only classic PRE's shape**: under 3.11's flag func_001CD068 / func_001CD360 came within 7 / 6 words only with the result of the `for` test kept in a local (2.47); with `-fedge-lcm` the plain `for (i = 0; i < 4; i++, e += 4) { if (*e == 0) { slot = i; break; } } if (i >= 4) return -2;` matches, and the `ok` draft still misses the entry block by 7 words. So ER-198's open question for LuciDin (is the flag contrived?) is moot | func_001CD068, func_001CD360 |
+| **The shell sort's inner-loop exits (2.50: game `bnez` + `b L; copy`) were the edge LCM too**: ER-202's draft that parked at 52 words under 3.11 matches as is with the flag; ER-216's reading (dbr choices from block layout, Unconfirmed) was not needed. Two unused locals of the draft (`pa`, `pb`) were dropped; still MATCH | func_001CCB08 |
+
+Plain C; func_001CCB08 keeps ruling 3.18's `u8 f[16]` (filled with zeros, never read; the game makes the `sb`
+stores) with the `ruling 3.18` comment. Names `b`, `e`, `p`, `slot`, `n`, `m`, `gap`, `total` and the record
+offsets are Unofficial; the callee return types `s32 func_001CE038(s32)` and `s32 func_001D3308(s32)` are read
+from the use of `$v0` (Unconfirmed). ER-235's whole-file rerun with the flag (matching_tools 6.26) found no further
+MATCH.
+
+**Parked:**
+
+| Function | Cause |
+|---|---|
+| func_001CC9B0 | 11 words, same size, with or without the flag (`C:\rs\wt\er189_runs\s\func_001CC9B0_best11.c`, 2.46's loop register tie): stays ER-162's |
+| the file's other 28 asm functions | the rerun's closest are 14-16 words at the same size (func_001CDEA0, func_001CD620, func_001CD4C8); 15 differ in size, 13 drafts do not compile (m2c context: `void value not ignored`, `invalid type argument`); not tried by hand |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -1837,7 +1861,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted** (a second per-file exception to 3.11, as 3.21) | `text_001CB528` is built with `-fedge-lcm` (Makefile target-specific CFLAGS, as 3.21's line for `text_001CA8D8`). Evidence (ER-206, notes file `ER-206_elcm_scan.md` in the DISP-04 notes folder): with the flag func_001CD360 (plain C) and func_001CCB08 (plain C + ruling 3.18's `u8 f[16]`) match and all 15 functions already placed in the file still match (whole-ELF test build PASS); without it the same placement fails. Every other file keeps 3.11's `-fno-edge-lcm` (10 files lose placed functions with the flag, 6 are neutral). ER-233 adds the line and places the two |
+| **Accepted** (a second per-file exception to 3.11, as 3.21) | `text_001CB528` is built with `-fedge-lcm` (Makefile target-specific CFLAGS, as 3.21's line for `text_001CA8D8`). Evidence (ER-206, notes file `ER-206_elcm_scan.md` in the DISP-04 notes folder): with the flag func_001CD360 (plain C) and func_001CCB08 (plain C + ruling 3.18's `u8 f[16]`) match and all 15 functions already placed in the file still match (whole-ELF test build PASS); without it the same placement fails. Every other file keeps 3.11's `-fno-edge-lcm` (10 files lose placed functions with the flag, 6 are neutral). ER-233 adds the line and places the two (done Wed 25 Nov 2026, commit `17b1f59`, 2.54; func_001CD068 matched as plain C with it too) |
 
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker, 3.18 only stores the game makes): park such functions with a
 one-line cause and ask.

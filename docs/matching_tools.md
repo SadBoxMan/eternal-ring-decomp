@@ -1466,6 +1466,25 @@ operands): func_001766F8, func_001BFA90 (`rs6`); func_0013F288, func_001431A0, f
 Not verified (ER-225): why func_00151F68 was missed by `rs0` (ER-206 also found it with a default run); the
 same-size near misses were not examined.
 
+### 6.26 `text_001CB528` rerun with its `-fedge-lcm` (ER-235, Wed 25 Nov 2026)
+
+Written by ER-233 + ER-235 (Opus 5.5, medium). No tool change. Worktree `C:\rs\wt\er233`, branch `er-233-elcm`,
+after commit `17b1f59` (ruling 3.23's Makefile line; func_001CCB08, func_001CD068, func_001CD360 placed, recipes
+2.54). Arguments `--file text_001CB528 --plain --tag ER-235 --gcc-timeout 30 --par 4`, label `rcb7`; run and table
+script in `C:\rs\wt\er233_runs\` (`rcb7\`, `tab.py`; game code, not in git). The flag reached every compile through
+`eematch.scratch_cflags()` (as ER-225 found for `text_001CA8D8`).
+
+| File (label) | Asm functions | Plain MATCH | Same size 1-2 / 3-8 / 9+ | Size differs | No compile |
+|---|---|---|---|---|---|
+| `text_001CB528` (`rcb7`, flag) | 31 | **0** | 0 / 0 / 3 | 15 | 13 |
+| the same file in ER-225's `rsm6` (no flag) | 34 | 0 | 0 / 0 / 4 | 17 | 13 |
+
+Against `rsm6` on the 31 common functions, five rows changed: func_001CB528 97 -> 94 differing words (1 word long
+both times), func_001CCE58 1 word short -> 1 word long (58 -> 49 words), func_001CB918 1 -> 2 words long,
+func_001CCF60 same size (40 words) -> 4 words long, func_001CD1D0 6 -> 4 words long. The 13 that do not compile fail
+on m2c's context (`void value not ignored`, `invalid type argument of`, an undeclared `X`), with or without the
+flag. Nothing to relay or place.
+
 ## 7. Not verified
 
 - ER-175 / ER-180 (6.21): func_0013C4E0 (new plain MATCH) is not placed, so not proven by `make regress`. The
