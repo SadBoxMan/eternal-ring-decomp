@@ -2482,6 +2482,24 @@
       "model": "Opus xhigh or Fable",
       "waits_on": "Thursday / Friday",
       "notes": ""
+    },
+    {
+      "code": "ER-243",
+      "title": "libvu0 lq / sq vector copies as inline asm? (ruling question)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "LuciDin's ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-244",
+      "title": "Three memset callers by hand with void * (text_00150878)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
