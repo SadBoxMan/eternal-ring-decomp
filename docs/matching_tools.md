@@ -1427,6 +1427,44 @@ straight line (branches ignored) and relies on m2c giving extras in the order of
 every case read: func_00125D00, func_00126190, func_0018C938); `vec_type` reads only the one-line-or-multi-line
 `typedef struct { float/f32 v[4]; } __attribute__((aligned(16))) Name;` form.
 
+### 6.25 Whole-file reruns with round 6 and the vector copies (ER-225, Tue 24 Nov 2026)
+
+Written by ER-225 (Opus 5.5, medium). No tool change. Worktree `C:\rs\wt\er225`, branch `er-225-reruns`; every run
+on main `557ee9f` (round 6 of 6.23 + ER-224's 6.24), arguments `--plain --tag ER-225 --gcc-timeout 30 --par 4`, run
+one after another. Runs and drafts (game code, not in git): `C:\rs\wt\er225_runs\` (`rs6`, `rc6`, `rsm6`; the
+small-file list `small.txt`; the table script `tab.py`).
+
+| File (label) | Asm functions | Plain MATCH | Same size 1-2 / 3-8 / 9+ | Size differs | No compile | Time |
+|---|---|---|---|---|---|---|
+| `text_00150878` (`rs6`) | 987 | **5** (+2 MATCH whose plain draft differs): func_00150EF8, func_00196F40, func_001B5568, func_001BEF68 (`/* extra? */` rescue: stores into the frame array), func_00151F68 (older steps; not in ER-188's `rs0`, cause not checked); func_001BF7C8, func_001BFA50 (global as an array, plain 2 words short: see below) | 2 / 16 / 166 | 498 | 298 | 1,682 s |
+| `text_001000C0` (`rc0` -> `rc6`) | 334 | **2**: func_0012D3B8, func_00130150 (stack vector + untouched arguments on the draft, 6.23 (c): the two fixes that matched func_0012D388 / func_00130120) | 0 / 6 / 50 | 217 | 59 | 671 s |
+| the 14 smaller game files (`rsm6`; `text_0014A968` has no asm left) | 177 | **1**: func_00135740 (`text_001343E8`, `/* extra? */` rescue) | 4 / 5 / 31 | 116 | 20 | 218 s |
+
+Small files one by one (plain MATCH; same size 1-2 / 3-8 / 9+; size differs; no compile): `text_001343E8` 31
+functions (1; 0/0/9; 21; 0), `text_001388E8` 5 (0; 0/0/1; 4; 0), `text_0013A410` 9 (0; 0/0/2; 6; 1),
+`text_0013B748` 3 (0; 0/0/0; 2; 1), `text_0013C510` 8 (0; 0/0/3; 4; 1), `text_0013DBC0` 43 (0; 2/4/7; 29; 1),
+`text_00145120` 4 (0; 0/0/1; 3; 0), `text_0014C840` 2 (0; 0/0/2; 0; 0), `text_0014D930` 1 (0; 0/0/1; 0; 0),
+`text_0014E2E8` 1 (0; 0/0/1; 0; 0), `text_001C9B18` 28 (0; 2/0/0; 26; 0), `text_001CA0F0` 7 (0; 0/1/0; 4; 2),
+`text_001CA8D8` 1 (0; 0/0/0; 0; 1), `text_001CB528` 34 (0; 0/0/4; 17; 13). Same-size 1-2 word rows (scheduling or
+operands): func_001766F8, func_001BFA90 (`rs6`); func_0013F288, func_001431A0, func_001C9B18, func_001C9B28 (`rsm6`).
+
+- **Placed in `text_00150878`** (commit `e6f5908`, make regress PASS, 7 functions, 1,304 bytes): the 5 plain drafts
+  (func_00196F40 and func_001B5568's frame array typed `f32 sp[4]`, the type the code writes; func_00196F40's is
+  filled and never read, so it carries ruling 3.18; func_001B5568 passes `(s32) sp` to the file's
+  `func_001C9B18(s32, void *)`), and func_001BF7C8 / func_001BFA50 by hand: the draft matched with `extern s8
+  D_001FF890[]` (the array form of 6.22's global base), but the plain file takes the file's own `extern s32
+  D_001FF890[]`, so `D_001FF890[621]` became a word access 4 x 621 bytes on. `((s8 *)D_001FF890)[0x26D]` folds the
+  offset into `%lo` (recipes 2.45); a field on the file's T890 (`s8 x26D` added after `pad21F[0x4E]`, Unofficial)
+  matches. Prototypes moved above first use by `place.py` keep the definitions' types (func_0012B540, func_001520F0,
+  func_0012B218, func_0012E820, func_0012F9C0, func_001BE018).
+- Relayed to DISP-05 for their owners: func_0012D3B8, func_00130150 (`text_001000C0`), func_00135740
+  (`text_001343E8`). `text_001CA8D8` / `text_001CA0F0` (no writer) have no MATCH.
+- **Not scored with the file's flags:** `text_001CA8D8` (ruling 3.21) and `text_001CB528` (3.23, Makefile change not
+  on main yet) were compiled without `-fedge-lcm`: `m2c_bulk.py` has no per-file flags.
+
+Not verified (ER-225): why func_00151F68 was missed by `rs0` (ER-206 also found it with a default run); the
+same-size near misses were not examined.
+
 ## 7. Not verified
 
 - ER-175 / ER-180 (6.21): func_0013C4E0 (new plain MATCH) is not placed, so not proven by `make regress`. The
