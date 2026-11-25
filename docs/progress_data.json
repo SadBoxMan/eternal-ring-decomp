@@ -2527,6 +2527,24 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": "Wed 25 Nov 2026: 9 placed in text_001CB528 (func_001CBE48, func_001CC8B0, func_001CCAB0, func_001CD1D0, func_001CD468, func_001CDCE0, func_001CDF78, func_001CDFD0, func_001CE038), plain C under ruling 3.23; parked: func_001CB918 (11 words), func_001CBA08 (4 bytes short), func_001CCE58 (6 words), func_001CCF60 (10 words), func_001CB528 (55 words); func_001CB808 / func_001CC9B0 skipped (ER-245 / ER-162); recipes 2.59; commits 000b9a8, 08b4663 (+ docs); make regress PASS"
+    },
+    {
+      "code": "ER-248",
+      "title": "Register-allocation corners in text_001CB528 (Thursday / Friday)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus xhigh, or Fable",
+      "waits_on": "Thursday / Friday",
+      "notes": ""
+    },
+    {
+      "code": "ER-249",
+      "title": "func_001CB528 (the init) by hand, 55 words",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
