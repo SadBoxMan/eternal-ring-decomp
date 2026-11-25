@@ -2413,7 +2413,7 @@
     },
     {
       "code": "ER-235",
-      "title": "Per-file flags in m2c_bulk runs (check first)",
+      "title": "Rerun text_001CB528 with its flag (after ER-233)",
       "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
