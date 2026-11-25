@@ -2446,6 +2446,42 @@
       "model": "Opus, medium",
       "waits_on": "LuciDin's ruling on the S3 start",
       "notes": ""
+    },
+    {
+      "code": "ER-239",
+      "title": "memset's void * in text_00150878 (ER-223 follow-up)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-240",
+      "title": "Struct-typed store scan over the tie lists (ER-223 follow-up)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-241",
+      "title": "Per-file -fstrict-aliasing for text_0013A410? (ruling question)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "LuciDin's ruling",
+      "notes": ""
+    },
+    {
+      "code": "ER-242",
+      "title": "func_00125A38 global-alloc order (Thursday / Friday)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus xhigh or Fable",
+      "waits_on": "Thursday / Friday",
+      "notes": ""
     }
   ]
 }
