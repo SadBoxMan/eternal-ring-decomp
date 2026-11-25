@@ -174,7 +174,7 @@ function's own literals, jump tables and strings come from its C now.
 | **Float literals: write them as literals.** `1500.0f` in C gives `li.s`, gas puts the word in the file's own `.lit4` in source order, between the asm functions' literals (which `tools/split.py` writes as `li.s` too). Nothing else to do; the `.lit4` words have no labels any more, so an `extern float` stand-in no longer links | `func_0014A948` (`func_0012FAE8(a0, 4, 0x7F, ... + 0x850, 1500.0f)`, a sibling call) |
 | **Jump tables: a plain `switch`.** gcc emits the table into the file's `.rodata` (`.align 4`, 16 bytes); splat's migrated copy in the function's asm file is simply not included any more. Several case labels on one `return 1;` give one shared target; the default and the code after the `switch` follow the case bodies | `func_0017D930` (89-entry table, 20 cases return 1, else 0), `func_0014F618` (`switch` on a `u16` at offset 4, 6 cases return 0..5, else 6; the table is the last item of the file's `.rodata`, so the next file's 16-byte alignment makes the padding after it) |
 | **Where the INCLUDE_RODATA lines go.** splat's order: a symbol it does not migrate sits just before the next function that has migrated rodata. `tools/split.py` checks that order on every split; when a C function takes over a standalone symbol, define it in C where the bytes need it and drop the INCLUDE line (the check allows that; `make regress` judges the place) | all game files (270 standalone symbols) |
-| **No jump table in C in `text_001343E8` yet.** Its `.rodata` starts at 0x003546D8 (8-aligned), and a gcc table would make the object 16-aligned and move it. Park such functions there ("jump table in text_001343E8: needs the file cut", one line) until the file is cut where its real files meet (S3 waits for matching, LuciDin 22 Nov 2026). Since ER-051 that file ends at `0x001388E8`; the five files cut after it (`text_001388E8` ... `text_0013DBC0`) start 16-aligned and take C jump tables | the alignment rule (`docs/build.md` 3.2); func_0013D4D0 (ER-031, `text_0013C510`: 13-entry table 0..12, explicit `case 0:` / `case 12:` beside `default` give the 0-based range, since gcc indexes from the lowest case) |
+| **No jump table in C in `text_001343E8` yet.** Its `.rodata` starts at 0x003546D8 (8-aligned), and a gcc table would make the object 16-aligned and move it. Park such functions there ("jump table in text_001343E8: needs the file cut", one line) until the file is cut where its real files meet (S3 waits for matching, LuciDin 22 Nov 2026; again 25 Nov 2026, ER-221: 2.54). Since ER-051 that file ends at `0x001388E8`; the five files cut after it (`text_001388E8` ... `text_0013DBC0`) start 16-aligned and take C jump tables | the alignment rule (`docs/build.md` 3.2); func_0013D4D0 (ER-031, `text_0013C510`: 13-entry table 0..12, explicit `case 0:` / `case 12:` beside `default` give the 0-based range, since gcc indexes from the lowest case) |
 | **Variables in owned `.sdata` / `.data`** can be read through `extern` in the same file (the INCLUDE_SDATA definition and gcc's `$gp` access agree) | `func_00150818` reads `D_0035BF20` (built and checked in `48f781a`) |
 
 **String literals: verified (ER-149, 2.33).** A C function's string literal lands in the file's owned `.rodata` at the
@@ -1708,6 +1708,21 @@ MATCH.
 |---|---|
 | func_001CC9B0 | 11 words, same size, with or without the flag (`C:\rs\wt\er189_runs\s\func_001CC9B0_best11.c`, 2.46's loop register tie): stays ER-162's |
 | the file's other 28 asm functions | the rerun's closest are 14-16 words at the same size (func_001CDEA0, func_001CD620, func_001CD4C8); 15 differ in size, 13 drafts do not compile (m2c context: `void value not ignored`, `invalid type argument`); not tried by hand |
+
+### 2.55 S3 checked again: the cut still waits; func_00135740 placed (ER-221, Wed 25 Nov 2026; Confirmed by `make regress`, 1 function)
+
+Branch `er-221-cut` (worktree `C:\rs\wt\er221`). **func_00135740 placed** (ER-225's plain m2c MATCH from the rsm6
+rerun, as drafted; `func_001301F8` / `func_001CA018` externs and func_001CA048's prototype moved above it): 1 function,
+208 bytes. **`text_001343E8` not cut** (LuciDin, Wed 25 Nov 2026, about 02:10 Eastern: "Don't cut yet", the seam has
+no evidence). func_00134F70, func_00137A10 and func_00137CE0 stay parked ("needs the file cut").
+
+| Lesson | Proved by |
+|---|---|
+| **S3's text start is still open after ER-198 matched func_00134BB0.** `.rodata` is pinned at 0x003546E0 (`jtbl_003546E0`), but `tools/seams.py --cuts --cut-set list` (with the five ER-051 seams) passes 0x00134B60, 0x00134BB0, 0x00134DB0 and 0x00134F70 alike; none of the four uses `.rodata` / `.sdata` / `.data` | the four `--cut-starts` runs (`C:\rs\wt\er221_runs\seams_*`) |
+| **`.lit4` does not mark file starts here.** gas does not merge equal literals inside a file (0.1f at 0x003592D4, 0x003592D8, 0x003592DC, used by func_00134958, func_00134BB0, func_00134DB0), and the files' `.lit4` runs start only 4-aligned (0x003592C4, 0x00359504, 0x003599D4), so neither a repeat nor an alignment gap can show a seam | `$gp` loads read from `baserom/SLUS_200.15.rom` (`C:\rs\wt\er221_runs\lit4.py`) |
+| **The start does not change the bytes**: every candidate puts func_00134F70 and everything after it in a file whose `.rodata` starts 16-aligned; only whether func_00134BB0's C moves differs. So the cut is a labelling ruling, not a matching one | reading of the layout (not built) |
+
+Not verified: no cut was built (by the ruling); the claim that every start builds the same bytes is a reading.
 
 ## 3. Rulings (LuciDin)
 
