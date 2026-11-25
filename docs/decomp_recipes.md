@@ -1859,6 +1859,57 @@ up to 64) is a reading by shape (Unconfirmed).
 | func_001CB808 | varargs, waits on ER-245 / ER-199 (`stdarg.h`); not tried |
 | func_001CC9B0 | ER-162's; not tried |
 
+### 2.60 Three memset callers by hand; the struct-typed store scan (ER-244 + ER-240, Wed 25 Nov 2026; Confirmed by `make regress`, 4 functions)
+
+Branch `er-244-structscan` (worktree `C:\rs\wt\er244`), commits `1552e48` (ER-244: func_00194F58, func_001A4710,
+func_001A64E8 in `text_00150878`) and `6e2e030` (ER-240: func_00125790 in `text_001000C0`). **4 functions, 988
+bytes** (476 + 160 + 264 + 88). Scratch (our C, templates, logs; outside git): `C:\rs\wt\er244_runs\` (`f58\`,
+`a4710\`, `a64e8\`, `place\` the placed files; `s240\` the ER-240 scan: `in\` the list's best drafts, `diff\` their
+scores, `st\` the struct-store templates and logs, `mkst.py` the template maker, `f790\`, `f4790\`, `f5ea0\`).
+
+| Lesson | Proved by |
+|---|---|
+| **ER-239's three closer drafts were store orders and two spellings**, each found by `ordersearch.py perm` over the store block once the frame was `Vec4A v[N]` (ruling 3.15's type) and the copies `v[i] = D_...` (`extern const Vec4A`) | func_001A4710 (2 words to MATCH; 40 of 40,320 orders match, the placed one swaps only `[1]` / `[7]`), func_00194F58, func_001A64E8 |
+| **A function pointer the game loads with `lui` / `lw %lo` is not a `$gp` scalar**: `extern void (*D_0034BFA0)(s8 *)` puts it in `.sdata` (`-G8`), so the load is `$gp`-relative and a word short; `extern void (*D_0034BFA0[])(s8 *)` and `D_0034BFA0[0](arg0)` give the absolute pair (every use in the asm reads offset 0: a table of handlers is a reading, Unconfirmed). With the compare written `*(f32 *)(arg0 + 0x54) > v[1].v[1]` (the game loads `0x54` first) the draft matches | func_00194F58 (2 words to MATCH) |
+| **An angle wrap whose game code subtracts in every arm** (`sub.s` by `2pi`, by `0` from `mtc1 $zero`, and by `-2pi`, the last two sharing the cross-jumped tail and a `bc1fl` slot) is `if (pi < a) a = a - 2pi; else if (a < -pi) a = a - -2pi; else a = a - 0.0f;`. A `d` variable (m2c's form, every branch shape, `?:`) keeps `d = 2pi` alive across the compare, so it takes `$f2` and the shape and size differ (35-40 words, 108 spellings); per-arm constants die at once in `$f0`. `a - 0.0f` and `a - -2pi` are the game's own instructions, not steering (gcc 2.x folds neither for floats); flagged as a reading for LuciDin | func_001A64E8 |
+| **Float zero stored with `mtc1 $zero` + `swc1`** (not `sw $zero`) comes from an `f32` local set to `0.0f` and stored twice (`z = 0.0f; v.x = z; v.z = z;`); the constant stored directly gives `sw $zero` | func_001A64E8 |
+| **2.56's struct-typed store again**: func_00125790 is func_00125B68's two-call shape (`r = func_001139C8(((S848 *)D_0035B848)->x4, D_0035B8A0 + 0x35100); ((S848 *)D_0035B848)->x4 = r; ...`), 5 words to MATCH at the first try. The `S848` typedef moved up above it (text only) | func_00125790 |
+| **The scan found no other list function of this shape.** The rule needs a store through a varying address *followed in the source* by a load of a fixed-address scalar global that the game issues earlier. In the list's best drafts the differing words are store / ALU / register ties, loads of record fields or arrays (array elements are `MEM_IN_STRUCT`, so a fixed array load is not "scalar"), global stores (output / anti dependences, 2.56: never this rule), or the stores are struct-typed already. 13 drafts with cast-pointer stores were rerun with every such store switchable to an anonymous struct field (`s240\mkst.py`, `variants --search auto`): none moved | the table below |
+| **func_00125EA0** (same family, `text_001000C0`, not on the lists): struct stores plus a read-ahead local reach 3 words (`s240\f5ea0\t_os\best.c`; a `char buf[0x80]` for the frame, ruling 3.13, scratch only); the game's `lw $a1, 0x134($a0)` reads the argument copy, 2.56's func_00125A38 tail cause | parked |
+
+Rulings used: 3.15 (`Vec4A`) in all three ER-244 functions; nothing compiler-steering. Unofficial: `v`, `p`, `q`, `a`,
+`z`, `r`, `S848` (2.56's). Unconfirmed: func_001E9B0C as memset (by shape); D_0034BFA0 as a handler table;
+func_001A1880, func_001A2528 `(void *, s32, f32)`, func_001A1B90, func_001A1E10, func_001A2000, func_001A21B8 as
+`void` (`void *` argument) from their use; the parameter types m2c read; the per-arm subtraction as the original
+spelling (the `d` form is equivalent C that does not match).
+
+**ER-240 list, each tried** (best drafts copied to `s240\in\`; "struct" = every cast store switchable, `s240\st\`):
+
+| Function | File | Tried | Result |
+|---|---|---|---|
+| func_00125790 | `text_001000C0` | struct store | **placed** |
+| func_00125A38 | `text_001000C0` | not applicable | stores already `RB` / `S848`; 12 words, 2.56's register cause stands |
+| func_00126338 | `text_001000C0` | not applicable | the load's stores are fixed-address globals (anti dependence): 2.50's `const` judgement stands |
+| func_00129900 | `text_001000C0` | not applicable | no global scalar load after a cast store; 2.52's sched1 tie |
+| func_00132480 | `text_001000C0` | struct (3 stores) | 11 words, unchanged (the stores follow the D_0035B830 load) |
+| func_001325E8 | `text_001000C0` | struct (12 stores, 4,096) | 28 words, unchanged |
+| func_00134790 | `text_001343E8` | struct (2 stores) | unchanged by the struct; reading the `0x100` test from D_0035B830 and the `0x200` test from `k` gives the right size at 42 words (was 4 bytes short): a lead, not a match (`s240\f4790\t_os\best.c`) |
+| func_0013D088 | `text_0013C510` | struct (14 stores, 16,384) | 2 words, unchanged (an FP register choice) |
+| func_0013EE58 | `text_0013DBC0` | not applicable | an `addiu` / store tie, no global load |
+| func_0013F288 | `text_0013DBC0` | check (2.57) + struct | 2 words, unchanged: an anti dependence (2.57) |
+| func_0013F748 | `text_0013DBC0` | struct (16 stores, climb) | 8 words, unchanged |
+| func_00140250 | `text_0013DBC0` | not applicable | 186 words, size off; no store form to try |
+| func_001418B8 | `text_0013DBC0` | not applicable | raw m2c draft only |
+| func_001431A0 | `text_0013DBC0` | check (2.57) + struct | 2 words, unchanged: the store-to-field-load dependence is after reload (2.57) |
+| func_0013FF70, func_00137CE0 | `text_0013DBC0`, `text_001343E8` | not applicable | ee-as hazard nops (2.50); MATCH under cmpfunc, blocked only by the file cut |
+| func_00151670, func_0015C020, func_0015C0E0, func_0019D090 | `text_00150878` | struct where cast stores exist (`C020` 7, `C0E0` 16) | unchanged (6, 30 words); `51670` FP alloc and `D090` global stores: not applicable |
+| func_001766F8, func_001BFA90 | `text_00150878` | check (2.57); struct for `BFA90` | unchanged: output dependences |
+| func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001B34F8, func_001BE9C0, func_001C6F90, func_001C8600, func_001C8758 | `text_00150878` | not applicable | struct-typed stores already, or the moved word is a global store or an ALU word; `18B8A8` loads array elements (not scalar) |
+| func_001BB2C8, func_001BEFD8, func_001BF700 | `text_00150878` | struct (1, 7, 7 stores) | unchanged (2, 2, 4 words) |
+| func_001C9B18, func_001C9B28 | `text_001C9B18` | not applicable | libvu0's `lq` / `sq` copy (2.57's ruling question) |
+| func_001CC9B0 | `text_001CB528` | **skipped** | another card owns the file |
+| func_00142118, func_001C4838, func_001CCB08, func_00125B68 | | not applicable | already placed |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.

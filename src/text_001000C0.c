@@ -1908,10 +1908,20 @@ void func_001254F0(void) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001254F8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00125790);
+typedef struct { s32 x0; s32 x4; } S848; /* Unofficial: the record D_0035B848 points to (only x4 is known) */
 
 extern void * func_001139C8(s32, void *);
 extern char *D_0035B8A0;
+
+/* ER-240: the D_0035B848 record stores written through S848 (recipes 2.56: a struct-typed store frees the D_0035B8A0
+   load), as func_00125B68; names Unconfirmed. */
+void func_00125790(void) {
+    void *r;
+
+    r = func_001139C8(((S848 *)D_0035B848)->x4, D_0035B8A0 + 0x35100);
+    ((S848 *)D_0035B848)->x4 = (s32)r;
+    ((S848 *)D_0035B848)->x4 = (s32)func_001139C8((s32)r, D_0035B8A0 + 0x42D80);
+}
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_001257E8(void) {
@@ -1957,7 +1967,6 @@ void func_00125AF0(void) {
     *(u8 *)((char *)temp_4_4 + 0x5A) = (u8) (*(u8 *)((char *)temp_4_4 + 0x5A) | 2);
 }
 
-typedef struct { s32 x0; s32 x4; } S848; /* Unofficial: the record D_0035B848 points to (only x4 is known) */
 extern const Vec4 D_003543A0;
 extern void func_00115700(void *, void *, void *);
 
