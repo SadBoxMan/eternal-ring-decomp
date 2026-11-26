@@ -1552,9 +1552,9 @@
       "title": "Recomp: VU1 static recompilation",
       "status": "Queued",
       "track": "port",
-      "model": "Opus xhigh/high",
-      "waits_on": "LuciDin starts the xhigh design session",
-      "notes": ""
+      "model": "Opus high (build; design done at xhigh)",
+      "waits_on": "the build cards ER-139a (capture + replay), b (runtime + helpers), c (generator); one recomp card at a time",
+      "notes": "Design done Thu 26 Nov 2026 (Recomp 2c15a9f, docs/vu1_recomp_design.md, spike 28): one pipeline state per block start in all four programs, so timing resolves at translation time except XGKICK lengths and loop counts; generator in tools/recomp/vu1recomp/, exact helpers, bail-out into the interpreter, PS2X_VU1_RECOMP 1/0/check; generated C++ outside git. Expected (Unconfirmed) VU1 4-6x (phase 1), 8-10x (phase 2)."
     },
     {
       "code": "ER-140",
