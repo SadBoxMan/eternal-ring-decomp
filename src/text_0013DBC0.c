@@ -100,8 +100,8 @@ extern void func_00131000(char *, void *);
 /* ER-035. Resets the state fields of a0, sets its three callbacks, and on the object at *a0 sets four flag bytes,
    clears +0x910 of its +0xE0 block and puts 2000 / 300 into +0x12C / +0x130 when they equal that cleared value;
    then hands over to func_001321E8 or sets func_0013DCF0 through func_00131000. Names and types Unconfirmed. The
-   separate locals and the read of +0x910 right after it is cleared give the game's loads and registers (needs
-   -fno-strict-aliasing, ruling 3.6). */
+   separate locals and the read of +0x910 right after it is cleared give the game's loads and registers (ER-035
+   read it as needing -fno-strict-aliasing, ruling 3.6, now withdrawn; it matches under both settings, recipes 2.64). */
 void func_0013DBC0(char *a0) {
     char *p;
     char *e;
