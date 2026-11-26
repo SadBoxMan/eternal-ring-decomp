@@ -386,7 +386,28 @@ void func_00152970(s8 *arg0) {
     func_00131000(arg0, func_00152980);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00152980);
+extern void func_0012B0D0(void *);
+extern void func_00152FB0(void *, s8 *);
+extern s32 func_00153060(void *, void *);
+extern void func_001530C8(s8 *arg0);
+extern void func_00153128(void **, void *);
+extern s32 func_00153380(void *);
+
+/* ER-162: ER-225's rs6 m2c draft, a MATCH under ruling 3.24 (-fstrict-aliasing for this file) with the stores in this
+   order (one of three found); names and types Unconfirmed. */
+void func_00152980(s8 *arg0, void *arg1) {
+    func_0012B0D0(arg1);
+    *(void (**)(void *, s8 *))((char *)arg0 + 0xC0) = func_00152FB0;
+    *(s32 (**)(void *, void *))((char *)arg0 + 0xD4) = func_00153060;
+    *(s32 *)((char *)arg0 + 0x2C) = 0;
+    *(void (**)(s8 *))((char *)arg0 + 0xC4) = func_001530C8;
+    *(void (**)(s8 *))((char *)arg0 + 0xC8) = func_001530C8;
+    *(void (**)(void **, void *))((char *)arg0 + 0xCC) = func_00153128;
+    *(s8 *)((char *)*(void **)((char *)*(void **)arg0 + 0xE0) + 0x3A8) = 1;
+    *(u8 *)((char *)arg0 + 0x5A) |= 8;
+    *(f32 *)((char *)*(void **)arg0 + 0x12C) = 1100.0f;
+    func_00153380(arg0);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00152A10);
 
@@ -394,7 +415,6 @@ extern s32 func_00153238();
 extern void func_00153428(void *arg0, f32 fparg0);
 extern s32 func_001533F0(void *arg0, f32 fparg0);
 extern f32 func_001314C8(s16, s32);
-extern s32 func_00153380(void *);
 extern void *func_0012C360(void *, s32, s32, s32, void *);
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
