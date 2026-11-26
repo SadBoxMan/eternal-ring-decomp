@@ -2608,6 +2608,42 @@
       "model": "Opus, high",
       "waits_on": "LuciDin's decision",
       "notes": ""
+    },
+    {
+      "code": "ER-257",
+      "title": "VU1 run capture + offline replay (ER-139 build 1)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-258",
+      "title": "VU1 recompiler runtime + exact helpers (ER-139 build 2)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "ER-257",
+      "notes": ""
+    },
+    {
+      "code": "ER-259",
+      "title": "VU1 generator + the four programs (ER-139 build 3)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "ER-258",
+      "notes": ""
+    },
+    {
+      "code": "ER-260",
+      "title": "VU1 fast flag paths + SIMD lanes (optional)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, high",
+      "waits_on": "ER-259",
+      "notes": ""
     }
   ]
 }
