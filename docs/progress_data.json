@@ -1586,11 +1586,11 @@
     {
       "code": "ER-143",
       "title": "Recomp: faster CPU rasteriser",
-      "status": "Queued",
+      "status": "Done",
       "track": "port",
       "model": "Opus, high",
       "waits_on": "ER-142",
-      "notes": ""
+      "notes": "Done Wed 25 Nov 2026 (Recomp 78c10bd; spike 25): patch 18 er143_gs_raster (PS2X_GS_RASTER default on, 0 = original, check = live compare): per-primitive setup, inlined swizzle, decoded CLUT, SSE bilinear, deferred texture-page copy; replay drawing 1.4-1.6x faster (gameplay/menus), 1.7x (movies); live GS ms/frame corridor 28.7->18.9, beach 38.6->27.1, NEWGAME cutscene 85.5->56.9; FPS unchanged (VU1-bound) except cutscene 7.0->7.2; replays identical in 14 settings, live check 0 mismatches; band-parallel not built (does not pay before ER-139)"
     },
     {
       "code": "ER-144",
