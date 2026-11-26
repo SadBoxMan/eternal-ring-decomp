@@ -3544,7 +3544,20 @@ s32 func_0017D640(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D670);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0017D6B8);
+typedef struct { s32 x0; char *x4; u16 x8; s32 xC; } SZ;
+/* ER-162: by hand (ER-153 draft); matches under ruling 3.24 (-fstrict-aliasing for this file), fields in offset order; names and types Unconfirmed. */
+void func_0017D6B8(s32 arg0, void *arg1, void *arg2) {
+    SZ *r = arg1;
+    char **q = arg2;
+    char *t;
+    if (q != NULL) {
+        t = *(char **)(*q + 0x11C);
+        r->x0 = arg0;
+        r->x4 = t + 0x190;
+        r->x8 = *(u16 *)(t + 0x1E4);
+        r->xC = (s32)(q + 64);
+    }
+}
 
 extern char D_001FF8B0[];
 /* ER-080: by hand from ER-060's m2c draft (recipes 2.10 / 2.20); names, types and offsets are Unconfirmed readings. */
@@ -4211,7 +4224,17 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018B1E8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018B3E8);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018B8A8);
+extern f32 D_002488A0[];
+typedef struct { s32 x0; s32 x4; s32 x8; s32 xC; s32 x10; s32 x14; s32 x18; s32 pad1C[5]; f32 x30; s32 pad34[17]; s8 x78; } SB;
+/* ER-162: by hand (ER-153 draft); matches under ruling 3.24 (-fstrict-aliasing for this file), fields in offset order, x4 last; D_002488A0 read as f32; names and types Unconfirmed. */
+void func_0018B8A8(SB *arg0) {
+    arg0->x10 = D_00248880[0];
+    arg0->x14 = D_00248880[1];
+    arg0->x18 = D_00248880[2];
+    arg0->x30 = D_002488A0[0];
+    arg0->x78 = 0;
+    arg0->x4 = 1;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018B8E8);
 
@@ -4287,7 +4310,13 @@ void func_0018C938(char *arg0) {
     *(s8 *)(arg0 + 0x78) = 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018C9E8);
+typedef struct { s32 x0; s32 x4; s32 x8; s32 xC; s32 x10; s32 x14; s16 *x18; } S9;
+/* ER-162: by hand (ER-153 draft); matches under ruling 3.24 (-fstrict-aliasing for this file); names and types Unconfirmed. */
+void func_0018C9E8(S9 *arg0) {
+    s16 *p = arg0->x18;
+    if (arg0->x10 != 0) { *p = 0; arg0->x4 = 1; return; }
+    arg0->x4 = 2;
+}
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_0018CA10(void *arg0) {
@@ -4597,7 +4626,8 @@ extern float D_001FF180[];
 extern void func_001C9F60(void *, void *, void *);
 extern void func_001D7450(void *, float *);
 
-/* ER-113: by hand from the m2c draft (a 16-float local sized from the game's frame; stores in offset order); names and types Unconfirmed. */
+/* ER-113: by hand from the m2c draft (a 16-float local sized from the game's frame; stores in offset order); names and types Unconfirmed.
+   ER-162: the two zero stores written as floats (the record is four floats), needed under ruling 3.24. */
 void func_00192EE8(void *arg0, f32 arg1) {
     f32 m[16];
     s32 i;
@@ -4605,8 +4635,8 @@ void func_00192EE8(void *arg0, f32 arg1) {
     i = (s32) ((arg1 * 4096.0f) / 6.2831855f) & 0xFFF;
     *(f32 *)((char *)arg0 + 0) = D_001F0380[i + 0x400];
     *(f32 *)((char *)arg0 + 4) = D_001F0380[i];
-    *(s32 *)((char *)arg0 + 8) = 0;
-    *(s32 *)((char *)arg0 + 0xC) = 0;
+    *(f32 *)((char *)arg0 + 8) = 0.0f;
+    *(f32 *)((char *)arg0 + 0xC) = 0.0f;
     func_001D7450(m, D_001FF180);
     func_001C9F60(arg0, m, arg0);
 }
@@ -4621,7 +4651,8 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00193230);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00193300);
 
-/* ER-113: by hand from the m2c draft (twin of func_00192EE8); names and types Unconfirmed. */
+/* ER-113: by hand from the m2c draft (twin of func_00192EE8); names and types Unconfirmed.
+   ER-162: the two zero stores written as floats, as in func_00192EE8 (ruling 3.24). */
 void func_00193440(void *arg0, f32 arg1) {
     f32 m[16];
     s32 i;
@@ -4629,8 +4660,8 @@ void func_00193440(void *arg0, f32 arg1) {
     i = (s32) ((arg1 * 4096.0f) / 6.2831855f) & 0xFFF;
     *(f32 *)((char *)arg0 + 0) = D_001F0380[i + 0x400];
     *(f32 *)((char *)arg0 + 4) = D_001F0380[i];
-    *(s32 *)((char *)arg0 + 8) = 0;
-    *(s32 *)((char *)arg0 + 0xC) = 0;
+    *(f32 *)((char *)arg0 + 8) = 0.0f;
+    *(f32 *)((char *)arg0 + 0xC) = 0.0f;
     func_001D7450(m, D_001FF180);
     func_001C9F60(arg0, m, arg0);
 }
@@ -6622,14 +6653,139 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BB1D8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BB250);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BB2C8);
-
 extern void func_001BBD40(void);
-extern void func_001BBD78(s32);
 extern u8 D_001F65EB[];
+extern int abs(int);
+typedef struct { s16 chance; s16 value; } Pair;
+typedef struct { s16 v[8]; Pair p[8]; } Tbl;
+/* ER-162: by hand (ER-123 draft, ER-133); matches under ruling 3.24 (-fstrict-aliasing for this file); names and types Unconfirmed. */
+void func_001BB2C8(void) {
+    s32 a[8];
+    s32 b[8];
+    s32 c[8];
+    s32 d[8];
+    s32 i;
+    s32 sel;
+    s32 dist;
+    s32 v;
+    s32 w;
+    s32 k;
+    s32 neg;
+    u8 m;
+    char *p29;
+    char *q50;
+    char *pAD;
+    char *p50;
+    char *r50;
+
+    func_001BBD40();
+    m = D_001F65EB[0];
+    if (m < 2 || m > 21) {
+        sel = 5;
+    }
+    if (m >= 2 && m <= 5) {
+        sel = 3;
+    }
+    if (m >= 6 && m <= 9) {
+        sel = 2;
+    }
+    if (m >= 10 && m <= 13) {
+        sel = 4;
+    }
+    if (m >= 14 && m <= 17) {
+        sel = 0;
+    }
+    if (m >= 18 && m <= 21) {
+        sel = 1;
+    }
+    for (i = 0; i < 8; i++) {
+        p29 = D_002029D0;
+        q50 = D_00202A50;
+        c[i] = (*(s16 **)(p29 + 4))[i];
+        if (sel == i) {
+            c[i] = c[i] * 106 / 100;
+        }
+        dist = abs(sel - i);
+        if (dist == 3) {
+            c[i] = c[i] * 97 / 100;
+        }
+        d[i] = (*(s16 **)(q50 + 4))[i];
+        if (sel == i) {
+            d[i] = d[i] * 106 / 100;
+        }
+        if (dist == 3) {
+            d[i] = d[i] * 97 / 100;
+        }
+    }
+    for (i = 0; i < 8; i++) {
+        v = (*(s16 **)D_002029D0)[i];
+        neg = 0;
+        k = 0x1000;
+        if (v == 0) {
+            a[i] = 0;
+            continue;
+        }
+        if (v < 0) {
+            neg = 1;
+            v = abs(v);
+        }
+        w = c[i];
+        if (w < 0) {
+            k = w * 8 + 0x1000;
+            w = abs(w);
+        }
+        w = w * k * 9 / 500 + k;
+        a[i] = v * w;
+        if (neg) {
+            a[i] = -a[i] / 4;
+        }
+    }
+    for (i = 0; i < 8; i++) {
+        f32 f;
+        w = d[i];
+        neg = 0;
+        if (w < 0) {
+            neg = 1;
+            w = abs(w);
+        }
+        f = w << 12;
+        w = (s32)sqrtf(f * sqrtf(f)) << 3;
+        if (neg) {
+            w = -w;
+        }
+        b[i] = w;
+    }
+    w = 0;
+    for (i = 0; i < 7; i++) {
+        v = a[i] - b[i];
+        if (v < 0) {
+            v /= 2;
+        }
+        if (v > 0 && a[i] != 0) {
+            w += v;
+        }
+    }
+    w /= 4096;
+    p50 = D_00202A50;
+    *(s16 *)D_00202AD0 = (w < 0) ? 0 : w;
+    if ((*(s16 **)(p50 + 0xC))[7] == 0) {
+        for (i = 0; i < 8; i++) {
+            r50 = D_00202A50;
+            pAD = (char *)D_00202AD0;
+            if (!((*(u16 *)(r50 + 8) >> i) & 1)) {
+                v = (*(Tbl **)D_002029D0)->p[i].chance;
+                if (v != 0 && func_001E9C70() % 256 <= v - 1) {
+                    *(u16 *)(pAD + 2) |= 1 << i;
+                    (*(u16 **)(r50 + 0xC))[i] = (*(Tbl **)D_002029D0)->p[i].value;
+                }
+            }
+        }
+    }
+}
+
+extern void func_001BBD78(s32);
 extern s32 D_001FF390[];
 extern s32 D_001FF530[];
-extern int abs(int);
 /* ER-123: the table behind *(D_002029D0 + 0): eight s16 values, then eight (chance, value) pairs; Unofficial names, Unconfirmed reading. */
 typedef struct { s16 chance; s16 value; } ChancePair;
 typedef struct { s16 v[8]; ChancePair p[8]; } ChanceTbl;
@@ -7167,7 +7323,18 @@ void func_001BE948(s32 *arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BE9C0);
+extern void func_00119458(s32);
+typedef struct { s32 x0; s32 x4; s32 x8; s32 xC; f32 x10; s32 x14; f32 x18; s32 x1C; f32 x20; s32 x24; f32 x28; s32 x2C; f32 x30; } SE;
+/* ER-162: by hand (ER-153 draft); matches under ruling 3.24 (-fstrict-aliasing for this file), stores in offset order; names and types Unconfirmed. */
+void func_001BE9C0(SE *arg0) {
+    func_00119458(arg0->x8);
+    ((f32 *)D_001FF340)[0] = arg0->x10;
+    ((f32 *)D_001FF340)[1] = arg0->x18;
+    ((f32 *)D_001FF340)[2] = arg0->x20;
+    ((f32 *)D_001FF340)[4] = arg0->x28;
+    ((f32 *)D_001FF340)[5] = arg0->x30;
+    arg0->x0 = 0;
+}
 
 extern s32 D_0035B828;
 
@@ -7237,7 +7404,25 @@ void func_001BEF68(void *arg0) {
     *(s32 *)arg0 = 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BEFD8);
+extern s32 D_00202950[];
+
+/* ER-162: by hand (ER-153 draft); matches under ruling 3.24 (-fstrict-aliasing for this file), stores in offset order; names and types Unconfirmed. */
+void func_001BEFD8(s32 *arg0) {
+    char *d = (char *)D_00202950;
+    s8 *g;
+
+    *(s32 *)(d + 0x20) = arg0[2];
+    *(u8 *)(d + 0x24) = *(u8 *)((char *)arg0 + 0x38);
+    *(f32 *)(d + 0) = *(f32 *)((char *)arg0 + 0x10);
+    *(f32 *)(d + 4) = *(f32 *)((char *)arg0 + 0x18);
+    *(f32 *)(d + 8) = *(f32 *)((char *)arg0 + 0x20);
+    *(f32 *)(d + 0x10) = *(f32 *)((char *)arg0 + 0x28);
+    *(f32 *)(d + 0x14) = *(f32 *)((char *)arg0 + 0x30);
+    g = (void *)D_001FF890;
+    g[0x21A] = 1;
+    g[0x21B] = 1;
+    *arg0 = 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF038);
 
@@ -7318,10 +7503,21 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF638);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF688);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BF700);
-
-extern s32 D_00202950[];
 extern s32 D_00202990[];
+
+/* ER-162: by hand (ER-153 draft); matches under ruling 3.24 (-fstrict-aliasing for this file), stores in offset order; names and types Unconfirmed. */
+void func_001BF700(s32 *arg0) {
+    char *d = (char *)D_00202990;
+    *(s32 *)(d + 0x20) = arg0[2];
+    *(u8 *)(d + 0x24) = *(u8 *)((char *)arg0 + 0x38);
+    *(f32 *)(d + 0) = *(f32 *)((char *)arg0 + 0x10);
+    *(f32 *)(d + 4) = *(f32 *)((char *)arg0 + 0x18);
+    *(f32 *)(d + 8) = *(f32 *)((char *)arg0 + 0x20);
+    *(f32 *)(d + 0x10) = *(f32 *)((char *)arg0 + 0x28);
+    *(f32 *)(d + 0x14) = *(f32 *)((char *)arg0 + 0x30);
+    *arg0 = 0;
+}
+
 /* ER-195: ER-198's base-pointer scan hit (recipes, ER-195): both records through one pointer each, the two flag
    bytes 0x21A before 0x21B. Names, types and offsets are Unconfirmed readings. */
 void func_001BF748(s32 *arg0) {
