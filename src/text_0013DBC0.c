@@ -95,13 +95,13 @@ extern void func_0013DCF0(void);
 extern void func_0013E8C8(char *);
 extern int func_00150280(char *);
 extern void func_001321E8(char *);
-extern void func_00131000(char *, void *);
+extern s32 func_00131000(char *, void *);
 
 /* ER-035. Resets the state fields of a0, sets its three callbacks, and on the object at *a0 sets four flag bytes,
    clears +0x910 of its +0xE0 block and puts 2000 / 300 into +0x12C / +0x130 when they equal that cleared value;
    then hands over to func_001321E8 or sets func_0013DCF0 through func_00131000. Names and types Unconfirmed. The
-   separate locals and the read of +0x910 right after it is cleared give the game's loads and registers (needs
-   -fno-strict-aliasing, ruling 3.6). */
+   separate locals and the read of +0x910 right after it is cleared give the game's loads and registers (ER-035
+   read it as needing -fno-strict-aliasing, ruling 3.6, now withdrawn; it matches under both settings, recipes 2.64). */
 void func_0013DBC0(char *a0) {
     char *p;
     char *e;
@@ -509,11 +509,56 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013EB28);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013EBA8);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013EE58);
+extern s32 func_0012FC38(void **, s32, s32, s32);
+extern s32 func_0012F938(void *arg0, s32 arg1);
+extern void func_0013EBA8(s8 **, void *);
+
+/* ER-251's draft (fee58\d.c; recipes 2.61: case 0's s16 increment and the arg1 + 0x90 float loads are scheduled as
+   not aliasing only under type-based aliasing), placed by ER-264 under ruling 3.25 (recipes 2.64); names, types and
+   offsets are Unconfirmed readings. */
+void func_0013EE58(char *arg0, char *arg1) {
+    f32 *p;
+
+    switch (*(s16 *)(arg0 + 0x6E)) {
+    case 0:
+        arg0[8] = 0;
+        p = (void *)(arg1 + 0x90);
+        *(f32 *)(arg0 + 0x40) = *(f32 *)(arg1 + 0x90);
+        (*(s16 *)(arg0 + 0x6E))++;
+        *(f32 *)(arg0 + 0x44) = *(f32 *)(p + 1);
+        *(f32 *)(arg0 + 0x48) = *(f32 *)(p + 2);
+        break;
+    case 1:
+        if (func_0012F8C8((s8 *)arg0, 9, *(s16 *)(arg0 + 0x6C), 0x14, 0, 0.1f) == 0) {
+            *(f32 *)(arg0 + 0x44) = *(f32 *)(*(char **)(arg0 + 0x130) + 4);
+            func_00130CE0(arg0, 8.0f);
+        } else if (*(u16 *)(*(char **)(arg1 + 0xE0) + 0x8C) == 0x14) {
+            func_0012F9C0((void **)arg0, 3);
+        }
+        if (arg0[8] == 0) {
+            if (func_0012FC38((void **)arg0, 1, 0x1E, 0x270F) != 0) {
+                arg0[8] = 1;
+            }
+        }
+        if (func_0012F938(arg1, 9) != 0) {
+            if (*(s16 *)(arg0 + 0x6C) >= 0x5B) {
+                *(s16 *)(arg0 + 0x6C) = 0;
+                (*(s16 *)(arg0 + 0x6E))++;
+            }
+        }
+        break;
+    case 2:
+        func_00130CE0(arg0, 10.0f);
+        if (func_0012F8C8((s8 *)arg0, 1, *(s16 *)(arg0 + 0x6C), 0x14, 1, 0.1f) != 0) {
+            func_00131000(arg0, func_0013EBA8);
+        }
+        break;
+    }
+    func_0013E990(arg0, arg1);
+}
 
 extern void func_0013F2D8(void *, s8);
 extern s32 func_0014FF38(void *arg0, s32 arg1);
-extern void func_0013EBA8(s8 **, void *);
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_0013EFF8(s8 *arg0) {
@@ -598,7 +643,21 @@ void func_0013F280(void *arg0, s32 arg1) {
     func_0012FB48(arg0, arg1);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F288);
+/* ER-240's draft, placed by ER-264 under ruling 3.25 (recipes 2.64); names, types and offsets are Unconfirmed
+   readings. */
+void func_0013F288(void *arg0, s32 arg1, f32 fparg0) {
+    f32 a;
+    f32 b;
+    char *p;
+    char *q;
+
+    q = *(char **)(*(char **)(*(char **)((char *)arg0 + 0xE4) + 0x80) + 0x30);
+    p = (void *)(*(s32 *)((char *)arg0 + 0xE0) + arg1 * 0xA0);
+    a = *(f32 *)((char *)p + 0x50);
+    b = *(f32 *)((char *)p + 0x58);
+    *(f32 *)((char *)p + 0x50) = a + (*(f32 *)((char *)q + 0x40) - a) * fparg0;
+    *(f32 *)((char *)p + 0x58) = b + (*(f32 *)((char *)q + 0x48) - b) * fparg0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_0013F2D8);
 
@@ -718,7 +777,7 @@ void func_0013F4C0(char *arg0) {
 }
 
 extern s32 func_0012B890(void **, s32, s32, s32, s16, f32, s32);
-extern void func_00140250(void *, void *);
+extern void func_00140250(char *, f32 *);
 extern s32 D_0032FEA0[];
 extern s32 D_0032FEB0[];
 extern f32 D_0035BB80;
@@ -928,7 +987,71 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140098);
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140160);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140250);
+extern void func_001CA018(float *, char *, char *);
+extern void func_001D75C8(void *, void *);
+extern void func_0012EAF8(void *, f32 (*)[4]);
+extern void func_001C9F60(void *, void *, void *);
+extern void func_00140698(char *, float *, f32, f32, f32);
+extern void func_0010CAF0(void *, char *, void *);
+extern void func_001C9EE8(float *, float *, char *);
+extern const f32 D_0035BB54;
+extern const f32 D_0035BB58;
+extern const f32 D_0035BB5C;
+
+/* ER-240's m2c-based draft, finished by ER-256 (recipes 2.64: the +0xE0 base read as s32 and the sum in integers, as
+   func_00144020 reads that field; Unconfirmed), placed by ER-264 under ruling 3.25. Without type-based aliasing it is
+   0x4B0 bytes (game 0x444). Names (m, p, d, c, inv, w, a, b, e) are Unofficial; types and offsets Unconfirmed. */
+void func_00140250(char *arg0, f32 *arg1) {
+    f32 m[16];
+    f32 p[7][4];
+    f32 d[4];
+    f32 c[4];
+    f32 inv[16];
+    f32 w[16];
+    f32 a;
+    f32 b;
+    char *e;
+    s32 i;
+
+    func_001C9B18(p[6], arg1);
+    for (i = 0x16; i >= 0x11; i--) {
+        func_001CA018(d, arg1, *(char **)(arg0 + 0xE0) + i * 0xA0 + 0x30);
+        a = sqrtf(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+        e = (char *)(i * 0xA0 + *(s32 *)(arg0 + 0xE0) + 0xA0);
+        b = sqrtf(*(f32 *)(e + 0x40) * *(f32 *)(e + 0x40) + *(f32 *)(e + 0x44) * *(f32 *)(e + 0x44) + *(f32 *)(e + 0x48) * *(f32 *)(e + 0x48));
+        func_001CA048(d, d, b / a);
+        func_001CA018(arg1, arg1, (char *)d);
+        func_001C9B18(p[i - 0x11], arg1);
+    }
+    func_001D75C8(m, *(char **)(arg0 + 0xE0) + 0x140);
+    for (i = 0x11; i < 0x17; i++) {
+        func_001CA018(d, p[i - 0x10], (char *)p[i - 0x11]);
+        func_0012EAF8(inv, m);
+        func_001C9F60(c, inv, d);
+        func_00140698(*(char **)(arg0 + 0xE0) + i * 0xA0 + 0x50, c, (D_0035BB54 * 3.1415927f) / 180.0f, (D_0035BB58 * 3.1415927f) / 180.0f, D_0035BB5C);
+        while (3.1415927f < *(f32 *)(*(char **)(arg0 + 0xE0) + i * 0xA0 + 0x50)) {
+            *(f32 *)(*(char **)(arg0 + 0xE0) + i * 0xA0 + 0x50) -= 6.2831855f;
+        }
+        while (*(f32 *)(*(char **)(arg0 + 0xE0) + i * 0xA0 + 0x50) < -3.1415927f) {
+            *(f32 *)(*(char **)(arg0 + 0xE0) + i * 0xA0 + 0x50) += 6.2831855f;
+        }
+        while (3.1415927f < *(f32 *)(*(char **)(arg0 + 0xE0) + i * 0xA0 + 0x54)) {
+            *(f32 *)(*(char **)(arg0 + 0xE0) + i * 0xA0 + 0x54) -= 6.2831855f;
+        }
+        while (*(f32 *)(*(char **)(arg0 + 0xE0) + i * 0xA0 + 0x54) < -3.1415927f) {
+            *(f32 *)(*(char **)(arg0 + 0xE0) + i * 0xA0 + 0x54) += 6.2831855f;
+        }
+        while (3.1415927f < *(f32 *)(*(char **)(arg0 + 0xE0) + i * 0xA0 + 0x58)) {
+            *(f32 *)(*(char **)(arg0 + 0xE0) + i * 0xA0 + 0x58) -= 6.2831855f;
+        }
+        while (*(f32 *)(*(char **)(arg0 + 0xE0) + i * 0xA0 + 0x58) < -3.1415927f) {
+            *(f32 *)(*(char **)(arg0 + 0xE0) + i * 0xA0 + 0x58) += 6.2831855f;
+        }
+        func_0010CAF0(arg0, *(char **)(arg0 + 0xE0) + i * 0xA0, w);
+        func_001C9EE8(m, m, w);
+        func_001D75C8(*(char **)(arg0 + 0xE0) + i * 0xA0, m);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00140698);
 
@@ -1031,13 +1154,16 @@ void func_00140978(s8 *arg0) {
     }
 }
 
+/* Ruling 3.25 (ER-256 / ER-264, recipes 2.64): a 64-bit slot used both as a flag word and as a pointer. The union
+   keeps the access in alias set 0 under -fstrict-aliasing. Reading Unconfirmed; W64, d, p are Unofficial names. */
+typedef union { s64 d; void *p; } W64;
 /* ER-165: by hand from the asm; names, types and offsets are Unconfirmed readings. */
 void func_00140A20(char *arg0) {
     char *t = *(char **)(arg0 + 0xE8);
 
     if (!(*(u8 *)(t + 0x5A) & 0x40)) {
         *(u8 *)(t + 0x5A) |= 0x40;
-        *(s64 *)(t + 0x70) |= 0x2000000000000LL;
+        ((W64 *)(t + 0x70))->d |= 0x2000000000000LL;
         func_00131000(t, *(void **)(t + 0xCC));
         func_001321E8(arg0);
     }
@@ -1364,7 +1490,7 @@ extern float func_001114E8(char *, float *);
 extern float func_00130378(char *, s32);
 extern void func_00130848(s8 **, f32 fparg0);
 extern void func_001C9FE8(void *, void *, void *);
-extern void func_00131000(char *, void *);
+extern s32 func_00131000(char *, void *);
 extern void func_00142118();
 extern void func_00142788(f32 *, f32, f32);
 extern void func_001427F0(f32 *, f32, f32);
@@ -1680,9 +1806,37 @@ void func_00142F88(s8 *arg0, s8 *arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_001430E0);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_001431A0);
+s32 func_00131000(char *, void *);
+s32 func_0014FF38(void *, s32);
+s32 func_00130FE0(char *, void *);
 
-INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00143230);
+/* ER-240's draft (func_00131000 / func_00130FE0 declared s32, their definitions' type, as ER-236 found), placed by
+   ER-264 under ruling 3.25 (recipes 2.64); names, types and offsets are Unconfirmed readings. */
+void func_001431A0(s8 *arg0) {
+    s8 *t;
+
+    if ((*(s16 *)(arg0 + 0x6E) == 0) && (*(s8 *)(arg0 + 0xF) != 0)) {
+        t = *(s8 **)(arg0 + 0xEC);
+        func_00131000(t, *(void **)(t + 0xC8));
+        *(s16 *)(t + 0x64) = 0x7530;
+        *(u16 *)(t + 0x66) = (u16) (*(u16 *)(t + 0x66) + 1);
+    }
+    if (func_0014FF38(arg0, 3) != 0) {
+        *(s32 *)(arg0 + 0x2C) = 0;
+        func_00130FE0(arg0, *(void **)(arg0 + 0x44));
+    }
+}
+
+/* ER-165's draft (s\3230.c), placed by ER-264 under ruling 3.25 (recipes 2.64); names, types and offsets are
+   Unconfirmed readings. */
+void func_00143230(void *arg0, s32 arg1) {
+    if (*(s16 *)((char *)arg0 + 0x6E) == 0) {
+        char *t = *(char **)((char *)arg0 + 0xEC);
+        *(s16 *)(t + 0x64) = 0;
+        func_00131000(t, *(void **)(t + 0xCC));
+    }
+    func_0014FE10(arg0, arg1);
+}
 
 /* ER-072: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00143280(void *arg0, s32 arg1, s32 arg2) {
@@ -1784,7 +1938,6 @@ INCLUDE_ASM("asm/nonmatchings/text_0013DBC0", func_00143790);
 
 extern void func_00144010(void *arg0, s32 arg1);
 extern void *func_0012C360(void *, s32, s32, s32, void *);
-extern s32 func_0012F938(void *arg0, s32 arg1);
 void func_00144020(void *arg0, f32 fparg0);
 extern f32 D_0035BC48;
 
@@ -2213,7 +2366,7 @@ void func_00144F18(void *arg0, void *arg1) {
 extern int func_001450F8(u8 *a0);
 extern s32 func_00131088(void *);
 extern void func_00144308(s8 *, void *);
-extern void func_00131000(char *, void *);
+extern s32 func_00131000(char *, void *);
 void func_00144A48(void **arg0, s32 arg1);
 void func_00144F10(void);
 

@@ -638,9 +638,75 @@ s32 func_001CCE00(u32 arg0, s16 arg1) {
     return 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CCE58);
+/* ER-248's draft (ER-246's best files; 6 words without type-based aliasing), placed by ER-264 under
+   ruling 3.25 (recipes 2.64), with the file's -fedge-lcm (ruling 3.23); names, types and offsets are Unconfirmed
+   readings. */
+s32 func_001CCE58(s32 arg0) {
+    char *p = (char *)D_0035C554 + (arg0 << 5);
+    char *b = D_0035C554;
+    s32 *e = (s32 *)(b + 0x200);
+    s32 ret;
+    s32 i;
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CCF60);
+    *(s32 *)(p + 0x1C) = 0;
+    if (*(u16 *)(b + 0x4D6) != 0) {
+        func_001CB808(1, 0x50);
+    }
+    ret = 0;
+    if (func_001CB808(1, 0x1010, *(s16 *)(p + 0x18), *(s32 *)(p + 0xC), *(s32 *)(p + 4), *(s8 *)(p + 0x1B)) != 0) {
+        ret = -1;
+    }
+
+    i = 4;
+    while (--i != -1) {
+        if (e[2] == arg0) {
+            if (func_001CB808(1, 0x2070, e[3], *(s32 *)(p + 0xC), *(s32 *)(p + 4), *(s8 *)(p + 0x1B), 0) != 0) {
+                ret = -1;
+                break;
+            }
+        }
+        e += 4;
+    }
+    if (*(u16 *)((char *)D_0035C554 + 0x4D6) != 0) {
+        func_001CB808(1, 0x40);
+    }
+    return ret;
+}
+
+/* ER-248's draft (ER-246's best files; 10 words without type-based aliasing), placed by ER-264 under
+   ruling 3.25 (recipes 2.64), with the file's -fedge-lcm (ruling 3.23); names, types and offsets are Unconfirmed
+   readings. */
+s32 func_001CCF60(s32 arg0) {
+    char *p = (char *)D_0035C554 + (arg0 << 5);
+    char *b = D_0035C554;
+    s32 *e = (s32 *)(b + 0x200);
+    s32 ret;
+    s32 i;
+
+    *(s32 *)(p + 0x1C) = 1;
+    if (*(u16 *)(b + 0x4D6) != 0) {
+        func_001CB808(1, 0x50);
+    }
+    ret = 0;
+    if (func_001CB808(1, 0x1010, *(s16 *)(p + 0x18), *(s32 *)(p + 0xC), *(s32 *)p, *(s8 *)(p + 0x1B)) != 0) {
+        ret = -1;
+    }
+
+    i = 4;
+    while (--i != -1) {
+        if (e[2] == arg0) {
+            if (func_001CB808(1, 0x2070, e[3], *(s32 *)(p + 0xC), *(s32 *)p, *(s8 *)(p + 0x1B), 1) != 0) {
+                ret = -1;
+                break;
+            }
+        }
+        e += 4;
+    }
+    if (*(u16 *)((char *)D_0035C554 + 0x4D6) != 0) {
+        func_001CB808(1, 0x40);
+    }
+    return ret;
+}
 
 /* ER-233: by hand (ER-198's draft without its `ok` flag; func_001CD360's shape); plain C with the file's -fedge-lcm
    (ruling 3.23); names, types and offsets are Unconfirmed readings. */

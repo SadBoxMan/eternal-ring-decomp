@@ -1,7 +1,7 @@
 # EE matching tools (ER-015)
 
 Written Thu 19 Nov 2026 by ER-015 (Opus 5.5, medium). Tools for matching one function at a time on this game's
-toolchain (ee-gcc 2.9-ee-991111, `-O2 -G8 -fno-strict-aliasing`, patched ee-as `-r2`; `docs/decomp_recipes.md` 1).
+toolchain (ee-gcc 2.9-ee-991111, `-O2 -G8 -fstrict-aliasing -fno-edge-lcm` since ER-264's ruling 3.25, patched ee-as `-r2`; `docs/decomp_recipes.md` 1).
 All run natively from PowerShell with the repo's venv, in the main checkout or a worktree (`docs/build.md` 6). They
 need a split and the unstripped build (`build/SLUS_200.15.syms.elf`): any `make regress` leaves both.
 
@@ -1637,7 +1637,7 @@ right only where the two line up; the score line says so.
 
 ### 8.2 gcc dumps: reading a scheduler tie
 
-Use `ordersearch.py dump a.c` (or by hand: the Makefile's `CC -B<GCC_DIR>/ -O2 -G8 -fno-strict-aliasing
+Use `ordersearch.py dump a.c` (or by hand: the Makefile's `CC -B<GCC_DIR>/ -O2 -G8 -fstrict-aliasing
 -fno-edge-lcm -Iinclude -S` plus the flags below; the dump files land beside the `.c`, named `<file>.c.<pass>`).
 
 | Flag (this gcc's spelling) | Writes |

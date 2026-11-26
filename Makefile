@@ -43,11 +43,13 @@ GP_INC    := $(BUILD)/include/gp_externs.inc
 CRT0_O    := $(BUILD)/asm/text_00100000.o
 
 # --- flags (docs/decomp_recipes.md 1.1) -------------------------------------------------------------------
-# ER-035: -fno-strict-aliasing (ruling docs/decomp_recipes.md 3.6): the game reloads memory across stores of other
-# types, which this compiler's -O2 default (strict aliasing on) does not.
+# ER-264: -fstrict-aliasing (ruling docs/decomp_recipes.md 3.25, LuciDin, Thu 26 Nov 2026; withdraws ER-035's
+# -fno-strict-aliasing, ruling 3.6, and ER-162's per-file line for text_00150878, ruling 3.24): type-based alias
+# analysis, this compiler's -O2 default, written out. The whole ELF is byte-identical under it (recipes 2.64), and
+# functions that need stores and loads of different types scheduled as not aliasing match only with it.
 # ER-069: -fno-edge-lcm (ruling docs/decomp_recipes.md 3.11): GCSE without the edge-based LCM (Cygnus, 27 Sep 1999,
 # on by default), which removes partially redundant loads at joins; the game reloads there (docs/toolchain.md 5).
-CFLAGS    := -O2 -G8 -fno-strict-aliasing -fno-edge-lcm
+CFLAGS    := -O2 -G8 -fstrict-aliasing -fno-edge-lcm
 CPPFLAGS  := -Iinclude
 ASFLAGS   := -G8 -O2 -mabi=eabi -Iinclude -I$(BUILD)/include
 LDFLAGS   := -G8 -T $(LD_SCRIPT)
@@ -97,12 +99,6 @@ $(BUILD)/src/text_001CA8D8.s: CFLAGS += -fedge-lcm
 # 2026): func_001CD360 and func_001CCB08 match as plain C only with it (ER-206's scan); every function placed in the
 # file before it matches either way. The later flag wins over CFLAGS' -fno-edge-lcm.
 $(BUILD)/src/text_001CB528.s: CFLAGS += -fedge-lcm
-
-# ER-162: text_00150878 is built with type-based alias analysis on (ruling docs/decomp_recipes.md 3.24, LuciDin, Thu
-# 26 Nov 2026): seven functions match as plain C only with it (stores and loads of different types scheduled as not
-# aliasing); every function placed in the file before it matches either way (func_00192EE8 / func_00193440 with their
-# zero stores written as floats). The later flag wins over CFLAGS' -fno-strict-aliasing.
-$(BUILD)/src/text_00150878.s: CFLAGS += -fstrict-aliasing
 
 $(BUILD)/src/%.o: $(BUILD)/src/%.s $(GP_INC) include/macro.inc include/labels.inc
 	$(AS) $(ASFLAGS) -o $@ $<
