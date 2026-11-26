@@ -68,7 +68,62 @@ void func_00134718(void *arg0, void *arg1) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00134730);
 
-INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_00134790);
+extern s32 D_0035B830;
+extern s32 D_0035B834;
+extern void func_0012D318(s8 *arg0, void *arg1);
+extern void func_001C9B18(void *, void *);
+
+/* ER-251: by hand (ER-189 / ER-244 drafts). The flag word D_0035B830 is read into an s32 local and copied into a
+   64-bit one (`s64 k`), which keeps the game's copy (daddu $v1, $a2): most tests read the copy, the 0x100 test the
+   s32 local, the 0x200 test and the later ones the global again. Names, types (the s64 copy included) and offsets
+   are Unconfirmed readings. */
+void func_00134790(char *arg0, char *arg1) {
+    f32 v[4];
+    f32 d;
+    s64 k;
+    s32 m;
+
+    m = D_0035B830;
+    k = m;
+    if (k == 0x8000) {
+        v[0] = 0.0f;
+        v[2] = 100.0f;
+        v[1] = 0.0f;
+        v[3] = 0.0f;
+    }
+    d = 50.0f;
+    if (k & 0x10) {
+        v[2] = d;
+    }
+    if (k & 0x40) {
+        v[2] = -d;
+    }
+    if (k & 0x20) {
+        *(f32 *)(arg1 + 0xA4) += 0.017453292f;
+    }
+    if (k & 0x80) {
+        *(f32 *)(arg1 + 0xA4) -= 0.017453292f;
+    }
+    if (k & 0x800) {
+        v[0] = d;
+    }
+    if (k & 0x400) {
+        v[0] = -d;
+    }
+    if (m & 0x100) {
+        v[1] = d;
+    }
+    if (D_0035B830 & 0x200) {
+        v[1] = -d;
+    }
+    func_0012D318((s8 *)arg1, v);
+    if (D_0035B830 & 0x4000) {
+        func_001C9B18(arg0 + 0x80, arg1 + 0x90);
+    }
+    if (D_0035B830 & D_0035B834 & 0x8000) {
+        func_001C9B18(arg1 + 0x90, arg0 + 0x80);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001343E8", func_001348B8);
 
