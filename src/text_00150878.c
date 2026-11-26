@@ -1409,7 +1409,7 @@ void func_00158D38(void) {
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00158D40);
 
 typedef struct { f32 v[4]; } __attribute__((aligned(16))) Vec4A;
-extern Vec4A D_00354D70;
+extern const Vec4A D_00354D70;
 /* ER-098: by hand from the m2c draft (recipes 2.20); D_00354D70 copied as a 16-byte aligned float vector (ld / sd).
    Names, types and offsets are Unconfirmed readings. */
 void func_00158DC0(s32 arg0) {
@@ -1655,7 +1655,83 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015BE00);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015C020);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015C0E0);
+extern void *func_0017D968(s16, s32, s32, s32, s32);
+extern s32 func_00158AD8(s32, s32, void *, void *, void *, void *);
+extern s32 func_001E9C70();
+extern s32 D_00248880[];
+extern f32 D_002488A0[];
+extern const Vec4A D_00354D80;
+
+/* ER-162: ER-123 / ER-212's draft (ER-134), a MATCH under ruling 3.24 with both copied .rodata vectors const (a
+   variants climb); names and types Unconfirmed. */
+void func_0015C0E0(char *a0) {
+    float p[4];
+    float d[4];
+    Vec4A c;
+    Vec4A s;
+    float y;
+    float f;
+    float k;
+    float r;
+    
+
+    y = *(float *)(a0 + 0x14) - *(float *)(a0 + 0x78);
+    *(float *)(a0 + 0x78) = *(float *)(a0 + 0x78) - 0.294f;
+    *(s32 *)(a0 + 0x60) += 1;
+    *(float *)(a0 + 0x10) -= *(float *)(a0 + 0x74);
+    *(float *)(a0 + 0x18) -= *(float *)(a0 + 0x7C);
+    *(float *)(a0 + 0x14) = y;
+    if ((float)*(s32 *)(a0 + 0x5C) < y) {
+        func_001E9B0C(p, 0, 0x10);
+        p[3] = 1.0f;
+        func_001E9B0C(d, 0, 0x10);
+        f = (float)*(s32 *)(a0 + 0x5C);
+        d[3] = 1.0f;
+        c = D_00354D80;
+        *(s32 *)(a0 + 0xC) = 1;
+        s = D_00354D70;
+        D_00248880[2] = (s32)f;
+        p[0] = *(float *)(a0 + 0x10);
+        p[2] = *(float *)(a0 + 0x18);
+        p[1] = f;
+        *(float *)(a0 + 0x14) = f;
+        func_0017D968(0x26, (s32)p, (s32)(a0 + 0x20), 0, 0);
+        
+        D_00248880[0] = func_001E9C70() % 45 + 45;
+        D_00248880[1] = 10;
+        D_002488A0[7] = 127.0f;
+        D_002488A0[6] = 127.0f;
+        D_002488A0[5] = 127.0f;
+        D_002488A0[0] = 6.0f;
+        D_00248880[3] = *(s32 *)(a0 + 0x5C);
+        D_00248880[7] = 0;
+        func_001C9B18((s32)&c, a0 + 0x30);
+        c.v[1] *= 0.5f;
+        func_001C9B18((s32)p, a0 + 0x10);
+        p[1] = p[1] + c.v[1] * 32.0 * 0.5;
+        d[1] = d[2] = 0.0f;
+        r = (float)(func_001E9C70() & 0xFFFF) * (1.0f / 65536.0f);
+        k = -0.7853982f;
+        s.v[2] = 96.0f;
+        s.v[1] = 96.0f;
+        s.v[0] = 96.0f;
+        d[0] = r * k + k;
+        func_00158AD8(9, 0x1E, p, d, &c, &s);
+    } else {
+        *(s32 *)(a0 + 0xC) = 2;
+    }
+    if (*(float *)(a0 + 0x14) < (float)(*(s32 *)(a0 + 0x5C) - 450)) {
+        *(float *)(a0 + 0x40) += (*(float *)(a0 + 0x40) < *(float *)(a0 + 0x84) && *(float *)(a0 + 0x40) + 0.5f < 255.0f) ? 0.5f : 0.0f;
+        *(float *)(a0 + 0x44) += (*(float *)(a0 + 0x44) < *(float *)(a0 + 0x88) && *(float *)(a0 + 0x44) + 0.5f < 255.0f) ? 0.5f : 0.0f;
+        *(float *)(a0 + 0x48) += (*(float *)(a0 + 0x48) < *(float *)(a0 + 0x8C) && *(float *)(a0 + 0x48) + 0.5f < 255.0f) ? 0.5f : 0.0f;
+    } else {
+        *(float *)(a0 + 0x40) -= (16.0f < *(float *)(a0 + 0x40)) ? 2.0f : 0.0f;
+        *(float *)(a0 + 0x44) -= (16.0f < *(float *)(a0 + 0x44)) ? 2.0f : 0.0f;
+        *(float *)(a0 + 0x48) -= (16.0f < *(float *)(a0 + 0x48)) ? 2.0f : 0.0f;
+    }
+    *(float *)(a0 + 0x34) += 0.2f;
+    *(float *)(a0 + 0x30) += 0.05f;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015C510);
 
@@ -1761,7 +1837,6 @@ void func_0015CFA8(void *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0015D038);
 
-extern s32 D_00248880[];
 
 /* ER-098: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_0015D210(void *arg0) {
@@ -2021,7 +2096,6 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001608F0);
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00160AE8);
 
 extern void *func_001E9B0C(void *, s32, s32);
-extern s32 func_001E9C70();
 
 /* ER-096: by hand from ER-080's draft; the two sin products are separate temporaries (one shared temporary swaps
    $f21 / $f22). Names, types and offsets are Unconfirmed readings. */
@@ -4293,7 +4367,6 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018B1E8);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018B3E8);
 
-extern f32 D_002488A0[];
 typedef struct { s32 x0; s32 x4; s32 x8; s32 xC; s32 x10; s32 x14; s32 x18; s32 pad1C[5]; f32 x30; s32 pad34[17]; s8 x78; } SB;
 /* ER-162: by hand (ER-153 draft); matches under ruling 3.24 (-fstrict-aliasing for this file), fields in offset order, x4 last; D_002488A0 read as f32; names and types Unconfirmed. */
 void func_0018B8A8(SB *arg0) {
@@ -4362,7 +4435,6 @@ void func_0018C730(void *arg0) {
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_0018C780);
 
 extern const Vec4A D_00355BF0;
-extern s32 func_00158AD8(s32, s32, void *, void *, void *, void *);
 
 /* ER-213 (DISP-05's relay of ER-216's .rodata copy scan): both vectors copied from `extern const` .rodata objects
    (recipes 2.49; plain externs leave 2 words). Vec4A is ruling 3.15's type; names Unconfirmed. */
@@ -6227,7 +6299,6 @@ void func_001B3440(char *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B3498);
 
-extern void *func_0017D968(s16, s32, s32, s32, s32);
 typedef struct { s32 x0; s32 x4; s32 x8; s32 xC; s32 x10; s32 x14; s32 x18; s32 pad1C[2]; s32 x24; s32 pad28[10]; s32 x50[4]; s32 x60[4]; void *x70; } S34;
 /* ER-162: by hand (ER-153 draft); matches under ruling 3.24: x70 is a pointer, so its load is free of the int store to
    D_00248880; names and types Unconfirmed. */
