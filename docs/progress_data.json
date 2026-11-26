@@ -2590,6 +2590,15 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-255",
+      "title": "er177_gs_diff round 2: FE01 padding, format-2 files, drop --raw-state",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Sonnet, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
