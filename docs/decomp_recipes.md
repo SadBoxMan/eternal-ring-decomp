@@ -1957,6 +1957,51 @@ readings (Unconfirmed); func_001D21F8 `s32 (s32 *, s32, s32)` is read from its u
 |---|---|
 | func_001CB528 | same size, 2 words (`b528_2w.c`): the game issues `li $a1, 0x5010` before `addiu $a0, $s1, %lo(D_01B73440)`, ours the reverse. Sched1 and sched2 rank the address higher because its store (`0x4CC`) heads the may-alias chain `0x4CC` store -> `D_01B73440[0]` store -> the later `b`-relative stores. Tried: the 72 orders the chain allows; the constant in a local (cse rematerializes it at its use); struct-typed `b` stores with a scalar-flagged `*(s32 *)D_01B73440` (alias.c's fixed-scalar / varying-struct rule frees the chain, but the stores then follow insn order: 36 placements, always 2 words, the D store or the `li` out of place); `extern s32 D_01B73440` as a scalar (it goes `$gp`-relative, 0x21C bytes: the game's object is an array or larger than 8 bytes); the clear written through the stored field. `-fno-schedule-insns2` (scratch only) leaves the same order. A dependency the original had and we lack; not found |
 
+### 2.63 The whole build under `-fstrict-aliasing`: four spellings that match both ways, 18 parked functions placed in a test build (ER-256, Thu 26 Nov 2026; test builds only, nothing adopted)
+
+Branch `er-256-strictalias` (worktree `C:\rs\wt\er256`): docs only, the real build is unchanged. Test builds: a copy
+of the Makefile with `-fno-strict-aliasing` swapped for `-fstrict-aliasing` in `CFLAGS` (both per-file `-fedge-lcm`
+lines kept; `C:\rs\wt\er256_runs\Makefile.strict`), built into `build/` itself (the generated linker script names
+`build/...` objects, so `BUILD=` cannot move it), and a scratch copy of the tree (`er256_runs\testtree\`) for the
+placed drafts. Scratch (our C, patches, logs, dumps; outside git): `C:\rs\wt\er256_runs\` (`README.md` lists it).
+
+**1. The whole ELF under the flag (main `ebea48f`, real `src/`):** the same size (2,485,924 bytes), SHA-1 differs;
+`func_check` 3,602 of 3,606 match, no address-named symbol moved; all 163 differing bytes lie inside 4 functions
+(headers, data and every other function identical). This confirms ER-251's masked compares exactly:
+
+| Function | File | Words differing (of size) | Cause (sched dumps / diff) |
+|---|---|---|---|
+| func_0012DB88 | `text_001000C0` | 10 (of 34) | `*(s32 *)(arg0 + 0x24) = 0` (and 0x2C) are int stores into a float record: under strict aliasing they no longer depend on the float loads `arg1[2]` / `arg2[2]`, so `sw $0, 0x24` issues first |
+| func_00140A20 | `text_0013DBC0` | 11 (of 27) | sched1 (`.sched`, block 1): under `-fno-strict-aliasing` insn 47 (`$5=[$4+0xcc]`, the `void *` load, base `$4` after the argument copy) depends on store 35 (`[r85+0x70]`, the `s64` flag word) and issues at t=6; under the flag the two are in different alias sets, 47 issues at t=4 and the allocation changes (`$v1` / `$a1`) |
+| func_00192EE8, func_00193440 | `text_00150878` | 15 (of 39) each | the same as func_0012DB88: `*(s32 *)(arg0 + 8)` / `+ 0xC` `= 0` beside float loads from `D_001F0380[]` |
+
+**func_0013DBC0 (ruling 3.6's evidence) is identical under the flag** (0 of 76 words), as ER-165 and ER-251 found.
+
+| Lesson | Proved by |
+|---|---|
+| **This gcc's alias sets** (`c_get_alias_set`, `gcc/c-common.c`): every type gets its own set, signed and unsigned variants share one, arrays take their element's; set 0 (aliases everything) only for `char` types, an access through a union member (`u.f`, `p->f` with a union type), a `BIT_FIELD_REF`, and a whole-struct or whole-union access. Every pointer type has its own set (`void *`, `char *`, `f32 *` all differ), and the prototype's pointer types do not matter, only the type of the access. Under `-fstrict-aliasing` `true_dependence` returns "no conflict" for two accesses in different sets before it looks at addresses | the four rows above |
+| **A zero stored into a float field is written `0.0f`**: `*(f32 *)(arg0 + 0x24) = 0.0f;` gives the same `sw $zero` and keeps the store in the float set, so it waits for the float loads as before. func_0012DB88 (its 0x10-0x2C records as two float vectors: `(x, 0, z, 0)` and `(0, 1, 0, 0)`), func_00192EE8, func_00193440 (`(cos, sin, 0, 0)`): MATCH under both settings | `f2db88\v1.c`, `f2ee8\v1.c`, `f3440\v1.c` |
+| **A union access keeps a dependence that type-based aliasing would drop**: func_00140A20 with `typedef union { s64 d; void *p; } W64;` and `((W64 *)(t + 0x70))->d \|= 0x2000000000000LL;` (or the load `((W64 *)(t + 0xCC))->p`, or both) MATCH under both settings. No other plain spelling keeps it in this gcc: a `char` access cannot express a 64-bit `or` or a pointer load, and struct-field types give the field's own set. Reading (Unconfirmed): the flag word was a union in the original; the type and its name are Unofficial | `f0a20\u70.c`, `uCC.c`, `both.c` |
+| **With the four spellings the whole ELF is byte-identical under both settings** (stage A: SHA-1 OK, 3,606 / 3,606 under `-fno-strict-aliasing` and under `-fstrict-aliasing`): the spellings are neutral today and make the switch safe | `logs\A_nostrict.*`, `logs\A_strict.*`, `stageA_spellings.patch` |
+| **18 parked functions match in the linked image under the flag, and the whole ELF stays byte-identical** (stage D: SHA-1 OK, 3,606 / 3,606, 5,284 bytes newly in C): ER-251's 13 (func_00129900, func_00132480, func_0013EE58 (ER-251's `fee58\d.c`), func_0013F288, func_001431A0, func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001BB2C8, func_001BE9C0, func_001BEFD8, func_001BF700, func_001BFA90; ER-240's drafts), func_00140250 (below), func_00143230 (ER-165's `s\3230.c`), func_0012D9B8 (ER-183's `B\func_0012D9B8_best.c`), and ER-248's func_001CCE58 (6 words without the flag) and func_001CCF60 (10) (`er246_runs\best\`). Without the flag the same tree (minus func_00140250, which is too long there) has exactly the 15 others differing and every other function matching (stage B2) | `logs\D_strict.*`, `logs\B2_nostrict.*`, `stageD_all.patch` |
+| **func_00140250's last word is a sum's operand order**: under the flag ER-240's draft is the right size with 1 word left (`addu $v0, $v0, $s5` against the game's `$s5, $v0`); `e = (char *)(i * 0xA0 + *(s32 *)(arg0 + 0xE0) + 0xA0);` (the base read as `s32` and the sum in integers, as func_00144020 in the same file reads that field) MATCHes under the flag. Without the flag the draft is 0x4B0 bytes (game 0x444) | `rescore\f0250\v4.c` (v2, v5: other casts, also MATCH) |
+| **Placing the drafts together needed declarations aligned** (test tree only; the whole ELF shows no placed function moved): func_00131000 declared `s32` (its definition's type; ER-236 found func_001431A0 needs it) in all four of `text_0013DBC0`'s declarations; func_00130FE0 `s32`; the later `extern s32 func_0012D9B8(void *, f32)` of `text_001000C0` made `(char *, f32)`; the drafts' own prototypes of func_001CA018, func_001C9F60, func_0012EAF8, func_001C9EE8, func_00140250 replaced by the file's; func_0017D6B8's `SZ` typedef moved above the file's earlier prototype; func_001BE9C0's `extern float D_001FF340[]` dropped and its stores written `((float *)D_001FF340)[i]` (the file declares it `s32[]`; the access type is what counts) | `stageD_all.patch` |
+| **Not moved by the flag**: func_001CB528 (2 words both ways: ER-249's may-alias chain is not type-based), func_001CC348 (7), func_001CB918 (11), func_001CBA08 (45), func_0013D088 (2), func_001766F8 (ER-236). func_0013AA28 4 -> 2 (ER-241's number confirmed; not placeable alone). From ER-251 (not rerun here): func_001325E8 28 -> 18, func_0013F748 8 -> 5, func_0019D090 8 -> 3; worse: func_0015C020 6 -> 28, func_0015C0E0 30 -> 39 (drafts tuned under `-fno-strict-aliasing`) | `rescore\*.txt`, `rescore_x\rescore.txt` |
+
+**Ruling question for LuciDin (3.6 again), the options and their evidence:**
+
+| Option | What changes | Evidence for | Evidence against / cost |
+|---|---|---|---|
+| **A. Whole build: `-fstrict-aliasing`** (this gcc's `-O2` default; 3.6 withdrawn) | First the four spellings (neutral under 3.6, stage A), then `CFLAGS = -O2 -G8 -fno-edge-lcm` (or `-fstrict-aliasing` written out), then the 18 placed file by file with their owners | Whole ELF byte-identical with the flag and the spellings (stage A); 18 parked functions, 5,284 bytes, match as placed (stage D); 3.6's own reason (func_0013DBC0) matches either way; earlier evidence: ER-100, ER-165, ER-183, ER-223, ER-236, ER-251. Reading (Unconfirmed): the game was built with the compiler's default | func_00140A20 then needs the union type (a type reading, like 3.15's vector type: LuciDin's view wanted); later drafts lose the reloads `-fno-strict-aliasing` gave for free, and a draft that needs them needs a typed spelling. 2 of ER-251's drafts score worse under it (not placed functions) |
+| **B. Per-file `-fstrict-aliasing`** (as 3.21 / 3.23) | `text_001000C0`, `text_0013DBC0`, `text_00150878` (all 16 of the non-`CB528` gains and all four breakers) and `text_001CB528` (ER-248's two) | The same gains | The four files are 751,408 of the 843,888 bytes of game code before the SDK (89%; the two largest files among them) and still need the same four spellings, so it isolates nothing; every other file is neutral (they match either way), so per-file lines buy no safety over A. `text_0013A410` alone (ER-241) gains nothing placeable |
+| **C. Neither** (3.6 stays) | Nothing (the four spellings may still land: neutral) | Nothing to change or re-check | The 18 stay parked: no plain C under 3.6 found for any of them (ER-236's and ER-251's dump readings: the dependences come from the flag itself) |
+
+Not verified: the drafts were not re-audited for other rulings (3.13 / 3.14 / 3.18 uses) or for names; no game run (the
+ELF is byte-identical, so there is nothing to run); func_0014C840 and func_0014D930 (ER-100: "match only with
+`-fstrict-aliasing`") not re-scored: ER-100's tuned drafts were not found, and ER-164's m2c drafts need headers that
+no longer exist. Rulings used: none (test builds only). Unofficial: `W64`, `d`, `p`, `e`, `t`, `v`. Unconfirmed: the
+float-vector and union readings, the `s32` base in func_00140250.
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
