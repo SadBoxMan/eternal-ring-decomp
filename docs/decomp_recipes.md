@@ -1991,6 +1991,53 @@ func_001C8388's callees as `s32 (s32)` / `s32 (void *, void *)` (rs6's prototype
 | func_0019D090 | 2 words (`r2\d090b_os\best.c`; 8 before the flag, 3 at its first rescore): `sb $0, 0x1F` falls after the two stack `swc1` and `sw $0, 4`; under the flag the byte store is ordered only against stores that may overlap it, so the rest is a scheduler tie; 3 climbs (16,153 compiles) and 5 byte spellings |
 | func_0015C020 | 21 words under the flag (6 before it, `d\func_0015C020.c`): the 2.53 template and a climb from the 6-word best (6 restarts each, 8,338 compiles) stop at 21; the loads and stores its old order relied on are now free to move, so it needs a fresh draft under the flag |
 
+### 2.64 The whole build under `-fstrict-aliasing`: two more spellings, 10 parked functions placed in a test build (ER-256, Thu 26 Nov 2026; test builds only, nothing adopted)
+
+Branch `er-256-strictalias` (worktree `C:\rs\wt\er256`; main merged at `ced74d9`, after ruling 3.24): docs only, the
+real build is unchanged. Test builds: a copy of the Makefile with `-fno-strict-aliasing` swapped for
+`-fstrict-aliasing` in `CFLAGS` (3.21 / 3.23 / 3.24's per-file lines kept; `C:\rs\wt\er256_runs\Makefile.strict2`),
+built into `build/` itself (the generated linker script names `build/...` objects, so `BUILD=` cannot move it), and a
+scratch copy of the tree (`er256_runs\testtree\`) for the placed drafts. Scratch (our C, patches, logs, dumps;
+outside git): `C:\rs\wt\er256_runs\` (`README.md` lists it).
+
+**1. The whole ELF under the flag (main `7e2d739`, real `src/`):** the same size (2,485,924 bytes), SHA-1 differs;
+`func_check` 3,604 of 3,606 match, no address-named symbol moved; all 65 differing bytes lie inside 2 functions
+(headers, data and every other function identical). Before ruling 3.24 (main `ebea48f`) the same test gave 4
+functions (ER-251's list, confirmed exactly); 3.24's `0.0f` rewrite of func_00192EE8 / func_00193440 (2.63) took two
+of them, and this card found the same spelling independently.
+
+| Function | File | Words differing (of size) | Cause (sched dumps / diff) |
+|---|---|---|---|
+| func_0012DB88 | `text_001000C0` | 10 (of 34) | `*(s32 *)(arg0 + 0x24) = 0` (and 0x2C) are int stores into a float record: under strict aliasing they no longer depend on the float loads `arg1[2]` / `arg2[2]`, so `sw $0, 0x24` issues first (the same as 2.63's func_00192EE8) |
+| func_00140A20 | `text_0013DBC0` | 11 (of 27) | sched1 (`.sched`, block 1): under `-fno-strict-aliasing` insn 47 (`$5=[$4+0xcc]`, the `void *` load, base `$4` after the argument copy) depends on store 35 (`[r85+0x70]`, the `s64` flag word) and issues at t=6; under the flag the two are in different alias sets, 47 issues at t=4 and the allocation changes (`$v1` / `$a1`) |
+
+**func_0013DBC0 (ruling 3.6's evidence) is identical under the flag** (0 of 76 words), as ER-165 and ER-251 found.
+
+| Lesson | Proved by |
+|---|---|
+| **This gcc's alias sets** (`c_get_alias_set`, `gcc/c-common.c`): every type gets its own set, signed and unsigned variants share one, arrays take their element's; set 0 (aliases everything) only for `char` types, an access through a union member (`u.f`, `p->f` with a union type), a `BIT_FIELD_REF`, and a whole-struct or whole-union access. Every pointer type has its own set (`void *`, `char *`, `f32 *` all differ), and the prototype's pointer types do not matter, only the type of the access. Under `-fstrict-aliasing` `true_dependence` returns "no conflict" for two accesses in different sets before it looks at addresses | the two rows above |
+| **func_0012DB88's zeros written `0.0f`** (2.63's rule): `*(f32 *)(arg0 + 0x24) = 0.0f;` gives the same `sw $zero` and keeps the store in the float set; its 0x10-0x2C records read as two float vectors, `(x, 0, z, 0)` and `(0, 1, 0, 0)`. MATCH under both settings | `f2db88\v1.c` |
+| **A union access keeps a dependence that type-based aliasing would drop**: func_00140A20 with `typedef union { s64 d; void *p; } W64;` and `((W64 *)(t + 0x70))->d \|= 0x2000000000000LL;` (or the load `((W64 *)(t + 0xCC))->p`, or both) MATCH under both settings. No other plain spelling keeps it in this gcc: a `char` access cannot express a 64-bit `or` or a pointer load, and struct-field types give the field's own set. Reading (Unconfirmed): the flag word was a union in the original; the type and its name are Unofficial | `f0a20\u70.c`, `uCC.c`, `both.c` |
+| **With the two spellings the whole ELF is byte-identical under both settings** (stage E1: SHA-1 OK, 3,606 / 3,606 with the current Makefile and with the flag everywhere): the spellings are neutral today and make the switch safe | `logs\E1_nostrict.*`, `logs\E1_strict.*`, `stageE1_spellings.patch` |
+| **10 parked functions match in the linked image under the flag, and the whole ELF stays byte-identical** (stage E2: SHA-1 OK, 3,606 / 3,606, 3,664 bytes newly in C): in `text_001000C0` func_00129900, func_00132480 (ER-240's drafts), func_0012D9B8 (ER-183's `B\func_0012D9B8_best.c`); in `text_0013DBC0` func_0013EE58 (ER-251's `fee58\d.c`), func_0013F288, func_001431A0 (ER-240's), func_00140250 (below), func_00143230 (ER-165's `s\3230.c`); in `text_001CB528` ER-248's func_001CCE58 (6 words without the flag) and func_001CCF60 (10) (`er246_runs\best\`). Without the flag the same tree minus func_00140250 (too long there) has exactly the 9 others differing and every other function matching (stage E3). ER-251's other 8 (all `text_00150878`) were placed by ER-162 under 3.24 | `logs\E2_strict.*`, `logs\E3_nostrict.*`, `stageE2_all.patch` |
+| **func_00140250's last word is a sum's operand order**: under the flag ER-240's draft is the right size with 1 word left (`addu $v0, $v0, $s5` against the game's `$s5, $v0`); `e = (char *)(i * 0xA0 + *(s32 *)(arg0 + 0xE0) + 0xA0);` (the base read as `s32` and the sum in integers, as func_00144020 in the same file reads that field) MATCHes under the flag. Without the flag the draft is 0x4B0 bytes (game 0x444) | `rescore\f0250\v4.c` (v2, v5: other casts, also MATCH) |
+| **Placing the drafts together needed declarations aligned** (test tree only; the whole ELF shows no placed function moved): func_00131000 declared `s32` (its definition's type; ER-236 found func_001431A0 needs it) in all four of `text_0013DBC0`'s declarations; func_00130FE0 `s32`; the later `extern s32 func_0012D9B8(void *, f32)` of `text_001000C0` made `(char *, f32)`; the func_00140250 draft's own prototypes of func_001CA018, func_001C9F60, func_0012EAF8, func_001C9EE8 and its own earlier `extern` replaced by the file's | `stageE2_all.patch` |
+| **Not moved by the flag**: func_001CB528 (2 words both ways: ER-249's may-alias chain is not type-based), func_001CC348 (7), func_001CB918 (11), func_001CBA08 (45), func_0013D088 (2). func_0013AA28 4 -> 2 (ER-241's number confirmed; not placeable alone). From ER-251 (not rerun here): func_001325E8 28 -> 18, func_0013F748 8 -> 5 | `rescore\*.txt`, `rescore_x\rescore.txt` |
+
+**Ruling question for LuciDin (3.6 again, after 3.24), the options and their evidence:**
+
+| Option | What changes | Evidence for | Evidence against / cost |
+|---|---|---|---|
+| **A. Whole build: `-fstrict-aliasing`** (this gcc's `-O2` default; 3.6 withdrawn, 3.24's line then redundant) | First the two spellings (neutral today, stage E1), then `CFLAGS = -O2 -G8 -fno-edge-lcm` (or `-fstrict-aliasing` written out), then the 10 placed file by file with their owners | Whole ELF byte-identical with the flag and the spellings (stage E1); 10 parked functions, 3,664 bytes, match as placed (stage E2); 3.24 already shows the largest file was built this way; 3.6's own reason (func_0013DBC0) matches either way; earlier evidence: ER-100, ER-165, ER-183, ER-223, ER-236, ER-251, ER-162. Reading (Unconfirmed): the game was built with the compiler's default | func_00140A20 then needs the union type (a type reading, like 3.15's vector type: LuciDin's view wanted); later drafts lose the reloads `-fno-strict-aliasing` gave for free, and a draft that needs them needs a typed spelling |
+| **B. Per-file `-fstrict-aliasing`** (as 3.24) | `text_001000C0`, `text_0013DBC0` (all 8 of the non-`CB528` gains and both breakers) and `text_001CB528` (ER-248's two) | The same gains | With 3.24's `text_00150878` the four files are 751,408 of the 843,888 bytes of game code before the SDK (89%) and still need the same two spellings, so it isolates nothing; every other file is neutral (they match either way), so per-file lines buy no safety over A. `text_0013A410` alone (ER-241) gains nothing placeable |
+| **C. Neither** (3.6 stays outside `text_00150878`) | Nothing (the two spellings may still land: neutral) | Nothing to change or re-check | The 10 stay parked: no plain C under 3.6 found for any of them (ER-236's and ER-251's dump readings: the dependences come from the flag itself) |
+
+Not verified: the drafts were not re-audited for other rulings (3.13 / 3.14 / 3.18 uses) or for names; no game run (the
+ELF is byte-identical, so there is nothing to run); func_0014C840 and func_0014D930 (ER-100: "match only with
+`-fstrict-aliasing`") not re-scored: ER-100's tuned drafts were not found, and ER-164's m2c drafts need headers that
+no longer exist. Rulings used: none (test builds only). Unofficial: `W64`, `d`, `p`, `e`, `t`, `v`. Unconfirmed: the
+float-vector and union readings, the `s32` base in func_00140250.
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.

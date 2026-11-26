@@ -2603,11 +2603,11 @@
     {
       "code": "ER-256",
       "title": "Ruling 3.6 again: whole build with -fstrict-aliasing?",
-      "status": "Waiting",
+      "status": "Done",
       "track": "decomp",
       "model": "Opus, high",
-      "waits_on": "LuciDin's decision",
-      "notes": ""
+      "waits_on": "",
+      "notes": "Thu 26 Nov 2026 (after ruling 3.24): current src/ under -fstrict-aliasing everywhere differs in 2 functions only (func_0012DB88, func_00140A20); spellings that match both ways (0.0f stores, a union) make the whole ELF byte-identical under both settings; a test build with the 10 parked functions outside text_00150878 placed (3,664 bytes) is byte-identical under the flag. Ruling question (A whole build / B per-file / C neither) in recipes 2.64; nothing adopted."
     },
     {
       "code": "ER-257",
