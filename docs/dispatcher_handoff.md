@@ -250,7 +250,7 @@ DISP-01's and DISP-02's quirks 1-15 still hold.
 
 **Where the project is.** Decomp: **787 / 3,609 functions matched (57,200 bytes)**, every one proven by `make regress`
 (whole-ELF SHA-1 + all 3,606 functions; ruling 3.1). Toolchain now: ee-gcc `-r1` (fdiv nops, 3.7) with CFLAGS
-`-O2 -G8 -fno-strict-aliasing -fno-edge-lcm` (3.6, 3.11), ee-binutils `-r4` (3.4 c.cond/bc1, 3.5 mtc1, 3.8 mfc1, 3.12
+`-O2 -G8 -fstrict-aliasing -fno-edge-lcm` (3.25, which withdrew 3.6 on 26 Nov 2026; 3.11), ee-binutils `-r4` (3.4 c.cond/bc1, 3.5 mtc1, 3.8 mfc1, 3.12
 delay-slot swap). Code-shape rulings: 3.4 (no-return, also func_001776D8), 3.9 (+ extension: explicit / empty case labels),
 3.10 (double literal replaces a standalone .rodata constant), 3.13 (an unused local that only sizes the frame, narrowly).
 Split: ER-031 cut five files out of `text_001343E8` plus S22 / 0x001CB528; `tools/split.py` aligns 8- and 16-byte rodata

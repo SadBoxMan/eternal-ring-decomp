@@ -2671,6 +2671,24 @@
       "model": "Opus, medium",
       "waits_on": "none (ruled 3.25)",
       "notes": "Done Thu 26 Nov 2026: whole build -fstrict-aliasing (ruling 3.25; 3.6 withdrawn, 3.24's line removed) and the 10 placed (3,664 bytes); branch er-264-strictalias, commits b3639b9, 52443c5, c4c9408, e166b89, 1174d0c + docs; make regress PASS at each; 1,407 / 3,609 functions, 171,360 bytes"
+    },
+    {
+      "code": "ER-265",
+      "title": "Rescore every parked draft under ruling 3.25",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-266",
+      "title": "Redraft func_0014C840 / func_0014D930 under the flag (ER-118)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
