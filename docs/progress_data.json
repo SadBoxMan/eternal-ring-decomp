@@ -2662,6 +2662,15 @@
       "model": "Fable",
       "waits_on": "Thursday / Friday",
       "notes": ""
+    },
+    {
+      "code": "ER-264",
+      "title": "Switch to -fstrict-aliasing and place the 18 (only after option A)",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "LuciDin's ruling (A / B / C)",
+      "notes": ""
     }
   ]
 }
