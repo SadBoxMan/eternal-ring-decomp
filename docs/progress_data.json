@@ -2581,6 +2581,15 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": "Recomp e9bd84e: patch 19 er253_gs_upload (default on, PS2X_GS_RASTER=0 = original). Same writes: replay matrix identical (14 settings), check 0 mismatches, randomized test 209 M pixels 0 diffs. Logo draw 1.29x, movies 1.13x, gameplay unchanged. No live run. Spike 26."
+    },
+    {
+      "code": "ER-254",
+      "title": "Why LTCG makes the logo draw 12% slower (port, optional)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
