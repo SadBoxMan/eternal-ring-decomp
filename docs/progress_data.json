@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-25",
+  "updated": "2026-11-26",
   "note": "Read by tools/progress_tracker.py (format in docs/tracker.md). Only facts from the repo: a metric's total stays null ('not measured yet') until the split (ER-003) and the census (ER-004) give real counts; never write an estimate as a total. Every metric, milestone and task has a 'track': decomp, recomp, port, assets or other. Statuses: milestones and phase items use Not started / In progress / Complete; ER tasks use Queued / In progress / Waiting / Done.",
   "tracks": [
     {
@@ -2576,11 +2576,11 @@
     {
       "code": "ER-253",
       "title": "Faster UploadImage, same writes (port, optional)",
-      "status": "Queued",
+      "status": "Done",
       "track": "recomp",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Recomp e9bd84e: patch 19 er253_gs_upload (default on, PS2X_GS_RASTER=0 = original). Same writes: replay matrix identical (14 settings), check 0 mismatches, randomized test 209 M pixels 0 diffs. Logo draw 1.29x, movies 1.13x, gameplay unchanged. No live run. Spike 26."
     }
   ]
 }
