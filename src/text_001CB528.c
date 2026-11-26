@@ -448,7 +448,56 @@ s32 func_001CC988(s32 arg0) {
     return func_001CB808(1, 0x80, arg0, 0);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001CB528", func_001CC9B0);
+/* ER-249: by hand; plain C with the file's -fedge-lcm (ruling 3.23); names, types and offsets are Unconfirmed readings. Frees a 32-byte record's three buffers, then rebuilds the 0x4C0 end mark; the late base in its own local (the early one shares no register with arg0 in the game) and the loop reading +0x4C0 through a second pointer */
+s32 func_001CC9B0(u32 arg0) {
+    char *b;
+    char *p;
+    char *q;
+    char *c;
+    s32 i;
+    u32 t;
+
+    if (arg0 >= 0x10U) {
+        return -1;
+    }
+    b = D_0035C554;
+    p = b + (arg0 << 5);
+    t = *(s32 *)(p + 0xC);
+    if (*(s32 *)(b + 0x4C0) == t + *(s32 *)(p + 0x14)) {
+        *(s32 *)(b + 0x4C0) = t;
+    }
+    *(s32 *)(p + 0xC) = 0;
+    if (*(s32 *)(p + 8) != 0) {
+        if (func_001D3378(*(s32 *)(p + 8)) != 0) {
+            return -1;
+        }
+        *(s32 *)(p + 8) = 0;
+    }
+    if (*(s32 *)(p + 0) != 0) {
+        if (func_001D3378(*(s32 *)(p + 0)) != 0) {
+            return -1;
+        }
+        *(s32 *)(p + 0) = 0;
+    }
+    if (*(s32 *)(p + 4) != 0) {
+        if (func_001D3378(*(s32 *)(p + 4)) != 0) {
+            return -1;
+        }
+        *(s32 *)(p + 4) = 0;
+    }
+    c = D_0035C554;
+    *(s32 *)(c + 0x4C0) = 0x5010;
+    p = c;
+    q = c;
+    for (i = 0; i < 0x10; i++) {
+        if (*(u32 *)(q + 0x4C0) <= *(u32 *)(p + 0xC)) {
+            *(s32 *)(c + 0x4C0) = *(u32 *)(p + 0xC) + *(s32 *)(p + 0x14);
+        }
+        p += 0x20;
+    }
+    func_001D03E0(0);
+    return 0;
+}
 
 /* ER-247: by hand; plain C with the file's -fedge-lcm (ruling 3.23); names, types and offsets are Unconfirmed readings. Frees the record's +8 buffer (func_001D3378, a free by shape, Unconfirmed) */
 s32 func_001CCAB0(s32 arg0) {
