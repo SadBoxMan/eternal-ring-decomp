@@ -11,19 +11,19 @@ Started Tue 17 Nov 2026 by ER-011.
 ### 1.1 The working pipeline (ER-011, confirmed on 3 functions, 33 words)
 
 ```
-C:\rs\toolchain\ee-gcc-2.9-991111-r1\gcc.exe -BC:\rs\toolchain\ee-gcc-2.9-991111-r1\ -O2 -G8 -fno-strict-aliasing -fno-edge-lcm -S file.c -o file.s
+C:\rs\toolchain\ee-gcc-2.9-991111-r1\gcc.exe -BC:\rs\toolchain\ee-gcc-2.9-991111-r1\ -O2 -G8 -fstrict-aliasing -fno-edge-lcm -S file.c -o file.s
 C:\rs\toolchain\ee-binutils-2.9-991111-r4\ee-as.exe -G8 -O2 -mabi=eabi file.s -o file.o
 ```
 
 (`ee-gcc-...-r1` = with our compiler patch since ER-034 (2.9, ruling 3.7: `nop; nop; div.s`); the unpatched
 `ee-gcc-2.9-991111` stays as a fallback. `ee-binutils-...-r4` = with all four gas patches since ER-070 (2.3, 2.7,
 2.9, 2.19; rulings 3.4, 3.5, 3.8, 3.12); `-r3` has the first three, `-r2` the first two, `-r1` the first only; the
-unpatched `ee-binutils-2.9-991111` gives an extra `nop` after FP compares. `-fno-strict-aliasing` since ER-035, ruling 3.6.)
+unpatched `ee-binutils-2.9-991111` gives an extra `nop` after FP compares. `-fstrict-aliasing` since ER-264, ruling 3.25 (it withdrew ER-035's `-fno-strict-aliasing`, ruling 3.6); the per-file `-fedge-lcm` lines of 3.21 / 3.23 still apply.)
 
 or in one step, with a folder that holds a copy of `ee-as.exe` named `as.exe`:
 
 ```
-gcc.exe -B<gcc dir>\ -B<as dir>\ -O2 -G8 -fno-strict-aliasing -fno-edge-lcm -c file.c -o file.o
+gcc.exe -B<gcc dir>\ -B<as dir>\ -O2 -G8 -fstrict-aliasing -fno-edge-lcm -c file.c -o file.o
 ```
 
 - Compiler: ee-gcc **2.9-ee-991111**, built from SSXModding/ps2-ee-toolchain `b595ded` under MSYS2
@@ -85,6 +85,13 @@ the GCC-style `.align 3` before functions and `.align 2` before branch labels (s
 - splat's `bss_size` counts from the end of the load image (`0x0035C410`), not from `.sbss`.
 
 ## 2. Code-shape lessons
+
+**Aliasing setting (ER-264, Thu 26 Nov 2026):** the lessons up to 2.63 were found under `-fno-strict-aliasing`
+(ruling 3.6; `text_00150878` under `-fstrict-aliasing` from 3.24). Since ruling 3.25 the whole build is
+`-fstrict-aliasing`: every placed function still matches, but a lesson about memory order that cites
+`-fno-strict-aliasing` (a load that cannot pass a store of another type, a value read into a local first) may
+not be needed now: accesses of different types (other than `char`, a union member or a whole struct) no longer
+depend on each other (2.64's alias-set row).
 
 - **Empty function** (ER-003, 127 functions): `void f(void) {}` at `-O2 -G8` gives `jr $31; nop` (8 bytes) and
   matches; splat writes these as C on its own. Confirmed by the whole-ELF match.
@@ -1993,6 +2000,8 @@ func_001C8388's callees as `s32 (s32)` / `s32 (void *, void *)` (rs6's prototype
 
 ### 2.64 The whole build under `-fstrict-aliasing`: two more spellings, 10 parked functions placed in a test build (ER-256, Thu 26 Nov 2026; test builds only, nothing adopted)
 
+**Adopted as ruling 3.25 (option A) and landed by ER-264** (Thu 26 Nov 2026, branch `er-264-strictalias`, commits `b3639b9` (spellings), `52443c5` (flag), `c4c9408`, `e166b89`, `1174d0c` (the 10)): `make regress` PASS at each step, whole ELF SHA-1 `6087a8ca...`, 3,606 / 3,606; the 10 functions (3,664 bytes) placed as below, their scratch comments replaced by headers, no narrow ruling used.
+
 Branch `er-256-strictalias` (worktree `C:\rs\wt\er256`; main merged at `ced74d9`, after ruling 3.24): docs only, the
 real build is unchanged. Test builds: a copy of the Makefile with `-fno-strict-aliasing` swapped for
 `-fstrict-aliasing` in `CFLAGS` (3.21 / 3.23 / 3.24's per-file lines kept; `C:\rs\wt\er256_runs\Makefile.strict2`),
@@ -2196,14 +2205,14 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted** (a per-file exception to 3.6, as 3.21 / 3.23 are to 3.11) | `text_00150878` is built with type-based alias analysis: the Makefile adds `-fstrict-aliasing` after `CFLAGS` for `build/src/text_00150878.s` only (commit `9f1ee7d`). Evidence (ER-162, 2.63): with it func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001BB2C8, func_001BE9C0, func_001BEFD8 and func_001BF700 match as plain C (none of them without it), and every function already placed in the file matches once func_00192EE8 / func_00193440 write their zero stores as floats (which also match without the flag). Every other file keeps 3.6's `-fno-strict-aliasing` (ER-251's whole-game question, 2.61, is still open) |
+| **Accepted** (a per-file exception to 3.6, as 3.21 / 3.23 are to 3.11) | `text_00150878` is built with type-based alias analysis: the Makefile adds `-fstrict-aliasing` after `CFLAGS` for `build/src/text_00150878.s` only (commit `9f1ee7d`). Evidence (ER-162, 2.63): with it func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001BB2C8, func_001BE9C0, func_001BEFD8 and func_001BF700 match as plain C (none of them without it), and every function already placed in the file matches once func_00192EE8 / func_00193440 write their zero stores as floats (which also match without the flag). Every other file keeps 3.6's `-fno-strict-aliasing` (ER-251's whole-game question, 2.61, is still open). **Made redundant by 3.25**: the line was removed by ER-264 (commit `52443c5`), the whole build now has the flag |
 
 ### 3.25 ER-256: -fstrict-aliasing for the whole build; 3.6 withdrawn (Thu 26 Nov 2026, about 14:28 Eastern, LuciDin in the DISP-06 session)
 
 | Ruling | Item |
 |---|---|
-| **Accepted** (option A of 2.64; LuciDin: "Yes, rule A") | The whole build uses type-based alias analysis: `CFLAGS` changes `-fno-strict-aliasing` to `-fstrict-aliasing` (this gcc's `-O2` default), which **withdraws 3.6** and makes 3.24's per-file line for `text_00150878` redundant (ER-264 removes it). Evidence (ER-256, 2.64): with the flag everywhere only func_0012DB88 and func_00140A20 differ (65 bytes); with their two spellings the whole ELF is byte-identical under both settings; 3.6's own evidence, func_0013DBC0, is identical under the flag; a test build placing 10 parked functions (3,664 bytes) stays byte-identical under it. Order of landing (ER-264): the two spellings first (neutral under 3.6), then the flag, then the 10 file by file, `make regress` at each step |
-| **Accepted** (sub-question) | A **union type** for a memory slot the code uses both as a 64-bit value and as a pointer (`typedef union { s64 d; void *p; } W64;` for func_00140A20; the name and fields are Unofficial): a type reading, like 3.15's vector type, not a matching trick |
+| **Accepted** (option A of 2.64; LuciDin: "Yes, rule A") | The whole build uses type-based alias analysis: `CFLAGS` changes `-fno-strict-aliasing` to `-fstrict-aliasing` (this gcc's `-O2` default), which **withdraws 3.6** and makes 3.24's per-file line for `text_00150878` redundant (ER-264 removes it). Evidence (ER-256, 2.64): with the flag everywhere only func_0012DB88 and func_00140A20 differ (65 bytes); with their two spellings the whole ELF is byte-identical under both settings; 3.6's own evidence, func_0013DBC0, is identical under the flag; a test build placing 10 parked functions (3,664 bytes) stays byte-identical under it. Order of landing (ER-264): the two spellings first (neutral under 3.6), then the flag, then the 10 file by file, `make regress` at each step. **Landed by ER-264** (Thu 26 Nov 2026): commits `b3639b9` (spellings), `52443c5` (flag), `c4c9408`, `e166b89`, `1174d0c` (the 10), regress PASS at each |
+| **Accepted** (sub-question) | A **union type** for a memory slot the code uses both as a 64-bit value and as a pointer (`typedef union { s64 d; void *p; } W64;` for func_00140A20; the name and fields are Unofficial): a type reading, like 3.15's vector type, not a matching trick. Used so far: func_00140A20 (ER-264, commit `b3639b9`) |
 
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker, 3.18 only stores the game makes): park such functions with a
 one-line cause and ask.
