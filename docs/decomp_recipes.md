@@ -2085,7 +2085,7 @@ Standing rulings; each applies until LuciDin changes it.
 
 | Ruling | Item |
 |---|---|
-| **Accepted** | `CFLAGS` = `-O2 -G8 -fno-strict-aliasing` for every file: the game reloads memory across stores of other types (func_0013DBC0), and the whole ELF stays byte-identical with the flag |
+| **Withdrawn by 3.25** (26 Nov 2026; accepted 19 Nov 2026) | `CFLAGS` = `-O2 -G8 -fno-strict-aliasing` for every file: the game reloads memory across stores of other types (func_0013DBC0), and the whole ELF stays byte-identical with the flag |
 
 ### 3.7 ER-034: ee-gcc, nop; nop before div.s / sqrt.s (Sun 22 Nov 2026, 02:04 Eastern, LuciDin in the ER-034 session)
 
@@ -2197,6 +2197,13 @@ Standing rulings; each applies until LuciDin changes it.
 | Ruling | Item |
 |---|---|
 | **Accepted** (a per-file exception to 3.6, as 3.21 / 3.23 are to 3.11) | `text_00150878` is built with type-based alias analysis: the Makefile adds `-fstrict-aliasing` after `CFLAGS` for `build/src/text_00150878.s` only (commit `9f1ee7d`). Evidence (ER-162, 2.63): with it func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001BB2C8, func_001BE9C0, func_001BEFD8 and func_001BF700 match as plain C (none of them without it), and every function already placed in the file matches once func_00192EE8 / func_00193440 write their zero stores as floats (which also match without the flag). Every other file keeps 3.6's `-fno-strict-aliasing` (ER-251's whole-game question, 2.61, is still open) |
+
+### 3.25 ER-256: -fstrict-aliasing for the whole build; 3.6 withdrawn (Thu 26 Nov 2026, about 14:28 Eastern, LuciDin in the DISP-06 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** (option A of 2.64; LuciDin: "Yes, rule A") | The whole build uses type-based alias analysis: `CFLAGS` changes `-fno-strict-aliasing` to `-fstrict-aliasing` (this gcc's `-O2` default), which **withdraws 3.6** and makes 3.24's per-file line for `text_00150878` redundant (ER-264 removes it). Evidence (ER-256, 2.64): with the flag everywhere only func_0012DB88 and func_00140A20 differ (65 bytes); with their two spellings the whole ELF is byte-identical under both settings; 3.6's own evidence, func_0013DBC0, is identical under the flag; a test build placing 10 parked functions (3,664 bytes) stays byte-identical under it. Order of landing (ER-264): the two spellings first (neutral under 3.6), then the flag, then the 10 file by file, `make regress` at each step |
+| **Accepted** (sub-question) | A **union type** for a memory slot the code uses both as a 64-bit value and as a pointer (`typedef union { s64 d; void *p; } W64;` for func_00140A20; the name and fields are Unofficial): a type reading, like 3.15's vector type, not a matching trick |
 
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker, 3.18 only stores the game makes): park such functions with a
 one-line cause and ask.
