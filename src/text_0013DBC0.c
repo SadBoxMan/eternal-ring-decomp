@@ -1031,13 +1031,16 @@ void func_00140978(s8 *arg0) {
     }
 }
 
+/* Ruling 3.25 (ER-256 / ER-264, recipes 2.64): a 64-bit slot used both as a flag word and as a pointer. The union
+   keeps the access in alias set 0 under -fstrict-aliasing. Reading Unconfirmed; W64, d, p are Unofficial names. */
+typedef union { s64 d; void *p; } W64;
 /* ER-165: by hand from the asm; names, types and offsets are Unconfirmed readings. */
 void func_00140A20(char *arg0) {
     char *t = *(char **)(arg0 + 0xE8);
 
     if (!(*(u8 *)(t + 0x5A) & 0x40)) {
         *(u8 *)(t + 0x5A) |= 0x40;
-        *(s64 *)(t + 0x70) |= 0x2000000000000LL;
+        ((W64 *)(t + 0x70))->d |= 0x2000000000000LL;
         func_00131000(t, *(void **)(t + 0xCC));
         func_001321E8(arg0);
     }

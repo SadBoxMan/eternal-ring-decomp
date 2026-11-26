@@ -2970,19 +2970,20 @@ float func_0012DAF8(void *arg0, s32 arg1, f32 fparg0) {
 extern void func_001CA078(void *, void *, void *);
 
 /* ER-137: drafted with m2c (tools/m2c_bulk.py --plain, stores in offset order); names, types and offsets are
-   Unconfirmed readings. */
+   Unconfirmed readings. ER-264 (recipes 2.64): the zero stores written as floats (0.0f), as the records are two
+   float vectors (Unconfirmed); the same code under both aliasing settings. */
 void func_0012DB88(char *arg0, f32 *arg1, f32 *arg2) {
     char *v = arg0 + 0x20;
 
     *(f32 *)(arg0 + 0x20) = arg1[0] - arg2[0];
-    *(s32 *)(arg0 + 0x24) = 0;
+    *(f32 *)(arg0 + 0x24) = 0.0f;
     *(f32 *)(arg0 + 0x28) = arg1[2] - arg2[2];
-    *(s32 *)(arg0 + 0x2C) = 0;
+    *(f32 *)(arg0 + 0x2C) = 0.0f;
     func_001CA0C0(v, v);
-    *(s32 *)(arg0 + 0x10) = 0;
+    *(f32 *)(arg0 + 0x10) = 0.0f;
     *(f32 *)(arg0 + 0x14) = 1.0f;
-    *(s32 *)(arg0 + 0x18) = 0;
-    *(s32 *)(arg0 + 0x1C) = 0;
+    *(f32 *)(arg0 + 0x18) = 0.0f;
+    *(f32 *)(arg0 + 0x1C) = 0.0f;
     func_001CA078(arg0, arg0 + 0x10, v);
 }
 
