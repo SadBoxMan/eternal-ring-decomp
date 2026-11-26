@@ -1415,9 +1415,9 @@ func_001EBAA8 / func_001E9E8C / func_001E9A5C as vsprintf / strlen / memcpy, fun
 
 | Function | Cause |
 |---|---|
-| func_0013EE58 (`text_0013DBC0`) | 2 words: case 1 matches with its test inverted (`== 0` first); in case 0 the game puts `addiu $v1, $s1, 0x90` before `addiu $v0, $a0, 1`, ours the other way (a sched tie). 360 orders, `+= 1`, a typed pointer, the switch value reused tried (`a13ee58_os\best.c`) |
+| func_0013EE58 (`text_0013DBC0`) | 2 words: case 1 matches with its test inverted (`== 0` first); in case 0 the game puts `addiu $v1, $s1, 0x90` before `addiu $v0, $a0, 1`, ours the other way (a sched tie). 360 orders, `+= 1`, a typed pointer, the switch value reused tried (`a13ee58_os\best.c`). **ER-251 (2.61):** the tie is a memory dependence `-fno-strict-aliasing` adds (the `sh` of `0x6E` against the float loads through `arg1 + 0x90`); MATCH with `-fstrict-aliasing` only (diagnostic), parked for a ruling |
 | func_001CC9B0 (`text_001CB528`) | 11 words, same size: the early exits match; in the final loop over 16 records the base, counter and value take `$a1` / `$v1` / `$a0` where the game has `$a0` / `$a1` / `$v1` (a local-alloc tie). Declaration orders, `for` / `do`, compare spellings tried (`func_001CC9B0_best11.c`) |
-| func_00134790 (`text_001343E8`) | One word short (`func_00134790_best.c`): the game copies the flag word `D_0035B830` into a second register for the first seven tests and keeps the first for the `0x100` test and the call; gcc propagates our copy away |
+| func_00134790 (`text_001343E8`) | One word short (`func_00134790_best.c`): the game copies the flag word `D_0035B830` into a second register for the first seven tests and keeps the first for the `0x100` test and the call; gcc propagates our copy away. **Placed by ER-251 (2.61):** the copy is an `s64` local |
 | func_001CA6B0 (`text_001CA0F0`) | A varargs wrapper (`fmt, ...` saved to the stack, `va_list` passed to func_001CA630): needs `<stdarg.h>`, which the build does not have (no include path to the compiler's own headers) |
 
 ### 2.47 Base pointers, ER-188's relayed MATCHes and ER-189's remaining scanner hits (ER-197 + ER-196 + ER-198, Tue 24 Nov 2026; Confirmed by `make regress`, 35 functions)
@@ -1909,6 +1909,24 @@ spelling (the `d` form is equivalent C that does not match).
 | func_001C9B18, func_001C9B28 | `text_001C9B18` | not applicable | libvu0's `lq` / `sq` copy (2.57's ruling question) |
 | func_001CC9B0 | `text_001CB528` | **skipped** | another card owns the file |
 | func_00142118, func_001C4838, func_001CCB08, func_00125B68 | | not applicable | already placed |
+
+### 2.61 A flag word copied into a 64-bit local; func_0013EE58 needs type-based aliasing (ER-251, Thu 26 Nov 2026; Confirmed by `make regress`, 1 function)
+
+Branch `er-251-pair` (worktree `C:\rs\wt\er251`), commit `41c0ae0` (func_00134790 in `text_001343E8`). **1 function,
+296 bytes.** Scratch (our C, templates, logs; outside git): `C:\rs\wt\er251_runs\` (`f4790\` the variants runs and
+`final.c`, the placed C; `fee58\` func_0013EE58's template, dump and `strict_file.txt`; `strict_list.txt` ER-240's
+list under `-fstrict-aliasing`; `strict_all\` every placed function under it).
+
+| Lesson | Proved by |
+|---|---|
+| **A copy the game keeps in a second register can be a wider local.** The game loads `D_0035B830` once into `$a2`, copies it (`daddu $v1, $a2, $zero`) and tests the copy seven times, the first register once (`0x100`), and loads the global again for `0x200` and later. gcc propagates an `s32` copy of an `s32` away (every spelling of two `s32` locals, `u32`, `u16`); `s32 m = D_0035B830; s64 k = m;` keeps it, with the tests on `k`, the `0x100` test on `m` and the `0x200` one on the global. Found by `ordersearch.py variants` (32 combinations, 2 MATCH: the first test on `k` or on `m`). The 64-bit type is a reading (Unconfirmed: a `long` in the original source); nothing steers. ER-244's "right size" lead (`0x100` from the global, `0x200` from `k`) was a coincidence of where the one reload falls. func_0012D318 takes two arguments (its definition), so the game's `$a2` is only where the load landed | func_00134790 (MATCH) |
+| **func_0013EE58's tie is a memory dependence that `-fno-strict-aliasing` adds.** In case 0 the `sh` of `0x6E + 1` (an `s16`) gets a true dependence on the next float load through `arg1 + 0x90` (`.sched2`: insn 32 -> 35), so the increment's `addiu` has priority 11 against the pointer's 9 and issues first; the game issues the pointer first, which needs no such dependence. MATCH with `-fstrict-aliasing` (diagnostic `--cflags`), not with `-fargument-noalias` (94 words). No plain C under ruling 3.6 separates an `s16` store through `arg0` from `f32` loads through `arg1` (8.2's steps; 2.57's pointer-to-`const` note) | parked |
+| **`-fstrict-aliasing` as a diagnostic over the whole game** (`cmpfunc.py` per `src/` file with `--cflags=-fstrict-aliasing`, relocations masked, not a build): of the 1,371 C definitions in `src/` (this branch) 1,367 still match; 4 differ: func_0012DB88 (`text_001000C0`, 10 words), func_00140A20 (`text_0013DBC0`, 11), func_00192EE8 and func_00193440 (`text_00150878`, 15 each). **func_0013DBC0, ruling 3.6's evidence, matches either way now.** Of ER-240's 30 drafts (`C:\rs\wt\er244_runs\s240\in\`), 13 parked ones MATCH with the flag: func_00129900, func_00132480, func_0013EE58, func_0013F288, func_001431A0, func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001BB2C8, func_001BE9C0, func_001BEFD8, func_001BF700, func_001BFA90; func_00140250 goes from 186 words (size off) to 1, func_001325E8 28 -> 18, func_0013F748 8 -> 5, func_0019D090 8 -> 3; func_0015C020 6 -> 28 and func_0015C0E0 30 -> 39 get worse. Reading (Unconfirmed): the game's compiler used type-based aliasing (this gcc's `-O2` default) and the 4 functions above have another spelling (a `char` access aliases everything). **A ruling question for LuciDin**; nothing adopted, no flag changed | `strict_all\*.txt`, `strict_list.txt` |
+
+Rulings used: none. Unconfirmed: the `s64` copy as the original type; func_0013EE58's cause (read from the dumps and
+the flag diagnostic). Unofficial: `k`, `m`, `d`, `v`, `p`. Not verified: the strict-aliasing counts come from
+masked per-function compares, not a whole-ELF build (no `make regress` with the flag was run), and ER-240's drafts
+are the 25 Nov copies (other cards may have newer ones).
 
 ## 3. Rulings (LuciDin)
 
