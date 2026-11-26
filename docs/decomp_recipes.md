@@ -1957,6 +1957,40 @@ readings (Unconfirmed); func_001D21F8 `s32 (s32 *, s32, s32)` is read from its u
 |---|---|
 | func_001CB528 | same size, 2 words (`b528_2w.c`): the game issues `li $a1, 0x5010` before `addiu $a0, $s1, %lo(D_01B73440)`, ours the reverse. Sched1 and sched2 rank the address higher because its store (`0x4CC`) heads the may-alias chain `0x4CC` store -> `D_01B73440[0]` store -> the later `b`-relative stores. Tried: the 72 orders the chain allows; the constant in a local (cse rematerializes it at its use); struct-typed `b` stores with a scalar-flagged `*(s32 *)D_01B73440` (alias.c's fixed-scalar / varying-struct rule frees the chain, but the stores then follow insn order: 36 placements, always 2 words, the D store or the `li` out of place); `extern s32 D_01B73440` as a scalar (it goes `$gp`-relative, 0x21C bytes: the game's object is an array or larger than 8 bytes); the clear written through the stored field. `-fno-schedule-insns2` (scratch only) leaves the same order. A dependency the original had and we lack; not found |
 
+### 2.63 `text_00150878` under type-based aliasing (ruling 3.24); the scheduler tie-break order checked with a scratch cc1 (ER-162, Thu 26 Nov 2026; Confirmed by `make regress`, 15 functions)
+
+Branch `er-162-ties` (worktree `C:\rs\wt\er162`), commits `9f1ee7d` (ruling 3.24's Makefile line, 7 functions),
+`558c442` (6), `5f4c34b` (1), `605c042` (1). **15 functions, 3,648 bytes**, all in `text_00150878`; every C function of
+the file matches (583). Scratch (our C, dumps, logs; outside git): `C:\rs\wt\er162_runs\` (`d\` the 17 starting drafts, `r2\`
+the reruns, `place\` / `place2\` the placed C, `rs6\` ER-225's drafts rescored, `gccx\` the scratch cc1).
+
+| Lesson | Proved by |
+|---|---|
+| **`text_00150878` was compiled with type-based aliasing** (ruling 3.24): with `-fstrict-aliasing` on this file 7 of ER-162's parked functions match as drafted, four of them in plain offset order (the climbed orders were only needed without the flag), and all 568 functions placed before still match once func_00192EE8 / func_00193440 write their two zero stores as floats (`0.0f`: the record is four floats; matches either way). Same evidence as ER-251's whole-game diagnostic (2.61) | func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001BB2C8 (ER-133), func_001BE9C0, func_001BEFD8, func_001BF700 |
+| **Under the flag a field's type decides a tie.** A pointer and an `int` are in different alias sets, so a pointer store no longer has an output dependence on an `int` store (func_001766F8: `x8` / `arg1` as `void *`, 2 words to MATCH; the 336 shapes of 2.53 were all `s32`), and a pointer load no longer has an anti-dependence on an `int` store to a global (func_001B34F8: `x70` as `void *`, then the plain inline store; 4 words to MATCH). **Try a pointer type where a value is passed on to a callee as an address** | func_001766F8, func_001B34F8 |
+| **func_0015C0E0 (ER-134, 30 words) is plain C under the flag**: ER-212's template (`const` on either vector, where `f` dies, the `% 45` operands, both order blocks) climbed again with the flag on reached MATCH in 246 compiles with **both** copied `.rodata` vectors `extern const` (2.49's rule; the file's D_00354D70 declaration is now `const`, func_00158DC0 unchanged). Its 2.53 causes (the struct copies' `ld`s, the `D_002488A0` `lui` against the div trap) were memory dependences the flag removes | func_0015C0E0 |
+| **ER-225's rs6 drafts rescored under the flag** (118 same-size drafts of still-unplaced functions): 4 MATCH as drafted (func_00160F28, func_001BFA90, func_001C04D8, func_001C8388), func_00152980 18 -> 4 words (then MATCH by a 720-order `perm`), func_00158D40 16 -> 10, func_001516E8 13 -> 11. func_00160F28 needs the draft's byte arithmetic on the table (`(f32 *)(i * 4 + (char *)D_001F0380)`; `&D_001F0380[i]` is 4 bytes short); func_001BFA90 needs `D_001FF390` declared `u16[]` (a cast `((u16 *)D_001FF390)[220]` on the `s32[]` declaration is 4 bytes long), so the file's declaration changed and its five other uses got `(s32 *)` casts (every function still matches) | the five placed |
+| **The stock `rank_for_schedule` order is the game's.** A scratch cc1 (b-gcc-r1 rebuilt with one patched `haifa-sched.c`, each step switched off by an environment variable; diagnostic only, never the build's compiler) built the whole ELF byte-identical with nothing switched off (control) and with the class step (step 4 of matching_tools 8.2) off; with the register-weight step (2) off only 940 of 3,606 functions match, with the dependent count (5) off 455, with it reversed 1,134. So the ties parked below are not a different tie-break in the original compiler. `-fno-schedule-insns` (no sched1) breaks 302 of the file's 568 placed functions, so sched1 ran too | `gccx\fc_*.txt`, `nosched1_150878.txt` |
+| **The register weight counts every SET, stores included** (`+1` per SET, `-1` per REG_DEAD / REG_UNUSED note; `haifa-sched.c` near line 5150): a store of a value that dies there weighs 0, a store of a constant or of a live value 1, so among equal-priority stores sched1 issues the one that kills a register first | func_001C8600 (parked) |
+| **local-alloc's size factor counts words** (`PSEUDO_REGNO_SIZE`: QImode and SImode are both 1), so a QImode constant does not rank below an SImode one by size (2.35's reading of func_001C4838 corrected); the order comes from `floor_log2(refs) * refs / life`, the life measured in sched1's insn order | func_001C4838, func_00151670 (parked) |
+
+Ruling used: **3.24** (new). Readings (Unconfirmed): `x8` / `arg1` of func_001766F8 and `x70` of func_001B34F8 as
+pointers (from the alias effect, not from a use), `D_001FF390` as a halfword array, `D_002488A0` as `f32[]`,
+func_001C8388's callees as `s32 (s32)` / `s32 (void *, void *)` (rs6's prototypes). Unofficial: `SZ`, `SB`, `S9`,
+`SE`, `S34`, `TED90`, `Pair`, `Tbl` and their fields, the m2c `temp_*` names.
+
+**Parked (best files in `C:\rs\wt\er162_runs\`, game code not in git):**
+
+| Function | Cause |
+|---|---|
+| func_001C8600 | 2 words: sched1's register weight. The `x0 = arg1` store kills `$a1` (weight 0), every other store weighs 1, so it issues first; the game's order (the `xC` zero store first) needs `x0`'s value to stay live or the `xC` store to kill a register, which no form tried gives (18 shapes with the zero in a variable or the loop bound read back). MATCH with the scratch cc1's weight step off (diagnostic; that compiler breaks 2,666 functions) and with `-fno-schedule-insns` (breaks 302 of the file) |
+| func_001C8758 | 2 words: sched2 step 5, the `xC` load has 3 forward dependences (the `subu`, the block end, and an output dependence on the game's own `mfhi $v0`, which sets its register again) against the `x8` load's 2; the registers are the game's, so no spelling changes the count |
+| func_001C6F90 | 3 words: the epilogue order needs the `D_0035C3E4` store at sched2 priority 5 (the `$ra` / `$s0` loads are 5, the zero stores 4); only an output dependence on the later stores gives a store 5, and stores to three different symbols never conflict (`base_alias_check`); not moved by the flag |
+| func_001C4838 | 4 words: local-alloc gives `0x8000` `$v0` because sched1 issues `li 0x8000` and `li 1` in one cycle (both ready, highest priority), so the `1` lives across the `addu` (life 6 against 4 in the `.lreg` order); the game needs the `1` born after the `addu`; 5 more store spellings tried |
+| func_00151670 | 4 words: local-alloc ties the product to `D_0035BF34` (4 refs over 6 insn steps, priority 0.67) and gives it `$f0` before pi (2 refs over 2 steps, 0.5); the game's registers need pi loaded directly before the `mul` (1.0), but sched1 issues pi in the cycle after `D_0035BF34` because it sits deeper than the 180 constant |
+| func_0019D090 | 2 words (`r2\d090b_os\best.c`; 8 before the flag, 3 at its first rescore): `sb $0, 0x1F` falls after the two stack `swc1` and `sw $0, 4`; under the flag the byte store is ordered only against stores that may overlap it, so the rest is a scheduler tie; 3 climbs (16,153 compiles) and 5 byte spellings |
+| func_0015C020 | 21 words under the flag (6 before it, `d\func_0015C020.c`): the 2.53 template and a climb from the 6-word best (6 restarts each, 8,338 compiles) stop at 21; the loads and stores its old order relied on are now free to move, so it needs a fresh draft under the flag |
+
 ## 3. Rulings (LuciDin)
 
 Standing rulings; each applies until LuciDin changes it.
@@ -2110,6 +2144,12 @@ Standing rulings; each applies until LuciDin changes it.
 | Ruling | Item |
 |---|---|
 | **Accepted** (a second per-file exception to 3.11, as 3.21) | `text_001CB528` is built with `-fedge-lcm` (Makefile target-specific CFLAGS, as 3.21's line for `text_001CA8D8`). Evidence (ER-206, notes file `ER-206_elcm_scan.md` in the DISP-04 notes folder): with the flag func_001CD360 (plain C) and func_001CCB08 (plain C + ruling 3.18's `u8 f[16]`) match and all 15 functions already placed in the file still match (whole-ELF test build PASS); without it the same placement fails. Every other file keeps 3.11's `-fno-edge-lcm` (10 files lose placed functions with the flag, 6 are neutral). ER-233 adds the line and places the two (done Wed 25 Nov 2026, commit `17b1f59`, 2.54; func_001CD068 matched as plain C with it too) |
+
+### 3.24 ER-162: -fstrict-aliasing for `text_00150878` (Thu 26 Nov 2026, 13:41 Eastern, LuciDin in the ER-162 session)
+
+| Ruling | Item |
+|---|---|
+| **Accepted** (a per-file exception to 3.6, as 3.21 / 3.23 are to 3.11) | `text_00150878` is built with type-based alias analysis: the Makefile adds `-fstrict-aliasing` after `CFLAGS` for `build/src/text_00150878.s` only (commit `9f1ee7d`). Evidence (ER-162, 2.63): with it func_0017D6B8, func_0018B8A8, func_0018C9E8, func_001BB2C8, func_001BE9C0, func_001BEFD8 and func_001BF700 match as plain C (none of them without it), and every function already placed in the file matches once func_00192EE8 / func_00193440 write their zero stores as floats (which also match without the flag). Every other file keeps 3.6's `-fno-strict-aliasing` (ER-251's whole-game question, 2.61, is still open) |
 
 No other ruling yet on matching tricks in C (`asm()`, `volatile` keep-alives, other dead code; 3.13 covers only frame-sizing locals, 3.14 only the sibcall blocker, 3.18 only stores the game makes): park such functions with a
 one-line cause and ask.
