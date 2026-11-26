@@ -2644,6 +2644,24 @@
       "model": "Opus, high",
       "waits_on": "ER-259",
       "notes": ""
+    },
+    {
+      "code": "ER-262",
+      "title": "m2c_bulk rerun of text_00150878 under ruling 3.24",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
+    },
+    {
+      "code": "ER-263",
+      "title": "Six scheduler corners in text_00150878 (Thursday / Friday)",
+      "status": "Queued",
+      "track": "decomp",
+      "model": "Fable",
+      "waits_on": "Thursday / Friday",
+      "notes": ""
     }
   ]
 }
