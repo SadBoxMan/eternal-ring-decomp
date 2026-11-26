@@ -2387,11 +2387,11 @@
     {
       "code": "ER-232",
       "title": "er177_gs_diff: field-wise backend-state compare",
-      "status": "Queued",
+      "status": "Done",
       "track": "port",
       "model": "Sonnet, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Thu 26 Nov 2026 (Recomp 2ad6f21; ER-177_gs_diff.md): er177_gs_diff compares the backend state field by field, struct padding counted not reported, --raw-state = old byte compare; selftest 60/0; raw output = old tool on 45 real pairs; no real pair differs in padding (altered copy tested); frontend blob still byte compare"
     },
     {
       "code": "ER-233",
