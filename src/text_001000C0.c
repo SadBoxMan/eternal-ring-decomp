@@ -2218,7 +2218,112 @@ INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00128EB8);
 void func_001298F8(void) {
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00129900);
+extern s32 D_01ADE260[];
+extern f32 D_01ADE2E0[];
+extern void func_0010CBF8(void *);
+void func_0010CAF0(void *arg0, char *arg1, float *arg2);
+extern s32 func_001132B0(void *);
+extern void func_0010D8F8(void *, f32 *, f32 *, f32 *);
+extern void func_00107A60(char *);
+extern void func_001082A0(s32, f32 *, f32 *, void *);
+
+/* ER-240's draft (2 words without type-based aliasing), placed by ER-264 under ruling 3.25 (recipes 2.64); names,
+   types and offsets are Unconfirmed readings. */
+void func_00129900(void) {
+    f32 a[16];
+    f32 b[16];
+    f32 c[4];
+    f32 d[4];
+    f32 e[4];
+    char *p;
+    char *r;
+    s32 i;
+    u16 n;
+    u8 *g;
+    s32 m;
+
+    func_001CEC80(0, 0);
+    p = D_0035B8A0 + 0x180;
+    func_0010CBF8(p);
+    for (i = 0; i < *(u16 *)(p + 4); i++) {
+        func_0010CAF0(p, *(char **)(p + 0xE0) + i * 0xA0, (float *)(*(char **)(p + 0xE0) + i * 0xA0));
+        func_001C9EE8((float *)(*(char **)(p + 0xE0) + i * 0xA0), (float *)(p + 0x50), *(char **)(p + 0xE0) + i * 0xA0);
+    }
+    func_0010CD98(p, (s32)a, (s32)b);
+    func_001CEC80(0, 0);
+    func_0010CA48(p);
+    func_00110748(0, 2, 0, 1, 0, 1);
+    func_001107F8(1, 0, 0xFF, 1, 0, 0, 1, 3, 1);
+    func_00107BF8(*(s32 *)(p + 0x134), (s32)D_001FF200, (s32)a, (s32)b);
+    func_001CEC80(0, 0);
+    g = (u8 *)D_001FFD90;
+    if (g[0x11CA] == 1) {
+        func_00110748(2, 0, 0, 1, 0, 1);
+        p = D_0035B8A8;
+        func_001C9B18(e, p + 0xB0);
+        func_001C9B18(c, D_001FF340);
+        func_001C9B18(d, D_001FF340 + 4);
+        c[1] = 0.0f;
+        e[1] = 0.0f;
+        d[0] = 0.0f;
+        func_001132B0(p);
+        if (++D_01ADE260[0] > 0x32) {
+            D_01ADE2E0[0] += 0.001f;
+            D_01ADE2E0[1] += 3.6f;
+        }
+        c[0] = D_001FF340[0] - D_01ADE2E0[1];
+        e[0] = e[2] = D_01ADE2E0[0] + 1.0f;
+        func_0010D8F8(p, c, d, e);
+        n = *(u16 *)(p + 4);
+        r = *(char **)(p + 0xE0);
+        for (i = 0; i < n; i++, r += 0xA0) {
+            func_0010CAF0(p, r, (float *)r);
+        }
+        r = *(char **)(p + 0xE0);
+        for (i = 0; i < n; i++, r += 0xA0) {
+            func_00107A60(r);
+        }
+        r = *(char **)(p + 0xE0);
+        for (i = 0; i < n; i++, r += 0xA0) {
+            func_001C9EE8((float *)r, (float *)(p + 0x50), r);
+        }
+        m = *(s32 *)(p + 0xEC);
+        a[15] = 1.0f;
+        a[14] = 1.0f;
+        a[13] = 1.0f;
+        a[12] = 1.0f;
+        a[11] = 1.0f;
+        a[10] = 1.0f;
+        a[9] = 1.0f;
+        a[8] = 1.0f;
+        a[7] = 1.0f;
+        a[6] = 1.0f;
+        a[5] = 1.0f;
+        a[4] = 1.0f;
+        a[3] = 1.0f;
+        a[2] = 1.0f;
+        a[1] = 1.0f;
+        a[0] = 1.0f;
+        b[15] = 1.0f;
+        b[14] = 1.0f;
+        b[13] = 1.0f;
+        b[12] = 1.0f;
+        b[11] = 1.0f;
+        b[10] = 1.0f;
+        b[9] = 1.0f;
+        b[8] = 1.0f;
+        b[7] = 1.0f;
+        b[6] = 1.0f;
+        b[5] = 1.0f;
+        b[4] = 1.0f;
+        b[3] = 1.0f;
+        b[2] = 1.0f;
+        b[1] = 1.0f;
+        b[0] = 1.0f;
+        func_001082A0(m, a, b, p);
+        func_001CEC80(0, 0);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00129C70);
 
@@ -2591,7 +2696,6 @@ void func_0012C778(char *arg0) {
     func_0010D5E8(arg0, arg0 + 0x90, arg0 + 0xA0, arg0 + 0xB0);
 }
 
-extern void func_0010CBF8(void *);
 extern void func_0012C8D0(void *, s32);
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
@@ -2929,7 +3033,26 @@ float func_0012D7C0(char *a0, float a, float max) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D8B8);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012D9B8);
+/* ER-183's draft (B\func_0012D9B8_best.c), placed by ER-264 under ruling 3.25 (recipes 2.64); names, types and
+   offsets are Unconfirmed readings. */
+s32 func_0012D9B8(char *arg0, f32 d) {
+    char *o;
+    f32 lim;
+
+    o = *(char **)arg0;
+    *(u8 *)(arg0 + 0x5A) &= 0xFD;
+    *(s16 *)(arg0 + 0x5C) = 0;
+    *(f32 *)(o + 0x94) += d;
+    *(f32 *)(arg0 + 0x50) += d;
+    if (d >= 0.0f) {
+        lim = *(f32 *)(arg0 + 0x54);
+        if (lim <= *(f32 *)(o + 0x94)) {
+            *(f32 *)(o + 0x94) = lim;
+            return 1;
+        }
+    }
+    return 0;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_0012DA18);
 
@@ -4380,12 +4503,54 @@ void func_00132340(void) {
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00132348);
 
-INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_00132480);
+extern void func_0012F540(s32 arg0, s32 arg1);
+extern s32 func_00131000(char *, void *);
+void func_00132278(char *arg0);
+/* Unofficial: T32FC10 and its fields (16-byte records read from the stores). */
+typedef struct { s32 x0; void *x4; char pad8[0xC]; } T32FC10;
+extern T32FC10 D_0032FC10[];
+extern f32 D_0035C490;
+extern f32 D_0035C494;
+extern f32 D_0035C498;
+
+/* ER-240's draft (11 words without type-based aliasing; the fresh temporaries x, y, z give the second half), placed
+   by ER-264 under ruling 3.25 (recipes 2.64); names, types and offsets are Unconfirmed readings. */
+void func_00132480(char *arg0, char *arg1) {
+    f32 pi = 3.1415927f;
+    f32 a, b, c;
+    f32 x, y, z;
+    s32 m;
+
+    a =*(f32 *)(arg1 + 0xA0);
+    b = *(f32 *)(arg1 + 0xA4);
+    c = *(f32 *)(arg1 + 0xA8);
+    D_0032FC10[0].x4 = arg1 + 0x90;
+    D_0032FC10[1].x4 = arg1 + 0x94;
+    D_0032FC10[2].x4 = arg1 + 0x98;
+    D_0032FC10[6].x4 = arg1 + 0xB0;
+    D_0035C490 = a * 180.0f / pi;
+    D_0035C494 = b * 180.0f / pi;
+    D_0035C498 = c * 180.0f / pi;
+    D_0032FC10[7].x4 = arg1 + 0xB4;
+    D_0032FC10[8].x4 = arg1 + 0xB8;
+    D_0032FC10[9].x4 = arg1 + 0x114;
+    D_0032FC10[10].x4 = arg1 + 0x118;
+    func_0012F540((s32)D_0032FC10, 11);
+    x = D_0035C490 * pi / 180.0f;
+    y = D_0035C494 * pi / 180.0f;
+    z = D_0035C498 * pi / 180.0f;
+    m = D_0035B830 & D_0035B834;
+    *(f32 *)(arg1 + 0xA0) = x;
+    *(f32 *)(arg1 + 0xA4) = y;
+    *(f32 *)(arg1 + 0xA8) = z;
+    if (m & 0x4000) {
+        func_00131000(arg0, func_00132278);
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_001000C0", func_001325E8);
 
 extern s32 func_00132938(void *);
-extern s32 func_00131000(char *, void *);
 extern void func_001325E8(s8 *, void *);
 
 /* ER-060: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
@@ -4642,7 +4807,7 @@ void func_00133290(char *arg0, char *arg1) {
 }
 
 extern void func_00133648(s8 *);
-extern s32 func_0012D9B8(void *, f32);
+extern s32 func_0012D9B8(char *, f32);
 
 /* ER-189: by hand, the early exit first in state 0 (recipes 2.43) and the success test written in each state (the
    game cross-jumps them). func_0012F9C0 declared s32: its asm returns func_00165170's value (recipes 2.36 / 2.42; as
