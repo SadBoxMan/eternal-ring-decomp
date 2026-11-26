@@ -1859,6 +1859,8 @@ up to 64) is a reading by shape (Unconfirmed).
 | func_001CB808 | varargs, waits on ER-245 / ER-199 (`stdarg.h`); not tried |
 | func_001CC9B0 | ER-162's; not tried |
 
+(ER-249 placed func_001CC9B0 and brought func_001CB528 to 2 words; see 2.61.)
+
 ### 2.60 Three memset callers by hand; the struct-typed store scan (ER-244 + ER-240, Wed 25 Nov 2026; Confirmed by `make regress`, 4 functions)
 
 Branch `er-244-structscan` (worktree `C:\rs\wt\er244`), commits `1552e48` (ER-244: func_00194F58, func_001A4710,
@@ -1909,6 +1911,33 @@ spelling (the `d` form is equivalent C that does not match).
 | func_001C9B18, func_001C9B28 | `text_001C9B18` | not applicable | libvu0's `lq` / `sq` copy (2.57's ruling question) |
 | func_001CC9B0 | `text_001CB528` | **skipped** | another card owns the file |
 | func_00142118, func_001C4838, func_001CCB08, func_00125B68 | | not applicable | already placed |
+
+### 2.61 `text_001CB528`: edge-LCM hoists a base past a loop; one local per section base (ER-249, Thu 26 Nov 2026; Confirmed by `make regress`, 1 function)
+
+Branch `er-249-cb528-init` (worktree `C:\rs\wt\er249`), commit `d66ba31`: **func_001CC9B0 placed** (1 function, 252
+bytes; ER-189's 11-word loop register tie, 2.46), plain C under ruling 3.23's per-file flag. func_001CB528 (the module
+init) went from 55 words to **2 words, same size**, and is parked. Scratch (our C only): `C:\rs\wt\er249_runs\`
+(`tools\var.py` the variant runner with a per-compile timeout, `b528\` and `c9b0\` the tries with their RTL dumps,
+`best\` the bests). Every C function of the file still matches (42 / 42); 7 asm functions are left in it.
+
+| Lesson | Proved by |
+|---|---|
+| **Under `-fedge-lcm`, gcse's PRE hoists a loop-invariant `base + const` written after a single-block loop to before that loop** (the `.gcse` dump: `PRE: redundant insn ... (expression 13)`, the new insn in the loop's preheader). The game computes the `0x240` table base right after the `0x200` loop, so in the source that base was not an expression at gcse time: it came from loop.c's strength reduction (a giv's initial value, placed after gcse). An offset local stepped in the loop (`p = c + j + 0x240; ... j += 4;`) beside the down counter gives the game's code; an index the counter itself drives is reversed (`bgez`, below). Unconfirmed reading of the original shape | func_001CB528 (scratch) |
+| **The game's `li N; li -1; ... addiu -1; bne $i, $(-1)` counters are written counting down to -1** (`for (i = N - 1; i != -1; i--)`; `i = N; while (i--)` gives the same code). An up-counting `for (i = 0; i < N; i++)` whose index is used is reversed by loop.c into `bgez` (2.58's countdown), and `i != N` is not reversed at all (`bne` against N, counting up). func_001CC9B0's loop is the reversed kind: `for (i = 0; i < 0x10; i++)` gives its `bgez` | func_001CB528 (scratch), func_001CC9B0 |
+| **One local per section base, as the game's registers show**: a pointer local reused across sections is one pseudo, so it conflicts with everything live in any of them. func_001CC9B0's late `D_0035C554` base, written in the early base's local, conflicted with `arg0` (`$a0`) and took `$a1`; in its own local `c` it gets the game's `$a0` and the counter `$a1`. func_001CB528's three bases (after the first call, after the third call, for the `0x200` / `0x240` clears) in three locals: 37 -> 8 words | func_001CC9B0, func_001CB528 (scratch) |
+| **global.c's first pass skips a hard register that a conflicting allocno prefers** (`regs_someone_prefers`; the `.greg` dump's `;; N preferences: R`): loop 4's `-1` took `$a1` because the `D_0035C554` load temporary beside it preferred `$v1`. `p = D_0035C554; p += 0x440;` (the load into the pointer itself) gives the game's `$v1` | func_001CB528 (scratch) |
+| **A chained store `x4BC = x4C0 = 0x5010` gives the game's store order** (`sw 0x4BC; ...; sh 0x4D4; sw 0x4C0`); two statements in any of the 24 orders do not | func_001CB528 (scratch) |
+| **The compare's operand order sets the load order**: `if (*(u32 *)(q + 0x4C0) <= *(u32 *)(p + 0xC))` loads `+0x4C0` first, as the game; `p->xC >= q->x4C0` the reverse. The read through a second pointer `q = c` (the store goes through `c`) is needed: with one pointer the function is 8 bytes short | func_001CC9B0 |
+
+Plain C, no compiler-steering construct, no ruling used. Names (`a`, `b`, `c`, `p`, `q`, `i`, `j`, `t`, `r`, `Sys`
+in scratch) and record offsets are Unofficial; func_001CB528's `j` offset local and `while (n--)`-style counters are
+readings (Unconfirmed); func_001D21F8 `s32 (s32 *, s32, s32)` is read from its use (Unconfirmed).
+
+**Parked (best files in `C:\rs\wt\er249_runs\best\`):**
+
+| Function | Cause |
+|---|---|
+| func_001CB528 | same size, 2 words (`b528_2w.c`): the game issues `li $a1, 0x5010` before `addiu $a0, $s1, %lo(D_01B73440)`, ours the reverse. Sched1 and sched2 rank the address higher because its store (`0x4CC`) heads the may-alias chain `0x4CC` store -> `D_01B73440[0]` store -> the later `b`-relative stores. Tried: the 72 orders the chain allows; the constant in a local (cse rematerializes it at its use); struct-typed `b` stores with a scalar-flagged `*(s32 *)D_01B73440` (alias.c's fixed-scalar / varying-struct rule frees the chain, but the stores then follow insn order: 36 placements, always 2 words, the D store or the `li` out of place); `extern s32 D_01B73440` as a scalar (it goes `$gp`-relative, 0x21C bytes: the game's object is an array or larger than 8 bytes); the clear written through the stored field. `-fno-schedule-insns2` (scratch only) leaves the same order. A dependency the original had and we lack; not found |
 
 ## 3. Rulings (LuciDin)
 
