@@ -98,6 +98,12 @@ $(BUILD)/src/text_001CA8D8.s: CFLAGS += -fedge-lcm
 # file before it matches either way. The later flag wins over CFLAGS' -fno-edge-lcm.
 $(BUILD)/src/text_001CB528.s: CFLAGS += -fedge-lcm
 
+# ER-162: text_00150878 is built with type-based alias analysis on (ruling docs/decomp_recipes.md 3.24, LuciDin, Thu
+# 26 Nov 2026): seven functions match as plain C only with it (stores and loads of different types scheduled as not
+# aliasing); every function placed in the file before it matches either way (func_00192EE8 / func_00193440 with their
+# zero stores written as floats). The later flag wins over CFLAGS' -fno-strict-aliasing.
+$(BUILD)/src/text_00150878.s: CFLAGS += -fstrict-aliasing
+
 $(BUILD)/src/%.o: $(BUILD)/src/%.s $(GP_INC) include/macro.inc include/labels.inc
 	$(AS) $(ASFLAGS) -o $@ $<
 
