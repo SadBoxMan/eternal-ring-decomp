@@ -2563,6 +2563,24 @@
       "model": "Opus, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-252",
+      "title": "Band-parallel CPU rasteriser, identical output (after ER-139 / ER-144)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus xhigh design, then high",
+      "waits_on": "ER-139; ER-144 may make it moot",
+      "notes": ""
+    },
+    {
+      "code": "ER-253",
+      "title": "Faster UploadImage, same writes (port, optional)",
+      "status": "Queued",
+      "track": "recomp",
+      "model": "Opus, medium",
+      "waits_on": "",
+      "notes": ""
     }
   ]
 }
