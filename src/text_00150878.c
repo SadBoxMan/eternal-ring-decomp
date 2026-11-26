@@ -2035,7 +2035,42 @@ void func_00160CE0(char *a0, char *a1) {
     *(float *)(a1 + 0xC) = *(float *)(a0 + 0x18) - t2 * func_001E3DE0(e);
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00160F28);
+/* ER-162: ER-225's rs6 m2c draft, a MATCH under ruling 3.24 (-fstrict-aliasing for this file); names and types Unconfirmed. */
+void func_00160F28(void *arg0) {
+    f32 *temp_2_2;
+    f32 *temp_3_2;
+    f32 temp_f0;
+    f32 temp_f0_2;
+    f32 temp_f1;
+    f32 temp_f2;
+    f32 temp_f2_2;
+    f32 temp_f3;
+    f32 temp_f6;
+    s32 temp_2;
+    s32 temp_3;
+
+    temp_f6 = *(f32 *)((char *)arg0 + 0x20);
+    temp_3 = *(s32 *)((char *)arg0 + 0x50);
+    temp_f3 = (f32) temp_3;
+    temp_f2 = *(f32 *)((char *)arg0 + 0x70) / temp_f3;
+    *(s32 *)((char *)arg0 + 0xC) = (s32) ((temp_3 * 2) + *(s32 *)((char *)arg0 + 0x54));
+    *(f32 *)((char *)arg0 + 0x70) = temp_f2;
+    temp_2 = (s32) ((temp_f6 * 4096.0f) / 6.2831855f) & 0xFFF;
+    temp_3_2 = (f32 *)(((temp_2 + 0x400) * 4) + (char *)D_001F0380);
+    temp_2_2 = (f32 *)((temp_2 * 4) + (char *)D_001F0380);
+    temp_f0 = temp_f2 * *temp_3_2 * *temp_2_2;
+    *(f32 *)((char *)arg0 + 0x74) = temp_f0;
+    temp_f1 = temp_f2 * *temp_2_2;
+    *(f32 *)((char *)arg0 + 0x78) = temp_f1;
+    temp_f0_2 = *temp_3_2;
+    *(f32 *)((char *)arg0 + 0x10) = (f32) (*(f32 *)((char *)arg0 + 0x10) + (temp_f0 * temp_f3));
+    *(f32 *)((char *)arg0 + 0x20) = (f32) -temp_f6;
+    *(s8 *)((char *)arg0 + 2) = 0;
+    temp_f2_2 = temp_f2 * temp_f0_2 * temp_f0_2;
+    *(f32 *)((char *)arg0 + 0x14) = (f32) (*(f32 *)((char *)arg0 + 0x14) + (temp_f1 * temp_f3));
+    *(f32 *)((char *)arg0 + 0x7C) = temp_f2_2;
+    *(f32 *)((char *)arg0 + 0x18) = (f32) (*(f32 *)((char *)arg0 + 0x18) + (temp_f2_2 * temp_f3));
+}
 
 /* ER-098: drafted with m2c (tools/m2c_bulk.py --plain); names, types and offsets are Unconfirmed readings. */
 void func_00161010(void *arg0) {
@@ -3050,7 +3085,21 @@ void func_001766E0(void) {
     *(s32 *)((char *)D_01ADED90 + 4) = 0;
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001766F8);
+extern s32 D_001F6BB4[];
+typedef struct { s32 x0; s32 x4; void *x8; } TED90;
+/* ER-162: by hand (ER-213 draft); matches under ruling 3.24: x8 holds a pointer (arg1), so its store does not alias
+   the int store to x0; names and types Unconfirmed. */
+void func_001766F8(s32 arg0, void *arg1) {
+    ((TED90 *)D_01ADED90)->x4 = arg0;
+    if (D_001F6BB4[0] == 0) {
+        ((TED90 *)D_01ADED90)->x8 = arg1;
+        ((TED90 *)D_01ADED90)->x0 = 2;
+        func_001C16C0(arg0, (s32)arg1, 0, 0);
+        return;
+    }
+    ((TED90 *)D_01ADED90)->x8 = arg1;
+    ((TED90 *)D_01ADED90)->x0 = 1;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_00176738);
 
@@ -6158,7 +6207,23 @@ void func_001B3440(char *arg0) {
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B3498);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B34F8);
+extern void *func_0017D968(s16, s32, s32, s32, s32);
+typedef struct { s32 x0; s32 x4; s32 x8; s32 xC; s32 x10; s32 x14; s32 x18; s32 pad1C[2]; s32 x24; s32 pad28[10]; s32 x50[4]; s32 x60[4]; void *x70; } S34;
+/* ER-162: by hand (ER-153 draft); matches under ruling 3.24: x70 is a pointer, so its load is free of the int store to
+   D_00248880; names and types Unconfirmed. */
+void func_001B34F8(S34 *arg0) {
+    s32 m;
+    if (arg0->x4 == 10) {
+        D_00248880[0] = arg0->x24;
+        func_0017D968(0xE, (s32)arg0->x50, (s32)arg0->x60, (s32)arg0->x70, 0);
+    }
+    m = arg0->x4;
+    if (m == 1) {
+        func_00165170(0x1775, 0x34007F, arg0->x50, 2560.0f);
+        arg0->x18 = m;
+        arg0->x10 = arg0->x4 = 0xC9;
+    }
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001B3590);
 
@@ -6784,7 +6849,7 @@ void func_001BB2C8(void) {
 }
 
 extern void func_001BBD78(s32);
-extern s32 D_001FF390[];
+extern u16 D_001FF390[];
 extern s32 D_001FF530[];
 /* ER-123: the table behind *(D_002029D0 + 0): eight s16 values, then eight (chance, value) pairs; Unofficial names, Unconfirmed reading. */
 typedef struct { s16 chance; s16 value; } ChancePair;
@@ -6812,7 +6877,7 @@ void func_001BB750(void) {
     char *r50;
 
     func_001BBD40();
-    pF = D_001FF390;
+    pF = (s32 *)D_001FF390;
     if (pF[0x65] > 0) {
         return;
     }
@@ -6907,7 +6972,7 @@ void func_001BB750(void) {
         }
     }
     w /= 4096;
-    pG = D_001FF390;
+    pG = (s32 *)D_001FF390;
     *(s16 *)D_00202AD0 = (w > 0) ? w : 1;
     if (pG[0x67] > 0) {
         return;
@@ -7611,7 +7676,16 @@ void func_001BFA50(void *arg0) {
     }
 }
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BFA90);
+/* ER-162: ER-225's rs6 m2c draft, a MATCH under ruling 3.24 (-fstrict-aliasing for this file); D_001FF390 read as a
+   halfword array as the draft had it; names and types Unconfirmed. */
+void func_001BFA90(void *arg0) {
+    if (*(s32 *)((char *)arg0 + 0x10) >= 0x20) {
+        *(s32 *)((char *)arg0 + 0x10) = 0x20;
+    }
+    *(s32 *)arg0 = 0;
+    D_001FF390[220] = *(u16 *)((char *)arg0 + 8);
+    D_001FF390[221] = *(s32 *)((char *)arg0 + 0x10);
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001BFAC8);
 
@@ -7626,7 +7700,7 @@ void func_001BFEB8(char *arg0) {
 
 /* ER-098: by hand from the m2c draft (tools/m2c_bulk.py, recipes 2.20); names, types and offsets are Unconfirmed readings. */
 void func_001BFF20(s32 *arg0) {
-    s32 *p = D_001FF390;
+    s32 *p = (s32 *)D_001FF390;
 
     p[0x65] = 0;
     p[0x66] = 0;
@@ -7656,7 +7730,26 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C0368);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C0418);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C04D8);
+/* ER-162: ER-225's rs6 m2c draft, a MATCH under ruling 3.24 (-fstrict-aliasing for this file); names and types Unconfirmed. */
+void func_001C04D8(void *arg0) {
+    D_00248880[0] = (s32) *(s32 *)((char *)arg0 + 8);
+    D_002488A0[0] = (f32) *(f32 *)((char *)arg0 + 0x48);
+    D_00248880[1] = (s32) *(s32 *)((char *)arg0 + 0x10);
+    D_002488A0[1] = (f32) *(f32 *)((char *)arg0 + 0x50);
+    D_00248880[2] = (s32) *(s32 *)((char *)arg0 + 0x18);
+    D_002488A0[2] = (f32) *(f32 *)((char *)arg0 + 0x58);
+    D_00248880[3] = (s32) *(s32 *)((char *)arg0 + 0x20);
+    D_002488A0[3] = (f32) *(f32 *)((char *)arg0 + 0x60);
+    D_00248880[4] = (s32) *(s32 *)((char *)arg0 + 0x28);
+    D_002488A0[4] = (f32) *(f32 *)((char *)arg0 + 0x68);
+    D_00248880[5] = (s32) *(s32 *)((char *)arg0 + 0x30);
+    D_002488A0[5] = (f32) *(f32 *)((char *)arg0 + 0x70);
+    D_00248880[6] = (s32) *(s32 *)((char *)arg0 + 0x38);
+    D_002488A0[6] = (f32) *(f32 *)((char *)arg0 + 0x78);
+    D_00248880[7] = (s32) *(s32 *)((char *)arg0 + 0x40);
+    D_002488A0[7] = (f32) *(f32 *)((char *)arg0 + 0x80);
+    *(s32 *)((char *)arg0 + 0) = 0;
+}
 
 extern s32 func_001C0690(void *, f32 fparg0, f32 fparg1, f32 fparg2);
 extern void func_001C0900(void *);
@@ -8198,7 +8291,7 @@ void func_001C4838(void) {
     func_001C9B18((s32)(D_00202950 + 4), D_001FF340 + 4);
     D_00202950[8] = D_0035B824;
     func_00101238((s32 *)p, D_001F65E8, 6);
-    func_00101238((s32 *)(p + 0x20), D_001FF390, 0x80);
+    func_00101238((s32 *)(p + 0x20), (s32 *)D_001FF390, 0x80);
     func_00101238((s32 *)(p + 0x220), D_001FF890, 0x140);
     func_00101238((s32 *)(p + 0x720), D_001FFD90, 0x640);
     func_00101238((s32 *)(p + 0x2020), D_00201690, 0x190);
@@ -8731,7 +8824,31 @@ INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C8120);
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C81C0);
 
-INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C8388);
+extern s32 func_001C81C0(void *, void *);
+
+/* ER-162: ER-225's rs6 m2c draft, a MATCH under ruling 3.24 (-fstrict-aliasing for this file); names and types Unconfirmed. */
+s32 func_001C8388(void *arg0, void *arg1) {
+    s32 temp_6;
+    s32 var_18;
+    void *temp_3;
+
+    var_18 = 0;
+    func_001D01A0(*(s32 *)((char *)arg0 + 0x40));
+    if (*(s32 *)((char *)arg0 + 0x58) < *(s32 *)((char *)arg0 + 0x54)) {
+        func_001C81C0(arg0, arg1);
+        var_18 = 1;
+        temp_6 = *(s32 *)((char *)arg0 + 0x50);
+        temp_3 = (void *)((*(s32 *)((char *)arg0 + 0x5C) * 0x18) + temp_6);
+        *(s32 *)((char *)temp_3 + 0x10) = *(s32 *)((char *)arg1 + 0x10);
+        *(s64 *)((char *)temp_3 + 0) = *(s64 *)((char *)arg1 + 0);
+        *(s32 *)((char *)((*(s32 *)((char *)arg0 + 0x5C) * 0x18) + temp_6) + 0x14) = *(s32 *)((char *)arg1 + 0x14);
+        *(s64 *)((char *)temp_3 + 8) = *(s64 *)((char *)arg1 + 8);
+        *(s32 *)((char *)arg0 + 0x58) = *(s32 *)((char *)arg0 + 0x58) + 1;
+        *(s32 *)((char *)arg0 + 0x5C) = (*(s32 *)((char *)arg0 + 0x5C) + 1) % *(s32 *)((char *)arg0 + 0x54);
+    }
+    func_001D0180(*(s32 *)((char *)arg0 + 0x40));
+    return var_18;
+}
 
 INCLUDE_ASM("asm/nonmatchings/text_00150878", func_001C8460);
 
