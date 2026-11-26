@@ -2665,11 +2665,11 @@
     },
     {
       "code": "ER-264",
-      "title": "Switch to -fstrict-aliasing and place the 10 (only after option A or B)",
-      "status": "Waiting",
+      "title": "Switch to -fstrict-aliasing (ruling 3.25) and place the 10",
+      "status": "Queued",
       "track": "decomp",
       "model": "Opus, medium",
-      "waits_on": "LuciDin's ruling (A / B / C)",
+      "waits_on": "none (ruled 3.25)",
       "notes": ""
     }
   ]
