@@ -2599,6 +2599,15 @@
       "model": "Sonnet, medium",
       "waits_on": "",
       "notes": ""
+    },
+    {
+      "code": "ER-256",
+      "title": "Ruling 3.6 again: whole build with -fstrict-aliasing?",
+      "status": "Waiting",
+      "track": "decomp",
+      "model": "Opus, high",
+      "waits_on": "LuciDin's decision",
+      "notes": ""
     }
   ]
 }
