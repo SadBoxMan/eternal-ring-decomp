@@ -1604,11 +1604,11 @@
     {
       "code": "ER-145",
       "title": "Recomp: small speed batch",
-      "status": "Queued",
+      "status": "Done",
       "track": "port",
       "model": "Opus, medium",
       "waits_on": "",
-      "notes": ""
+      "notes": "Done Thu 26 Nov 2026 (Recomp 2d628b7, spike 27): presenter latch 0.8-1.1 -> 0.27-0.47 ms (patch 20, AS, same frames); page cache and UploadFrame lock already covered; LTCG opt-in (live -6-7% game thread, VU1 compare waits on ER-139); AVX2 EX, no gain"
     },
     {
       "code": "ER-146",
